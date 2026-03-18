@@ -8,11 +8,12 @@
                background: #f4f6f9; margin: 0; padding: 40px; }
         h1 { color: #1b2a4a; font-size: 22px; font-weight: 500; }
         p { color: #666; margin-top: 8px; }
+        a { color: #185FA5; }
     </style>
 </head>
 <body>
     <h1>Welcome, {{ user.name or user.email }}</h1>
     <p>Founders Insurance Agent Portal — dashboard coming soon.</p>
-    <p><a href="/logout">Sign out</a></p>
+    <p><a href="/auth/logout">Sign out</a></p>
 </body>
 </html>

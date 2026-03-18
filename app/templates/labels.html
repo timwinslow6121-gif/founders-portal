@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% block title %}Birthday Labels{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Birthday Labels</h1>
+    <p class="page-sub">Avery 5160 · 30 labels per sheet · active customers only</p>
+  </div>
+  {% if policies %}
+  <a href="{{ url_for('labels.labels_download', month=selected_month) }}"
+     class="btn btn-primary">
+    Download {{ month_name }} CSV
+    <span class="btn-count">{{ policies|length }} labels</span>
+  </a>
+  {% endif %}
+</div>
+
+{# ── Flash messages ── #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="labels-layout">
+
+  {# ── Left: Month picker + workload summary ── #}
+  <div class="month-panel">
+    <div class="panel-card">
+      <div class="panel-header">Select Month</div>
+      <div class="month-grid">
+        {% for i in range(1, 13) %}
+        {% set m = i %}
+        {% set is_current = (m == today.month) %}
+        {% set is_selected = (m == selected_month) %}
+        {% set count = monthly_counts[m] %}
+        <a href="{{ url_for('labels.labels_page', month=m) }}"
+           class="month-btn
+                  {% if is_selected %}month-btn--selected{% endif %}
+                  {% if is_current and not is_selected %}month-btn--current{% endif %}">
+          <span class="month-btn__name">{{ month_names[m-1][:3] }}</span>
+          <span class="month-btn__count {% if count == 0 %}month-btn__count--zero{% endif %}">
+            {{ count }}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ── Missing address alert ── #}
+    {% if no_address %}
+    <div class="panel-card panel-card--warn">
+      <div class="panel-header panel-header--warn">Missing Addresses</div>
+      <p class="missing-intro">
+        {{ no_address|length }} customer{{ 's' if no_address|length != 1 else '' }} in
+        {{ month_name }} have no mailing address and will be skipped:
+      </p>
+      <ul class="missing-list">
+        {% for p in no_address %}
+        <li>{{ p.full_name or (p.first_name + ' ' + p.last_name) }}
+          <span class="missing-carrier">{{ p.carrier }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="missing-hint">Fix addresses by re-importing the carrier file after correction.</p>
+    </div>
+    {% endif %}
+
+    {# ── How to use ── #}
+    <div class="panel-card panel-card--info">
+      <div class="panel-header">How to Print</div>
+      <ol class="how-to">
+        <li>Download the CSV for the month.</li>
+        <li>Open in Microsoft Word → Mailings → Labels → Avery 5160.</li>
+        <li>Use mail merge to populate from the CSV columns <code>Label1</code>, <code>Label2</code>, <code>Label3</code>.</li>
+        <li>Each cell holds a 3-line label: name / street / city, state zip.</li>
+      </ol>
+    </div>
+  </div>
+
+  {# ── Right: Label preview grid ── #}
+  <div class="preview-panel">
+    <div class="preview-card">
+      <div class="preview-header">
+        <span class="preview-title">{{ month_name }} Preview</span>
+        <span class="preview-meta">
+          {{ policies|length }} label{{ 's' if policies|length != 1 else '' }}
+          · {{ ((policies|length / 30)|round(0, 'ceil'))|int }} sheet{{ 's' if (policies|length / 30) > 1 else '' }}
+          {% if no_address %}
+          · <span class="preview-skipped">{{ no_address|length }} skipped (no address)</span>
+          {% endif %}
+        </span>
+      </div>
+
+      {% if policies %}
+      {# Avery 5160 preview: 3-column grid #}
+      <div class="label-grid">
+        {% for policy in policies %}
+        <div class="label-cell">
+          <div class="label-name">
+            {{ policy.full_name or (policy.first_name + ' ' + policy.last_name) }}
+          </div>
+          {% if policy.address1 %}
+          <div class="label-street">{{ policy.address1 | title }}</div>
+          {% endif %}
+          <div class="label-csz">
+            {% if policy.city %}{{ policy.city | title }}{% endif %}{% if policy.state %}, {{ policy.state | upper }}{% endif %}{% if policy.zip_code %} {{ policy.zip_code }}{% endif %}
+          </div>
+          <div class="label-meta">
+            {{ policy.carrier }} ·
+            {% if policy.dob %}
+              b. {{ policy.dob.strftime('%-m/%-d') }}
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+
+        {# Pad remaining cells to complete the last row of 3 #}
+        {% set remainder = policies|length % 3 %}
+        {% if remainder == 1 %}
+          <div class="label-cell label-cell--empty"></div>
+          <div class="label-cell label-cell--empty"></div>
+        {% elif remainder == 2 %}
+          <div class="label-cell label-cell--empty"></div>
+        {% endif %}
+      </div>
+
+      {% else %}
+      <div class="empty-state">
+        {% if no_address %}
+          <p>All {{ month_name }} customers are missing mailing addresses.</p>
+          <p class="empty-sub">Fix the addresses in the carrier files and re-import.</p>
+        {% else %}
+          <p>No active customers have birthdays in {{ month_name }}.</p>
+          <p class="empty-sub">Labels will appear here once carrier files are imported.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>{# /preview-card #}
+  </div>{# /preview-panel #}
+
+</div>{# /labels-layout #}
+{% endblock %}
+
+{% block styles %}
+<style>
+/* ── Page header ── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 500;
+  color: #1B2A4A;
+  margin: 0 0 2px;
+}
+.page-sub {
+  font-size: 12px;
+  color: #4A5568;
+  margin: 0;
+}
+
+/* ── Flash alerts ── */
+.alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.alert-error, .alert-danger { background: #FCEBEB; color: #A32D2D; }
+.alert-warning              { background: #FAEEDA; color: #854F0B; }
+.alert-success              { background: #EAF3DE; color: #2D6A4F; }
+
+/* ── Primary button + label count badge ── */
+.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; cursor: pointer; border: none; }
+.btn-primary {
+  background: #185FA5;
+  color: #FFFFFF;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.btn-primary:hover { background: #1450875; }
+.btn-count {
+  background: rgba(255,255,255,0.2);
+  border-radius: 99px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+/* ── Two-column layout ── */
+.labels-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Panel cards (left column) ── */
+.panel-card {
+  background: #FFFFFF;
+  border: 0.5px solid #E2E6ED;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.panel-card--warn { border-color: #F5C6A0; }
+.panel-card--info { }
+
+.panel-header {
+  background: #1B2A4A;
+  color: #FFFFFF;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.panel-header--warn {
+  background: #854F0B;
+}
+
+/* ── Month picker grid ── */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 10px;
+}
+.month-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px 6px;
+  border-radius: 8px;
+  text-decoration: none;
+  border: 0.5px solid transparent;
+  transition: background 0.1s;
+}
+.month-btn:hover { background: #F4F6F9; }
+.month-btn--current {
+  border-color: #185FA5;
+}
+.month-btn--selected {
+  background: #E6F1FB;
+  border-color: #185FA5;
+}
+.month-btn__name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1B2A4A;
+}
+.month-btn--selected .month-btn__name { color: #185FA5; }
+.month-btn__count {
+  font-size: 11px;
+  color: #185FA5;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.month-btn__count--zero { color: #C0C8D4; }
+
+/* ── Missing address section ── */
+.missing-intro {
+  font-size: 12px;
+  color: #854F0B;
+  padding: 10px 14px 4px;
+  margin: 0;
+}
+.missing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 14px 8px;
+}
+.missing-list li {
+  font-size: 12px;
+  color: #1B2A4A;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 0.5px solid #F5DEC0;
+}
+.missing-list li:last-child { border-bottom: none; }
+.missing-carrier {
+  font-size: 10px;
+  background: #FAEEDA;
+  color: #854F0B;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+.missing-hint {
+  font-size: 11px;
+  color: #4A5568;
+  font-style: italic;
+  padding: 4px 14px 10px;
+  margin: 0;
+}
+
+/* ── How to print ── */
+.how-to {
+  margin: 0;
+  padding: 12px 14px 12px 28px;
+}
+.how-to li {
+  font-size: 12px;
+  color: #4A5568;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.how-to li:last-child { margin-bottom: 0; }
+.how-to code {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  background: #F4F6F9;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ── Preview card (right column) ── */
+.preview-card {
+  background: #FFFFFF;
+  border: 0.5px solid #E2E6ED;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid #E2E6ED;
+}
+.preview-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1B2A4A;
+}
+.preview-meta {
+  font-size: 12px;
+  color: #4A5568;
+}
+.preview-skipped {
+  color: #854F0B;
+}
+
+/* ── Label grid — mimics Avery 5160 3-col layout ── */
+.label-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  padding: 12px;
+  gap: 8px;
+}
+.label-cell {
+  border: 0.5px solid #E2E6ED;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 72px;
+  background: #FAFBFC;
+}
+.label-cell--empty {
+  background: transparent;
+  border-color: transparent;
+}
+.label-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1B2A4A;
+  margin-bottom: 2px;
+}
+.label-street {
+  font-size: 12px;
+  color: #1B2A4A;
+}
+.label-csz {
+  font-size: 12px;
+  color: #1B2A4A;
+  margin-bottom: 4px;
+}
+.label-meta {
+  font-size: 10px;
+  color: #A0AEC0;
+  margin-top: 4px;
+}
+
+/* ── Empty state ── */
+.empty-state {
+  padding: 48px 32px;
+  text-align: center;
+}
+.empty-state p {
+  font-size: 14px;
+  color: #4A5568;
+  margin: 0 0 6px;
+}
+.empty-sub {
+  font-size: 12px;
+  color: #888888;
+  font-style: italic;
+}
+</style>
+{% endblock %}

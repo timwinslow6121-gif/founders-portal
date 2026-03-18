@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Agency Overview{% endblock %}
+{% block styles %}
+.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
+.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric{background:#F4F6F9;border-radius:8px;padding:12px 14px}
+.metric-label{font-size:11px;color:#4A5568;margin-bottom:6px}
+.metric-value{font-size:22px;font-weight:500;color:#1B2A4A}
+.metric-sub{font-size:11px;color:#4A5568;margin-top:2px}
+.metric-sub.warn{color:#A32D2D}
+.section{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;margin-bottom:20px}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid #E2E6ED}
+.section-title{font-size:14px;font-weight:500;color:#1B2A4A}
+.section-meta{font-size:12px;color:#4A5568}
+.agent-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.agent-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 16px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
+.agent-table td{padding:9px 16px;border-bottom:0.5px solid #E2E6ED;color:#1B2A4A;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agent-table tr:last-child td{border-bottom:none}
+.agent-table tr:hover td{background:#F4F6F9}
+.avatar{width:28px;height:28px;border-radius:50%;background:#B5D4F4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#185FA5;flex-shrink:0;vertical-align:middle;margin-right:8px}
+.bar-wrap{background:#F4F6F9;border-radius:99px;height:6px;width:100%;margin-top:4px}
+.bar-fill{background:#185FA5;border-radius:99px;height:6px}
+.carrier-tag{font-size:10px;background:#E6F1FB;color:#185FA5;padding:1px 6px;border-radius:99px;font-weight:500;margin-right:3px}
+.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-green{background:#EAF3DE;color:#3B6D11}
+.carrier-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:16px}
+.carrier-card{background:#F4F6F9;border-radius:8px;padding:10px 12px;text-align:center}
+.carrier-name{font-size:11px;color:#4A5568;margin-bottom:4px}
+.carrier-count{font-size:18px;font-weight:500;color:#1B2A4A}
+.carrier-pct{font-size:11px;color:#888;margin-top:2px}
+{% endblock %}
+{% block content %}
+<h1 class="page-title">Agency Overview</h1>
+<p class="page-sub">All agents · {{ today.strftime('%B %d, %Y') }}</p>
+
+<div class="metrics">
+  <div class="metric">
+    <div class="metric-label">Total Active Policies</div>
+    <div class="metric-value">{{ "{:,}".format(total_policies) }}</div>
+    <div class="metric-sub">Across all agents</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Upcoming Terms (90d)</div>
+    <div class="metric-value">{{ total_terms_90 }}</div>
+    <div class="metric-sub {% if total_terms_30 > 0 %}warn{% endif %}">{{ total_terms_30 }} critical (&lt;30 days)</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Est. Monthly Commission</div>
+    <div class="metric-value">{{ total_monthly_split }}</div>
+    <div class="metric-sub">{{ total_monthly_gross }} gross · 55% split</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Est. Annual Commission</div>
+    <div class="metric-value">{{ total_annual_split }}</div>
+    <div class="metric-sub">MAPD flat rate only</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Carrier Breakdown — Agency</span>
+    <span class="section-meta">{{ total_policies }} total policies</span>
+  </div>
+  <div class="carrier-grid">
+    {% for row in agency_carrier_rows %}
+    <div class="carrier-card">
+      <div class="carrier-name">{{ row.carrier }}</div>
+      <div class="carrier-count">{{ "{:,}".format(row.count) }}</div>
+      <div class="carrier-pct">{{ row.pct }}%</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">Agent Breakdown</span>
+    <span class="section-meta">{{ agent_rows|length }} agents</span>
+  </div>
+  <table class="agent-table">
+    <colgroup>
+      <col style="width:180px"><col style="width:90px"><col style="width:150px">
+      <col style="width:110px"><col style="width:120px"><col style="width:120px"><col style="width:180px">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Agent</th><th>Policies</th><th>Share of Book</th>
+        <th>Terms &lt;30d</th><th>Monthly Est.</th><th>Annual Est.</th><th>Top Carriers</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in agent_rows %}
+      <tr>
+        <td>
+          <a href="{{ url_for('main.agent_detail', agent_id=row.agent.id) }}" style="text-decoration:none;display:inline-flex;align-items:center;">
+            <span class="avatar">{{ row.agent.initials }}</span>
+            <span style="font-weight:500;color:#185FA5;">{{ row.agent.display_name }}</span>
+          </a>
+        </td>
+        <td style="font-weight:500">{{ "{:,}".format(row.count) }}</td>
+        <td>
+          <div style="font-size:11px;color:#4A5568;margin-bottom:3px">{{ row.pct_of_agency }}%</div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:{{ row.pct_of_agency }}%"></div></div>
+        </td>
+        <td>
+          {% if row.terms_30 > 0 %}<span class="badge badge-red">{{ row.terms_30 }} critical</span>
+          {% elif row.terms_90 > 0 %}<span class="badge badge-amber">{{ row.terms_90 }} upcoming</span>
+          {% else %}<span class="badge badge-green">None</span>{% endif %}
+        </td>
+        <td style="font-weight:500">{{ row.monthly_yours }}</td>
+        <td style="font-weight:500">{{ row.annual_yours }}</td>
+        <td>{% for carrier, count in row.top_carriers %}<span class="carrier-tag">{{ carrier }} {{ count }}</span>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -2,15 +2,21 @@
 {% block title %}Dashboard — Founders Portal{% endblock %}
 
 {% block content %}
+{% if viewing_agent %}
+<div style="display:flex;align-items:center;gap:16px;background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:13px;">
+  <a href="{{ url_for('main.admin_overview') }}" style="color:#185FA5;text-decoration:none;font-weight:500;white-space:nowrap;">← Agency Overview</a>
+  <span style="color:#1B2A4A;">Viewing: <strong>{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
+</div>
+{% endif %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Dashboard</h1>
+    <h1 class="page-title">{% if viewing_agent %}{{ viewing_agent.display_name }}'s Dashboard{% else %}Dashboard{% endif %}</h1>
     <p class="page-sub">
       Last import: {{ last_import or 'No imports yet' }}
       {% if policy_count %} · {{ policy_count }} active policies{% endif %}
     </p>
   </div>
-  {% if current_user.is_admin %}
+  {% if current_user.is_admin and not viewing_agent %}
   <a href="/upload" class="btn-primary">Upload carrier files</a>
   {% endif %}
 </div>

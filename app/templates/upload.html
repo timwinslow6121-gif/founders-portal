@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+{% block title %}Upload Carrier Files — Founders Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Carrier file upload</h1>
+    <p class="page-sub">Admin only — import carrier book-of-business exports to populate policy data</p>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="upload-grid">
+
+  <!-- Upload form -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Upload a file</span>
+    </div>
+    <div class="card-body">
+
+      <div class="form-group">
+        <label for="carrier-select" class="form-label">Carrier</label>
+        <select id="carrier-select" name="carrier" class="form-select">
+          <option value="" disabled selected>Select carrier...</option>
+          {% for carrier in carriers %}
+            <option value="{{ carrier }}">{{ carrier }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-top: 16px;">
+        <label class="form-label">File</label>
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" name="file" accept=".csv,.xlsx,.xls" style="display:none;">
+          <div class="drop-zone-inner" id="drop-zone-inner">
+            <div class="drop-zone-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4A5568" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="drop-zone-text">Drop file here or <span class="link-text">click to browse</span></p>
+            <p class="drop-zone-sub">CSV, XLSX, or XLS · Max 50 MB</p>
+          </div>
+          <div class="drop-zone-selected" id="drop-zone-selected" style="display:none;">
+            <div class="selected-file-row">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B6D11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span id="selected-filename" class="selected-filename"></span>
+              <button type="button" class="btn-clear" id="clear-file" aria-label="Remove file">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="format-notes" id="format-notes" style="display:none;">
+        <p class="format-notes-title">File requirements</p>
+        <p class="format-notes-text" id="format-notes-text"></p>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button type="button" class="btn-primary" id="upload-btn" disabled>
+          Upload and import
+        </button>
+        <span class="upload-hint" id="upload-hint">Select a carrier and file to continue</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Carrier reference -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Carrier file formats</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Carrier</th>
+            <th>Format</th>
+            <th>Active filter</th>
+            <th>Key</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw-medium">UHC</td>
+            <td><span class="badge badge-blue">XLSX</span></td>
+            <td>Active-only export</td>
+            <td class="mono">mbiNumber</td>
+          </tr>
+          <tr>
+            <td class="fw-medium">Humana</td>
+            <td><span class="badge badge-blue">CSV</span></td>
+            <td>Active-only export</td>
+            <td class="mono">HumanaId</td>
+          </tr>
+          <tr>
+            <td class="fw-medium">Aetna</td>
+            <td><span class="badge badge-blue">CSV</span></td>
+            <td>Member Status = A</td>
+            <td class="mono">Medicare Number</td>
+          </tr>
+          <tr>
+            <td class="fw-medium">BCBS</td>
+            <td><span class="badge badge-blue">CSV</span></td>
+            <td>Term date &gt; today</td>
+            <td class="mono">Medicare Number</td>
+          </tr>
+          <tr>
+            <td class="fw-medium">Devoted</td>
+            <td><span class="badge badge-blue">CSV</span></td>
+            <td>status = ENROLLED</td>
+            <td class="mono">member_id</td>
+          </tr>
+          <tr>
+            <td class="fw-medium">Healthspring</td>
+            <td><span class="badge badge-amber">XLS*</span></td>
+            <td>Status = Enrolled</td>
+            <td class="mono">Medicare Number</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="table-note">* Healthspring .xls files are HTML-disguised — the portal handles this automatically.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Import history -->
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <span class="card-title">Import history</span>
+    <span class="card-sub" id="history-count"></span>
+  </div>
+  <div class="card-body" style="padding: 0;">
+    <table class="data-table" id="history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Carrier</th>
+          <th>Filename</th>
+          <th>Uploaded by</th>
+          <th>Records</th>
+          <th>New</th>
+          <th>Updated</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="history-body">
+        <tr>
+          <td colspan="8" class="empty-cell">Loading import history...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block styles %}
+<style>
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: #1B2A4A;
+    margin: 0 0 4px 0;
+  }
+  .page-sub {
+    font-size: 13px;
+    color: #4A5568;
+    margin: 0;
+  }
+
+  /* Alerts */
+  .alert {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .alert-success { background: #EAF3DE; color: #2D6A4F; }
+  .alert-error   { background: #FCEBEB; color: #A32D2D; }
+  .alert-warning { background: #FAEEDA; color: #854F0B; }
+
+  /* Layout */
+  .upload-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  /* Cards */
+  .card {
+    background: #FFFFFF;
+    border: 0.5px solid #E2E6ED;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 0.5px solid #E2E6ED;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #1B2A4A;
+  }
+  .card-sub {
+    font-size: 12px;
+    color: #4A5568;
+  }
+  .card-body {
+    padding: 20px;
+  }
+
+  /* Form */
+  .form-group { display: flex; flex-direction: column; }
+  .form-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #4A5568;
+    margin-bottom: 6px;
+  }
+  .form-select {
+    height: 36px;
+    padding: 0 12px;
+    border: 0.5px solid #E2E6ED;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1B2A4A;
+    background: #FFFFFF;
+    width: 100%;
+    cursor: pointer;
+    appearance: auto;
+  }
+  .form-select:focus {
+    outline: none;
+    border-color: #185FA5;
+    box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.1);
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2px dashed #E2E6ED;
+    border-radius: 12px;
+    background: #F4F6F9;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover,
+  .drop-zone.drag-over {
+    border-color: #185FA5;
+    background: #E6F1FB;
+  }
+  .drop-zone-inner {
+    padding: 32px;
+    text-align: center;
+  }
+  .drop-zone-icon { margin-bottom: 10px; }
+  .drop-zone-text {
+    font-size: 14px;
+    color: #4A5568;
+    margin: 0 0 4px;
+  }
+  .link-text {
+    color: #185FA5;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .drop-zone-sub {
+    font-size: 12px;
+    color: #888888;
+    margin: 0;
+  }
+  .drop-zone-selected {
+    padding: 16px 20px;
+  }
+  .selected-file-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .selected-filename {
+    font-size: 13px;
+    color: #1B2A4A;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .btn-clear {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #4A5568;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .btn-clear:hover { color: #A32D2D; }
+
+  /* Format notes */
+  .format-notes {
+    background: #F4F6F9;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 16px;
+  }
+  .format-notes-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: #1B2A4A;
+    margin: 0 0 4px;
+  }
+  .format-notes-text {
+    font-size: 12px;
+    color: #4A5568;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: #185FA5;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary:not(:disabled):hover { background: #14508F; }
+  .btn-primary:not(:disabled):active { transform: scale(0.98); }
+  .upload-hint {
+    font-size: 12px;
+    color: #888888;
+    margin-left: 12px;
+  }
+
+  /* Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+  }
+  .data-table th {
+    font-size: 11px;
+    font-weight: 500;
+    color: #4A5568;
+    text-align: left;
+    padding: 8px 16px;
+    border-bottom: 0.5px solid #E2E6ED;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 9px 16px;
+    border-bottom: 0.5px solid #E2E6ED;
+    color: #1B2A4A;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: #F4F6F9; }
+  .fw-medium { font-weight: 500; }
+  .mono { font-family: 'Courier New', monospace; font-size: 11px; }
+  .table-note {
+    font-size: 11px;
+    color: #888888;
+    padding: 8px 16px 10px;
+    margin: 0;
+  }
+  .empty-cell {
+    text-align: center;
+    color: #888888;
+    font-size: 13px;
+    padding: 24px 16px !important;
+  }
+
+  /* Badges */
+  .badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 99px;
+    display: inline-block;
+  }
+  .badge-blue   { background: #E6F1FB; color: #185FA5; }
+  .badge-amber  { background: #FAEEDA; color: #854F0B; }
+  .badge-green  { background: #EAF3DE; color: #3B6D11; }
+  .badge-red    { background: #FCEBEB; color: #A32D2D; }
+  .badge-gray   { background: #F4F6F9; color: #4A5568; }
+
+  @media (max-width: 1023px) {
+    .upload-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+  const CARRIER_NOTES = {
+    "UHC":         "XLSX file from the UHC Producer Portal. Export active members only.",
+    "Humana":      "CSV from Humana Producer Portal. MBI is masked — the portal uses Humana ID instead.",
+    "Aetna":       "CSV from Aetna Producer Toolbox. Export all members — the portal filters to Status = A.",
+    "BCBS":        "CSV from BCBS NC Producer portal. Export all members — the portal filters by term date.",
+    "Devoted":     "CSV API export from Devoted Health. Export all members — the portal filters to ENROLLED.",
+    "Healthspring":"XLS file from Healthspring / Cigna. The file is HTML-disguised — the portal handles it automatically.",
+  };
+
+  const carrierSelect  = document.querySelector('#carrier-select');
+  const fileInput      = document.querySelector('#file-input');
+  const dropZone       = document.querySelector('#drop-zone');
+  const dropZoneInner  = document.querySelector('#drop-zone-inner');
+  const dropZoneSelected = document.querySelector('#drop-zone-selected');
+  const selectedFilename = document.querySelector('#selected-filename');
+  const clearBtn       = document.querySelector('#clear-file');
+  const uploadBtn      = document.querySelector('#upload-btn');
+  const uploadHint     = document.querySelector('#upload-hint');
+  const formatNotes    = document.querySelector('#format-notes');
+  const formatNotesText = document.querySelector('#format-notes-text');
+
+  let selectedFile = null;
+  let selectedCarrier = '';
+
+  function updateUploadBtn() {
+    const ready = selectedCarrier && selectedFile;
+    uploadBtn.disabled = !ready;
+    if (!selectedCarrier && !selectedFile) {
+      uploadHint.textContent = 'Select a carrier and file to continue';
+    } else if (!selectedCarrier) {
+      uploadHint.textContent = 'Select a carrier';
+    } else if (!selectedFile) {
+      uploadHint.textContent = 'Choose a file';
+    } else {
+      uploadHint.textContent = '';
+    }
+  }
+
+  carrierSelect.addEventListener('change', () => {
+    selectedCarrier = carrierSelect.value;
+    if (selectedCarrier && CARRIER_NOTES[selectedCarrier]) {
+      formatNotesText.textContent = CARRIER_NOTES[selectedCarrier];
+      formatNotes.style.display = 'block';
+    } else {
+      formatNotes.style.display = 'none';
+    }
+    updateUploadBtn();
+  });
+
+  function setFile(file) {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['csv', 'xlsx', 'xls'].includes(ext)) {
+      alert('Only CSV, XLSX, or XLS files are allowed.');
+      return;
+    }
+    selectedFile = file;
+    selectedFilename.textContent = file.name;
+    dropZoneInner.style.display = 'none';
+    dropZoneSelected.style.display = 'block';
+    updateUploadBtn();
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    dropZoneInner.style.display = 'block';
+    dropZoneSelected.style.display = 'none';
+    updateUploadBtn();
+  }
+
+  dropZone.addEventListener('click', (e) => {
+    if (e.target === clearBtn) return;
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) setFile(fileInput.files[0]);
+  });
+
+  clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearFile();
+  });
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drag-over');
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) setFile(file);
+  });
+
+  // Submit via fetch with FormData so we keep the file
+  uploadBtn.addEventListener('click', () => {
+    if (!selectedCarrier || !selectedFile) return;
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    uploadHint.textContent = '';
+
+    const formData = new FormData();
+    formData.append('carrier', selectedCarrier);
+    formData.append('file', selectedFile);
+
+    fetch('/upload', {
+      method: 'POST',
+      body: formData,
+    }).then(resp => {
+      // Server redirects on success/error — follow it
+      window.location.href = resp.url;
+    }).catch(() => {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload and import';
+      alert('Network error — please try again.');
+    });
+  });
+
+  // Load import history
+  function loadHistory() {
+    fetch('/upload/history')
+      .then(r => r.json())
+      .then(batches => {
+        const tbody = document.querySelector('#history-body');
+        const countEl = document.querySelector('#history-count');
+        countEl.textContent = `${batches.length} imports`;
+
+        if (!batches.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">No imports yet. Upload the first carrier file above.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = batches.map(b => {
+          const statusBadge = b.status === 'success'
+            ? '<span class="badge badge-green">Success</span>'
+            : b.status === 'error'
+            ? `<span class="badge badge-red" title="${b.error_message}">Error</span>`
+            : '<span class="badge badge-gray">Pending</span>';
+
+          const filename = b.filename.length > 30
+            ? b.filename.substring(0, 27) + '...'
+            : b.filename;
+
+          return `<tr>
+            <td>${b.upload_date}</td>
+            <td class="fw-medium">${b.carrier}</td>
+            <td title="${b.filename}">${filename}</td>
+            <td>${b.uploaded_by}</td>
+            <td class="fw-medium">${b.record_count.toLocaleString()}</td>
+            <td style="color:#3B6D11">${b.new_count.toLocaleString()}</td>
+            <td>${b.updated_count.toLocaleString()}</td>
+            <td>${statusBadge}</td>
+          </tr>`;
+        }).join('');
+      })
+      .catch(() => {
+        document.querySelector('#history-body').innerHTML =
+          '<tr><td colspan="8" class="empty-cell">Could not load import history.</td></tr>';
+      });
+  }
+
+  loadHistory();
+</script>
+{% endblock %}

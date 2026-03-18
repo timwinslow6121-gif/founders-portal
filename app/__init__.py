@@ -17,8 +17,10 @@ def create_app():
     from app.models import User  # noqa
     from app.routes import main
     from app.auth import auth
+    from app.upload import upload_bp
     app.register_blueprint(main)
     app.register_blueprint(auth)
+    app.register_blueprint(upload_bp)
 
     with app.app_context():
         db.create_all()

@@ -1,19 +1,283 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard — Founders Portal</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-               background: #f4f6f9; margin: 0; padding: 40px; }
-        h1 { color: #1b2a4a; font-size: 22px; font-weight: 500; }
-        p { color: #666; margin-top: 8px; }
-        a { color: #185FA5; }
-    </style>
-</head>
-<body>
-    <h1>Welcome, {{ user.name or user.email }}</h1>
-    <p>Founders Insurance Agent Portal — dashboard coming soon.</p>
-    <p><a href="/auth/logout">Sign out</a></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Dashboard — Founders Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    <p class="page-sub">
+      Last import: {{ last_import or 'No imports yet' }}
+      {% if policy_count %} · {{ policy_count }} active policies{% endif %}
+    </p>
+  </div>
+  {% if current_user.is_admin %}
+  <a href="/upload" class="btn-primary">Upload carrier files</a>
+  {% endif %}
+</div>
+
+<!-- Metric cards -->
+<div class="metric-grid">
+  <div class="metric-card">
+    <div class="metric-label">Active policies</div>
+    <div class="metric-value">{{ policy_count }}</div>
+    <div class="metric-sub">across {{ carrier_count }} carriers</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Upcoming terms (90 days)</div>
+    <div class="metric-value {% if terms_90 > 0 %}metric-value-warn{% endif %}">{{ terms_90 }}</div>
+    <div class="metric-sub">
+      {% if terms_30 > 0 %}<span style="color:#A32D2D;">{{ terms_30 }} under 30 days</span>
+      {% else %}none critical{% endif %}
+    </div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Est. monthly commission</div>
+    <div class="metric-value">{{ monthly_commission }}</div>
+    <div class="metric-sub">at 55% · MAPD only</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Est. annual commission</div>
+    <div class="metric-value">{{ annual_commission }}</div>
+    <div class="metric-sub">projected from current BOB</div>
+  </div>
+</div>
+
+<!-- Carrier breakdown + recent imports -->
+<div class="two-col-grid">
+
+  <!-- Carrier breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Policies by carrier</span>
+      <span class="card-sub">{{ policy_count }} total</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      {% if carrier_breakdown %}
+        {% for row in carrier_breakdown %}
+        <div class="carrier-row">
+          <div class="carrier-name">{{ row.carrier }}</div>
+          <div class="carrier-bar-wrap">
+            <div class="carrier-bar" style="width: {{ row.pct }}%;"></div>
+          </div>
+          <div class="carrier-count">{{ row.count }}</div>
+          <div class="carrier-pct">{{ row.pct }}%</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-cell">No policy data. Upload carrier files to populate.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Commission by carrier -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Commission estimate by carrier</span>
+      <span class="card-sub">55% split · $28.91/mo MAPD</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+      {% if carrier_breakdown %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Carrier</th>
+            <th>Policies</th>
+            <th>Gross/mo</th>
+            <th>Your 55%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in carrier_breakdown %}
+          <tr>
+            <td class="fw-medium">{{ row.carrier }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ row.gross_monthly }}</td>
+            <td class="fw-medium" style="color:#3B6D11;">{{ row.your_monthly }}</td>
+          </tr>
+          {% endfor %}
+          <tr style="border-top: 1px solid #E2E6ED;">
+            <td class="fw-medium">Total</td>
+            <td class="fw-medium">{{ policy_count }}</td>
+            <td class="fw-medium">{{ total_gross_monthly }}</td>
+            <td class="fw-medium" style="color:#3B6D11;">{{ monthly_commission }}</td>
+          </tr>
+        </tbody>
+      </table>
+      {% else %}
+        <div class="empty-cell">No data yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Upcoming terminations -->
+<div class="card" style="margin-top: 20px;">
+  <div class="card-header">
+    <span class="card-title">Upcoming terminations</span>
+    <span class="card-sub">Next 90 days</span>
+  </div>
+  {% if upcoming_terms %}
+  <div style="padding: 0;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:22%">Member</th>
+          <th style="width:12%">DOB</th>
+          <th style="width:14%">Phone</th>
+          <th style="width:14%">Carrier</th>
+          <th style="width:18%">Plan</th>
+          <th style="width:10%">Term date</th>
+          <th style="width:10%">Days</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in upcoming_terms %}
+        <tr class="row-{{ p.urgency_class }}">
+          <td class="fw-medium">{{ p.full_name }}</td>
+          <td>{{ p.dob.strftime('%m/%d/%Y') if p.dob else '—' }}</td>
+          <td>{{ p.phone or '—' }}</td>
+          <td>{{ p.carrier }}</td>
+          <td>{{ p.plan_name or '—' }}</td>
+          <td>{{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }}</td>
+          <td>
+            <span class="badge badge-{{ p.urgency_class }}">{{ p.days_until_term }}d</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <p class="empty-state-text">No terminations in the next 90 days.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+
+{% block styles %}
+<style>
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .page-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: #1B2A4A;
+    margin: 0 0 4px 0;
+  }
+  .page-sub {
+    font-size: 13px;
+    color: #4A5568;
+    margin: 0;
+  }
+
+  /* Metric cards */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .metric-card {
+    background: #F4F6F9;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .metric-label {
+    font-size: 11px;
+    color: #4A5568;
+    margin-bottom: 6px;
+  }
+  .metric-value {
+    font-size: 24px;
+    font-weight: 500;
+    color: #1B2A4A;
+    line-height: 1.1;
+  }
+  .metric-value-warn { color: #854F0B; }
+  .metric-sub {
+    font-size: 11px;
+    color: #4A5568;
+    margin-top: 4px;
+  }
+
+  /* Two-col layout */
+  .two-col-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  /* Carrier bar rows */
+  .carrier-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 0.5px solid #E2E6ED;
+  }
+  .carrier-row:last-child { border-bottom: none; }
+  .carrier-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1B2A4A;
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .carrier-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: #E2E6ED;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .carrier-bar {
+    height: 100%;
+    background: #185FA5;
+    border-radius: 99px;
+  }
+  .carrier-count {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1B2A4A;
+    width: 32px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .carrier-pct {
+    font-size: 12px;
+    color: #4A5568;
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Urgency row colors */
+  .row-red td    { background: #FCEBEB; }
+  .row-amber td  { background: #FAEEDA; }
+  .row-yellow td { background: #FFF2CC; }
+  .row-red:hover td    { background: #f8d7d7; }
+  .row-amber:hover td  { background: #f5e0c0; }
+  .row-yellow:hover td { background: #f5e8a0; }
+
+  .empty-state-text {
+    font-size: 13px;
+    color: #888888;
+    margin: 0;
+    text-align: center;
+    padding: 16px 0;
+  }
+
+  @media (max-width: 1023px) {
+    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .two-col-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}

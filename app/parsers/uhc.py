@@ -1,6 +1,6 @@
 """
 UHC (UnitedHealthcare) BOB parser.
-Header is on row index 2 — file has a 2-row UHC preamble before the data.
+Header on row index 2 — file has a 2-row UHC preamble.
 Confirmed columns from live file March 2026.
 """
 import pandas as pd
@@ -25,29 +25,33 @@ def parse(filepath: str) -> list[dict]:
 
     records = []
     for _, row in df.iterrows():
-        mbi = _str(row, "mbiNumber").upper()
-        first = _str(row, "memberFirstName")
-        last = _str(row, "memberLastName")
+        mbi   = _str(row, "mbiNumber").upper()
+        first = _str(row, "memberFirstName").title()
+        last  = _str(row, "memberLastName").title()
         raw_term = _str(row, "policyTermDate")
         term_date = None
         if raw_term and raw_term != UHC_NO_TERM_SENTINEL:
             term_date = _parse_date(row, "policyTermDate")
         records.append({
-            "carrier": "UHC",
-            "member_id": mbi,
-            "mbi": mbi,
-            "first_name": first,
-            "last_name": last,
-            "full_name": f"{first} {last}".strip(),
-            "plan_name": _str(row, "planName"),
-            "plan_type": _str(row, "product"),
+            "carrier":        "UHC",
+            "member_id":      mbi,
+            "mbi":            mbi,
+            "first_name":     first,
+            "last_name":      last,
+            "full_name":      f"{first} {last}".strip(),
+            "plan_name":      _str(row, "planName"),
+            "plan_type":      _str(row, "product"),
             "effective_date": _parse_date(row, "policyEffectiveDate"),
-            "term_date": term_date,
-            "dob": _parse_date(row, "dateOfBirth"),
-            "phone": _str(row, "memberPhone"),
-            "county": _str(row, "memberCounty"),
-            "agent_id": _str(row, "agentId"),
-            "status": "active",
+            "term_date":      term_date,
+            "dob":            _parse_date(row, "dateOfBirth"),
+            "phone":          _str(row, "memberPhone"),
+            "county":         _str(row, "memberCounty"),
+            "address1":       _str(row, "memberAddress1").title(),
+            "city":           _str(row, "memberCity").title(),
+            "state":          _str(row, "memberState").upper(),
+            "zip_code":       _str(row, "memberZip"),
+            "agent_id":       _str(row, "agentId"),
+            "status":         "active",
         })
     return records
 

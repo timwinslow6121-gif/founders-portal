@@ -1,7 +1,7 @@
 """
 Humana BOB parser.
-Status filter: "Active Policy" (confirmed from live file March 2026).
-Primary key: Humana ID (MBI is masked as XXXXX...).
+Status filter: "Active Policy" (confirmed March 2026).
+Primary key: Humana ID (MBI masked).
 Confirmed columns from live file March 2026.
 """
 import pandas as pd
@@ -29,25 +29,29 @@ def parse(filepath: str) -> list[dict]:
     records = []
     for _, row in df.iterrows():
         humana_id = _str(row, "Humana ID")
-        first = _str(row, "MbrFirstName")
-        last = _str(row, "MbrLastName")
-        raw_mbi = _str(row, "Medicare No")
+        first     = _str(row, "MbrFirstName").title()
+        last      = _str(row, "MbrLastName").title()
+        raw_mbi   = _str(row, "Medicare No")
         records.append({
-            "carrier": "Humana",
-            "member_id": humana_id,
-            "mbi": "" if raw_mbi.startswith("XXXXX") else raw_mbi.upper(),
-            "first_name": first,
-            "last_name": last,
-            "full_name": f"{first} {last}".strip(),
-            "plan_name": _str(row, "Plan Name"),
-            "plan_type": _str(row, "Plan Type"),
+            "carrier":        "Humana",
+            "member_id":      humana_id,
+            "mbi":            "" if raw_mbi.startswith("XXXXX") else raw_mbi.upper(),
+            "first_name":     first,
+            "last_name":      last,
+            "full_name":      f"{first} {last}".strip(),
+            "plan_name":      _str(row, "Plan Name"),
+            "plan_type":      _str(row, "Plan Type"),
             "effective_date": _parse_date(row, "Effective Date"),
-            "term_date": _parse_date(row, "Inactive Date"),
-            "dob": _parse_date(row, "Birth Date"),
-            "phone": _str(row, "Primary Phone"),
-            "county": _str(row, "Mail Cnty"),
-            "agent_id": _str(row, "NPN"),
-            "status": "active",
+            "term_date":      _parse_date(row, "Inactive Date"),
+            "dob":            _parse_date(row, "Birth Date"),
+            "phone":          _str(row, "Primary Phone"),
+            "county":         _str(row, "Mail Cnty"),
+            "address1":       _str(row, "Mail Address").title(),
+            "city":           _str(row, "Mail City").title(),
+            "state":          _str(row, "Mail State").upper(),
+            "zip_code":       _str(row, "Mail ZipCd"),
+            "agent_id":       _str(row, "NPN"),
+            "status":         "active",
         })
     return records
 

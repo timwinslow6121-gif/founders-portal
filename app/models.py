@@ -60,6 +60,10 @@ class Policy(db.Model):
     full_name = db.Column(db.String(256))
     dob = db.Column(db.Date)
     phone = db.Column(db.String(32))
+    address1 = db.Column(db.String(256))
+    city = db.Column(db.String(128))
+    state = db.Column(db.String(32))
+    zip_code = db.Column(db.String(16))
     county = db.Column(db.String(128))
 
     # Plan info

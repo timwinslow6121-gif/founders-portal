@@ -161,6 +161,10 @@ def process_upload():
             existing.renewal_date = rec.get("renewal_date")
             existing.dob = rec["dob"]
             existing.phone = rec["phone"]
+            existing.address1 = rec.get("address1", "")
+            existing.city = rec.get("city", "")
+            existing.state = rec.get("state", "")
+            existing.zip_code = rec.get("zip_code", "")
             existing.county = rec["county"]
             existing.agent_id_carrier = rec["agent_id"]
             existing.status = rec["status"]
@@ -182,6 +186,10 @@ def process_upload():
                 renewal_date=rec.get("renewal_date"),
                 dob=rec["dob"],
                 phone=rec["phone"],
+                address1=rec.get("address1", ""),
+                city=rec.get("city", ""),
+                state=rec.get("state", ""),
+                zip_code=rec.get("zip_code", ""),
                 county=rec["county"],
                 agent_id_carrier=rec["agent_id"],
                 status=rec["status"],
@@ -240,3 +248,163 @@ def import_history():
         }
         for b in batches
     ])
+
+
+def _detect_carrier(filepath: str, filename: str) -> str:
+    import pandas as pd
+    ext = os.path.splitext(filename)[1].lower()
+    try:
+        if ext in ('.xlsx', '.xls'):
+            try:
+                df = pd.read_excel(filepath, header=2, nrows=0, dtype=str)
+                df.columns = df.columns.str.strip()
+                if 'mbiNumber' in df.columns and 'memberFirstName' in df.columns:
+                    return 'UHC'
+            except Exception:
+                pass
+            try:
+                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                    chunk = f.read(4096)
+                if '<table' in chunk.lower() or '<html' in chunk.lower():
+                    from io import StringIO
+                    tables = pd.read_html(StringIO(chunk))
+                    if tables:
+                        cols = set(str(c).strip() for c in tables[0].columns)
+                        if 'Medicare Number' in cols:
+                            return 'Healthspring'
+            except Exception:
+                pass
+        else:
+            df = pd.read_csv(filepath, nrows=0, dtype=str)
+            cols = set(df.columns.str.strip())
+            if 'mbiNumber' in cols:
+                return 'UHC'
+            if 'MbrFirstName' in cols and 'Humana ID' in cols:
+                return 'Humana'
+            if 'Medicare Number' in cols and 'Member Status' in cols:
+                return 'Aetna'
+            if 'BCBSNC Member Number' in cols:
+                return 'BCBS'
+            if 'member_id' in cols and 'first_name' in cols and 'status' in cols:
+                return 'Devoted'
+            if 'Medicare Number' in cols and 'First Name' in cols:
+                return 'Healthspring'
+    except Exception as e:
+        raise ValueError(f"Could not read file: {e}")
+    raise ValueError("Could not identify carrier from file headers.")
+
+
+@upload_bp.route("/upload/bulk", methods=["POST"])
+@login_required
+@_admin_required
+def bulk_upload():
+    today = date.today()
+    upload_dir = os.path.join(current_app.instance_path, "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    results = []
+    errors = []
+
+    files = request.files.getlist("files")
+    if not files or all(f.filename == "" for f in files):
+        flash("No files were submitted.", "warning")
+        return redirect(url_for("upload.upload_page"))
+
+    for file in files:
+        if not file or file.filename == "":
+            continue
+        filename = secure_filename(file.filename)
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in {".csv", ".xlsx", ".xls"}:
+            errors.append(f"{filename}: unsupported file type")
+            continue
+
+        safe_filename = f"{uuid.uuid4().hex}_{filename}"
+        filepath = os.path.join(upload_dir, safe_filename)
+        file.save(filepath)
+
+        try:
+            carrier = _detect_carrier(filepath, filename)
+        except ValueError as e:
+            os.remove(filepath)
+            errors.append(f"{filename}: {e}")
+            continue
+
+        batch = ImportBatch(carrier=carrier, filename=filename,
+                           uploaded_by_id=current_user.id, status="pending")
+        db.session.add(batch)
+        db.session.commit()
+
+        try:
+            records = parse_carrier_file(carrier, filepath)
+        except Exception as e:
+            batch.status = "error"
+            batch.error_message = str(e)
+            db.session.commit()
+            if os.path.exists(filepath): os.remove(filepath)
+            errors.append(f"{filename} ({carrier}): {e}")
+            continue
+        finally:
+            if os.path.exists(filepath): os.remove(filepath)
+
+        new_count = updated_count = 0
+        for rec in records:
+            existing = Policy.query.filter_by(
+                carrier=rec["carrier"], member_id=rec["member_id"]
+            ).first()
+            if existing:
+                existing.mbi = rec["mbi"] or existing.mbi
+                existing.first_name = rec["first_name"]
+                existing.last_name = rec["last_name"]
+                existing.full_name = rec["full_name"]
+                existing.plan_name = rec["plan_name"]
+                existing.plan_type = rec["plan_type"]
+                existing.effective_date = rec["effective_date"]
+                existing.term_date = rec["term_date"]
+                existing.renewal_date = rec.get("renewal_date")
+                existing.dob = rec["dob"]
+                existing.phone = rec["phone"]
+                existing.county = rec["county"]
+                existing.address1 = rec.get("address1", "")
+                existing.city = rec.get("city", "")
+                existing.state = rec.get("state", "")
+                existing.zip_code = rec.get("zip_code", "")
+                existing.agent_id_carrier = rec["agent_id"]
+                existing.status = rec["status"]
+                existing.last_seen_date = today
+                existing.import_batch_id = batch.id
+                updated_count += 1
+            else:
+                db.session.add(Policy(
+                    carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"],
+                    first_name=rec["first_name"], last_name=rec["last_name"],
+                    full_name=rec["full_name"], plan_name=rec["plan_name"],
+                    plan_type=rec["plan_type"], effective_date=rec["effective_date"],
+                    term_date=rec["term_date"], renewal_date=rec.get("renewal_date"),
+                    dob=rec["dob"], phone=rec["phone"], county=rec["county"],
+                    address1=rec.get("address1", ""), city=rec.get("city", ""),
+                    state=rec.get("state", ""), zip_code=rec.get("zip_code", ""),
+                    agent_id_carrier=rec["agent_id"], status=rec["status"],
+                    last_seen_date=today, import_batch_id=batch.id,
+                ))
+                new_count += 1
+
+        batch.record_count = len(records)
+        batch.new_count = new_count
+        batch.updated_count = updated_count
+        batch.status = "success"
+        db.session.add(AuditLog(
+            user_id=current_user.id, action="carrier_upload",
+            detail=f"{carrier} | {filename} | {len(records)} records ({new_count} new, {updated_count} updated)"
+        ))
+        db.session.commit()
+        results.append(f"{carrier}: {len(records)} records")
+
+    msg_parts = []
+    if results:
+        msg_parts.append("Imported — " + ", ".join(results))
+    if errors:
+        msg_parts.append("Errors — " + "; ".join(errors))
+
+    flash(" · ".join(msg_parts) if msg_parts else "Nothing processed.",
+          "success" if results and not errors else "warning")
+    return redirect(url_for("upload.upload_page"))

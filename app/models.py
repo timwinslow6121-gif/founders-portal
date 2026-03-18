@@ -6,10 +6,9 @@ All database operations go through these models — never raw SQL.
 """
 
 from datetime import date
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from app.extensions import db
 
-db = SQLAlchemy()
 
 
 class User(UserMixin, db.Model):

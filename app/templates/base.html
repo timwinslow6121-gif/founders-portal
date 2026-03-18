@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Founders Portal{% endblock %}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; color: #4A5568; background: #F4F6F9; display: flex; min-height: 100vh; }
+    .sidebar { width: 200px; min-width: 200px; background: #FFFFFF; border-right: 0.5px solid #E2E6ED; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; overflow-y: auto; }
+    .sidebar-logo { padding: 16px 16px 12px; border-bottom: 0.5px solid #E2E6ED; }
+    .sidebar-logo-name { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.3; }
+    .sidebar-logo-sub { font-size: 11px; color: #888888; margin-top: 2px; }
+    .sidebar-nav { flex: 1; padding: 8px 0; }
+    .nav-section-label { font-size: 10px; color: #888888; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 16px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: 13px; color: #4A5568; text-decoration: none; border-radius: 8px; margin: 1px 4px; }
+    .nav-item:hover { background: #F4F6F9; color: #1B2A4A; }
+    .nav-item.active { background: #E6F1FB; color: #185FA5; font-weight: 500; }
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 16px; border-top: 0.5px solid #E2E6ED; display: flex; align-items: center; gap: 8px; }
+    .sidebar-avatar { width: 28px; height: 28px; border-radius: 50%; background: #B5D4F4; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #185FA5; flex-shrink: 0; }
+    .sidebar-user-name { font-size: 12px; font-weight: 500; color: #1B2A4A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sidebar-signout { font-size: 11px; color: #888888; text-decoration: none; display: block; margin-top: 1px; }
+    .sidebar-signout:hover { color: #A32D2D; }
+    .main { margin-left: 200px; flex: 1; padding: 24px; min-width: 0; }
+    .card { background: #FFFFFF; border: 0.5px solid #E2E6ED; border-radius: 12px; overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 0.5px solid #E2E6ED; }
+    .card-title { font-size: 15px; font-weight: 500; color: #1B2A4A; }
+    .card-body { padding: 20px; }
+    .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; display: inline-block; }
+    .badge-red { background: #FCEBEB; color: #A32D2D; }
+    .badge-amber { background: #FAEEDA; color: #854F0B; }
+    .badge-yellow { background: #FFF2CC; color: #633806; }
+    .badge-green { background: #EAF3DE; color: #3B6D11; }
+    .badge-blue { background: #E6F1FB; color: #185FA5; }
+    .badge-gray { background: #F4F6F9; color: #4A5568; }
+    .badge-navy { background: #1B2A4A; color: #FFFFFF; }
+    .btn-primary { background: #185FA5; color: #FFFFFF; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-primary:hover { background: #14508F; }
+    .btn-secondary { background: #FFFFFF; color: #1B2A4A; border: 0.5px solid #E2E6ED; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
+    .alert { padding: 10px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
+    .alert-success { background: #EAF3DE; color: #2D6A4F; }
+    .alert-error { background: #FCEBEB; color: #A32D2D; }
+    .alert-warning { background: #FAEEDA; color: #854F0B; }
+    .alert-info { background: #E6F1FB; color: #185FA5; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+    .data-table th { font-size: 11px; font-weight: 500; color: #4A5568; text-align: left; padding: 8px 16px; border-bottom: 0.5px solid #E2E6ED; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+    .data-table td { padding: 9px 16px; border-bottom: 0.5px solid #E2E6ED; color: #1B2A4A; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #F4F6F9; }
+    .mono { font-family: 'Courier New', monospace; font-size: 11px; }
+    .fw-medium { font-weight: 500; }
+    .text-muted { color: #888888; }
+    .empty-cell { text-align: center; color: #888888; font-size: 13px; padding: 32px 16px !important; }
+    {% block styles %}{% endblock %}
+  </style>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-name">Founders Insurance</div>
+      <div class="sidebar-logo-sub">Agent Portal</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-label">My book</div>
+      <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+        <span class="nav-dot" style="background:#378ADD;"></span>Dashboard
+      </a>
+      <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
+        <span class="nav-dot" style="background:#378ADD;"></span>Upcoming terms
+      </a>
+      <div class="nav-section-label">Commissions</div>
+      <a href="/commissions" class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
+        <span class="nav-dot" style="background:#639922;"></span>Audit
+      </a>
+      <a href="/forecast" class="nav-item {% if request.path == '/forecast' %}active{% endif %}">
+        <span class="nav-dot" style="background:#639922;"></span>Forecast
+      </a>
+      <div class="nav-section-label">Tools</div>
+      <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
+        <span class="nav-dot" style="background:#7F77DD;"></span>Birthday labels
+      </a>
+      <div class="nav-section-label">Alerts</div>
+      <a href="/unmatched" class="nav-item {% if request.path == '/unmatched' %}active{% endif %}">
+        <span class="nav-dot" style="background:#E24B4A;"></span>Unmatched policies
+      </a>
+      {% if current_user.is_admin %}
+      <div class="nav-section-label">Admin</div>
+      <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
+        <span class="nav-dot" style="background:#E24B4A;"></span>Upload carrier files
+      </a>
+      <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
+        <span class="nav-dot" style="background:#E24B4A;"></span>Agency overview
+      </a>
+      {% endif %}
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-avatar">{{ current_user.initials }}</div>
+      <div style="min-width:0;">
+        <div class="sidebar-user-name">{{ current_user.display_name }}</div>
+        <a href="/auth/logout" class="sidebar-signout">Sign out</a>
+      </div>
+    </div>
+  </nav>
+  <main class="main">
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -6,8 +6,11 @@ from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport import requests as google_requests
 from app.models import User
-from app import db
+from app.extensions import db, login_manager
 from datetime import datetime
+@login_manager.user_loader
+def load_user(user_id):
+	return User.query.get(int(user_id))
 
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -86,7 +89,6 @@ def callback():
         user = User(
             email     = email,
             name      = id_info.get('name', ''),
-            google_id = id_info.get('sub', ''),
             is_admin  = email in ADMIN_EMAILS
         )
         db.session.add(user)

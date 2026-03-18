@@ -158,6 +158,7 @@ def process_upload():
             existing.plan_type = rec["plan_type"]
             existing.effective_date = rec["effective_date"]
             existing.term_date = rec["term_date"]
+            existing.renewal_date = rec.get("renewal_date")
             existing.dob = rec["dob"]
             existing.phone = rec["phone"]
             existing.county = rec["county"]
@@ -178,6 +179,7 @@ def process_upload():
                 plan_type=rec["plan_type"],
                 effective_date=rec["effective_date"],
                 term_date=rec["term_date"],
+                renewal_date=rec.get("renewal_date"),
                 dob=rec["dob"],
                 phone=rec["phone"],
                 county=rec["county"],

@@ -67,6 +67,7 @@ class Policy(db.Model):
     plan_type = db.Column(db.String(64))
     effective_date = db.Column(db.Date)
     term_date = db.Column(db.Date)
+    renewal_date = db.Column(db.Date)
     status = db.Column(db.String(32), default="active")
 
     # Agent linkage

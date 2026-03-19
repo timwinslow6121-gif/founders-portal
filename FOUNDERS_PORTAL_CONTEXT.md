@@ -1,6 +1,6 @@
 # Founders Insurance Agency — Agent Portal
 ## Master Project Context Document
-*Last updated: March 18, 2026*
+*Last updated: March 19, 2026*
 
 ---
 
@@ -28,6 +28,23 @@ I maintain the agency website, Google Workspace, Google Business page, RingCentr
 - **Hosting:** NixiHost MiniShared ($60/yr) for the main website
 - **Google Workspace:** Business Plus ($18/user/month)
 
+### Agent Roster
+| Agent | Email | Type | Notes |
+|---|---|---|---|
+| Timothy Winslow | tim@foundersinsuranceagency.com | AOR | Owns BOB, portal admin |
+| AJ (Admin) | admin@foundersinsuranceagency.com | Admin | Commission manager, portal admin |
+| Brian Freeman | brian@foundersinsuranceagency.com | AOR/LOA | TBD — largest BOB (~1,100) |
+| Rebekah Long | rebekah@foundersinsuranceagency.com | AOR | 2nd largest BOB (~950) |
+| Chris Foster | chris@foundersinsuranceagency.com | AOR | ~750 policies |
+| Justin Basinger | justin@foundersinsuranceagency.com | AOR | ~700 policies |
+| Mike Lauzurique | mike@foundersinsuranceagency.com | LOA | ~530 policies, extension of Founders |
+| Betty Marlowe | betty@foundersinsuranceagency.com | LOA | ~480 policies, extension of Founders |
+| Anjana Patel | anjana@foundersinsuranceagency.com | LOA | ~430 policies, extension of Founders |
+
+### AOR vs LOA Distinction
+- **AOR agents** (Tim, Chris, Rebekah, possibly Brian) — own their BOB, commissions assigned to Founders temporarily. They own their clients.
+- **LOA agents** (Mike, Betty, Anjana) — Founders owns the clients, agents are extensions of Founders. Relevant for client ownership tracking and agent departure scenarios.
+
 ---
 
 ## 3. The Portal — What We Are Building
@@ -41,17 +58,36 @@ A custom web-based agency management system hosted at:
 - No spreadsheets, no manual work, no technical knowledge required from agents
 - Replaces manual carrier data normalization that AJ currently does monthly
 
-### Features Planned
-1. **Carrier BOB Import** — auto-normalizes UHC, Humana, Aetna, BCBS, Devoted, Healthspring weekly
-2. **Per-Agent Dashboard** — active policies, upcoming terms, unmatched alerts
-3. **Commission Audit** — verifies AJ's split math per carrier, flags discrepancies to the penny
-4. **Commission Forecast** — projects monthly/annual income based on current BOB + CMS rates
-5. **Churn Tracking** — plan-level and customer-level churn with retention rates over time
-6. **Upcoming Terminations** — members with real term dates in next 90 days, color coded
-7. **Birthday Labels** — Avery 5160 PDF emailed automatically on the 1st of each month
-8. **CRM Integration** — matches carrier data to Zoho contacts by MBI
-9. **Unmatched Policy Alerts** — policies in carrier BOBs not found in Zoho contacts
-10. **Admin Control Panel** — AJ uploads carrier files, system handles the rest
+### Commission Flow (Important)
+- Carriers pay **Founders** directly (not individual agents)
+- AJ receives all commission statements for all agents from each carrier
+- AJ calculates each agent's split (55% in 2026) and pays them
+- Agents have NO direct access to carrier commission data — only AJ does
+- Agents DO have access to their carrier BOB exports (policy lists)
+- AJ sends each agent a filtered per-agent commission spreadsheet monthly
+
+### Features — MVP (In Progress)
+1. **Carrier BOB Import** ✅ — auto-normalizes UHC, Humana, Aetna, BCBS, Devoted, Healthspring
+2. **Per-Agent Dashboard** ✅ — active policies, upcoming terms, carrier breakdown, commission estimate
+3. **Admin Overview** ✅ — AJ sees all agents, agency totals, clickable agent detail view
+4. **Birthday Labels** ✅ — Avery 5160 PDF download, monthly preview, missing address alerts
+5. **Commission Audit** 🔜 — AJ uploads carrier statements, agents verify their split math
+6. **Upcoming Terminations Page** 🔜 — dedicated page with filters by urgency/carrier
+
+### Features — Roadmap (Post-MVP)
+7. **Customer/MBI Master Database** — backbone linking MBIs to customers to agents across all carriers
+8. **AOR Tracking** — who owns which customer, prevents cannibalization
+9. **Inbound Call Routing Reference** — customer calls → find their agent instantly
+10. **Commission Forecast** — projects monthly/annual income with Part D + supplement rates
+11. **Churn Risk Scoring** — tag high-risk customers, track churn by carrier/plan
+12. **Cannibalization Alerts** — flag when agent tries to write a customer already in Founders BOB (Brian problem)
+13. **Granular Carrier/Plan Breakdown** — click carrier → see MAPD/PDP/Medigap breakdown → plan-level counts per agent
+14. **Admin Agency Control Panel** — AJ uploads master carrier files, system splits by agent
+15. **Birthday Labels Email Cron** — auto-email PDF to each agent on 1st of month
+16. **CRM Integration** — Zoho match for Tim only
+17. **Unmatched Policy Alerts** — BOB vs CRM discrepancies
+18. **Mobile Responsive Styling**
+19. **Handoff Documentation for AJ**
 
 ---
 
@@ -93,11 +129,9 @@ A custom web-based agency management system hosted at:
 /var/www/founders-portal/venv/     → Python virtual environment
 /var/www/founders-portal/instance/ → SQLite database
 /var/www/founders-portal/instance/uploads/ → temp upload dir (auto-cleaned)
-/var/www/founders-portal/cron_labels.py → monthly labels cron script
 /etc/nginx/sites-available/founders-portal → Nginx config
 /etc/systemd/system/founders-portal.service → systemd service
 /etc/letsencrypt/live/portal.foundersinsuranceagency.com/ → SSL certs
-/var/log/founders-labels.log → cron job output log
 ```
 
 ### Useful Commands
@@ -131,9 +165,20 @@ sqlite3 /var/www/founders-portal/instance/founders_portal.db "SELECT carrier, co
 
 # Check cron jobs
 crontab -l
+```
 
-# Manually run birthday labels cron (for testing)
-/var/www/founders-portal/venv/bin/python3 /var/www/founders-portal/cron_labels.py
+### Git Workflow — IMPORTANT
+- **All code changes happen on the VPS**
+- **Push from VPS only** (`root@portal`)
+- **Pull on Chromebook only** (`tim@penguin`)
+- Never commit from the Chromebook — causes diverged branch conflicts
+
+```bash
+# On VPS (root@portal):
+git add <files> && git commit -m "message" && git push origin main
+
+# On Chromebook (tim@penguin):
+cd ~/founders-portal && git pull origin main
 ```
 
 ---
@@ -146,7 +191,7 @@ crontab -l
 - **Client ID:** 991785142812-gnmh1rrhv7m8ujdo77p7g85t6sukbq5g.apps.googleusercontent.com
 - **Client Secret:** stored in /var/www/founders-portal/.env
 - **Redirect URI:** https://portal.foundersinsuranceagency.com/auth/callback
-- **Admin emails:** tim@foundersinsuranceagency.com, aj@foundersinsuranceagency.com
+- **Admin emails:** tim@foundersinsuranceagency.com, admin@foundersinsuranceagency.com
 
 ---
 
@@ -174,10 +219,11 @@ founders-portal/
 │   ├── __init__.py          → Flask app factory
 │   ├── extensions.py        → db and login_manager instances (avoids circular imports)
 │   ├── auth.py              → Google OAuth login + user_loader
-│   ├── routes.py            → page routes (dashboard)
-│   ├── models.py            → User, Policy, ImportBatch, AuditLog
+│   ├── routes.py            → dashboard, admin overview, agent detail view
+│   ├── models.py            → User, Policy, ImportBatch, AuditLog, CommissionStatement (🔜)
 │   ├── upload.py            → file upload blueprint (single + bulk)
-│   ├── labels.py            → birthday labels blueprint (PDF + SendGrid email)
+│   ├── labels.py            → birthday labels blueprint (PDF download)
+│   ├── commission.py        → commission audit blueprint (🔜 in progress)
 │   ├── parsers/
 │   │   ├── __init__.py      → parse_carrier_file() dispatcher
 │   │   ├── uhc.py           → UHC XLSX parser (header row 2)
@@ -190,12 +236,14 @@ founders-portal/
 │   │   ├── base.html        → full sidebar layout, design system
 │   │   ├── login.html       → Google OAuth login page
 │   │   ├── dashboard.html   → live agent dashboard
+│   │   ├── admin_overview.html → agency overview (admin only)
 │   │   ├── upload.html      → bulk carrier file upload (admin only)
-│   │   └── labels.html      → birthday labels page
+│   │   ├── labels.html      → birthday labels page
+│   │   └── commission.html  → commission audit page (🔜 in progress)
 │   └── static/
 │       ├── css/style.css
 │       └── js/main.js
-├── cron_labels.py           → monthly cron script (runs outside Flask context)
+├── seed_agents.py           → seeds fake agent data for demo/testing
 ├── config.py                → app configuration
 ├── requirements.txt         → Python dependencies
 ├── .env.example             → environment variables template
@@ -209,6 +257,7 @@ founders-portal/
 
 ## 8. Carriers & File Formats
 
+### BOB Export Files (Agent access)
 | Carrier | Format | Unique ID | Active Filter | Name Format | Address Fields |
 |---|---|---|---|---|---|
 | UHC | XLSX (header row 2) | mbiNumber (MBI) | Active-only export | memberFirstName / memberLastName | memberAddress1, memberCity, memberState, memberZip |
@@ -218,26 +267,29 @@ founders-portal/
 | Devoted | CSV | member_id (UUID) | status == "ENROLLED" | first_name / last_name | TBD — confirmed on next upload |
 | Healthspring | XLS (HTML) | Medicare Number (MBI) | Status == "Enrolled" | First Name / Last Name | TBD — confirmed on next upload |
 
+### Commission Statement Files (AJ only)
+| Carrier | Format | Key Columns | Action Types | Split Row Pattern |
+|---|---|---|---|---|
+| UHC | XLSX | Statement Date, Member Name, Commission Action, Commission | Renewal, New, HA payment | `7955.79 x.55` → `4375.68` |
+| Aetna | XLSX | Payment Date, Member Name, Sales Event, Payee Amount | Renewal | `202.44 x.55` → `111.34` |
+| Humana | XLSX | CommRunDt, GrpName, Comment, PaidAmount | Renewal, First Year, Med 2nd Half, Chargebacks (negative) | `$1,509.18 x. 55` → `830.05` |
+| BCBS | XLSX | Agent #, Customer Name, Group Type, Commission | FY, RENEW | `$635.79 x.55` → `349.68` |
+| Devoted | XLSX | Statement Date, Member First/Last, Period, Base Amount | All new/AEP | `$1,100 x.55` + base breakdown |
+| Healthspring | N/A | 3 customers, all paid out for year upfront | N/A | N/A |
+
 ### Key Notes
 - **MBI** is the cross-carrier unique key — present on all carriers except Humana (masked)
 - **Humana** MBI shows as `XXXXX12HN86` — use Humana ID as primary key instead
 - **Healthspring** `.xls` file is actually HTML disguised — parser sniffs and handles automatically
 - **BCBS** export includes MA, Medicare Supplement, AND Dental on same file
-- **BCBS Supplement** term dates are renewal/anniversary dates, NOT real disenrollments — stored as `renewal_date`, never shown in terminations
+- **BCBS Supplement** term dates are renewal/anniversary dates, NOT real disenrollments
 - **Devoted** export is a raw API dump with snake_case column names and UUID member IDs
 - **UHC** policyTermDate of `2300-01-01` = no real term date (sentinel) — stored as NULL
 - **BCBS** termination date of `12/31/2199` = no real term date (sentinel) — stored as NULL
-- **Auto-detection:** bulk upload sniffs carrier from column headers automatically
-
-### Carrier Auto-Detection Logic
-```
-UHC:          mbiNumber column present
-Humana:       MbrFirstName + Humana ID columns present
-Aetna:        Medicare Number + Member Status columns present
-BCBS:         BCBSNC Member Number column present
-Devoted:      member_id + first_name + status columns present (snake_case)
-Healthspring: Medicare Number + First Name columns present (or HTML table)
-```
+- **UHC HA payments** — Health Assessment bonuses embedded in Commission Action field as long string
+- **Humana chargebacks** — negative PaidAmount values, track separately
+- **Devoted HRA bonuses** — $50 per Health Risk Assessment, shown separately from base commissions
+- **New enrollment commissions** — UHC shows NULL commission on New rows (paid in separate cycle)
 
 ---
 
@@ -248,6 +300,7 @@ Healthspring: Medicare Number + First Name columns present (or HTML table)
 - **policies** — normalized policy records from carrier BOB imports
 - **import_batches** — tracks every file upload (carrier, filename, record counts, status)
 - **audit_logs** — immutable action log
+- **commission_statements** — parsed commission data from AJ's carrier uploads (🔜)
 
 ### Policy Model — Key Fields
 ```
@@ -267,8 +320,24 @@ status           — "active"
 last_seen_date   — date of most recent import where record appeared
 import_batch_id
 zoho_matched     — NULL=unchecked, True=matched, False=unmatched
-agent_id         — FK to users table (was NULL on all records, fixed with one-time UPDATE)
+agent_id         — FK to users table
 agent_id_carrier — agent ID as reported by carrier
+```
+
+### CommissionStatement Model — Key Fields (🔜)
+```
+carrier           — UHC / Humana / Aetna / BCBS / Devoted
+statement_date    — date on the statement
+agent_id          — FK to users table
+gross_amount      — total gross commissions from carrier
+split_rate        — 0.55 (per year schedule)
+expected_amount   — gross × split_rate (what agent should receive)
+paid_amount       — what AJ's summary row shows as paid
+bonus_amount      — HA/HRA bonuses (separate from base)
+status            — verified / discrepancy / pending
+line_items        — JSON array of individual member rows
+upload_date
+uploaded_by       — FK to users table (always AJ)
 ```
 
 ---
@@ -310,12 +379,6 @@ Devoted pays $50 per Health Risk Assessment completed. Track separately from bas
 ### Chargeback Logic
 If a member terms or changes plans mid-year: chargeback = $28.91 × months remaining.
 New enrollment mid-year: paid upfront = $28.91 × months remaining from effective date.
-
-### Dashboard Commission Estimate Notes
-- Current dashboard shows MAPD-only estimate at flat $28.91/month per policy
-- Does NOT yet account for supplement/dental (% of premium) or Part D rates
-- Does NOT yet account for HRA bonuses
-- Full commission audit module will reconcile against actual AJ payment statements
 
 ---
 
@@ -396,39 +459,56 @@ New enrollment mid-year: paid upfront = $28.91 × months remaining from effectiv
 - [x] Address fields on Policy model (address1, city, state, zip_code)
 - [x] Address populated for UHC and Humana parsers
 - [x] Live agent dashboard with:
-  - [x] Active policy count across all carriers
-  - [x] Upcoming terminations (90-day window, color coded)
+  - [x] Active policy count across all carriers (filtered by agent_id)
+  - [x] Upcoming terminations (90-day window, color coded with urgency badges)
   - [x] Carrier breakdown with horizontal bar chart
   - [x] Commission estimate by carrier (MAPD flat rate, 55% split)
   - [x] Monthly + annual commission projection
-- [x] Code on GitHub (private repo)
+- [x] Admin overview page (/admin)
+  - [x] Agency-wide KPIs (total policies, terms, commission estimates)
+  - [x] Carrier breakdown across all agents
+  - [x] Per-agent table with share of book bar chart, urgency badges, top carriers
+  - [x] Agent names clickable → agent detail view
+- [x] Agent detail view (/admin/agent/<id>) — AJ views any agent's dashboard
+- [x] "Viewing as" blue banner when AJ views an agent
 - [x] Birthday labels page (/birthday-labels)
   - [x] Month picker with live label counts per month
-  - [x] Avery 5160 PDF generated with ReportLab (print-ready, no mail merge needed)
-  - [x] SendGrid email integration (Twilio SendGrid, domain authenticated)
-  - [x] Manual "Send Labels" button on page — one click, PDF arrives in email
-  - [x] Monthly cron job (1st of month, 8am UTC) fires automatically for all agents
-  - [x] Email lists skipped customers by name, carrier, DOB with fix instructions
-  - [x] Deduplication by name + address + zip (one label per household)
-  - [x] Missing address panel on page shows who will be skipped and why
-- [x] SendGrid configured (API key in .env, domain authenticated via NixiHost DNS)
-- [x] cron_labels.py — standalone cron script, runs outside Flask request context
-- [x] All policies assigned to agent_id (one-time migration, were NULL)
+  - [x] Avery 5160 PDF download (print-ready, no mail merge needed)
+  - [x] Missing address panel shows who will be skipped and why
+  - [x] Deduplication by name + address + zip
+- [x] SendGrid configured (API key in .env, domain authenticated)
+- [x] All 8 agents seeded with realistic fake data (~5,479 total policies)
+- [x] All policies assigned to agent_id
 - [x] reportlab + sendgrid installed in venv
+- [x] Code on GitHub (private repo)
 
 ### Next Up 🔜
-- [ ] Push all VPS changes to GitHub (labels.py, labels.html, cron_labels.py, config.py)
-- [ ] Add address fields to Aetna, Devoted, Healthspring parsers (need files)
-- [ ] Upcoming terminations dedicated page (filter by urgency tier + carrier)
-- [ ] Commission audit module (reconcile against AJ payment statements)
-- [ ] Commission forecast calculator (with Part D + supplement rates)
-- [ ] Churn history tracking
-- [ ] Unmatched policies page (BOB vs Zoho contacts)
-- [ ] Admin agency overview (all agents combined)
-- [ ] Weekly cron job for automated audit
-- [ ] Email summary after audit runs
+- [ ] Commission audit module (app/commission.py)
+  - [ ] CommissionStatement model added to models.py
+  - [ ] Admin upload page for carrier commission statements
+  - [ ] Parsers for all 5 carriers (UHC, Humana, Aetna, BCBS, Devoted)
+  - [ ] Per-agent audit view (expected vs paid, line items, discrepancy flags)
+  - [ ] Admin view (all agents, ✅/❌ per carrier)
+- [ ] Upcoming terminations dedicated page
+  - [ ] Filter by urgency tier (< 30d / 30-60d / 60-90d)
+  - [ ] Filter by carrier
+  - [ ] Export to CSV
+- [ ] Push all changes to GitHub after commission audit
+- [ ] Update FOUNDERS_PORTAL_CONTEXT.md after commission audit
+
+### Roadmap (Post-MVP)
+- [ ] Customer/MBI master database
+- [ ] AOR ownership tracking
+- [ ] Cannibalization detection (Brian problem)
+- [ ] Inbound call routing reference
+- [ ] Commission forecast (Part D + supplement rates)
+- [ ] Churn risk scoring and tagging
+- [ ] Granular carrier/plan breakdown (admin)
+- [ ] Birthday labels email cron (auto-email PDF on 1st of month)
+- [ ] Admin master file upload (one file per carrier for all agents)
 - [ ] Mobile responsive styling
 - [ ] Handoff documentation for AJ
+- [ ] PostgreSQL migration (when SQLite hits limits)
 
 ---
 
@@ -445,6 +525,8 @@ New enrollment mid-year: paid upfront = $28.91 × months remaining from effectiv
 - **Commission estimate:** Dashboard shows MAPD-only flat rate. Does not yet account for supplement, dental, Part D, or HRA bonuses.
 - **Google Workspace:** Business Plus, 8 agents, all have Founders emails. Only Founders emails allowed in portal. App passwords not available — use SendGrid for all outbound email.
 - **extensions.py:** db and login_manager live here to avoid circular imports between __init__.py, models.py, and auth.py.
-- **agent_id was NULL:** All policies imported before March 18 2026 had agent_id=NULL. Fixed with: `UPDATE policies SET agent_id = 1 WHERE agent_id IS NULL`. Future imports will set this correctly via the upload blueprint.
-- **Birthday labels skipped customers:** Aetna and Devoted have no address fields yet (TBD on next file upload). BCBS Supplement members may not have addresses in carrier export. These show in the missing address panel on the labels page and are listed in the email.
+- **agent_id was NULL:** All policies imported before March 18 2026 had agent_id=NULL. Fixed with: `UPDATE policies SET agent_id = 1 WHERE agent_id IS NULL`. Future imports set this correctly via upload blueprint.
+- **Seeded agents:** Brian, Rebekah, Chris, Justin, Mike, Betty, Anjana have fake policy data for demo. Tim has real data (538 policies).
+- **admin@foundersinsuranceagency.com:** AJ's portal login. Has is_admin=True. Excluded from agent breakdown table (shows all other agents including Tim).
+- **Git workflow:** VPS is source of truth. Push from VPS only. Pull on Chromebook only. Never commit from Chromebook.
 - **This work account** is separate from personal Claude account. Keep agency/technical work here.

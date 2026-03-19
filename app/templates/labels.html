@@ -8,9 +8,8 @@
     <p class="page-sub">Avery 5160 · 30 labels per sheet · active customers only</p>
   </div>
   {% if policies %}
-  <a href="{{ url_for('labels.labels_download', month=selected_month) }}"
-     class="btn btn-primary">
-    Download {{ month_name }} CSV
+  <a href="{{ url_for('labels.labels_download', month=selected_month) }}" class="btn btn-primary">
+    Download {{ month_name }} PDF
     <span class="btn-count">{{ policies|length }} labels</span>
   </a>
   {% endif %}

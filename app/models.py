@@ -201,3 +201,38 @@ class CommissionStatement(db.Model):
 
     def __repr__(self):
         return f"<CommissionStatement {self.carrier} {self.period_label} agent={self.agent_id}>"
+
+
+class AgentCarrierContract(db.Model):
+    """
+    Tracks which carriers each agent is contracted with,
+    their commission split rate, and their agent ID per carrier.
+    One row per agent per carrier.
+    """
+    __tablename__ = "agent_carrier_contracts"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    agent_id   = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    agent      = db.relationship("User", foreign_keys=[agent_id])
+
+    carrier    = db.Column(db.String(64), nullable=False)
+    is_active  = db.Column(db.Boolean, default=True, nullable=False)
+
+    # Commission split — overrides the agency default if set
+    split_rate = db.Column(db.Float, default=0.55, nullable=False)
+
+    # Agent identifier for this carrier
+    id_type    = db.Column(db.String(32), default="NPN")   # NPN / writing_number / agent_code
+    id_value   = db.Column(db.String(64))                  # actual ID string
+
+    notes      = db.Column(db.Text)
+
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint("agent_id", "carrier", name="uq_agent_carrier"),
+    )
+
+    def __repr__(self):
+        return f"<AgentCarrierContract {self.agent_id} {self.carrier} active={self.is_active}>"

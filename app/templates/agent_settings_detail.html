@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.display_name }} Settings{% endblock %}
+{% block styles %}
+.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
+.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
+.back-link{font-size:13px;color:#185FA5;text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:16px}
+.settings-card{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;margin-bottom:20px}
+.settings-header{background:#1B2A4A;color:#fff;padding:10px 16px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;justify-content:space-between}
+.split-section{padding:16px 20px;border-bottom:0.5px solid #E2E6ED;display:flex;align-items:center;gap:20px}
+.split-label{font-size:13px;font-weight:500;color:#1B2A4A;min-width:180px}
+.split-hint{font-size:11px;color:#888;margin-top:3px}
+.split-input{width:120px;padding:8px 12px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:14px;font-weight:500;color:#1B2A4A;text-align:center}
+.split-input:focus{outline:none;border-color:#185FA5;box-shadow:0 0 0 3px rgba(24,95,165,0.1)}
+.carrier-table{width:100%;border-collapse:collapse}
+.carrier-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 20px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em}
+.carrier-table td{padding:12px 20px;border-bottom:0.5px solid #E2E6ED;vertical-align:middle}
+.carrier-table tr:last-child td{border-bottom:none}
+.carrier-table tr:hover td{background:#FAFBFC}
+.carrier-name-col{font-size:13px;font-weight:500;color:#1B2A4A}
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#E2E6ED;border-radius:22px;transition:0.2s}
+.slider:before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.2s}
+input:checked + .slider{background:#185FA5}
+input:checked + .slider:before{transform:translateX(18px)}
+.id-type-select{padding:6px 10px;border:0.5px solid #E2E6ED;border-radius:6px;font-size:12px;color:#1B2A4A;background:#fff}
+.id-value-input{padding:6px 10px;border:0.5px solid #E2E6ED;border-radius:6px;font-size:12px;color:#1B2A4A;width:160px;font-family:'Courier New',monospace}
+.id-value-input:focus,.id-type-select:focus{outline:none;border-color:#185FA5}
+.btn-save{background:#185FA5;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:500;cursor:pointer}
+.btn-save:hover{background:#14508F}
+.alert{padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.alert-success{background:#EAF3DE;color:#2D6A4F}
+.alert-error{background:#FCEBEB;color:#A32D2D}
+{% endblock %}
+{% block content %}
+
+<a href="{{ url_for('settings.settings_index') }}" class="back-link">← Agent Settings</a>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<h1 class="page-title">{{ agent.display_name }}</h1>
+<p class="page-sub">{{ agent.email }} · Configure carrier contracts and commission split</p>
+
+<form method="POST">
+  <div class="settings-card">
+    <div class="settings-header">
+      <span>Commission Split Rate</span>
+    </div>
+    <div class="split-section">
+      <div>
+        <div class="split-label">Split percentage</div>
+        <div class="split-hint">Applied to gross commissions across all carriers</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="number" name="split_rate" value="{{ split_pct }}"
+               min="0" max="100" step="0.5" class="split-input">
+        <span style="font-size:14px;color:#4A5568;font-weight:500">%</span>
+      </div>
+      <div style="font-size:12px;color:#4A5568;margin-left:16px;">
+        Schedule: 55% → 57.5% → 60% → 62.5% → 65% → 67.5% → 70% (cap)
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-card">
+    <div class="settings-header">
+      <span>Carrier Contracts</span>
+      <span style="font-weight:400;opacity:0.7;font-size:10px;">Toggle active carriers · set agent ID per carrier</span>
+    </div>
+    <table class="carrier-table">
+      <thead>
+        <tr>
+          <th style="width:140px">Carrier</th>
+          <th style="width:80px">Active</th>
+          <th style="width:130px">ID Type</th>
+          <th>Agent ID</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for carrier in carriers %}
+        {% set c = contracts[carrier] %}
+        <tr>
+          <td class="carrier-name-col">{{ carrier }}</td>
+          <td>
+            <label class="toggle">
+              <input type="checkbox" name="active_{{ carrier }}"
+                     {% if c.is_active %}checked{% endif %}>
+              <span class="slider"></span>
+            </label>
+          </td>
+          <td>
+            <select name="id_type_{{ carrier }}" class="id-type-select">
+              {% for t in id_types %}
+              <option value="{{ t }}" {% if c.id_type == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <input type="text" name="id_value_{{ carrier }}"
+                   value="{{ c.id_value or '' }}"
+                   placeholder="e.g. 18708064"
+                   class="id-value-input">
+          </td>
+          <td>
+            <input type="text" name="notes_{{ carrier }}"
+                   value="{{ c.notes or '' }}"
+                   placeholder="optional notes"
+                   style="padding:6px 10px;border:0.5px solid #E2E6ED;border-radius:6px;font-size:12px;color:#1B2A4A;width:200px;">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:12px;">
+    <a href="{{ url_for('settings.settings_index') }}"
+       style="padding:10px 20px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:13px;color:#4A5568;text-decoration:none;">
+      Cancel
+    </a>
+    <button type="submit" class="btn-save">Save Settings</button>
+  </div>
+</form>
+{% endblock %}

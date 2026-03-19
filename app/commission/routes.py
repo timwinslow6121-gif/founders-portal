@@ -9,7 +9,7 @@ from flask import (abort, flash, redirect, render_template,
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import CommissionStatement, User
+from app.models import CommissionStatement, User, AgentCarrierContract
 from app.commission import commission_bp
 
 SPLIT_RATE = 0.55
@@ -396,7 +396,7 @@ def commission_upload():
     stmt.period_label    = period_label
     stmt.gross_amount    = round(gross + bonus, 2)
     stmt.bonus_amount    = round(bonus, 2)
-    stmt.split_rate      = SPLIT_RATE
+    stmt.split_rate      = agent_split
     stmt.expected_amount = expected
     stmt.paid_amount     = round(paid, 2)
     stmt.difference      = difference

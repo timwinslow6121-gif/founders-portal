@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Agent Settings{% endblock %}
+{% block styles %}
+.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
+.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
+.agents-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.agent-card{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden}
+.agent-card-header{padding:14px 16px;border-bottom:0.5px solid #E2E6ED;display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:#B5D4F4;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#185FA5;flex-shrink:0}
+.agent-card-name{font-size:14px;font-weight:500;color:#1B2A4A}
+.agent-card-email{font-size:11px;color:#888}
+.agent-card-body{padding:12px 16px}
+.carrier-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid #F4F6F9}
+.carrier-row:last-child{border-bottom:none}
+.carrier-name{font-size:12px;color:#1B2A4A;font-weight:500}
+.carrier-status{font-size:11px}
+.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
+.badge-green{background:#EAF3DE;color:#2D6A4F}
+.badge-gray{background:#F4F6F9;color:#888}
+.agent-card-footer{padding:10px 16px;border-top:0.5px solid #E2E6ED;display:flex;align-items:center;justify-content:space-between}
+.split-label{font-size:11px;color:#4A5568}
+.split-value{font-size:13px;font-weight:500;color:#1B2A4A}
+.btn-edit{background:#E6F1FB;color:#185FA5;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;text-decoration:none}
+{% endblock %}
+{% block content %}
+<h1 class="page-title">Agent Settings</h1>
+<p class="page-sub">Configure carrier contracts, commission splits, and agent IDs for each agent.</p>
+
+<div class="agents-grid">
+  {% for item in agent_data %}
+  <div class="agent-card">
+    <div class="agent-card-header">
+      <div class="avatar">{{ item.agent.initials }}</div>
+      <div>
+        <div class="agent-card-name">{{ item.agent.display_name }}</div>
+        <div class="agent-card-email">{{ item.agent.email }}</div>
+      </div>
+    </div>
+    <div class="agent-card-body">
+      {% for carrier in carriers %}
+      {% set c = item.contracts[carrier] %}
+      <div class="carrier-row">
+        <span class="carrier-name">{{ carrier }}</span>
+        {% if c.is_active %}
+          <span class="badge badge-green">✓ Active</span>
+        {% else %}
+          <span class="badge badge-gray">Not contracted</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="agent-card-footer">
+      <div>
+        <div class="split-label">Commission split</div>
+        <div class="split-value">{{ (item.contracts.values()|list)[0].split_rate * 100 | round(1) }}%</div>
+      </div>
+      <a href="{{ url_for('settings.settings_agent', agent_id=item.agent.id) }}" class="btn-edit">Edit →</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

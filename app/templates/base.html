@@ -91,6 +91,9 @@
       <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
         <span class="nav-dot" style="background:#E24B4A;"></span>Upload carrier files
       </a>
+      <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
+        <span class="nav-dot" style="background:#E24B4A;"></span>Agent settings
+      </a>
       <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
         <span class="nav-dot" style="background:#E24B4A;"></span>Agency overview
       </a>

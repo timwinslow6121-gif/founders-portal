@@ -52,7 +52,7 @@
     <div class="agent-card-footer">
       <div>
         <div class="split-label">Commission split</div>
-        <div class="split-value">{{ (item.contracts.values()|list)[0].split_rate * 100 | round(1) }}%</div>
+        <div class="split-value">{{ "%.1f"|format((item.contracts.values()|list)[0].split_rate * 100) }}%</div>
       </div>
       <a href="{{ url_for('settings.settings_agent', agent_id=item.agent.id) }}" class="btn-edit">Edit →</a>
     </div>

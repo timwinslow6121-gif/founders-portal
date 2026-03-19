@@ -375,16 +375,27 @@ def commission_upload():
     if not stmt_date:
         stmt_date = date.today()
 
-    period_label    = stmt_date.strftime("%B %Y")
-    expected        = round((gross + bonus) * SPLIT_RATE, 2)
-    difference      = round(expected - paid, 2)
-    status          = "verified" if abs(difference) < 0.02 else "discrepancy"
-
     # Auto-detect agent from file
     agent_id = _detect_agent_id(ws, carrier)
     if not agent_id:
-        flash(f"Could not match agent name in file to a portal user. Check the Writing Agent Name column.", "error")
+        flash("Could not match agent name in file to a portal user. Check the Writing Agent Name column.", "error")
         return redirect(url_for("commission.commission_admin"))
+
+    # Validate agent has active contract with this carrier
+    contract = AgentCarrierContract.query.filter_by(
+        agent_id=agent_id, carrier=carrier, is_active=True
+    ).first()
+    if not contract:
+        agent_name = User.query.get(agent_id).display_name
+        flash(f"\u26a0 {agent_name} does not have an active {carrier} contract. Upload rejected.", "error")
+        return redirect(url_for("commission.commission_admin"))
+
+    # Use agent's actual split rate
+    agent_split  = contract.split_rate
+    period_label = stmt_date.strftime("%B %Y")
+    expected     = round((gross + bonus) * agent_split, 2)
+    difference   = round(expected - paid, 2)
+    status       = "verified" if abs(difference) < 0.02 else "discrepancy"
 
     existing = CommissionStatement.query.filter_by(
         carrier=carrier, agent_id=agent_id, period_label=period_label).first()

@@ -14,7 +14,7 @@
 **Personal GitHub:** timwinslow6121-gif  
 **Personal email:** tim.winslow6121@gmail.com
 
-I maintain the agency website, Google Workspace, Google Business page, RingCentral, and provide IT support + Medicare consulting for 8 agents. I am building a custom agency management portal to be compensated for this work.
+I maintain the agency website, Google Workspace, Google Business page, RingCentral, and provide IT support + Medicare consulting for 8 agents. I am building a custom agency management portal to be compensated for this work. Long-term this becomes a white-label SaaS product for Medicare insurance agencies — see PRODUCT_VISION.md.
 
 ---
 
@@ -23,8 +23,11 @@ I maintain the agency website, Google Workspace, Google Business page, RingCentr
 - **8 agents** total including myself
 - **Principal agent / commission manager:** AJ (also a Google Workspace super admin)
 - **All agents** have `@foundersinsuranceagency.com` Google Workspace Business Plus accounts
-- **CRM:** Zoho One (I use it, other agents do not)
-- **Phone:** RingCentral
+- **CRM:** Zoho One (Tim only — replacing with this portal)
+- **Phone:** RingCentral (main agency number + per-agent extensions)
+- **Enrollment platform:** MedicareCenter (primary) + carrier portals (fallback)
+- **Scheduling:** Acuity (Tim) — moving to Calendly for API integration
+- **Meeting AI:** Fireflies.ai (Tim only currently)
 - **Hosting:** NixiHost MiniShared ($60/yr) for the main website
 - **Google Workspace:** Business Plus ($18/user/month)
 
@@ -44,7 +47,14 @@ I maintain the agency website, Google Workspace, Google Business page, RingCentr
 ### AOR vs LOA Distinction
 - **AOR agents** (Tim, Chris, Rebekah, Brian TBD) — own their BOB, commissions temporarily assigned to Founders
 - **LOA agents** (Mike, Betty, Anjana) — Founders owns the clients, agents are extensions of Founders
-- This distinction matters for client ownership tracking, agent departure scenarios, and the Brian cannibalization problem
+- This distinction matters for client ownership, agent departure scenarios, and the Brian cannibalization problem
+
+### Partner Pharmacies (Important Business Relationship)
+- Founders pays rent to independent partner pharmacies
+- In exchange, pharmacies refer customers (warm leads) to Founders agents
+- Each customer should be tagged with their pharmacy in the portal
+- Pharmacy performance tracking (leads generated) is a future feature
+- This relationship explains the commission cap structure (55% → 70%) — rent payments come out of agency margin
 
 ---
 
@@ -54,42 +64,43 @@ A custom web-based agency management system hosted at:
 **`https://portal.foundersinsuranceagency.com`**
 
 ### Purpose
-- Each agent logs in with their Founders Google account and sees **only their own data**
-- AJ has an **admin view** across all agents
-- No spreadsheets, no manual work, no technical knowledge required from agents
-- Replaces manual carrier data normalization that AJ currently does monthly
+This is being built as a **Medicare Agency Management System (MAMS)** — purpose-built for Medicare insurance agencies. It replaces Zoho CRM entirely for this use case and does things Zoho cannot:
+- Commission audit with carrier-specific parsers
+- AOR ownership history and cannibalization detection
+- Carrier BOB normalization across 6 carriers
+- Medicaid level tagging and plan eligibility logic
+- Partner pharmacy relationship tracking
+- SOA (Scope of Appointment) management
+- MedicareCenter enrollment PDF OCR and customer matching
 
 ### Commission Flow (Critical Context)
 - Carriers pay **Founders** directly — not individual agents
 - AJ receives all commission statements for all agents from each carrier
-- AJ calculates each agent's split and pays them (split varies per agent)
+- AJ calculates each agent's split (varies per agent) and pays them
 - Agents have NO direct access to raw carrier commission data — only AJ does
 - Agents DO have access to their carrier BOB exports (policy lists)
 - AJ sends each agent a filtered per-agent commission spreadsheet monthly
-- Unknown whether AJ's files are raw carrier exports filtered per agent or reformatted — TBD
 
-### MVP Features (Completed ✅)
-1. **Carrier BOB Import** — auto-normalizes UHC, Humana, Aetna, BCBS, Devoted, Healthspring
-2. **Per-Agent Dashboard** — active policies, upcoming terms, carrier breakdown, commission estimate
-3. **Admin Overview** — AJ sees all agents, agency totals, clickable agent detail view
-4. **Birthday Labels** — Avery 5160 PDF download, monthly preview, missing address alerts
-5. **Commission Audit** — AJ uploads carrier statements, auto-detects carrier + agent, verifies split math per agent's actual rate
-6. **Agent Settings** — AJ configures carrier contracts, split rates, agent IDs per agent
+### Data Philosophy — Carrier Data vs Agent Data
+Carrier imports are a **starting point**, not the source of truth. The agent is the source of truth for their customers.
 
-### Next Features (Post-MVP)
-7. **Upcoming Terminations Page** — dedicated page with filters by urgency/carrier, CSV export
-8. **Customer Master Database** — backbone linking MBIs → customers → agents across all carriers
-9. **AOR Ownership Tracking** — full AOR history per customer, who owned them and when
-10. **Cannibalization Detection** — flag when agent writes a customer already in Founders BOB (Brian problem)
-11. **Clickable Customer Profiles** — from commission line items → customer profile page
-12. **Inbound Call Routing** — customer calls → find their agent instantly
-13. **Commission Forecast** — projects income with Part D + supplement rates
-14. **Churn Risk Scoring** — tag high-risk customers, track churn by carrier/plan
-15. **Granular Carrier/Plan Breakdown** — MAPD/PDP/Medigap → plan-level counts per agent
-16. **Admin Master File Upload** — AJ uploads one file per carrier for all agents, system splits by agent
-17. **Birthday Labels Email Cron** — auto-email PDF to each agent on 1st of month
-18. **Mobile Responsive Styling**
-19. **Handoff Documentation for AJ**
+```
+Carrier import → system checks MBI in customer master
+  EXISTS → flag differences, agent reviews/accepts/rejects
+  NEW    → create customer record from carrier data
+
+Agent can always edit:
+  - Preferred name (carrier has "SMITH, MARY J" → agent corrects to "Mary Smith")
+  - Address (carrier has wrong zip → agent corrects it)
+  - Point of Contact (may be daughter, nurse case manager, not the patient)
+  - Pharmacy (tag their preferred pharmacy)
+  - Medicaid level
+  - Notes and interaction log
+
+Carrier data preserved in original form.
+Agent edits stored separately, displayed as authoritative.
+Full audit trail: who changed what, when.
+```
 
 ---
 
@@ -120,7 +131,7 @@ A custom web-based agency management system hosted at:
 - **Auth:** Google OAuth 2.0 (restricted to @foundersinsuranceagency.com)
 - **ORM:** Flask-SQLAlchemy
 - **Data processing:** pandas, openpyxl, lxml, reportlab
-- **Email:** SendGrid (Twilio, free tier, domain authenticated)
+- **Email:** SendGrid (Twilio, free tier → Essentials $20/mo for campaigns)
 - **Version control:** GitHub (private repo)
 
 ### Key File Paths on VPS
@@ -155,9 +166,6 @@ cd /var/www/founders-portal && source venv/bin/activate
 # Check database tables
 sqlite3 /var/www/founders-portal/instance/founders_portal.db ".tables"
 
-# Check policy counts by carrier
-sqlite3 /var/www/founders-portal/instance/founders_portal.db "SELECT carrier, count(*) FROM policies GROUP BY carrier;"
-
 # Check commission statements
 sqlite3 /var/www/founders-portal/instance/founders_portal.db "SELECT carrier, gross_amount, expected_amount, paid_amount, status FROM commission_statements;"
 
@@ -169,12 +177,10 @@ sqlite3 /var/www/founders-portal/instance/founders_portal.db "SELECT u.name, c.c
 **The VPS is the single source of truth. Always push from VPS, pull on Chromebook. Never commit from Chromebook.**
 
 ```bash
-# On VPS (root@portal) — make changes, then:
-git add <files>
-git commit -m "message"
-git push origin main
+# On VPS (root@portal):
+git add <files> && git commit -m "message" && git push origin main
 
-# On Chromebook (tim@penguin) — sync only:
+# On Chromebook (tim@penguin):
 cd ~/founders-portal && git pull origin main
 ```
 
@@ -194,12 +200,13 @@ cd ~/founders-portal && git pull origin main
 
 ## 6. SendGrid (Email)
 
-- **Provider:** Twilio SendGrid (free tier, 100 emails/day)
+- **Provider:** Twilio SendGrid (free tier → upgrade to Essentials for campaigns)
 - **Domain authenticated:** foundersinsuranceagency.com (CNAME + TXT in NixiHost DNS)
 - **From address:** tim@foundersinsuranceagency.com
 - **Labels recipient:** tim+birthdays@foundersinsuranceagency.com
 - **API key:** stored in .env as SENDGRID_API_KEY
 - **Config keys:** SENDGRID_API_KEY, LABELS_EMAIL, LABELS_FROM_EMAIL
+- **Future:** campaign module for mass email (50K emails/mo on Essentials at $20/mo)
 
 ---
 
@@ -216,39 +223,27 @@ founders-portal/
 │   ├── extensions.py            → db + login_manager (avoids circular imports)
 │   ├── auth.py                  → Google OAuth login + user_loader
 │   ├── routes.py                → dashboard, admin overview, agent detail view
-│   ├── models.py                → User, Policy, ImportBatch, AuditLog, CommissionStatement, AgentCarrierContract
+│   ├── models.py                → All database models
 │   ├── upload.py                → carrier BOB file upload blueprint
 │   ├── labels.py                → birthday labels blueprint (Avery 5160 PDF)
-│   ├── agent_settings.py        → agent settings blueprint (carrier contracts, split rates)
+│   ├── agent_settings.py        → agent settings blueprint
 │   ├── commission/
-│   │   ├── __init__.py          → commission_bp Blueprint definition
-│   │   ├── routes.py            → upload, parse, audit routes + all 5 carrier parsers
-│   │   ├── audit.py             → placeholder (future detailed audit logic)
-│   │   └── forecast.py          → placeholder (future commission forecast)
+│   │   ├── __init__.py          → commission_bp Blueprint
+│   │   ├── routes.py            → upload, parse, audit + all 5 carrier parsers
+│   │   ├── audit.py             → placeholder
+│   │   └── forecast.py          → placeholder
 │   ├── parsers/
 │   │   ├── __init__.py          → parse_carrier_file() dispatcher
-│   │   ├── uhc.py               → UHC XLSX parser
-│   │   ├── humana.py            → Humana CSV parser
-│   │   ├── aetna.py             → Aetna CSV parser
-│   │   ├── bcbs.py              → BCBS CSV parser
-│   │   ├── devoted.py           → Devoted CSV parser
-│   │   └── healthspring.py      → Healthspring HTML-XLS parser
+│   │   ├── uhc.py / humana.py / aetna.py / bcbs.py / devoted.py / healthspring.py
 │   └── templates/
-│       ├── base.html            → sidebar layout, design system, Founders logo
-│       ├── login.html           → Google OAuth login
-│       ├── dashboard.html       → agent dashboard
-│       ├── admin_overview.html  → agency overview (admin only)
-│       ├── upload.html          → BOB file upload (admin only)
-│       ├── labels.html          → birthday labels page
-│       ├── commission.html      → commission audit page (redesigned)
-│       ├── agent_settings.html  → agent settings overview (admin only)
-│       └── agent_settings_detail.html → per-agent settings editor (admin only)
-├── seed_agents.py               → seeds 7 fake agents + ~4,941 policies for demo
-├── config.py                    → app configuration (reads from .env)
-├── requirements.txt
-├── .env / .env.example
-├── wsgi.py                      → Gunicorn entry point
-└── README.md
+│       ├── base.html            → sidebar layout, Founders logo
+│       ├── login.html / dashboard.html / admin_overview.html
+│       ├── upload.html / labels.html / commission.html
+│       ├── agent_settings.html / agent_settings_detail.html
+│       └── [future templates]
+├── seed_agents.py               → seeds fake agents + policies for demo
+├── config.py / requirements.txt / wsgi.py
+└── .env / .env.example / .gitignore / README.md
 ```
 
 ---
@@ -266,79 +261,129 @@ founders-portal/
 | Healthspring | XLS (HTML) | Medicare Number | Status == "Enrolled" | TBD |
 
 ### Commission Statement Files (AJ only — all 5 parsers complete ✅)
-| Carrier | Agent Name Column | Agent Name Format | Split Row Pattern | Special Notes |
-|---|---|---|---|---|
-| UHC | Col B: Writing Agent Name | `WINSLOW, TIMOTHY JAMES` | `7955.79 x.55` → `4375.68` | HA payment bonuses in Commission Action col |
-| Aetna | Col I: Writing Agent Name | `WINSLOW, TIMOTHY` | `202.44 x.55` → `111.34` | Clean format |
-| Humana | Col B: WaName | `WINSLOW TIMOTHY J` | `$1,509.18 x. 55` → `830.05` | Chargebacks are negative — net ALL rows |
-| BCBS | Col B: Agent Name | `TIMOTHY WINSLOW` | `$635.79 x.55` → `349.68` | Has =SUM() formula row, skip it |
-| Devoted | Col C: Agent Name | `Timothy Winslow` | `$1,100 x.55` + `605 + 4,389.55 = $4,994.55` on same row | Bonus and paid total on same summary row |
+| Carrier | Agent Name Format | Split Row Pattern | Special Notes |
+|---|---|---|---|
+| UHC | `WINSLOW, TIMOTHY JAMES` | `7955.79 x.55` → `4375.68` | HA payment bonuses in Commission Action col |
+| Aetna | `WINSLOW, TIMOTHY` | `202.44 x.55` → `111.34` | Clean format |
+| Humana | `WINSLOW TIMOTHY J` | `$1,509.18 x. 55` → `830.05` | Chargebacks negative — net ALL rows |
+| BCBS | `TIMOTHY WINSLOW` | `$635.79 x.55` → `349.68` | Has =SUM() formula row, skip it |
+| Devoted | `Timothy Winslow` | `$1,100 x.55` + `605 + 4,389.55 = $4,994.55` on same row | Bonus and paid on same summary row |
 
 ### Key Parser Notes
-- **Agent auto-detection:** normalizes name from file (handles LAST, FIRST / LAST FIRST INITIAL / First Last) and fuzzy-matches to User.name in DB
-- **UHC gross:** includes HA bonus amounts (bonus is part of gross for split calculation)
-- **Humana gross:** NET of all rows including chargebacks (negative values reduce gross)
-- **Devoted paid:** extracted from col 3 `= $4,994.55` pattern on the bonus summary row
-- **All carriers:** summary row with `gross x.55` pattern is at bottom of file
-- **Discrepancy threshold:** < $0.02 = verified (floating point tolerance)
+- **Agent auto-detection:** normalizes name (handles all formats) and fuzzy-matches to User.name
+- **UHC gross:** includes HA bonus amounts
+- **Humana gross:** NET of all rows including chargebacks
+- **Devoted paid:** extracted from `= $4,994.55` pattern on bonus summary row
 - **Contract validation:** upload rejected if agent has no active contract with that carrier
 - **Split rate:** pulled from AgentCarrierContract per agent — not hardcoded
-
-### Carrier Auto-Detection Logic (Commission files)
-```
-UHC:     "commission action" + "writing agent" in headers
-Aetna:   "payee amount" + "sales event" in headers
-Humana:  "commrundt" or "grpname" in headers
-BCBS:    "billed amount" + "customer name" in headers
-Devoted: "member hicn" or "agent npn" in headers
-```
 
 ---
 
 ## 9. Database Schema
 
-### Tables
+### Current Tables
 - **users** — portal users (Google OAuth)
 - **policies** — normalized BOB records from carrier imports
 - **import_batches** — tracks every file upload
 - **audit_logs** — immutable action log
-- **commission_statements** — parsed commission data from AJ's uploads ✅
+- **commission_statements** — parsed commission data ✅
 - **agent_carrier_contracts** — per-agent carrier contracts, split rates, agent IDs ✅
 
-### Policy Model — Key Fields
+### Planned Tables (Customer Master Database)
 ```
-carrier, member_id, mbi
-first_name, last_name, full_name, dob, phone
-address1, city, state, zip_code, county
-plan_name, plan_type, effective_date, term_date, renewal_date
-status ("active"), last_seen_date, import_batch_id
-zoho_matched (NULL=unchecked, True=matched, False=unmatched)
-agent_id (FK → users), agent_id_carrier
+customers
+  id, mbi (unique cross-carrier key), medicare_id
+  first_name, last_name, preferred_name
+  dob, gender
+  phone_primary, phone_secondary
+  email
+  address1, city, state, zip_code, county
+  carrier_address (raw from import, preserved)
+  medicaid_level  (Full/QMB/SLMB/QI/None)
+  medicaid_id
+  pharmacy_id (FK → pharmacies)
+  notes
+  created_at, updated_at
+  created_by (FK → users)
+
+customer_aor_history
+  id, customer_id (FK → customers)
+  agent_id (FK → users)
+  carrier, plan_name, plan_id
+  effective_date, term_date (NULL = current)
+  source ("carrier_import" / "manual" / "medicare_center_pdf")
+  created_at
+
+customer_contacts (POC — not always the patient)
+  id, customer_id (FK → customers)
+  name, relationship (daughter/son/nurse/power_of_attorney/etc)
+  phone, email
+  is_primary_contact (bool)
+  notes
+
+customer_notes (interaction log)
+  id, customer_id, agent_id
+  note_text, note_type (call/meeting/email/sms/general)
+  meeting_summary (from Fireflies.ai webhook)
+  created_at
+
+customer_documents (SOA, enrollment apps, etc)
+  id, customer_id, agent_id
+  doc_type (SOA/enrollment_app/other)
+  filename, storage_path
+  ocr_extracted_data (JSON — from MedicareCenter PDF parsing)
+  signed_at, signed_by
+  created_at
+
+pharmacies
+  id, name, address1, city, state, zip_code, phone
+  is_partner (bool — paying rent)
+  rent_amount, rent_frequency
+  contact_name, contact_phone
+  notes
+  created_at
+
+carrier_plans (master reference — plan database)
+  id, carrier, plan_name, plan_id (H-number)
+  plan_type (MAPD/PDP/Supplement/Dental/SNP)
+  snp_type (D-SNP/C-SNP/I-SNP/null)
+  year
+  monthly_premium, annual_deductible, moop
+  network_type (HMO/PPO/PFFS)
+  service_counties (JSON array)
+  cms_star_rating
+  is_active
+
+scope_of_appointments (SOA tracking)
+  id, customer_id, agent_id
+  method (in_person/sms/email/medicarecenter)
+  sent_at, signed_at
+  topics_covered (JSON array — CMS required)
+  stored_by (portal/medicarecenter/paper)
+  medicarecenter_ref_id
+  valid_until (signed_at + 48hrs for same-day, or scheduled appt date)
+  created_at
 ```
 
 ### CommissionStatement Model — Key Fields
 ```
-carrier, statement_date, period_label ("February 2026")
-agent_id (FK → users), uploaded_by_id (FK → users)
-gross_amount     — total gross including bonuses
-bonus_amount     — HA/HRA bonuses (tracked separately)
-split_rate       — agent's actual split rate at time of upload
-expected_amount  — gross × split_rate
-paid_amount      — AJ's summary row amount
-difference       — expected - paid (0.00 = verified)
-status           — "verified" / "discrepancy" / "pending"
-line_items       — JSON array of individual member rows
+carrier, statement_date, period_label
+agent_id, uploaded_by_id
+gross_amount, bonus_amount, split_rate
+expected_amount, paid_amount, difference
+status (verified/discrepancy/pending)
+line_items (JSON)
 filename, upload_date
 ```
 
 ### AgentCarrierContract Model — Key Fields
 ```
-agent_id (FK → users), carrier
-is_active        — bool (False = upload rejected for this carrier)
-split_rate       — e.g. 0.55 or 0.525 for Betty
-id_type          — "NPN" / "writing_number" / "agent_code"
-id_value         — actual ID string (e.g. "18708064" for Tim's NPN)
-notes            — optional freeform notes
+agent_id, carrier
+is_active (False = upload rejected)
+split_rate (e.g. 0.55 or 0.525 for Betty)
+id_type (NPN/writing_number/agent_code)
+id_value (actual ID string)
+notes
 ```
 
 ---
@@ -356,12 +401,13 @@ notes            — optional freeform notes
 | 2031 | 67.5% |
 | 2032+ | 70% (cap) |
 
-**Note:** Betty Marlowe is at 52.5% — stored in AgentCarrierContract, not the default schedule.
+**Note:** Betty Marlowe is at 52.5%. Split rates stored in AgentCarrierContract, not hardcoded.
+**Note:** Commission cap exists partly because Founders pays rent to partner pharmacies for leads.
 
 ### CMS Commission Rates (2026)
 - **MAPD:** $346.92/year ($28.91/month)
 - **Part D:** ~$104/year ($8.67/month)
-- **Supplements/Dental:** % of premium (varies — needs config table)
+- **Supplements/Dental:** % of premium (varies — needs carrier_plans table)
 
 ### February 2026 Commission — All Carriers Verified ✅
 | Carrier | Gross | Split | Your Amount | Status |
@@ -372,11 +418,105 @@ notes            — optional freeform notes
 | BCBS | $635.79 | 55% | $349.68 | ✅ Verified |
 | Aetna | $202.44 | 55% | $111.34 | ✅ Verified |
 
-*Devoted: $7,981 base + $1,100 HRA bonuses (22 × $50)
+---
+
+## 11. Medicaid Levels (Important for Plan Eligibility)
+
+| Level | Full Name | What It Means |
+|---|---|---|
+| Full Dual | Full Dual Eligible | Qualifies for D-SNP plans, premiums + copays covered by Medicaid |
+| QMB | Qualified Medicare Beneficiary | Premiums, deductibles, and copays covered |
+| SLMB | Specified Low-Income Medicare Beneficiary | Part B premium only covered |
+| QI | Qualifying Individual | Partial Part B premium help |
+| None | Standard Medicare | No Medicaid assistance |
+
+- Must be tagged per customer in the portal
+- Determines which plans a customer is eligible for
+- D-SNP plans require Full Dual or QMB status
+- Affects which carrier plans are appropriate recommendations
 
 ---
 
-## 11. Current BOB Stats (Tim — March 2026)
+## 12. Scope of Appointment (SOA) Notes
+
+**CMS requires a Scope of Appointment be signed before discussing Medicare Advantage or Part D plans.**
+
+**The 48-hour rule:** SOA must be signed 48 hours before a scheduled appointment — unless it's an unscheduled walk-in or the beneficiary initiates contact.
+
+**Reality on the ground:** The 48-hour rule is widely not followed because it actively prevents helping people who want help immediately. A 75-year-old who walks into the office shouldn't be turned away.
+
+**Current workflow:**
+- Paper SOA (most common)
+- MedicareCenter SOA via SMS/email (stores for required 10 years)
+- In-person signature at appointment
+
+**Portal SOA goals:**
+- Send CMS-compliant SOA via SMS or email from within the portal
+- Track signature status
+- Store signed SOAs for 10-year CMS requirement
+- Link to customer record
+- For MedicareCenter-handled SOAs: store the reference ID, don't duplicate storage
+
+**Key point:** MedicareCenter already handles SOA storage compliantly. Portal should integrate with it, not replace it for compliance purposes.
+
+---
+
+## 13. MedicareCenter Integration
+
+**MedicareCenter** is the primary enrollment platform. After submitting an enrollment:
+- Agent can immediately download the signed application PDF
+- PDF contains: customer name, DOB, plan selected, effective date, agent NPN
+
+**Portal integration goals:**
+- Agent uploads enrollment PDF to customer record
+- OCR extracts: customer name, DOB, MBI/Medicare #, plan name, carrier, effective date
+- System auto-matches to existing customer record (by MBI or name+DOB)
+- Creates/updates AOR history record
+- Tags deal stage: "Enrolled - Pending Effective Date"
+- Sends automated confirmation to customer (future)
+
+**OCR approach:** PyMuPDF (fitz) or pdfplumber for text extraction from MedicareCenter PDFs. These are text-based PDFs not scanned images, so true OCR (Tesseract) probably not needed — just PDF text extraction.
+
+---
+
+## 14. Communication Stack (AEP Automation)
+
+**What Tim built for AEP 2025 that other agents didn't have:**
+
+```
+Customer calls Tim's RingCentral number (missed)
+        ↓
+Auto-reply SMS: "Sorry I missed you — book here: [Acuity link]"
+        ↓
+Customer books appointment via Acuity
+        ↓
+Acuity triggers:
+  - Confirmation SMS + email to customer
+  - Calendar invite to Tim's Google Calendar
+  - Notification SMS/email to Tim
+        ↓
+Day before: reminder SMS + email to customer
+1 hour before: reminder SMS + email to customer
+        ↓
+Appointment (Fireflies.ai records if virtual)
+        ↓
+Follow-up email: summary of what was discussed + next steps
+```
+
+**Other agents during AEP:** 10-hour days back-to-back, no auto-replies, customers felt ignored, leads fell through cracks.
+
+**Portal communication hub goals (future):**
+- Per-agent RingCentral extension configuration
+- Auto-reply SMS template management
+- Calendly integration (better API than Acuity, $10/mo per agent)
+- Automated reminder sequences
+- Fireflies.ai webhook → meeting summary → customer record
+- SMS template library (CMS-compliant templates, AJ-approved)
+- Email campaign module (SendGrid, filter by carrier/plan/renewal date/birthday)
+
+---
+
+## 15. Current BOB Stats (Tim — March 2026)
 
 | Carrier | Active Clients | % of BOB |
 |---|---|---|
@@ -388,14 +528,13 @@ notes            — optional freeform notes
 | Healthspring (Cigna) | 3 | 0.6% |
 | **Total** | **538** | **100%** |
 
-### Agency-Wide (seeded demo data)
-- Total policies in DB: ~5,479
-- Brian: ~1,100 | Rebekah: ~950 | Chris: ~751 | Justin: ~700
-- Mike: ~530 | Betty: ~480 | Anjana: ~430 | Tim: 538 (real data)
+### Agency-Wide (seeded demo data ~5,479 total)
+Brian: ~1,100 | Rebekah: ~950 | Chris: ~751 | Justin: ~700
+Mike: ~530 | Betty: ~480 | Anjana: ~430 | Tim: 538 (real)
 
 ---
 
-## 12. Compensation Proposal (Pending AJ Conversation)
+## 16. Compensation Proposal (Pending AJ Conversation)
 
 ### Asking For
 - **Target:** $1,500/month retainer
@@ -410,7 +549,7 @@ notes            — optional freeform notes
 
 ---
 
-## 13. Build Progress
+## 17. Build Progress
 
 ### Completed ✅
 - [x] VPS, Nginx, Gunicorn, SSL, DNS all live
@@ -422,83 +561,59 @@ notes            — optional freeform notes
 - [x] Policy upsert logic (carrier + member_id unique constraint)
 - [x] ImportBatch + AuditLog tracking
 - [x] Agent dashboard (filtered by agent_id)
-  - [x] Policy count, carrier breakdown, commission estimate
-  - [x] Upcoming terminations (90d, color-coded urgency badges)
-- [x] Admin overview (/admin)
-  - [x] Agency KPIs, carrier breakdown, per-agent table
-  - [x] Agent names clickable → agent detail view
-  - [x] "Viewing as" banner when AJ views an agent
-- [x] Birthday labels (/birthday-labels)
-  - [x] Month picker with live label counts
-  - [x] Avery 5160 PDF download (ReportLab, print-ready)
-  - [x] Missing address panel, deduplication by household
-- [x] Commission audit (/admin/commissions + /commissions)
-  - [x] CommissionStatement model + DB table
-  - [x] All 5 carrier parsers (UHC, Humana, Aetna, BCBS, Devoted)
-  - [x] Auto-detects carrier from column headers
-  - [x] Auto-detects agent by name matching (handles all name formats)
-  - [x] Uses agent's actual split rate from AgentCarrierContract
-  - [x] Rejects upload if agent has no active contract with that carrier
-  - [x] Verified/discrepancy status with to-the-penny math
-  - [x] Hero bar with total gross, split, paid, audit status
-  - [x] Per-carrier status cards (green/red border)
-  - [x] Line items table with per-member breakdown
-  - [x] Admin view with agency-wide totals + Founders retains
-- [x] Agent settings (/admin/agent-settings)
-  - [x] AgentCarrierContract model + DB table
-  - [x] Per-agent carrier contract toggles (8 carriers)
-  - [x] Per-agent commission split rate
-  - [x] Per-carrier agent ID type + value (NPN / writing_number / agent_code)
-  - [x] Betty Marlowe seeded at 52.5%, Tim's NPN pre-filled
+- [x] Admin overview with agency KPIs and agent detail view
+- [x] Birthday labels — Avery 5160 PDF download
+- [x] Commission audit — all 5 carriers, per-agent split rates, contract validation
+- [x] Agent settings — carrier contracts, split rates, agent IDs
 - [x] Founders logo in sidebar
-- [x] All 8 agents seeded with realistic demo data (~5,479 policies)
-- [x] All 8 agents seeded with carrier contracts
-- [x] All 5 carriers seeded with fake commission data for demo
-- [x] SendGrid configured (domain authenticated)
-- [x] reportlab + sendgrid + openpyxl installed in venv
+- [x] All 8 agents seeded with demo data (~5,479 policies)
 - [x] All code on GitHub
 
 ### Next Up 🔜
-- [ ] Upcoming terminations dedicated page (filters by urgency + carrier, CSV export)
-- [ ] Customer master database
-  - [ ] `customers` table (MBI, name, DOB, phone, address)
-  - [ ] `customer_aor_history` table (who owned them and when)
-  - [ ] Clickable member names in commission line items → customer profile
-  - [ ] Customer search across all agents (visible to all, owned by AOR)
-- [ ] Fix Avery 5160 label alignment (test print needed)
-- [ ] Show AJ the demo
+- [ ] Upcoming terminations dedicated page
+- [ ] Customer master database (MBI linking, basic profile, editable records)
+- [ ] Customer POC (point of contact — not always the patient)
+- [ ] Pharmacy master list + customer tagging
+- [ ] Medicaid level tagging per customer
+- [ ] MedicareCenter PDF upload + OCR extraction → customer matching
+- [ ] Customer profile page (full view)
+- [ ] Clickable member names in commission line items → customer profile
 
 ### Roadmap (Post-MVP)
-- [ ] AOR ownership tracking + cannibalization detection
-- [ ] Inbound call routing reference
+- [ ] Carrier plan master database (H-numbers, plan types, Medicaid eligibility)
+- [ ] SOA tracking and sending (CMS-compliant)
+- [ ] AOR ownership history + cannibalization detection
+- [ ] Deal stage tracking (Lead/SOA Sent/Enrolled/Effective/Termed)
+- [ ] Communication hub (RingCentral SMS, email campaigns, auto-replies)
+- [ ] Calendly integration per agent
+- [ ] Fireflies.ai webhook → meeting summaries → customer records
 - [ ] Commission forecast (Part D + supplement rates)
 - [ ] Churn risk scoring
-- [ ] Granular carrier/plan breakdown admin view
+- [ ] Inbound call routing ("who's calling?" lookup by phone number)
 - [ ] Admin master file upload (one per carrier for all agents)
-- [ ] Birthday labels email cron (auto-email on 1st)
+- [ ] Birthday labels email cron
 - [ ] Mobile responsive styling
 - [ ] PostgreSQL migration
-- [ ] Handoff docs for AJ
+- [ ] White-label packaging (see PRODUCT_VISION.md)
 
 ---
 
-## 14. Important Notes
+## 18. Important Notes
 
-- **BCBS Supplement term dates** = renewal dates, never real disenrollments. Stored as `renewal_date`, never shown in termination alerts.
-- **Humana MBI** always masked — use Humana ID as primary key.
-- **Healthspring `.xls`** is actually HTML — parser sniffs and routes automatically.
-- **UHC sentinel date** `2300-01-01` = no real term date → stored as NULL.
-- **BCBS sentinel date** `12/31/2199` = no real term date → stored as NULL.
-- **Address fields** populated for UHC + Humana only. Aetna/Devoted/Healthspring TBD.
-- **Commission estimate** on dashboard = MAPD flat rate only. No supplement/dental/Part D yet.
-- **agent_id was NULL** on all policies before March 18 2026. Fixed: `UPDATE policies SET agent_id = 1 WHERE agent_id IS NULL`.
-- **Seeded agents** (Brian, Rebekah, Chris, Justin, Mike, Betty, Anjana) have fake policy data. Tim has real data.
-- **admin@foundersinsuranceagency.com** = AJ's portal login. is_admin=True. Excluded from agent breakdown tables.
-- **Betty Marlowe** is at 52.5% split — stored in agent_carrier_contracts, not the hardcoded default.
-- **Commission upload validation** — checks AgentCarrierContract.is_active before saving. Rejects if no active contract.
-- **Agent name normalization** — handles LAST, FIRST MIDDLE / LAST FIRST INITIAL / First Last formats across all 5 carriers.
-- **Google Workspace app passwords** not available at domain level — use SendGrid for all outbound email.
-- **extensions.py** holds db + login_manager to avoid circular imports.
-- **Git:** VPS is source of truth. Push from VPS only. Pull on Chromebook only. Never commit from Chromebook.
-- **Customer master database** — next major feature. MBI is the cross-carrier key. Will enable AOR history, cannibalization detection, call routing, and clickable customer profiles from commission line items.
-- **This Claude account** is the work account — keep all agency/portal work here, separate from personal Claude.
+- **Carrier data is not the source of truth** — agents edit and correct customer records, carrier data preserved in original form
+- **MBI is the cross-carrier unique key** — except Humana (masked), use Humana ID there
+- **BCBS Supplement term dates** = renewal dates, never real disenrollments
+- **Healthspring `.xls`** is actually HTML — parser sniffs automatically
+- **UHC/BCBS sentinel dates** converted to NULL (2300-01-01 and 12/31/2199)
+- **Address fields** populated for UHC + Humana only so far
+- **Commission estimate** on dashboard = MAPD flat rate only, no supplement/dental/Part D yet
+- **Betty Marlowe** is at 52.5% split — stored in agent_carrier_contracts
+- **Commission upload validation** — checks AgentCarrierContract.is_active before saving
+- **Partner pharmacies** = warm leads in exchange for agency rent payments — explains commission cap
+- **SOA compliance** — MedicareCenter handles 10-year storage, portal should reference not duplicate
+- **MedicareCenter PDFs** are text-based not scanned — use pdfplumber for extraction, not Tesseract
+- **Fireflies.ai** is already in Tim's workflow — webhook integration planned for customer records
+- **Calendly** preferred over Acuity for portal integration (better API)
+- **SendGrid Essentials** ($20/mo) needed for email campaigns — free tier (100/day) fine for transactional
+- **Git:** VPS is source of truth. Push from VPS only. Pull on Chromebook only
+- **This Claude account** is the work account — keep all agency/portal work here

@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from types import SimpleNamespace
-from flask import Blueprint, render_template, redirect, url_for, abort
+from flask import Blueprint, render_template, redirect, url_for, abort, request, Response
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
@@ -207,4 +207,123 @@ def admin_overview():
         agency_carrier_rows=agency_carrier_rows,
         agent_rows=agent_rows,
         today=today,
+    )
+
+
+@main.route('/terminations')
+@login_required
+def terminations():
+    today       = date.today()
+    ninety_days = today + timedelta(days=90)
+
+    # Filters from query string
+    urgency_filter = request.args.get('urgency', 'all')
+    carrier_filter = request.args.get('carrier', 'all')
+
+    base = Policy.query.filter(
+        Policy.agent_id == current_user.id,
+        Policy.status == 'active',
+        Policy.term_date.isnot(None),
+        Policy.term_date >= today,
+        Policy.term_date <= ninety_days,
+    )
+
+    if carrier_filter != 'all':
+        base = base.filter(Policy.carrier == carrier_filter)
+
+    raw = base.order_by(Policy.term_date.asc()).all()
+
+    # Wrap with urgency
+    all_terms = []
+    for p in raw:
+        urgency, days = _urgency(p.term_date, today)
+        from types import SimpleNamespace
+        w = SimpleNamespace(
+            **{col.name: getattr(p, col.name) for col in p.__table__.columns},
+            urgency_class=urgency,
+            days_until_term=days,
+        )
+        all_terms.append(w)
+
+    # Apply urgency filter after wrapping
+    if urgency_filter == 'critical':
+        terms = [t for t in all_terms if t.days_until_term <= 30]
+    elif urgency_filter == 'warning':
+        terms = [t for t in all_terms if 30 < t.days_until_term <= 60]
+    elif urgency_filter == 'watch':
+        terms = [t for t in all_terms if 60 < t.days_until_term <= 90]
+    else:
+        terms = all_terms
+
+    # Counts for filter tabs
+    counts = {
+        'all':      len(all_terms),
+        'critical': sum(1 for t in all_terms if t.days_until_term <= 30),
+        'warning':  sum(1 for t in all_terms if 30 < t.days_until_term <= 60),
+        'watch':    sum(1 for t in all_terms if 60 < t.days_until_term <= 90),
+    }
+
+    # Carrier list for dropdown
+    carriers = sorted(set(t.carrier for t in all_terms))
+
+    return render_template('terminations.html',
+        terms=terms,
+        counts=counts,
+        carriers=carriers,
+        urgency_filter=urgency_filter,
+        carrier_filter=carrier_filter,
+        today=today,
+    )
+
+
+@main.route('/terminations/export')
+@login_required
+def terminations_export():
+    import csv, io
+    today       = date.today()
+    ninety_days = today + timedelta(days=90)
+
+    urgency_filter = request.args.get('urgency', 'all')
+    carrier_filter = request.args.get('carrier', 'all')
+
+    base = Policy.query.filter(
+        Policy.agent_id == current_user.id,
+        Policy.status == 'active',
+        Policy.term_date.isnot(None),
+        Policy.term_date >= today,
+        Policy.term_date <= ninety_days,
+    )
+    if carrier_filter != 'all':
+        base = base.filter(Policy.carrier == carrier_filter)
+
+    raw = base.order_by(Policy.term_date.asc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Member Name', 'DOB', 'Phone', 'Carrier', 'Plan',
+                     'Effective Date', 'Term Date', 'Days Remaining', 'Urgency'])
+
+    for p in raw:
+        urgency, days = _urgency(p.term_date, today)
+        if urgency_filter == 'critical' and days > 30: continue
+        if urgency_filter == 'warning' and not (30 < days <= 60): continue
+        if urgency_filter == 'watch' and not (60 < days <= 90): continue
+
+        writer.writerow([
+            p.full_name or f"{p.first_name} {p.last_name}",
+            p.dob.strftime('%m/%d/%Y') if p.dob else '',
+            p.phone or '',
+            p.carrier,
+            p.plan_name or '',
+            p.effective_date.strftime('%m/%d/%Y') if p.effective_date else '',
+            p.term_date.strftime('%m/%d/%Y') if p.term_date else '',
+            days,
+            urgency.upper(),
+        ])
+
+    from flask import Response
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="terminations_{today}.csv"'}
     )

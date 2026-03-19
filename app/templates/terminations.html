@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Upcoming Terminations{% endblock %}
+{% block styles %}
+.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
+.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.filter-tabs{display:flex;gap:4px}
+.filter-tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;text-decoration:none;border:0.5px solid #E2E6ED;color:#4A5568;background:#fff;display:flex;align-items:center;gap:6px}
+.filter-tab:hover{background:#F4F6F9}
+.filter-tab.active{background:#1B2A4A;color:#fff;border-color:#1B2A4A}
+.filter-tab .count{font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,0.2)}
+.filter-tab:not(.active) .count{background:#F4F6F9;color:#4A5568}
+.filter-tab.tab-critical.active{background:#A32D2D;border-color:#A32D2D}
+.filter-tab.tab-warning.active{background:#854F0B;border-color:#854F0B}
+.filter-tab.tab-watch.active{background:#633806;border-color:#633806}
+.toolbar-right{display:flex;align-items:center;gap:8px}
+.carrier-select{padding:6px 10px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:12px;color:#1B2A4A;background:#fff;cursor:pointer}
+.btn-export{background:#F4F6F9;color:#1B2A4A;border:0.5px solid #E2E6ED;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn-export:hover{background:#E2E6ED}
+.card{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden}
+.data-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.data-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 16px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
+.data-table td{padding:9px 16px;border-bottom:0.5px solid #E2E6ED;color:#1B2A4A;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.data-table tr:last-child td{border-bottom:none}
+.row-red td{background:#FCEBEB}
+.row-amber td{background:#FAEEDA}
+.row-yellow td{background:#FFF2CC}
+.row-red:hover td{background:#f5d5d5}
+.row-amber:hover td{background:#f0dcc0}
+.row-yellow:hover td{background:#f5e8a0}
+.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-yellow{background:#FFF2CC;color:#633806}
+.badge-green{background:#EAF3DE;color:#2D6A4F}
+.empty-state{padding:48px 20px;text-align:center;color:#888;font-size:13px}
+.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.summary-card{border-radius:8px;padding:12px 16px}
+.summary-card.all{background:#F4F6F9}
+.summary-card.critical{background:#FCEBEB}
+.summary-card.warning{background:#FAEEDA}
+.summary-card.watch{background:#FFF2CC}
+.summary-label{font-size:11px;color:#4A5568;margin-bottom:4px}
+.summary-card.critical .summary-label{color:#A32D2D}
+.summary-card.warning .summary-label{color:#854F0B}
+.summary-card.watch .summary-label{color:#633806}
+.summary-value{font-size:24px;font-weight:500;color:#1B2A4A}
+.summary-sub{font-size:11px;color:#888;margin-top:2px}
+{% endblock %}
+{% block content %}
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+  <div>
+    <h1 class="page-title">Upcoming Terminations</h1>
+    <p class="page-sub">Active policies with term dates in the next 90 days</p>
+  </div>
+</div>
+
+{# Summary cards #}
+<div class="summary-bar">
+  <div class="summary-card all">
+    <div class="summary-label">All upcoming terms</div>
+    <div class="summary-value">{{ counts.all }}</div>
+    <div class="summary-sub">Next 90 days</div>
+  </div>
+  <div class="summary-card critical">
+    <div class="summary-label">Critical — under 30 days</div>
+    <div class="summary-value">{{ counts.critical }}</div>
+    <div class="summary-sub">Act now</div>
+  </div>
+  <div class="summary-card warning">
+    <div class="summary-label">Warning — 30–60 days</div>
+    <div class="summary-value">{{ counts.warning }}</div>
+    <div class="summary-sub">Schedule soon</div>
+  </div>
+  <div class="summary-card watch">
+    <div class="summary-label">Watch — 60–90 days</div>
+    <div class="summary-value">{{ counts.watch }}</div>
+    <div class="summary-sub">On your radar</div>
+  </div>
+</div>
+
+{# Toolbar #}
+<div class="toolbar">
+  <div class="filter-tabs">
+    <a href="{{ url_for('main.terminations', urgency='all', carrier=carrier_filter) }}"
+       class="filter-tab {% if urgency_filter=='all' %}active{% endif %}">
+      All <span class="count">{{ counts.all }}</span>
+    </a>
+    <a href="{{ url_for('main.terminations', urgency='critical', carrier=carrier_filter) }}"
+       class="filter-tab tab-critical {% if urgency_filter=='critical' %}active{% endif %}">
+      🔴 Critical <span class="count">{{ counts.critical }}</span>
+    </a>
+    <a href="{{ url_for('main.terminations', urgency='warning', carrier=carrier_filter) }}"
+       class="filter-tab tab-warning {% if urgency_filter=='warning' %}active{% endif %}">
+      🟠 Warning <span class="count">{{ counts.warning }}</span>
+    </a>
+    <a href="{{ url_for('main.terminations', urgency='watch', carrier=carrier_filter) }}"
+       class="filter-tab tab-watch {% if urgency_filter=='watch' %}active{% endif %}">
+      🟡 Watch <span class="count">{{ counts.watch }}</span>
+    </a>
+  </div>
+  <div class="toolbar-right">
+    <select class="carrier-select" onchange="window.location=this.value">
+      <option value="{{ url_for('main.terminations', urgency=urgency_filter, carrier='all') }}"
+              {% if carrier_filter=='all' %}selected{% endif %}>All carriers</option>
+      {% for c in carriers %}
+      <option value="{{ url_for('main.terminations', urgency=urgency_filter, carrier=c) }}"
+              {% if carrier_filter==c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <a href="{{ url_for('main.terminations_export', urgency=urgency_filter, carrier=carrier_filter) }}"
+       class="btn-export">↓ Export CSV</a>
+  </div>
+</div>
+
+{# Table #}
+<div class="card">
+  {% if terms %}
+  <table class="data-table">
+    <colgroup>
+      <col style="width:18%"><col style="width:9%"><col style="width:11%">
+      <col style="width:10%"><col style="width:18%"><col style="width:9%">
+      <col style="width:9%"><col style="width:8%"><col style="width:8%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>DOB</th>
+        <th>Phone</th>
+        <th>Carrier</th>
+        <th>Plan</th>
+        <th>Eff date</th>
+        <th>Term date</th>
+        <th>Days</th>
+        <th>Urgency</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in terms %}
+      <tr class="row-{{ t.urgency_class }}">
+        <td class="fw-medium">{{ t.full_name or ((t.first_name or '') + ' ' + (t.last_name or '')) }}</td>
+        <td>{{ t.dob.strftime('%m/%d/%Y') if t.dob else '—' }}</td>
+        <td>{{ t.phone or '—' }}</td>
+        <td>{{ t.carrier }}</td>
+        <td>{{ t.plan_name or '—' }}</td>
+        <td>{{ t.effective_date.strftime('%m/%d/%Y') if t.effective_date else '—' }}</td>
+        <td style="font-weight:500">{{ t.term_date.strftime('%m/%d/%Y') if t.term_date else '—' }}</td>
+        <td>
+          <span class="badge badge-{{ t.urgency_class }}">{{ t.days_until_term }}d</span>
+        </td>
+        <td>
+          {% if t.urgency_class == 'red' %}<span class="badge badge-red">Critical</span>
+          {% elif t.urgency_class == 'amber' %}<span class="badge badge-amber">Warning</span>
+          {% else %}<span class="badge badge-yellow">Watch</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    {% if counts.all == 0 %}
+      No upcoming terminations in the next 90 days. 🎉
+    {% else %}
+      No terminations match the current filter.
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

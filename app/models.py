@@ -157,3 +157,47 @@ class AuditLog(db.Model):
 
     def __repr__(self):
         return f"<AuditLog {self.action} by user {self.user_id}>"
+
+
+class CommissionStatement(db.Model):
+    """
+    Parsed commission statement uploaded by AJ.
+    One row per carrier per agent per statement period.
+    """
+    __tablename__ = "commission_statements"
+
+    id             = db.Column(db.Integer, primary_key=True)
+    carrier        = db.Column(db.String(64), nullable=False, index=True)
+    statement_date = db.Column(db.Date, nullable=False)
+    period_label   = db.Column(db.String(32))                # e.g. "February 2026"
+
+    # Agent linkage
+    agent_id       = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
+    agent          = db.relationship("User", foreign_keys=[agent_id])
+
+    # Commission amounts
+    gross_amount   = db.Column(db.Float, default=0.0)        # sum of all line item commissions
+    bonus_amount   = db.Column(db.Float, default=0.0)        # HA/HRA bonuses (separate)
+    split_rate     = db.Column(db.Float, default=0.55)
+    expected_amount = db.Column(db.Float, default=0.0)       # gross × split_rate
+    paid_amount    = db.Column(db.Float, default=0.0)        # what AJ's summary row shows
+    difference     = db.Column(db.Float, default=0.0)        # expected - paid (0 = verified)
+
+    # Status
+    status         = db.Column(db.String(32), default="pending")  # pending / verified / discrepancy
+
+    # Raw line items stored as JSON
+    line_items     = db.Column(db.Text)                      # JSON array of member rows
+
+    # Upload tracking
+    upload_date    = db.Column(db.DateTime, server_default=db.func.now())
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    uploaded_by    = db.relationship("User", foreign_keys=[uploaded_by_id])
+    filename       = db.Column(db.String(512))
+
+    __table_args__ = (
+        db.UniqueConstraint("carrier", "agent_id", "period_label", name="uq_commission_period"),
+    )
+
+    def __repr__(self):
+        return f"<CommissionStatement {self.carrier} {self.period_label} agent={self.agent_id}>"

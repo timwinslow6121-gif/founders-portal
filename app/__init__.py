@@ -16,10 +16,12 @@ def create_app():
     from app.auth import auth
     from app.upload import upload_bp
     from app.labels import labels_bp
+    from app.commission import commission_bp
     app.register_blueprint(main)
     app.register_blueprint(auth)
     app.register_blueprint(upload_bp)
     app.register_blueprint(labels_bp)
+    app.register_blueprint(commission_bp)
 
     with app.app_context():
         db.create_all()

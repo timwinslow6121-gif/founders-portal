@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Commission Audit{% endblock %}
+{% block styles %}
+.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
+.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
+.two-col{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+.card{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid #E2E6ED}
+.card-title{font-size:14px;font-weight:500;color:#1B2A4A}
+.card-meta{font-size:12px;color:#4A5568}
+.upload-zone{padding:20px 16px}
+.upload-zone label{display:block;font-size:12px;color:#4A5568;margin-bottom:6px;font-weight:500}
+.upload-zone select,.upload-zone input[type=file]{width:100%;padding:8px 10px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:13px;color:#1B2A4A;background:#fff;margin-bottom:12px}
+.btn-primary{background:#185FA5;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;width:100%}
+.stmt-table{width:100%;border-collapse:collapse;font-size:12px}
+.stmt-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 16px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em}
+.stmt-table td{padding:9px 16px;border-bottom:0.5px solid #E2E6ED;color:#1B2A4A;vertical-align:middle}
+.stmt-table tr:last-child td{border-bottom:none}
+.stmt-table tr:hover td{background:#F4F6F9}
+.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
+.badge-green{background:#EAF3DE;color:#3B6D11}
+.badge-red{background:#FCEBEB;color:#A32D2D}
+.badge-amber{background:#FAEEDA;color:#854F0B}
+.badge-gray{background:#F4F6F9;color:#4A5568}
+.badge-blue{background:#E6F1FB;color:#185FA5}
+.amount-pos{color:#3B6D11;font-weight:500}
+.amount-neg{color:#A32D2D;font-weight:500}
+.section-banner{background:#1B2A4A;color:#fff;padding:8px 16px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
+.empty-state{padding:40px 20px;text-align:center;color:#888;font-size:13px}
+.viewing-banner{display:flex;align-items:center;gap:16px;background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:13px}
+.viewing-back{color:#185FA5;text-decoration:none;font-weight:500}
+.summary-row{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.summary-card{background:#F4F6F9;border-radius:8px;padding:12px 16px;flex:1;min-width:120px}
+.summary-label{font-size:11px;color:#4A5568;margin-bottom:4px}
+.summary-value{font-size:20px;font-weight:500;color:#1B2A4A}
+.summary-sub{font-size:11px;color:#4A5568;margin-top:2px}
+{% endblock %}
+{% block content %}
+
+{% if viewing_agent %}
+<div class="viewing-banner">
+  <a href="{{ url_for('commission.commission_admin') }}" class="viewing-back">← Commission Audit</a>
+  <span style="color:#1B2A4A;">Viewing: <strong>{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
+</div>
+{% endif %}
+
+<h1 class="page-title">Commission Audit</h1>
+<p class="page-sub">
+  {% if is_admin and not viewing_agent %}All agents · upload carrier statements below
+  {% elif viewing_agent %}{{ viewing_agent.display_name }}'s commission history
+  {% else %}Your commission statements · verify AJ's split math
+  {% endif %}
+</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}" style="padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;background:{% if category=='success' %}#EAF3DE{% elif category=='warning' %}#FAEEDA{% else %}#FCEBEB{% endif %};color:{% if category=='success' %}#2D6A4F{% elif category=='warning' %}#854F0B{% else %}#A32D2D{% endif %};">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% if is_admin and not viewing_agent %}
+{# ── Admin view ── #}
+<div class="two-col">
+
+  {# Upload panel #}
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Upload Statement</span>
+      </div>
+      <div class="upload-zone">
+        <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data">
+          <label>Carrier Statement File (.xlsx)</label>
+          <input type="file" name="file" accept=".xlsx,.xls">
+          <button type="submit" class="btn-primary">Upload & Parse</button>
+        </form>
+        <p style="font-size:11px;color:#888;margin-top:10px;line-height:1.5;">
+          Carrier and agent are auto-detected from the file.<br>
+          Supports: UHC, Humana, Aetna, BCBS, Devoted.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-banner">Recent Uploads</div>
+      {% if recent %}
+      <table class="stmt-table">
+        <thead><tr><th>Agent</th><th>Carrier</th><th>Period</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for s in recent %}
+          <tr>
+            <td>{{ s.agent.display_name if s.agent else '—' }}</td>
+            <td style="font-weight:500">{{ s.carrier }}</td>
+            <td>{{ s.period_label }}</td>
+            <td>
+              {% if s.status == 'verified' %}<span class="badge badge-green">✓ Verified</span>
+              {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠ Discrepancy</span>
+              {% else %}<span class="badge badge-gray">Pending</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">No statements uploaded yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Agent summary panel #}
+  <div>
+    <div class="card">
+      <div class="section-banner">Agent Commission Summary</div>
+      {% if agent_summaries %}
+      <table class="stmt-table">
+        <thead>
+          <tr>
+            <th>Agent</th><th>Carrier</th><th>Period</th>
+            <th>Gross</th><th>Expected</th><th>Paid</th><th>Diff</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for summary in agent_summaries %}
+            {% for s in summary.statements %}
+            <tr>
+              {% if loop.first %}
+              <td rowspan="{{ summary.statements|length }}" style="font-weight:500;vertical-align:top;padding-top:12px;">
+                <a href="{{ url_for('commission.commission_agent_detail', agent_id=summary.agent.id) }}" style="color:#185FA5;text-decoration:none;">
+                  {{ summary.agent.display_name }}
+                </a>
+              </td>
+              {% endif %}
+              <td>{{ s.carrier }}</td>
+              <td>{{ s.period_label }}</td>
+              <td>${{ "%.2f"|format(s.gross_amount) }}</td>
+              <td>${{ "%.2f"|format(s.expected_amount) }}</td>
+              <td>${{ "%.2f"|format(s.paid_amount) }}</td>
+              <td class="{{ 'amount-neg' if s.difference != 0 else 'amount-pos' }}">
+                {% if s.difference == 0 %}$0.00
+                {% elif s.difference > 0 %}+${{ "%.2f"|format(s.difference) }}
+                {% else %}-${{ "%.2f"|format(s.difference|abs) }}{% endif %}
+              </td>
+              <td>
+                {% if s.status == 'verified' %}<span class="badge badge-green">✓</span>
+                {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠</span>
+                {% else %}<span class="badge badge-gray">—</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">No statements uploaded yet. Upload a carrier file to get started.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+{% else %}
+{# ── Agent view (or admin viewing agent) ── #}
+
+{% if statements %}
+{# Summary cards #}
+<div class="summary-row">
+  {% set total_gross = statements|sum(attribute='gross_amount') %}
+  {% set total_expected = statements|sum(attribute='expected_amount') %}
+  {% set total_paid = statements|sum(attribute='paid_amount') %}
+  {% set total_diff = statements|sum(attribute='difference') %}
+  <div class="summary-card">
+    <div class="summary-label">Total Gross</div>
+    <div class="summary-value">${{ "{:,.2f}".format(total_gross) }}</div>
+    <div class="summary-sub">All carriers combined</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Expected (55%)</div>
+    <div class="summary-value">${{ "{:,.2f}".format(total_expected) }}</div>
+    <div class="summary-sub">Your split</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Paid by AJ</div>
+    <div class="summary-value">${{ "{:,.2f}".format(total_paid) }}</div>
+    <div class="summary-sub">Per statements</div>
+  </div>
+  <div class="summary-card">
+    <div class="summary-label">Difference</div>
+    <div class="summary-value {{ 'amount-neg' if total_diff != 0 else 'amount-pos' }}">${{ "{:,.2f}".format(total_diff|abs) }}</div>
+    <div class="summary-sub">{{ '✓ Verified' if total_diff == 0 else '⚠ Discrepancy' }}</div>
+  </div>
+</div>
+
+{# Statement detail cards #}
+{% for s in statements %}
+<div class="card">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="card-title">{{ s.carrier }} — {{ s.period_label }}</span>
+      {% if s.status == 'verified' %}<span class="badge badge-green">✓ Verified</span>
+      {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠ Discrepancy</span>
+      {% else %}<span class="badge badge-gray">Pending</span>{% endif %}
+    </div>
+    <span class="card-meta">{{ s.line_items_parsed|length }} line items · uploaded {{ s.upload_date.strftime('%b %d, %Y') }}</span>
+  </div>
+
+  {# Audit math summary #}
+  <div style="display:flex;gap:0;border-bottom:0.5px solid #E2E6ED;">
+    <div style="flex:1;padding:12px 16px;border-right:0.5px solid #E2E6ED;">
+      <div style="font-size:11px;color:#4A5568;margin-bottom:4px;">Gross commissions</div>
+      <div style="font-size:18px;font-weight:500;color:#1B2A4A;">${{ "{:,.2f}".format(s.gross_amount) }}</div>
+      {% if s.bonus_amount > 0 %}<div style="font-size:11px;color:#4A5568;">+ ${{ "{:,.2f}".format(s.bonus_amount) }} bonuses</div>{% endif %}
+    </div>
+    <div style="flex:1;padding:12px 16px;border-right:0.5px solid #E2E6ED;">
+      <div style="font-size:11px;color:#4A5568;margin-bottom:4px;">Your 55% split</div>
+      <div style="font-size:18px;font-weight:500;color:#1B2A4A;">${{ "{:,.2f}".format(s.expected_amount) }}</div>
+      <div style="font-size:11px;color:#4A5568;">${{ "{:,.2f}".format(s.gross_amount) }} × 55%</div>
+    </div>
+    <div style="flex:1;padding:12px 16px;border-right:0.5px solid #E2E6ED;">
+      <div style="font-size:11px;color:#4A5568;margin-bottom:4px;">Paid by AJ</div>
+      <div style="font-size:18px;font-weight:500;color:#1B2A4A;">${{ "{:,.2f}".format(s.paid_amount) }}</div>
+    </div>
+    <div style="flex:1;padding:12px 16px;">
+      <div style="font-size:11px;color:#4A5568;margin-bottom:4px;">Difference</div>
+      <div style="font-size:18px;font-weight:500;" class="{{ 'amount-neg' if s.difference != 0 else 'amount-pos' }}">
+        {% if s.difference == 0 %}$0.00 ✓
+        {% elif s.difference > 0 %}+${{ "{:,.2f}".format(s.difference) }}
+        {% else %}-${{ "{:,.2f}".format(s.difference|abs) }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Line items table #}
+  {% if s.line_items_parsed %}
+  <table class="stmt-table">
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Action</th>
+        <th>Eff Date</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in s.line_items_parsed[:25] %}
+      <tr>
+        <td style="font-weight:500">{{ item.member or item.get('member', '—') }}</td>
+        <td><span class="badge badge-{{ 'blue' if item.action in ('Renewal','RENEW') else 'amber' if 'first' in (item.action or '')|lower else 'gray' }}">{{ item.action or '—' }}</span></td>
+        <td style="color:#4A5568;">{{ item.eff_date or item.get('period','') or '—' }}</td>
+        <td style="text-align:right;" class="{{ 'amount-neg' if item.amount and item.amount < 0 else '' }}">
+          {% if item.amount is none %}—
+          {% elif item.amount < 0 %}-${{ "{:,.2f}".format(item.amount|abs) }}
+          {% else %}${{ "{:,.2f}".format(item.amount) }}{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      {% if s.line_items_parsed|length > 25 %}
+      <tr><td colspan="4" style="text-align:center;color:#888;font-size:11px;padding:8px;">... {{ s.line_items_parsed|length - 25 }} more line items</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    No commission statements on file yet.
+    {% if not is_admin %}Ask AJ to upload your carrier statements.{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

@@ -1,6 +1,6 @@
 # Founders Insurance Agency — Agent Portal
 ## Master Project Context Document
-*Last updated: March 19, 2026*
+*Last updated: March 20, 2026*
 
 ---
 
@@ -14,7 +14,7 @@
 **Personal GitHub:** timwinslow6121-gif  
 **Personal email:** tim.winslow6121@gmail.com
 
-I maintain the agency website, Google Workspace, Google Business page, RingCentral, and provide IT support + Medicare consulting for 8 agents. I am building a custom agency management portal to be compensated for this work. Long-term this becomes a white-label SaaS product for Medicare insurance agencies — see PRODUCT_VISION.md.
+I maintain the agency website, Google Workspace, Google Business page, and provide IT support + Medicare consulting for 8 agents. I am building a custom agency management portal to be compensated for this work. Long-term this becomes a white-label SaaS product for Medicare insurance agencies — see PRODUCT_VISION.md.
 
 ---
 
@@ -60,10 +60,10 @@ This is what agents are currently juggling. The goal of the portal is to **conso
 | # | Tool | Purpose | Status | Replace With |
 |---|---|---|---|---|
 | 1 | **Zoho CRM** | Customer management | Tim only, others use nothing | This portal (full replacement) |
-| 2 | **RingCentral** | SMS + telephony (Tim) | Tim only | Integrate via API, don't replace |
-| 3 | **VOXO** | SMS + telephony (some agents) | Inconsistent across agents | Standardize on RingCentral agency-wide |
-| 4 | **Personal cell phones** | Customer calls/SMS | Most agents — nightmare | RingCentral extensions for all |
-| 5 | **Pharmacy direct lines** | Customer calls at pharmacy | Untrackable | RingCentral routing |
+| 2 | **OpenPhone** | SMS + telephony | Decision made 2026-03-20 — replacing RingCentral | Standard plan $13/user/mo; webhook-first API |
+| 3 | **VOXO** | SMS + telephony (some agents) | Inconsistent across agents | Replace with OpenPhone agency-wide |
+| 4 | **Personal cell phones** | Customer calls/SMS | Most agents — nightmare | OpenPhone extensions for all |
+| 5 | **Pharmacy direct lines** | Customer calls at pharmacy | Untrackable | OpenPhone routing |
 | 6 | **Google Workspace** | Email, docs, calendar, storage | All agents have it | Keep — integrate deeper |
 | 7 | **MedicareCenter** | Enrollment platform | All agents | Integrate via PDF OCR, don't replace |
 | 8 | **Carrier portals** | UHC, Humana, etc. | Required by carriers | Can't replace, surface data via BOB imports |
@@ -80,7 +80,7 @@ Agents are independently operating with wildly different tools, no shared data, 
 
 ### The Vision: One Portal to Rule Them All
 The portal becomes the single hub. Every integration flows into it:
-- RingCentral webhook → call logged on customer record
+- OpenPhone webhook → call logged on customer record (replacing RingCentral)
 - Calendly webhook → appointment linked to customer record
 - MedicareCenter PDF → OCR extracted → customer record updated
 - Fireflies webhook → meeting summary attached to customer record
@@ -116,7 +116,7 @@ Agents open one tab. Everything is there.
 - **Database:** SQLite → PostgreSQL (migration planned)
 - **Web server:** Nginx (reverse proxy) + Gunicorn (WSGI)
 - **Auth:** Google OAuth 2.0 (restricted to @foundersinsuranceagency.com)
-- **ORM:** Flask-SQLAlchemy
+- **ORM:** Flask-SQLAlchemy + Flask-Migrate (Alembic) — added Phase 2
 - **Data processing:** pandas, openpyxl, lxml, reportlab, pdfplumber (planned for OCR)
 - **Email:** SendGrid (Twilio, domain authenticated)
 - **Version control:** GitHub (private repo)
@@ -146,15 +146,26 @@ sqlite3 /var/www/founders-portal/instance/founders_portal.db "SELECT carrier, gr
 ```
 
 ### Git Workflow — CRITICAL
-**VPS is source of truth. Push from VPS. Pull on Chromebook. Never commit from Chromebook.**
+**Local Crostini (Chromebook) is the dev machine. Commit and push from local. VPS pulls.**
 
 ```bash
-# On VPS (root@portal):
+# On local Crostini (tim@penguin) — development + commits:
+cd ~/Founders-Portal/founders-portal
 git add <files> && git commit -m "message" && git push origin main
 
-# On Chromebook (tim@penguin):
-cd ~/founders-portal && git pull origin main
+# On VPS (root@portal) — deployment after git pull:
+cd /var/www/founders-portal && git pull origin main
+source venv/bin/activate
+flask db upgrade          # always run after pull if models changed
+systemctl restart founders-portal
 ```
+
+### VPS Deployment Checklist (after every git pull)
+1. `git pull origin main`
+2. `pip install -r requirements.txt` (if requirements.txt changed)
+3. `flask db upgrade` (if models.py or migrations/ changed — Phase 2+)
+4. `systemctl restart founders-portal`
+5. `journalctl -u founders-portal -n 20 --no-pager` (verify no startup errors)
 
 ---
 
@@ -185,25 +196,31 @@ cd ~/founders-portal && git pull origin main
 ```
 founders-portal/
 ├── app/
-│   ├── __init__.py              → Flask app factory
+│   ├── __init__.py              → Flask app factory (registers all blueprints)
 │   ├── extensions.py            → db + login_manager
 │   ├── auth.py                  → Google OAuth
 │   ├── routes.py                → dashboard, admin overview, agent detail
 │   ├── models.py                → all database models
-│   ├── upload.py                → carrier BOB upload
+│   ├── upload.py                → carrier BOB upload + _upsert_customer_from_policy()
+│   ├── customers.py             → customer blueprint (list, profile, notes, contacts, merge) ✅ Phase 2
+│   ├── pharmacies.py            → pharmacy blueprint (admin CRUD) ✅ Phase 2
 │   ├── labels.py                → birthday labels PDF
 │   ├── agent_settings.py        → agent settings (contracts, splits)
 │   ├── commission/
 │   │   ├── __init__.py / routes.py / audit.py / forecast.py
 │   ├── parsers/
 │   │   ├── uhc / humana / aetna / bcbs / devoted / healthspring
+│   ├── migrations/              → Alembic migration history (Flask-Migrate) ✅ Phase 2
 │   └── templates/
 │       ├── base.html / login.html / dashboard.html
 │       ├── admin_overview.html / upload.html / labels.html
 │       ├── commission.html / agent_settings.html / agent_settings_detail.html
+│       ├── customers_list.html / customer_profile.html / customer_new.html ✅ Phase 2
+│       ├── customer_duplicates.html ✅ Phase 2
+│       ├── pharmacies.html / pharmacy_form.html ✅ Phase 2
 ├── seed_agents.py
 ├── config.py / requirements.txt / wsgi.py
-└── .env / .gitignore / README.md / PRODUCT_VISION.md
+└── .env / .gitignore / README.md / PRODUCT_VISION.md / FOUNDERS_PORTAL_CONTEXT.md
 ```
 
 ---
@@ -233,12 +250,31 @@ founders-portal/
 
 ## 9. Database Schema
 
-### Current Tables
-- **users, policies, import_batches, audit_logs**
+### Current Tables (Phase 1 + Phase 2 — all live as of 2026-03-20)
+- **users, policies, import_batches, audit_logs** ✅
 - **commission_statements** ✅
 - **agent_carrier_contracts** ✅
+- **pharmacies** ✅ Phase 2
+- **customers** ✅ Phase 2
+- **customer_contacts** ✅ Phase 2
+- **customer_notes** ✅ Phase 2
+- **customer_aor_history** ✅ Phase 2
 
-### Planned Tables (Customer Master + Full CRM)
+### Key Customer Model Fields (important rules encoded here)
+- `mbi` — unique index, nullable (Humana-only customers won't have it until resolved)
+- `humana_id` — Humana's member ID (fallback key when MBI is masked)
+- `manually_edited` — boolean; when True, BOB imports skip overwriting phone/address fields
+- `carrier_address` — raw import address stored separately; never shown to agents
+- `last_carrier_sync` — timestamp of most recent BOB import match
+- `deal_stage` — Active / Lead / SOA_Sent / Appointed / Enrolled / Termed
+
+### Customer Upsert Logic (in upload.py — _upsert_customer_from_policy)
+1. Match by MBI first (all carriers except Humana)
+2. Humana: match by `humana_id`, then name+DOB+zip (all three must match)
+3. If `manually_edited == True`: do NOT overwrite phone, address, city, state, zip — only update `carrier_address` and `last_carrier_sync`
+4. BCBS: `end_date` in CustomerAorHistory always set to None — BCBS term_date is a renewal date
+
+### Planned Tables (Future Phases)
 ```
 customers
   mbi (unique), medicare_id, preferred_name, first_name, last_name
@@ -369,7 +405,7 @@ C-SNP plans require specific chronic conditions (CHF, ESRD, diabetes, etc.) — 
 ## 14. AEP Communication Stack (Tim's Proven System)
 
 ```
-Missed call → RingCentral auto-reply SMS → Calendly booking link
+Missed call → OpenPhone auto-reply SMS → Calendly booking link
 → Confirmation SMS + email → Calendar invite
 → Day-before reminder → 1-hour reminder
 → Appointment → Fireflies records
@@ -401,6 +437,8 @@ Agency demo data: ~5,479 total across all 8 agents.
 ## 17. Build Progress
 
 ### Completed ✅
+
+**Phase 1 — Policy Reporting**
 - [x] VPS, Nginx, Gunicorn, SSL, DNS
 - [x] Google OAuth (Founders accounts only)
 - [x] All 6 carrier BOB parsers
@@ -414,44 +452,51 @@ Agency demo data: ~5,479 total across all 8 agents.
 - [x] ~5,479 seeded demo policies, commission data for all agents
 - [x] All code on GitHub
 
-### Next Up 🔜
-- [ ] Upcoming terminations dedicated page (filters, CSV export)
-- [ ] Customer master database
-  - [ ] customers table + editable records
-  - [ ] customer_aor_history
-  - [ ] customer_contacts (POC)
-  - [ ] Clickable member names in commission → customer profile
-- [ ] Pharmacy master list + customer tagging
-- [ ] Medicaid level tagging
-- [ ] MedicareCenter PDF OCR → customer matching
-- [ ] Lead/contact pipeline (deal stages, kanban)
-- [ ] Customer tasks + action items
-- [ ] Show AJ the demo
+**Phase 2 — Customer Master (completed 2026-03-20)**
+- [x] Flask-Migrate (Alembic) initialized — all future schema changes tracked
+- [x] `Pharmacy` model — partner pharmacies with rent tracking, contact info
+- [x] `Customer` model — MBI-keyed master record, `humana_id`, `manually_edited` flag, `carrier_address`, `deal_stage`
+- [x] `CustomerContact` model — POC contacts (not always the patient)
+- [x] `CustomerNote` model — interaction log with note_type, source_url, integration FK fields
+- [x] `CustomerAorHistory` model — per-carrier enrollment history with unique constraint
+- [x] `_upsert_customer_from_policy()` in upload.py — called on every BOB import
+- [x] `customers_bp` blueprint — list, profile, notes, contacts, pharmacy link, duplicates, merge
+- [x] `pharmacies_bp` blueprint — admin CRUD for partner pharmacies
+- [x] Sidebar updated — Customers + Pharmacies nav links
+- [x] All 7 Phase 2 templates built
+- [x] Obsidian vault created at ~/Founders-Portal/Founders-Portal-Vault/Founders Portal/
+
+### Next Up 🔜 (Phase 3 — Communication Hub)
+
+**Pre-code setup required first:**
+- [ ] Sign up OpenPhone ($13/user/mo Standard) — pilot: Tim + 1 other
+- [ ] Provision one number per pilot agent, note each `phoneNumberId`
+- [ ] Generate OpenPhone API key → store in VPS .env as `OPENPHONE_API_KEY`
+- [ ] Add webhook URL: `https://portal.foundersinsuranceagency.com/comms/webhook/openphone`
+  - Subscribe to: `call.completed`, `call.missed`, `message.received`, `message.sent`
+  - Store signing secret as `OPENPHONE_WEBHOOK_SECRET`
+- [ ] Test call to verify webhook fires before writing code
+
+**Code (after OpenPhone setup):**
+- [ ] `PhoneNumber`, `CallLog`, `SmsThread` models
+- [ ] `calendly_booking_url` column on User model
+- [ ] `app/openphone_client.py` — send_sms(), get_call_recording(), list_phone_numbers()
+- [ ] `app/communications.py` blueprint — webhook handlers + SMS thread routes
+- [ ] Calendly webhook — invitee.created → CustomerNote (appointment_scheduled)
+- [ ] Fireflies webhook — meeting summary → CustomerNote (meeting_summary)
+- [ ] HMAC signature verification on all 3 webhook endpoints
 
 ### Roadmap (Phased)
 
-**Phase 2 — Customer Intelligence**
-- [ ] Full customer profile page
-- [ ] AOR history + cannibalization detection
-- [ ] Carrier plan master database (CMS Plan Finder API)
-- [ ] C-SNP / Medicaid reference tables
-- [ ] SOA tracking and sending
-- [ ] NIPR/Sircon license status integration
-- [ ] Agent profile page (credentials, writing numbers, contract dates)
-- [ ] Carrier rep contact directory
-- [ ] Knowledge base (common issues + solutions)
-- [ ] CE tracking + renewal dates
-
-**Phase 3 — Communication Hub**
-- [ ] RingCentral integration (call logs, missed call → task)
-- [ ] Standardize agency on RingCentral (replace VOXO + personal cells)
+**Phase 3 — Communication Hub** ← NEXT
+- [ ] OpenPhone integration (call logs, missed call → CustomerNote)
+- [ ] Standardize agency on OpenPhone (replace VOXO + personal cells)
+- [ ] SMS thread view on customer profile
+- [ ] Calendly agency-wide adoption + portal integration
+- [ ] Fireflies webhook → meeting summary → customer record
 - [ ] SMS template library (AJ-approved, CMS-compliant)
 - [ ] Email campaign module (SendGrid, filtered recipient lists)
-- [ ] Calendly agency-wide adoption + portal integration
 - [ ] Automated reminder sequences
-- [ ] Fireflies webhook → meeting summary → customer record
-- [ ] Automated inbound task generator
-- [ ] Time tracking per customer interaction
 - [ ] Replace Dropbox with Google Drive integration (already paid for)
 
 **Phase 4 — Compliance + Operations**
@@ -497,12 +542,15 @@ Agency demo data: ~5,479 total across all 8 agents.
 - **Partner pharmacies** = warm leads via rent — explains commission cap
 - **SOA compliance** — MedicareCenter handles 10-year storage, portal stores reference only
 - **MedicareCenter PDFs** are text-based — use pdfplumber not Tesseract
-- **Fireflies.ai** already in Tim's workflow — webhook integration planned
-- **Calendly** preferred over Acuity/Zoho Bookings for API integration
+- **Fireflies.ai** already in Tim's workflow — webhook integration in Phase 3
+- **Calendly** preferred over Acuity/Zoho Bookings for API integration — Phase 3
+- **OpenPhone** chosen over RingCentral (decision 2026-03-20) — $13/user/mo, modern webhook API
 - **Dropbox should be eliminated** — Google Drive already paid for by Workspace
 - **No agency SOPs exist** — portal will eventually house onboarding + SOPs
 - **No expense reimbursement system exists** — AJ/Brian cut checks in person
 - **Amplicare/Enliven Health** — expensive, unreliable, used by some agents — replace with Medicare.gov API
 - **Medicare.gov** — most CMS-compliant drug cost lookup, government takes blame if data wrong
-- **Git:** VPS is source of truth. Push from VPS. Pull on Chromebook. Never commit from Chromebook.
+- **Git:** Local Crostini is the dev machine. Commit and push from local. VPS pulls and runs `flask db upgrade`.
+- **Flask-Migrate:** Always run `flask db upgrade` on VPS after any pull that touched models.py or migrations/
+- **Obsidian vault:** ~/Founders-Portal/Founders-Portal-Vault/Founders Portal/ — living project docs
 - **This Claude account** is the work account — keep all agency/portal work here

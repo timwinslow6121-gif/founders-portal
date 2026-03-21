@@ -68,6 +68,9 @@
       <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
         <span class="nav-dot" style="background:#378ADD;"></span>Dashboard
       </a>
+      <a href="/customers" class="nav-item {% if '/customers' in request.path %}active{% endif %}">
+        <span class="nav-dot" style="background:#378ADD;"></span>Customers
+      </a>
       <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
         <span class="nav-dot" style="background:#378ADD;"></span>Upcoming terms
       </a>
@@ -93,6 +96,9 @@
       </a>
       <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
         <span class="nav-dot" style="background:#E24B4A;"></span>Agent settings
+      </a>
+      <a href="/admin/pharmacies" class="nav-item {% if '/admin/pharmacies' in request.path %}active{% endif %}">
+        <span class="nav-dot" style="background:#E24B4A;"></span>Pharmacies
       </a>
       <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
         <span class="nav-dot" style="background:#E24B4A;"></span>Agency overview

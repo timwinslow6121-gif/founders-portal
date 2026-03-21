@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Pharmacies — Founders Portal{% endblock %}
+
+{% block styles %}
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 500; color: #1B2A4A; }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Partner Pharmacies</div>
+  <a href="{{ url_for('pharmacies.pharmacy_new') }}" class="btn-primary">+ Add pharmacy</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="card">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:26%">Name</th>
+        <th style="width:20%">Location</th>
+        <th style="width:16%">Contact</th>
+        <th style="width:12%">Phone</th>
+        <th style="width:12%">Rent</th>
+        <th style="width:7%">Partner</th>
+        <th style="width:7%"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pharmacies %}
+      <tr>
+        <td class="fw-medium">{{ p.name }}</td>
+        <td>{{ [p.city, p.state] | select | join(', ') or '—' }}</td>
+        <td>{{ p.contact_name or '—' }}</td>
+        <td>{{ p.phone or '—' }}</td>
+        <td>
+          {% if p.rent_amount %}
+            ${{ "%.0f"|format(p.rent_amount) }}/{{ p.rent_frequency or 'mo' }}
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if p.is_partner %}
+            <span class="badge badge-green">Yes</span>
+          {% else %}
+            <span class="badge badge-gray">No</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('pharmacies.pharmacy_edit', pharmacy_id=p.id) }}" class="btn-secondary" style="padding:4px 10px;font-size:11px;">Edit</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="empty-cell">No pharmacies added yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

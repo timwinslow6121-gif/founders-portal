@@ -13,10 +13,125 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
-from app.models import db, Policy, ImportBatch, AuditLog
+from datetime import datetime
+from app.models import db, Policy, ImportBatch, AuditLog, Customer, CustomerAorHistory
 from app.parsers import parse_carrier_file, SUPPORTED_CARRIERS
 
 upload_bp = Blueprint("upload", __name__)
+
+
+def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int) -> None:
+    """
+    Create or update a Customer record from a parsed policy row.
+
+    Called after every policy upsert. Uses MBI as the primary key.
+    Humana fallback: match on humana_id, then name+DOB+zip (all three required).
+
+    Guards:
+    - If customer.manually_edited is True, contact fields are not overwritten.
+    - BCBS term_date is a renewal date — never copied to AOR end_date.
+    """
+    carrier = rec.get("carrier", "")
+    mbi = rec.get("mbi") or None
+    humana_id = rec.get("member_id") if carrier == "Humana" else None
+
+    now = datetime.utcnow()
+    customer = None
+
+    # --- Locate existing customer ---
+    if mbi:
+        customer = Customer.query.filter_by(mbi=mbi).first()
+    elif humana_id:
+        customer = Customer.query.filter_by(humana_id=humana_id).first()
+        if not customer:
+            # Final fallback: name + DOB + zip (all three must match)
+            fn = (rec.get("first_name") or "").strip().lower()
+            ln = (rec.get("last_name") or "").strip().lower()
+            dob = rec.get("dob")
+            zc = (rec.get("zip_code") or "").strip()
+            if fn and ln and dob and zc:
+                customer = (
+                    Customer.query
+                    .filter(
+                        db.func.lower(Customer.first_name) == fn,
+                        db.func.lower(Customer.last_name) == ln,
+                        Customer.dob == dob,
+                        Customer.zip_code == zc,
+                    )
+                    .first()
+                )
+
+    full_name = rec.get("full_name") or f"{rec.get('first_name', '')} {rec.get('last_name', '')}".strip()
+    address_parts = [rec.get("address1"), rec.get("city"), rec.get("state"), rec.get("zip_code")]
+    carrier_address = ", ".join(p for p in address_parts if p)
+
+    if customer:
+        # Always update carrier-sourced fields
+        customer.last_carrier_sync = now
+        customer.carrier_address = carrier_address
+        if mbi and not customer.mbi:
+            customer.mbi = mbi
+        if humana_id and not customer.humana_id:
+            customer.humana_id = humana_id
+
+        # Only overwrite contact/address fields if agent hasn't manually edited them
+        if not customer.manually_edited:
+            customer.first_name = rec.get("first_name") or customer.first_name
+            customer.last_name = rec.get("last_name") or customer.last_name
+            customer.full_name = full_name or customer.full_name
+            customer.dob = rec.get("dob") or customer.dob
+            customer.phone_primary = rec.get("phone") or customer.phone_primary
+            customer.address1 = rec.get("address1") or customer.address1
+            customer.city = rec.get("city") or customer.city
+            customer.state = rec.get("state") or customer.state
+            customer.zip_code = rec.get("zip_code") or customer.zip_code
+            customer.county = rec.get("county") or customer.county
+
+        # Update agent ownership to most recent import
+        customer.primary_agent_id = agent_id
+    else:
+        # New customer — create from policy data
+        customer = Customer(
+            mbi=mbi,
+            humana_id=humana_id,
+            first_name=rec.get("first_name") or "",
+            last_name=rec.get("last_name") or "",
+            full_name=full_name,
+            dob=rec.get("dob"),
+            phone_primary=rec.get("phone"),
+            address1=rec.get("address1"),
+            city=rec.get("city"),
+            state=rec.get("state"),
+            zip_code=rec.get("zip_code"),
+            county=rec.get("county"),
+            carrier_address=carrier_address,
+            primary_agent_id=agent_id,
+            last_carrier_sync=now,
+        )
+        db.session.add(customer)
+        db.session.flush()  # get customer.id before AOR insert
+
+    # --- AOR history upsert ---
+    # BCBS term_date is a renewal date, not a real end_date — skip it
+    effective_date = rec.get("effective_date")
+    if effective_date and customer.id:
+        existing_aor = CustomerAorHistory.query.filter_by(
+            customer_id=customer.id,
+            carrier=carrier,
+            effective_date=effective_date,
+        ).first()
+        if not existing_aor:
+            aor = CustomerAorHistory(
+                customer_id=customer.id,
+                agent_id=agent_id,
+                carrier=carrier,
+                plan_name=rec.get("plan_name"),
+                effective_date=effective_date,
+                end_date=None,  # BCBS term_date intentionally excluded
+                source="carrier_import",
+                import_batch_id=batch_id,
+            )
+            db.session.add(aor)
 
 # File extensions allowed per carrier
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
@@ -198,6 +313,12 @@ def process_upload():
             )
             db.session.add(policy)
             new_count += 1
+
+        # Upsert the customer master record from this policy row
+        try:
+            _upsert_customer_from_policy(rec, existing.agent_id if existing else None, batch.id)
+        except Exception as e:
+            current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
 
     # Finalize batch record
     batch.record_count = len(records)
@@ -387,6 +508,12 @@ def bulk_upload():
                     last_seen_date=today, import_batch_id=batch.id,
                 ))
                 new_count += 1
+
+            # Upsert the customer master record from this policy row
+            try:
+                _upsert_customer_from_policy(rec, existing.agent_id if existing else None, batch.id)
+            except Exception as e:
+                current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
 
         batch.record_count = len(records)
         batch.new_count = new_count

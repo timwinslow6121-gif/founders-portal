@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Customers — Founders Portal{% endblock %}
+
+{% block styles %}
+.search-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+.search-bar input { flex: 1; padding: 8px 12px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; background: #FFFFFF; }
+.search-bar input:focus { outline: none; border-color: #185FA5; box-shadow: 0 0 0 2px rgba(24,95,165,0.1); }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 500; color: #1B2A4A; }
+.pager { display: flex; gap: 4px; align-items: center; font-size: 12px; color: #888888; }
+.pager a { padding: 4px 10px; border: 0.5px solid #E2E6ED; border-radius: 6px; text-decoration: none; color: #185FA5; }
+.pager a:hover { background: #F4F6F9; }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-title">Customers</div>
+  <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add customer</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="search-bar">
+  <input type="text" id="search-input" placeholder="Search by name, MBI, or phone…" value="{{ q }}" autocomplete="off">
+</div>
+
+<div id="search-results" {% if q %}style="display:none"{% endif %}>
+  <!-- AJAX results render here -->
+</div>
+
+<div id="full-list" {% if q %}style="display:none"{% endif %}>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">
+        {% if q %}Results for "{{ q }}"{% else %}All customers{% endif %}
+        <span class="text-muted" style="font-weight:400; font-size:13px; margin-left:6px;">{{ customers.total }} total</span>
+      </span>
+      <div class="pager">
+        {% if customers.has_prev %}
+          <a href="{{ url_for('customers.customers_list', page=customers.prev_num, q=q) }}">Prev</a>
+        {% endif %}
+        <span>{{ customers.page }} / {{ customers.pages }}</span>
+        {% if customers.has_next %}
+          <a href="{{ url_for('customers.customers_list', page=customers.next_num, q=q) }}">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:30%">Name</th>
+          <th style="width:16%">MBI</th>
+          <th style="width:14%">Phone</th>
+          <th style="width:18%">Agent</th>
+          <th style="width:12%">Stage</th>
+          <th style="width:10%">Pharmacy</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in customers.items %}
+        <tr style="cursor:pointer" onclick="window.location='{{ url_for('customers.customer_profile', customer_id=c.id) }}'">
+          <td class="fw-medium">{{ c.display_name }}</td>
+          <td class="mono">{{ c.mbi or '—' }}</td>
+          <td>{{ c.phone_primary or '—' }}</td>
+          <td>{{ c.primary_agent.display_name if c.primary_agent else '—' }}</td>
+          <td>
+            {% set stage = c.deal_stage or 'Active' %}
+            {% if stage == 'Active' %}<span class="badge badge-green">{{ stage }}</span>
+            {% elif stage == 'Termed' %}<span class="badge badge-gray">{{ stage }}</span>
+            {% elif stage == 'Enrolled' %}<span class="badge badge-blue">{{ stage }}</span>
+            {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
+            {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
+          </td>
+          <td>{{ c.pharmacy.name if c.pharmacy else '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty-cell">No customers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const searchInput = document.getElementById('search-input');
+const searchResults = document.getElementById('search-results');
+const fullList = document.getElementById('full-list');
+let debounce;
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(debounce);
+  const q = searchInput.value.trim();
+  if (q.length < 2) {
+    searchResults.style.display = 'none';
+    searchResults.innerHTML = '';
+    fullList.style.display = '';
+    return;
+  }
+  debounce = setTimeout(() => {
+    fetch(`/customers/search?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        fullList.style.display = 'none';
+        if (!data.length) {
+          searchResults.innerHTML = '<p style="color:#888;font-size:13px;padding:16px 0;">No customers found.</p>';
+          searchResults.style.display = '';
+          return;
+        }
+        let rows = data.map(c => `
+          <tr style="cursor:pointer" onclick="window.location='${c.url}'">
+            <td class="fw-medium">${c.name}</td>
+            <td class="mono">${c.mbi || '—'}</td>
+            <td>${c.phone || '—'}</td>
+            <td>${c.agent || '—'}</td>
+            <td></td><td></td>
+          </tr>`).join('');
+        searchResults.innerHTML = `
+          <div class="card">
+            <div class="card-header"><span class="card-title">Results (${data.length})</span></div>
+            <table class="data-table">
+              <thead><tr>
+                <th style="width:30%">Name</th><th style="width:16%">MBI</th>
+                <th style="width:14%">Phone</th><th style="width:18%">Agent</th>
+                <th style="width:12%"></th><th style="width:10%"></th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+        searchResults.style.display = '';
+      });
+  }, 250);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Add Customer — Founders Portal{% endblock %}
+
+{% block styles %}
+.page-title { font-size: 20px; font-weight: 500; color: #1B2A4A; margin-bottom: 20px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1 / -1; }
+label { font-size: 11px; font-weight: 500; color: #4A5568; text-transform: uppercase; letter-spacing: 0.04em; }
+input, select, textarea { padding: 8px 10px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; background: #FFFFFF; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #185FA5; box-shadow: 0 0 0 2px rgba(24,95,165,0.1); }
+.form-actions { display: flex; gap: 8px; margin-top: 20px; }
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('customers.customers_list') }}" class="btn-secondary" style="margin-bottom:16px;display:inline-block;">&larr; Back</a>
+<div class="page-title">Add Customer</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="card">
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" name="first_name" required>
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" name="last_name" required>
+        </div>
+        <div class="form-group">
+          <label>MBI</label>
+          <input type="text" name="mbi" placeholder="1AB2C34DE56" style="font-family:monospace;">
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" name="dob">
+        </div>
+        <div class="form-group">
+          <label>Primary Phone</label>
+          <input type="text" name="phone_primary" placeholder="704-555-1234">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email">
+        </div>
+        <div class="form-group full">
+          <label>Address</label>
+          <input type="text" name="address1" placeholder="123 Main St">
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" name="city">
+        </div>
+        <div class="form-group">
+          <label>State</label>
+          <input type="text" name="state" maxlength="2" placeholder="NC">
+        </div>
+        <div class="form-group">
+          <label>ZIP</label>
+          <input type="text" name="zip_code" maxlength="10">
+        </div>
+        <div class="form-group">
+          <label>County</label>
+          <input type="text" name="county">
+        </div>
+        <div class="form-group">
+          <label>Medicaid Level</label>
+          <select name="medicaid_level">
+            <option value="">— Select —</option>
+            <option>Full</option>
+            <option>QMB</option>
+            <option>SLMB</option>
+            <option>QI</option>
+            <option>None</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Lead Source</label>
+          <select name="lead_source">
+            <option value="">— Select —</option>
+            <option value="pharmacy_referral">Pharmacy referral</option>
+            <option value="self_generated">Self generated</option>
+            <option value="referral">Agent referral</option>
+            <option value="transfer">Transfer / AOR change</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Add Customer</button>
+        <a href="{{ url_for('customers.customers_list') }}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

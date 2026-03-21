@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Duplicate Customers — Founders Portal{% endblock %}
+
+{% block styles %}
+.page-title { font-size: 20px; font-weight: 500; color: #1B2A4A; margin-bottom: 4px; }
+.page-sub { font-size: 13px; color: #888888; margin-bottom: 20px; }
+.dupe-group { margin-bottom: 24px; }
+.dupe-group-header { font-size: 12px; font-weight: 500; color: #4A5568; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.merge-form { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: #F4F6F9; border-top: 0.5px solid #E2E6ED; }
+.merge-form select { padding: 6px 10px; border: 0.5px solid #E2E6ED; border-radius: 6px; font-size: 12px; }
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('main.dashboard') }}" class="btn-secondary" style="margin-bottom:16px;display:inline-block;">&larr; Back</a>
+<div class="page-title">Duplicate Customers</div>
+<div class="page-sub">Customers with matching name, date of birth, and phone — likely the same person imported from multiple carriers before MBI was resolved.</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{% if not groups %}
+  <div class="card card-body" style="color:#888;font-size:13px;">No duplicate customers detected.</div>
+{% endif %}
+
+{% for group in groups %}
+<div class="dupe-group">
+  <div class="dupe-group-header">Potential duplicate — {{ group[0].display_name }}</div>
+  <div class="card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>MBI</th>
+          <th>Humana ID</th>
+          <th>DOB</th>
+          <th>Phone</th>
+          <th>Agent</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in group %}
+        <tr>
+          <td class="fw-medium">
+            <a href="{{ url_for('customers.customer_profile', customer_id=c.id) }}">{{ c.display_name }}</a>
+          </td>
+          <td class="mono">{{ c.mbi or '—' }}</td>
+          <td class="mono">{{ c.humana_id or '—' }}</td>
+          <td>{{ c.dob.strftime('%m/%d/%Y') if c.dob else '—' }}</td>
+          <td>{{ c.phone_primary or '—' }}</td>
+          <td>{{ c.primary_agent.display_name if c.primary_agent else '—' }}</td>
+          <td>{{ c.created_at.strftime('%b %d, %Y') if c.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form method="POST" action="{{ url_for('customers.customer_merge') }}" class="merge-form">
+      <span style="font-size:12px;color:#4A5568;">Keep:</span>
+      <select name="primary_id">
+        {% for c in group %}
+        <option value="{{ c.id }}">{{ c.display_name }} (ID {{ c.id }}, MBI {{ c.mbi or 'none' }})</option>
+        {% endfor %}
+      </select>
+      <span style="font-size:12px;color:#4A5568;">Delete:</span>
+      <select name="secondary_id">
+        {% for c in group %}
+        <option value="{{ c.id }}">{{ c.display_name }} (ID {{ c.id }}, MBI {{ c.mbi or 'none' }})</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary" style="padding:6px 14px;font-size:12px;" onclick="return confirm('Merge these records? The selected duplicate will be deleted.')">Merge</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

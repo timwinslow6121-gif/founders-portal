@@ -203,6 +203,202 @@ class CommissionStatement(db.Model):
         return f"<CommissionStatement {self.carrier} {self.period_label} agent={self.agent_id}>"
 
 
+class Pharmacy(db.Model):
+    """
+    Partner pharmacy that refers customers to Founders agents.
+    Founders pays rent to the pharmacy in exchange for warm leads.
+    """
+    __tablename__ = "pharmacies"
+
+    id             = db.Column(db.Integer, primary_key=True)
+    name           = db.Column(db.String(256), nullable=False)
+    address1       = db.Column(db.String(256))
+    city           = db.Column(db.String(128))
+    state          = db.Column(db.String(32))
+    zip_code       = db.Column(db.String(16))
+    phone          = db.Column(db.String(32))
+    is_partner     = db.Column(db.Boolean, default=True, nullable=False)
+    rent_amount    = db.Column(db.Float, default=0.0)
+    rent_frequency = db.Column(db.String(16), default="monthly")   # monthly/quarterly/annual
+    contact_name   = db.Column(db.String(256))
+    contact_phone  = db.Column(db.String(32))
+    contact_email  = db.Column(db.String(256))
+    notes          = db.Column(db.Text)
+    created_at     = db.Column(db.DateTime, server_default=db.func.now())
+
+    customers      = db.relationship("Customer", back_populates="pharmacy", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<Pharmacy {self.name}>"
+
+
+class Customer(db.Model):
+    """
+    Master customer record, keyed on MBI (Medicare Beneficiary Identifier).
+    One record per beneficiary, linked to policies across all carriers.
+    Created/updated automatically on every BOB import; editable by agents.
+    """
+    __tablename__ = "customers"
+
+    id                = db.Column(db.Integer, primary_key=True)
+
+    # Primary identifier — NULL allowed for Humana-only customers until MBI is resolved
+    mbi               = db.Column(db.String(20), unique=True, index=True)
+    # Humana fallback — Humana masks MBI, so we store their member_id here
+    humana_id         = db.Column(db.String(64), index=True)
+
+    # Name
+    first_name        = db.Column(db.String(128), nullable=False)
+    last_name         = db.Column(db.String(128), nullable=False)
+    full_name         = db.Column(db.String(256), index=True)      # denormalized for fast search
+
+    # Demographics
+    dob               = db.Column(db.Date, index=True)
+    gender            = db.Column(db.String(16))
+
+    # Contact — agent-editable; protected from import overwrites when manually_edited=True
+    phone_primary     = db.Column(db.String(32), index=True)
+    phone_secondary   = db.Column(db.String(32))
+    email             = db.Column(db.String(256))
+    address1          = db.Column(db.String(256))
+    city              = db.Column(db.String(128))
+    state             = db.Column(db.String(32))
+    zip_code          = db.Column(db.String(16))
+    county            = db.Column(db.String(128))
+
+    # Raw carrier address — always updated on import, never shown as primary
+    carrier_address   = db.Column(db.String(512))
+
+    # Medicare / Medicaid
+    medicaid_level    = db.Column(db.String(32))   # Full / QMB / SLMB / QI / None
+    medicaid_id       = db.Column(db.String(64))
+
+    # Pipeline
+    deal_stage        = db.Column(db.String(32), default="Active")
+    # Lead / SOA_Sent / Appointed / Enrolled / Active / Termed
+    lead_source       = db.Column(db.String(64))
+    # pharmacy_referral / self_generated / referral / transfer
+
+    # Relationships
+    primary_agent_id  = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
+    primary_agent     = db.relationship("User", foreign_keys=[primary_agent_id])
+    pharmacy_id       = db.Column(db.Integer, db.ForeignKey("pharmacies.id"))
+    pharmacy          = db.relationship("Pharmacy", back_populates="customers")
+
+    # Import guard — True = agent-edited fields won't be overwritten by BOB imports
+    manually_edited   = db.Column(db.Boolean, default=False, nullable=False)
+    last_carrier_sync = db.Column(db.DateTime)
+
+    # Audit
+    created_by_id     = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_by        = db.relationship("User", foreign_keys=[created_by_id])
+    created_at        = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at        = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    notes             = db.relationship("CustomerNote", back_populates="customer",
+                                        order_by="CustomerNote.created_at.desc()", lazy="dynamic")
+    contacts          = db.relationship("CustomerContact", back_populates="customer", lazy="dynamic")
+    aor_history       = db.relationship("CustomerAorHistory", back_populates="customer",
+                                        order_by="CustomerAorHistory.effective_date.desc()", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<Customer {self.full_name} MBI={self.mbi}>"
+
+    @property
+    def display_name(self):
+        return self.full_name or f"{self.first_name} {self.last_name}"
+
+
+class CustomerContact(db.Model):
+    """
+    Point of contact for a customer — often a family member or case manager.
+    The POC is NOT the patient; they may be the one answering the phone.
+    """
+    __tablename__ = "customer_contacts"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    customer_id  = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"),
+                             nullable=False, index=True)
+    customer     = db.relationship("Customer", back_populates="contacts")
+    contact_name = db.Column(db.String(256), nullable=False)
+    relationship = db.Column(db.String(64))   # daughter/son/spouse/nurse_case_manager/other
+    phone        = db.Column(db.String(32))
+    email        = db.Column(db.String(256))
+    is_primary   = db.Column(db.Boolean, default=False)
+    notes        = db.Column(db.Text)
+    created_at   = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"<CustomerContact {self.contact_name} for customer {self.customer_id}>"
+
+
+class CustomerNote(db.Model):
+    """
+    Interaction log entry for a customer. Created manually by agents or automatically
+    by webhooks from OpenPhone (calls/SMS), Calendly (appointments), and Fireflies (meetings).
+    """
+    __tablename__ = "customer_notes"
+
+    id                   = db.Column(db.Integer, primary_key=True)
+    customer_id          = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"),
+                                     nullable=False, index=True)
+    customer             = db.relationship("Customer", back_populates="notes")
+    agent_id             = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    agent                = db.relationship("User")
+
+    note_text            = db.Column(db.Text)
+    note_type            = db.Column(db.String(32), default="general", index=True)
+    # call / meeting / email / sms / general / missed_call / appointment_scheduled / meeting_summary
+    contact_method       = db.Column(db.String(32))   # phone / sms / email / in_person / video
+    duration_minutes     = db.Column(db.Integer)
+    source_url           = db.Column(db.String(512))  # Fireflies transcript, call recording URL
+
+    # Integration keys — set when note is auto-created by a webhook
+    openphone_call_id    = db.Column(db.String(128))
+    calendly_event_id    = db.Column(db.String(128))
+    fireflies_meeting_id = db.Column(db.String(128))
+
+    created_at           = db.Column(db.DateTime, server_default=db.func.now(), index=True)
+
+    def __repr__(self):
+        return f"<CustomerNote {self.note_type} for customer {self.customer_id}>"
+
+
+class CustomerAorHistory(db.Model):
+    """
+    Records each Agent of Record enrollment for a customer per carrier.
+    Tracks ownership over time and enables AOR change / cannibalization detection.
+    """
+    __tablename__ = "customer_aor_history"
+
+    id              = db.Column(db.Integer, primary_key=True)
+    customer_id     = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"),
+                                nullable=False, index=True)
+    customer        = db.relationship("Customer", back_populates="aor_history")
+    agent_id        = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    agent           = db.relationship("User")
+
+    carrier         = db.Column(db.String(64))
+    plan_name       = db.Column(db.String(256))
+    effective_date  = db.Column(db.Date)
+    end_date        = db.Column(db.Date)   # NULL = currently active
+
+    source          = db.Column(db.String(32), default="carrier_import")
+    # carrier_import / manual / medicarecenter_pdf
+    import_batch_id = db.Column(db.Integer, db.ForeignKey("import_batches.id"))
+    import_batch    = db.relationship("ImportBatch")
+
+    created_at      = db.Column(db.DateTime, server_default=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint("customer_id", "carrier", "effective_date",
+                            name="uq_aor_customer_carrier_date"),
+    )
+
+    def __repr__(self):
+        return f"<CustomerAorHistory customer={self.customer_id} carrier={self.carrier}>"
+
+
 class AgentCarrierContract(db.Model):
     """
     Tracks which carriers each agent is contracted with,

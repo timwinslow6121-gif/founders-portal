@@ -8,7 +8,7 @@ Flask CRM/portal for a Medicare insurance agency. 8 agents, ~5,500 policies acro
 - Nginx + Gunicorn on Ubuntu VPS (23.187.248.100)
 - Google OAuth 2.0 — restricted to @foundersinsuranceagency.com
 - Vanilla JS only — no React/Vue. Jinja2 templates extending base.html.
-- SendGrid for email, **Twilio** for SMS/calls (Phase 3), **Retell AI** for AI voice (Phase 3)
+- SendGrid for email, **Dialpad** (primary) + **Retell AI** (missed calls) + **Twilio** (utility/edgecases only)
 
 ## Git Workflow
 Local Crostini is the dev machine. Commit and push from local. VPS pulls.
@@ -63,7 +63,7 @@ app.register_blueprint(customers_bp)
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 🔜 (NEXT — hard gate)** — PostgreSQL migration; VPS swap file; Gunicorn threading
-- **Phase 3 (after 2.5)** — Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks; Agency multi-tenant model
+- **Phase 3 (after 2.5)** — Dialpad + Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks; Agency multi-tenant model
 
 ## Phase 2.5 Pre-Code Checklist (complete before ANY Phase 3 work)
 - [ ] Install PostgreSQL on VPS

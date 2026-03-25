@@ -77,12 +77,12 @@ app.register_blueprint(customers_bp)
 - [ ] Remove SQLite from `requirements.txt`
 
 ## Phase 3 Pre-Code Checklist (after Phase 2.5 complete)
-- [ ] Twilio account provisioned — `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` in .env
+- [ ] Dialpad account provisioned — sign BAA in Admin Portal immediately on signup
 - [ ] Retell AI trial — call own number, evaluate quality with Medicare senior persona
 - [ ] HealthSherpa agency account + captive join code distributed to LOA agents
 - [ ] Google Workspace admin: Meet recording + transcription enabled for domain
 - [ ] Calendly plan tier confirmed for API (Professional or Teams)
-- [ ] Webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/twilio`
+- [ ] Webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/dialpad`
 - [ ] HMAC secrets stored in .env for: Twilio, Retell, Calendly, HealthSherpa, Google Meet
 
 ## Key Files

@@ -17,3 +17,15 @@ Thumbs.db
 .idea/
 *.log
 logs/
+
+# Obsidian
+docs/.obsidian/workspace.json
+docs/.obsidian/workspace-mobile.json
+
+# Antigravity / Stitch (tools, not code)
+.planning/
+.stitch/
+.claude/
+
+# Stop-slop is its own repo
+stop-slop/

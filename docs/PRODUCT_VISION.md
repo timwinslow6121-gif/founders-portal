@@ -23,7 +23,7 @@ The tools that exist (Zoho, HubSpot, AgencyZoom) were built for software salespe
 
 **A purpose-built Medicare Agency Management System that consolidates the entire agent tech stack into one platform.**
 
-Built by a Medicare agent, for Medicare agents. Every feature exists because a real agent needed it. The goal is simple: agents open one tab, and everything they need is there. No switching between Zoho, carrier portals, spreadsheets, RingCentral, Calendly, and MedicareCenter.
+Built by a Medicare agent, for Medicare agents. Every feature exists because a real agent needed it. The goal is simple: agents open one tab, and everything they need is there. No switching between Zoho, carrier portals, spreadsheets, Calendly, and MedicareCenter.
 
 ### What makes it different from every other CRM:
 
@@ -94,10 +94,10 @@ Working name: **MAMS** (Medicare Agency Management System) — functional but no
 ### Add-On Modules
 | Module | Price/mo | What It Does |
 |---|---|---|
-| Communication Hub | $99 | RingCentral + Calendly + auto-reply + SMS campaigns |
+| Communication Hub | $99 | Twilio + Retell AI + Calendly + auto-reply + SMS campaigns |
 | Email Campaigns | $49 | SendGrid-powered, CMS-compliant templates, filtered lists |
 | SOA Management | $49 | Send, track, e-sign, store SOAs |
-| Fireflies Integration | $29 | Meeting summaries → customer records automatically |
+| Meet Recording | $29 | Google Meet per-appointment recording + AI summary → customer records |
 | NIPR Sync | $19 | Automatic license status + CE renewal tracking |
 
 ### Setup Fee
@@ -150,15 +150,16 @@ Working name: **MAMS** (Medicare Agency Management System) — functional but no
 - Out-of-state contracting requirements reference
 
 ### Phase 4 — Communication Hub
-- RingCentral integration (call logs, missed call → task auto-created)
-- Agency-wide RingCentral standardization (replace VOXO + personal cells)
+- **Twilio** integration (call logs, SMS — replaces RingCentral/VOXO/personal cells)
+- **Retell AI** voice engine — inbound missed calls handled by AI; appointment booking mid-call
+- **Google Meet** per-appointment recording + AI summary → customer record (replaces Fireflies — eliminated)
+- **HealthSherpa** enrollment webhook → customer match → AOR history (replaces MedicareCenter PDF OCR)
 - SMS template library (admin-approved, CMS-compliant)
 - Email campaign module (SendGrid, filter by carrier/plan/renewal date/birthday/Medicaid level)
 - Calendly agency-wide adoption + booking pages per agent
 - Automated appointment reminder sequences (day-before + 1-hour SMS/email)
 - Post-appointment follow-up automation
-- Fireflies.ai webhook → meeting summary → customer record
-- Automated inbound task generator (missed call, email, SMS → task created + prioritized)
+- Automated inbound task generator (missed call, SMS → task created + prioritized)
 - "Who's calling?" lookup (inbound phone number → customer record instantly)
 - Replace Dropbox with Google Drive integration (already paid for via Workspace)
 
@@ -168,7 +169,7 @@ Working name: **MAMS** (Medicare Agency Management System) — functional but no
 - SOP documentation hub
 - Time tracking per customer (prospecting vs servicing analytics)
 - Ticket system for customer servicing issues (open/in-progress/resolved)
-- Action items after calls (manual + Fireflies automated)
+- Action items after calls (manual + Retell AI / Google Meet automated)
 - Lead source tracking (pharmacy referral, self-generated, web, referral)
 
 ### Phase 6 — Analytics + Forecasting
@@ -233,12 +234,15 @@ Benefits:
 |---|---|---|---|
 | CMS Plan Finder API | Auto-populate carrier plan database | Free (government) | High |
 | NIPR API | License status + CE tracking | Free (government) | High |
-| RingCentral API | Call logs, SMS, webhooks | Existing subscription | High |
-| Calendly API | Booking pages, webhooks | $10/agent/mo | High |
-| Fireflies.ai API | Meeting summaries webhook | Existing subscription | Medium |
+| Twilio API | Call logs, SMS, SIP trunking to Retell AI | Pay-as-you-go (~$22/mo AEP per agent) | **Confirmed** |
+| Retell AI API | AI voice engine — inbound missed calls, appointment booking | $0.07/min | **Confirmed** |
+| Calendly API | Booking pages, webhooks, mid-call availability check | $10/agent/mo | High |
+| Google Meet REST API | Per-appointment recording + Workspace Events webhook | $0 (Workspace Business Plus) | High |
+| HealthSherpa API | Enrollment webhooks (replaces MedicareCenter PDF OCR) | Free | High |
 | SendGrid API | Email campaigns, transactional | Existing ($20/mo Essentials) | Built |
+| Claude API (Haiku 4.5) | Transcript extraction, structured data from calls/meetings | ~$10/AEP season | Medium |
 | DocuSign API | SOA e-signature | $10-25/mo | Medium |
-| Twilio (SMS direct) | Fallback SMS if RingCentral unavailable | Pay per use | Low |
+| Make.com | Automation (mid-call Calendly check, post-call routing) | Existing subscription | Built |
 | Medicare.gov | Drug cost reference (most CMS-compliant) | Free | Medium |
 
 ---

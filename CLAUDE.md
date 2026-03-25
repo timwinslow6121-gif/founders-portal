@@ -4,11 +4,11 @@ Flask CRM/portal for a Medicare insurance agency. 8 agents, ~5,500 policies acro
 
 ## Stack
 - Python 3.10, Flask 3.0, Flask-SQLAlchemy, Flask-Migrate (Alembic)
-- SQLite (dev/prod) → PostgreSQL (planned for white-label)
+- **PostgreSQL** (Phase 2.5 migration — hard prerequisite before Phase 3; currently SQLite in prod)
 - Nginx + Gunicorn on Ubuntu VPS (23.187.248.100)
 - Google OAuth 2.0 — restricted to @foundersinsuranceagency.com
 - Vanilla JS only — no React/Vue. Jinja2 templates extending base.html.
-- SendGrid for email, OpenPhone for SMS/calls (Phase 3)
+- SendGrid for email, **Twilio** for SMS/calls (Phase 3), **Retell AI** for AI voice (Phase 3)
 
 ## Git Workflow
 Local Crostini is the dev machine. Commit and push from local. VPS pulls.
@@ -51,6 +51,8 @@ app.register_blueprint(customers_bp)
 
 **Flask-Migrate:** Every schema change requires a migration. Never use `db.create_all()` in production.
 
+**Multi-tenant requirement (Phase 2.5+):** Every table gets `agency_id` FK (non-nullable). Every query MUST be scoped: `Customer.query.filter_by(agency_id=current_user.agency_id, ...)`. Missing agency_id = data leak across tenants.
+
 ## UX Design System
 - Navy `#1B2A4A`, Blue `#185FA5`, Gold `#C9A84C`
 - 200px sidebar, system font stack
@@ -60,19 +62,32 @@ app.register_blueprint(customers_bp)
 ## Build Status
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
-- **Phase 3 🔜** — OpenPhone + Calendly + Fireflies webhooks (OpenPhone account not yet set up)
+- **Phase 2.5 🔜 (NEXT — hard gate)** — PostgreSQL migration; VPS swap file; Gunicorn threading
+- **Phase 3 (after 2.5)** — Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks; Agency multi-tenant model
 
-## Phase 3 Pre-Code Checklist (must complete before writing comms code)
-- [ ] OpenPhone account + numbers provisioned → get `phoneNumberId` per agent
-- [ ] `OPENPHONE_API_KEY` in VPS .env
-- [ ] Webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/openphone`
-  - Events: `call.completed`, `call.missed`, `message.received`, `message.sent`
-- [ ] `OPENPHONE_WEBHOOK_SECRET` in VPS .env
+## Phase 2.5 Pre-Code Checklist (complete before ANY Phase 3 work)
+- [ ] Install PostgreSQL on VPS
+- [ ] Create `founders_portal` database + user
+- [ ] Update `config.py` DATABASE_URL
+- [ ] Run `flask db upgrade` — verify clean migration
+- [ ] Verify all data (commissions, policies, customers) present in PostgreSQL
+- [ ] Update `.env` with new DATABASE_URL
+- [ ] Add 2GB swap file to VPS
+- [ ] Update Gunicorn: `--workers 2 --threads 4 --worker-class gthread`
+- [ ] Remove SQLite from `requirements.txt`
+
+## Phase 3 Pre-Code Checklist (after Phase 2.5 complete)
+- [ ] Twilio account provisioned — `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` in .env
+- [ ] Retell AI trial — call own number, evaluate quality with Medicare senior persona
+- [ ] HealthSherpa agency account + captive join code distributed to LOA agents
+- [ ] Google Workspace admin: Meet recording + transcription enabled for domain
+- [ ] Calendly plan tier confirmed for API (Professional or Teams)
+- [ ] Webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/twilio`
+- [ ] HMAC secrets stored in .env for: Twilio, Retell, Calendly, HealthSherpa, Google Meet
 
 ## Key Files
 - `FOUNDERS_PORTAL_CONTEXT.md` — full project context, agent roster, carrier details, roadmap
 - `PRODUCT_VISION.md` — white-label SaaS vision
 - `app/models.py` — all models
 - `app/upload.py` — BOB import logic + `_upsert_customer_from_policy()`
-- `instance/founders_portal.db` — SQLite database (not in git)
 - `.env` — secrets (not in git): GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SECRET_KEY, SENDGRID_API_KEY

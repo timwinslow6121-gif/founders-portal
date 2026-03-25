@@ -60,10 +60,10 @@ This is what agents are currently juggling. The goal of the portal is to **conso
 | # | Tool | Purpose | Status | Replace With |
 |---|---|---|---|---|
 | 1 | **Zoho CRM** | Customer management | Tim only, others use nothing | This portal (full replacement) |
-| 2 | **OpenPhone** | SMS + telephony | Decision made 2026-03-20 — replacing RingCentral | Standard plan $13/user/mo; webhook-first API |
-| 3 | **VOXO** | SMS + telephony (some agents) | Inconsistent across agents | Replace with OpenPhone agency-wide |
-| 4 | **Personal cell phones** | Customer calls/SMS | Most agents — nightmare | OpenPhone extensions for all |
-| 5 | **Pharmacy direct lines** | Customer calls at pharmacy | Untrackable | OpenPhone routing |
+| 2 | **RingCentral** | SMS + telephony (Tim) | Evaluating cancellation | **Twilio** (confirmed production telephony backbone — 2026-03-24) |
+| 3 | **VOXO** | SMS + telephony (some agents) | Inconsistent across agents | **Twilio** agency-wide |
+| 4 | **Personal cell phones** | Customer calls/SMS | Most agents — nightmare | Twilio numbers for all agents |
+| 5 | **Pharmacy direct lines** | Customer calls at pharmacy | Untrackable | Twilio routing |
 | 6 | **Google Workspace** | Email, docs, calendar, storage | All agents have it | Keep — integrate deeper |
 | 7 | **MedicareCenter** | Enrollment platform | All agents | Integrate via PDF OCR, don't replace |
 | 8 | **Carrier portals** | UHC, Humana, etc. | Required by carriers | Can't replace, surface data via BOB imports |
@@ -73,17 +73,20 @@ This is what agents are currently juggling. The goal of the portal is to **conso
 | 12 | **Zoho Bookings** | Scheduling (some agents) | Tim hates it | Replace with Calendly |
 | 13 | **Acuity Scheduling** | Scheduling (Tim previously) | Switching away | Calendly has better API |
 | 14 | **Dropbox** | Document sharing (AJ) | AJ only | Replace with Google Drive (already paid for) |
-| 15 | **Fireflies.ai** | Meeting recording + AI summaries | Tim only | Integrate via webhook into portal |
+| 15 | **Fireflies.ai** | Meeting recording + AI summaries | **ELIMINATED** | **Google Meet native recording** (BAA already covered by Workspace Business Plus; Fireflies BAA = $40/user/mo Enterprise only) |
+| 16 | **Retell AI** | AI voice engine — inbound missed calls | New — pending trial | Twilio SIP → Retell; HIPAA/SOC2; $0.07/min; books Calendly appointments mid-call |
+| 17 | **HealthSherpa** | Enrollment platform | Replacing MedicareCenter | Webhooks replace PDF OCR (abandoned — memory-intensive) |
 
 ### The Core Problem
 Agents are independently operating with wildly different tools, no shared data, no SOPs, and no way to collaborate. A customer can call the pharmacy line, leave a voicemail on an agent's personal cell, send a text to a VOXO number, and email the Founders address — and none of those touch points are connected or tracked anywhere.
 
 ### The Vision: One Portal to Rule Them All
 The portal becomes the single hub. Every integration flows into it:
-- OpenPhone webhook → call logged on customer record (replacing RingCentral)
-- Calendly webhook → appointment linked to customer record
-- MedicareCenter PDF → OCR extracted → customer record updated
-- Fireflies webhook → meeting summary attached to customer record
+- Twilio webhook → call logged on customer record (inbound + outbound)
+- Retell AI post-call webhook → AI summary + action items extracted → customer record
+- Calendly webhook → appointment linked to customer record, pre-call brief generated
+- Google Meet Workspace Events webhook → transcript → meeting summary + tasks on customer record
+- HealthSherpa enrollment webhook → customer matched or created, AOR history updated
 - SendGrid → emails sent from portal, tracked on customer record
 - Google Drive → documents linked to customer record
 
@@ -113,7 +116,7 @@ Agents open one tab. Everything is there.
 ### Stack
 - **Language:** Python 3.10
 - **Framework:** Flask 3.0
-- **Database:** SQLite → PostgreSQL (migration planned)
+- **Database:** SQLite → **PostgreSQL** (Phase 2.5 — hard prerequisite before Phase 3)
 - **Web server:** Nginx (reverse proxy) + Gunicorn (WSGI)
 - **Auth:** Google OAuth 2.0 (restricted to @foundersinsuranceagency.com)
 - **ORM:** Flask-SQLAlchemy + Flask-Migrate (Alembic) — added Phase 2
@@ -299,7 +302,7 @@ customer_contacts (POC — not always the patient)
 customer_notes (interaction log)
   customer_id, agent_id, note_text
   note_type (call/meeting/email/sms/general)
-  meeting_summary (from Fireflies webhook)
+  meeting_summary (from Google Meet Workspace Events webhook via Claude API extraction)
   duration_minutes (for time tracking)
   created_at
 
@@ -405,11 +408,17 @@ C-SNP plans require specific chronic conditions (CHF, ESRD, diabetes, etc.) — 
 ## 14. AEP Communication Stack (Tim's Proven System)
 
 ```
-Missed call → OpenPhone auto-reply SMS → Calendly booking link
-→ Confirmation SMS + email → Calendar invite
-→ Day-before reminder → 1-hour reminder
-→ Appointment → Fireflies records
-→ Follow-up email with meeting summary + next steps
+**Target stack (Phase 3):**
+Missed call → Twilio routes to Retell AI
+→ AI triage + books Calendly appointment mid-call (via Make.com)
+→ Calendly sends confirmation + reminders natively
+→ Appointment: agent taps [Start Recording] on portal → joins unique Google Meet space
+→ Meet ends → Workspace Events webhook → Claude API extracts summary + action items
+→ CustomerNote + CustomerTask created automatically
+→ SendGrid fires post-appointment summary email to customer
+
+**Previous manual stack (Tim only, now replaced):**
+Missed call → RingCentral auto-reply SMS → Calendly booking link → ... → Fireflies records
 ```
 
 Other agents had none of this during AEP. They worked 10-hour days back-to-back, missed calls, lost leads, customers felt ignored.
@@ -468,33 +477,42 @@ Agency demo data: ~5,479 total across all 8 agents.
 
 ### Next Up 🔜 (Phase 3 — Communication Hub)
 
-**Pre-code setup required first:**
-- [ ] Sign up OpenPhone ($13/user/mo Standard) — pilot: Tim + 1 other
-- [ ] Provision one number per pilot agent, note each `phoneNumberId`
-- [ ] Generate OpenPhone API key → store in VPS .env as `OPENPHONE_API_KEY`
-- [ ] Add webhook URL: `https://portal.foundersinsuranceagency.com/comms/webhook/openphone`
+**Pre-code setup required first (Phase 2.5 must be complete before any of this):**
+- [ ] Phase 2.5: PostgreSQL migration complete and verified
+- [ ] Twilio account provisioned — TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN in .env
+- [ ] Retell AI trial tested — call own number, evaluate quality
+- [ ] HealthSherpa agency account active, captive join code distributed to LOA agents
+- [ ] Google Workspace admin: Meet recording + transcription enabled for domain
+- [ ] Add webhook URL: `https://portal.foundersinsuranceagency.com/comms/webhook/twilio`
   - Subscribe to: `call.completed`, `call.missed`, `message.received`, `message.sent`
   - Store signing secret as `OPENPHONE_WEBHOOK_SECRET`
 - [ ] Test call to verify webhook fires before writing code
 
-**Code (after OpenPhone setup):**
-- [ ] `PhoneNumber`, `CallLog`, `SmsThread` models
+**Code (after Phase 2.5 and pre-code setup):**
+- [ ] `Agency`, `Household`, `CustomerPhone`, `CallLog`, `SmsMessage`, `CustomerTask`, `UnmatchedCall`, `AgentLocation` models
 - [ ] `calendly_booking_url` column on User model
 - [ ] `app/openphone_client.py` — send_sms(), get_call_recording(), list_phone_numbers()
 - [ ] `app/communications.py` blueprint — webhook handlers + SMS thread routes
-- [ ] Calendly webhook — invitee.created → CustomerNote (appointment_scheduled)
-- [ ] Fireflies webhook — meeting summary → CustomerNote (meeting_summary)
-- [ ] HMAC signature verification on all 3 webhook endpoints
+- [ ] Calendly webhook — invitee.created → customer match → pre-call brief
+- [ ] Google Meet Workspace Events webhook → transcript → CustomerNote + CustomerTask
+- [ ] HealthSherpa enrollment webhook → upsert CustomerAorHistory
+- [ ] Retell AI post-call webhook → CallLog + AI summary + action items
+- [ ] HMAC signature verification on ALL webhook endpoints
 
 ### Roadmap (Phased)
 
-**Phase 3 — Communication Hub** ← NEXT
-- [ ] OpenPhone integration (call logs, missed call → CustomerNote)
-- [ ] Standardize agency on OpenPhone (replace VOXO + personal cells)
-- [ ] SMS thread view on customer profile
-- [ ] Calendly agency-wide adoption + portal integration
-- [ ] Fireflies webhook → meeting summary → customer record
+**Phase 2.5 — PostgreSQL Migration** ← NEXT (hard gate before Phase 3)
+- [ ] Install PostgreSQL on VPS, migrate all data, verify, update .env
+
+**Phase 3 — Communication Hub** (after Phase 2.5 complete)
+- [ ] Agency model + agency_id FK on all tables
+- [ ] Twilio integration (call logs, SMS, missed call → CustomerTask)
+- [ ] Retell AI post-call webhook → CallLog + AI summary + action items
+- [ ] Google Meet unique-per-appointment + Workspace Events webhook → CustomerNote
+- [ ] HealthSherpa enrollment webhook → CustomerAorHistory upsert
+- [ ] Calendly booking webhook → customer match → pre-call brief
 - [ ] SMS template library (AJ-approved, CMS-compliant)
+- [ ] Unmatched call queue + resolution workflow
 - [ ] Email campaign module (SendGrid, filtered recipient lists)
 - [ ] Automated reminder sequences
 - [ ] Replace Dropbox with Google Drive integration (already paid for)
@@ -541,10 +559,14 @@ Agency demo data: ~5,479 total across all 8 agents.
 - **Commission upload validation** — rejects if no active contract for that carrier
 - **Partner pharmacies** = warm leads via rent — explains commission cap
 - **SOA compliance** — MedicareCenter handles 10-year storage, portal stores reference only
-- **MedicareCenter PDFs** are text-based — use pdfplumber not Tesseract
-- **Fireflies.ai** already in Tim's workflow — webhook integration in Phase 3
+- **PDF OCR abandoned** — pdfplumber MedicareCenter scraping too memory-intensive; HealthSherpa webhooks replace it
+- **Fireflies.ai ELIMINATED** — BAA requires $40/user/mo Enterprise; replaced by Google Meet native recording (Workspace Business Plus BAA already covers this)
+- **Twilio confirmed** as telephony backbone (2026-03-24) — replaces RingCentral/OpenPhone/VOXO
+- **Retell AI confirmed** as AI voice engine — HIPAA/SOC2, $0.07/min, books appointments mid-call
+- **HealthSherpa** replaces MedicareCenter for enrollment data — webhook gives full payload for LOA agents (captive join), limited for AOR agents (independent join)
+- **Multi-tenant Agency model from day one** — must land in PostgreSQL (Phase 2.5), never SQLite
 - **Calendly** preferred over Acuity/Zoho Bookings for API integration — Phase 3
-- **OpenPhone** chosen over RingCentral (decision 2026-03-20) — $13/user/mo, modern webhook API
+- **Make.com** is the automation platform — n8n not viable on 1GB VPS
 - **Dropbox should be eliminated** — Google Drive already paid for by Workspace
 - **No agency SOPs exist** — portal will eventually house onboarding + SOPs
 - **No expense reimbursement system exists** — AJ/Brian cut checks in person

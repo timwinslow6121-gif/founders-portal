@@ -10,6 +10,21 @@ from flask_login import UserMixin
 from app.extensions import db
 
 
+class Agency(db.Model):
+    """
+    Top-level tenant. Every row in every table belongs to one Agency.
+    Phase 2.5 seeds one row: "Founders Insurance Agency".
+    Phase 7 adds multi-agency provisioning.
+    """
+    __tablename__ = "agencies"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    name       = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"<Agency {self.name}>"
+
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"

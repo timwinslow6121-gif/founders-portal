@@ -4,7 +4,7 @@ Flask CRM/portal for a Medicare insurance agency. 8 agents, ~5,500 policies acro
 
 ## Stack
 - Python 3.10, Flask 3.0, Flask-SQLAlchemy, Flask-Migrate (Alembic)
-- **PostgreSQL** (Phase 2.5 migration — hard prerequisite before Phase 3; currently SQLite in prod)
+- **PostgreSQL 16** (Phase 2.5 complete — production database on VPS)
 - Nginx + Gunicorn on Ubuntu VPS (23.187.248.100)
 - Google OAuth 2.0 — restricted to @foundersinsuranceagency.com
 - Vanilla JS only — no React/Vue. Jinja2 templates extending base.html.
@@ -62,7 +62,7 @@ app.register_blueprint(customers_bp)
 ## Build Status
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
-- **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated
+- **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7
 - **Phase 3 🔜 (NEXT)** — Dialpad + Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
@@ -75,6 +75,12 @@ app.register_blueprint(customers_bp)
 - [x] Add 2GB swap file to VPS
 - [x] Update Gunicorn: `--workers 2 --threads 4 --worker-class gthread`
 - [x] Remove SQLite from `requirements.txt`
+
+## VPS-Only State (not in git)
+- `.env` on VPS has `SECRET_KEY`, `DATABASE_URL` (PostgreSQL), `ADMIN_EMAILS=admin@foundersinsuranceagency.com` — never commit
+- `app/templates/base.html` on VPS had an extra `{% endif %}` (fixed 2026-03-26 during UAT) — local copy is now synced
+- Admin login: `admin@foundersinsuranceagency.com` (shared AJ+Tim). Agent test login: `tim@foundersinsuranceagency.com`
+- `is_admin` is recalculated from `ADMIN_EMAILS` on every OAuth login — DB value gets overwritten
 
 ## Phase 3 Pre-Code Checklist (after Phase 2.5 complete)
 - [ ] Dialpad account provisioned — sign BAA in Admin Portal immediately on signup

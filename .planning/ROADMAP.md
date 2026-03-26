@@ -71,7 +71,9 @@ Plans:
 
 **Goal**: Agents see complete communication history on every customer profile — calls, SMS threads, and meeting summaries appear automatically without manual entry; agents can send CMS-approved SMS templates and targeted email campaigns from within the portal. All multi-tenant Agency infrastructure lands here.
 
-**Telephony**: Twilio (confirmed). Replaces RingCentral/OpenPhone. Raw API access, SIP trunking to Retell AI, pay-as-you-go, 100% call recording for CMS compliance.
+**Telephony**: Dialpad (primary). Webhooks for call.completed, call.missed, voicemail.created, SMS. JWT HS256 signed payloads.
+
+**Edge-case telephony**: Twilio — for programmatic SMS blasts and Retell AI SIP trunking.
 
 **AI Voice Engine**: Retell AI (confirmed). HIPAA compliant, SOC2 Type II, $0.07/min, 600-800ms latency. Handles inbound missed calls — triage, appointment booking via Calendly mid-call, message taking.
 
@@ -81,7 +83,8 @@ Plans:
 
 **Pre-code dependencies (must be true before Phase 3 code starts)**:
   - Phase 2.5 complete — app running on PostgreSQL
-  - Twilio account provisioned (account SID, auth token in `.env`)
+  - Dialpad account provisioned (DIALPAD_HMAC_SECRET in `.env`) — sign BAA immediately on signup
+  - Twilio account provisioned (account SID, auth token in `.env`) — for SMS blasts and Retell SIP trunk
   - Retell AI trial tested — call own number, verify quality with Medicare senior persona
   - HealthSherpa agency account active and captive join code distributed
   - Google Workspace admin settings: Meet recording + transcription enabled for domain
@@ -91,26 +94,33 @@ Plans:
 **Depends on**: Phase 2.5
 
 **New models (Phase 3 schema migrations)**:
-  - `Agency` — multi-tenant root; seed Founders record
-  - `agency_id` FK added to ALL existing tables (User, Customer, Policy, CommissionStatement, ImportBatch, etc.)
-  - `Household` — shared landline grouping
-  - `CustomerPhone` — replaces simple phone fields; E.164, label, learned_from
-  - `CallLog` — Twilio call SID, Retell call ID, recording URL, AI summary, resolution status
-  - `SmsMessage` — Twilio message SID, direction, body
-  - `CustomerTask` — extracted from calls/SMS/meetings, source FK
-  - `UnmatchedCall` — queue for calls with no customer match
-  - `AgentLocation` — pharmacy locations with Calendly event type URLs
+  - `UnmatchedCall` — queue for calls with no customer match (new table)
+  - `SmsTemplate` — admin-approved CMS-compliant template library (new table)
+  - `CustomerNote` extended — dialpad_call_id, twilio_msg_sid, retell_call_id, resolved columns added
+  - `Customer` extended — sms_consent_at datetime added
+  - `agency_id` FK backfill on remaining tables without it (CustomerContact, CustomerAorHistory, etc.)
 
 **Success Criteria** (what must be TRUE):
   1. Agent opens a customer profile and sees all calls (completed and missed) with timestamp, duration, direction, and AI summary — no manual entry required
-  2. Agent opens a customer profile and sees the full SMS thread with that customer, including inbound and outbound messages via Twilio
+  2. Agent opens a customer profile and sees the full SMS thread with that customer, including inbound and outbound messages via Dialpad
   3. After a Calendly booking, a pre-call brief (current plan, last interaction, open tasks) appears on the agent dashboard automatically
   4. After a Google Meet appointment, the AI-extracted meeting summary and action items appear on the customer profile — no manual entry
-  5. Agent can send an admin-approved, CMS-compliant SMS template to a consenting customer directly from the customer profile; admin can create and launch segmented email campaigns
+  5. Agent can send an admin-approved, CMS-compliant SMS template to a consenting customer directly from the customer profile
   6. Inbound call from unknown number creates an UnmatchedCall record and surfaces in agent's resolution queue
   7. Every database query is scoped to `agency_id` — no query returns cross-tenant data
 
-**Plans**: TBD
+**Plans:** 7 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Schema migrations + test infrastructure (models, Alembic, pytest fixtures)
+- [ ] 03-02-PLAN.md — comms blueprint skeleton, phone utils, webhook verifiers, config slots
+- [ ] 03-03-PLAN.md — Dialpad webhook handler (calls + SMS + voicemail + UnmatchedCall creation)
+- [ ] 03-04-PLAN.md — Calendly webhook + UnmatchedCall resolution UI + upcoming appointments dashboard card
+- [ ] 03-05-PLAN.md — SMS template admin CRUD + agent send endpoint + consent guard
+- [ ] 03-06-PLAN.md — Google Meet Pub/Sub subscriber (systemd service) + HealthSherpa webhook
+- [ ] 03-07-PLAN.md — agency_id scoping sweep across all existing queries (SC-7)
+
+---
 
 ### Phase 4: Compliance Reference
 
@@ -194,7 +204,7 @@ Phases execute in numeric order: 2.5 → 3 → 4 → 5 → 6 → 7
 | 1. Infrastructure & Core | - | Complete | 2026-03-20 |
 | 2. Customer Master | - | Complete | 2026-03-20 |
 | 2.5. PostgreSQL Migration | 0/TBD | Not started | - |
-| 3. Communications Hub | 0/TBD | Not started | - |
+| 3. Communications Hub | 0/7 | Planned | - |
 | 4. Compliance Reference | 0/TBD | Not started | - |
 | 5. Operations | 0/TBD | Not started | - |
 | 6. Analytics | 0/TBD | Not started | - |
@@ -202,4 +212,4 @@ Phases execute in numeric order: 2.5 → 3 → 4 → 5 → 6 → 7
 
 ---
 *Roadmap created: 2026-03-20*
-*Last updated: 2026-03-25 — inserted Phase 2.5 (PostgreSQL migration); updated Phase 3 for Twilio/Retell AI/Google Meet; removed Fireflies and OpenPhone; added multi-tenant Agency model; added HealthSherpa as enrollment data source*
+*Last updated: 2026-03-26 — Phase 3 planned (7 plans, 6 waves); telephony updated to Dialpad primary / Twilio edge-case; new models updated to reflect CustomerNote extension approach (not 8 new tables); plan list added*

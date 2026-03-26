@@ -58,11 +58,12 @@ app.register_blueprint(customers_bp)
 - 200px sidebar, system font stack
 - CSS lives in `{% block styles %}` per template — no separate CSS files
 - Class names: `.card`, `.data-table`, `.btn-primary`, `.btn-secondary`, `.badge`, `.nav-item`
+- **Login page** uses its own dark theme (`#060e20` bg, glassmorphic card, Inter font, gold `#e6c364` label) — does not extend base.html
 
 ## Build Status
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
-- **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7
+- **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
 - **Phase 3 🔜 (NEXT)** — Dialpad + Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
@@ -78,7 +79,7 @@ app.register_blueprint(customers_bp)
 
 ## VPS-Only State (not in git)
 - `.env` on VPS has `SECRET_KEY`, `DATABASE_URL` (PostgreSQL), `ADMIN_EMAILS=admin@foundersinsuranceagency.com` — never commit
-- `app/templates/base.html` on VPS had an extra `{% endif %}` (fixed 2026-03-26 during UAT) — local copy is now synced
+- `app/templates/base.html` on VPS had an extra `{% endif %}` (fixed 2026-03-26 during UAT) — local copy and VPS are now in sync
 - Admin login: `admin@foundersinsuranceagency.com` (shared AJ+Tim). Agent test login: `tim@foundersinsuranceagency.com`
 - `is_admin` is recalculated from `ADMIN_EMAILS` on every OAuth login — DB value gets overwritten
 

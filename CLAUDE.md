@@ -62,19 +62,19 @@ app.register_blueprint(customers_bp)
 ## Build Status
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
-- **Phase 2.5 🔜 (NEXT — hard gate)** — PostgreSQL migration; VPS swap file; Gunicorn threading
-- **Phase 3 (after 2.5)** — Dialpad + Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks; Agency multi-tenant model
+- **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated
+- **Phase 3 🔜 (NEXT)** — Dialpad + Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks
 
-## Phase 2.5 Pre-Code Checklist (complete before ANY Phase 3 work)
-- [ ] Install PostgreSQL on VPS
-- [ ] Create `founders_portal` database + user
-- [ ] Update `config.py` DATABASE_URL
-- [ ] Run `flask db upgrade` — verify clean migration
-- [ ] Verify all data (commissions, policies, customers) present in PostgreSQL
-- [ ] Update `.env` with new DATABASE_URL
-- [ ] Add 2GB swap file to VPS
-- [ ] Update Gunicorn: `--workers 2 --threads 4 --worker-class gthread`
-- [ ] Remove SQLite from `requirements.txt`
+## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
+- [x] Install PostgreSQL on VPS
+- [x] Create `founders_portal` database + user
+- [x] Update `config.py` DATABASE_URL
+- [x] Run `flask db upgrade` — verify clean migration
+- [x] Verify all data (commissions, policies, customers) present in PostgreSQL
+- [x] Update `.env` with new DATABASE_URL
+- [x] Add 2GB swap file to VPS
+- [x] Update Gunicorn: `--workers 2 --threads 4 --worker-class gthread`
+- [x] Remove SQLite from `requirements.txt`
 
 ## Phase 3 Pre-Code Checklist (after Phase 2.5 complete)
 - [ ] Dialpad account provisioned — sign BAA in Admin Portal immediately on signup
@@ -91,3 +91,8 @@ app.register_blueprint(customers_bp)
 - `app/models.py` — all models
 - `app/upload.py` — BOB import logic + `_upsert_customer_from_policy()`
 - `.env` — secrets (not in git): GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SECRET_KEY, SENDGRID_API_KEY
+
+## Session Protocol
+At the end of every session, update the Build Status section of this file 
+to reflect what was completed. Commit before closing. Do not leave decisions 
+undocumented.

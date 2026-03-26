@@ -116,8 +116,8 @@ Agents open one tab. Everything is there.
 ### Stack
 - **Language:** Python 3.10
 - **Framework:** Flask 3.0
-- **Database:** SQLite → **PostgreSQL** (Phase 2.5 — hard prerequisite before Phase 3)
-- **Web server:** Nginx (reverse proxy) + Gunicorn (WSGI)
+- **Database:** **PostgreSQL 16** (migrated from SQLite in Phase 2.5 — complete)
+- **Web server:** Nginx (reverse proxy) + Gunicorn (WSGI, `--workers 2 --threads 4 --worker-class gthread`)
 - **Auth:** Google OAuth 2.0 (restricted to @foundersinsuranceagency.com)
 - **ORM:** Flask-SQLAlchemy + Flask-Migrate (Alembic) — added Phase 2
 - **Data processing:** pandas, openpyxl, lxml, reportlab, pdfplumber (planned for OCR)
@@ -129,7 +129,8 @@ Agents open one tab. Everything is there.
 /var/www/founders-portal/               → app root
 /var/www/founders-portal/.env           → secrets (not in GitHub)
 /var/www/founders-portal/venv/          → Python virtual environment
-/var/www/founders-portal/instance/      → SQLite database
+/var/www/founders-portal/instance/      → SQLite backup (founders_portal.db.backup — data now in PostgreSQL)
+/var/lib/postgresql/16/main/            → PostgreSQL data directory
 /var/www/founders-portal/seed_agents.py → fake agent data seeder
 /etc/nginx/sites-available/founders-portal → Nginx config
 /etc/systemd/system/founders-portal.service → systemd service
@@ -501,11 +502,14 @@ Agency demo data: ~5,479 total across all 8 agents.
 
 ### Roadmap (Phased)
 
-**Phase 2.5 — PostgreSQL Migration** ← NEXT (hard gate before Phase 3)
-- [ ] Install PostgreSQL on VPS, migrate all data, verify, update .env
+**Phase 2.5 — PostgreSQL Migration** ✅ COMPLETE (2026-03-26)
+- [x] PostgreSQL 16 installed, founders_portal DB created
+- [x] All data migrated (5,589 rows, 0 errors)
+- [x] Agency model + agency_id NOT NULL on all 9 tables
+- [x] 2GB swap file, Gunicorn gthread config, DATABASE_URL updated
 
-**Phase 3 — Communication Hub** (after Phase 2.5 complete)
-- [ ] Agency model + agency_id FK on all tables
+**Phase 3 — Communication Hub** ← NEXT
+- [ ] Agency model + agency_id FK on all tables (done in Phase 2.5)
 - [ ] Twilio integration (call logs, SMS, missed call → CustomerTask)
 - [ ] Retell AI post-call webhook → CallLog + AI summary + action items
 - [ ] Google Meet unique-per-appointment + Workspace Events webhook → CustomerNote

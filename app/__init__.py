@@ -32,5 +32,6 @@ def create_app():
     app.register_blueprint(pharmacies_bp)
 
     with app.app_context():
+        pass
 
     return app

@@ -8,7 +8,7 @@ Flask CRM/portal for a Medicare insurance agency. 8 agents, ~5,500 policies acro
 - Nginx + Gunicorn on Ubuntu VPS (23.187.248.100)
 - Google OAuth 2.0 — restricted to @foundersinsuranceagency.com
 - Vanilla JS only — no React/Vue. Jinja2 templates extending base.html.
-- SendGrid for email, **Dialpad** (primary) + **Retell AI** (missed calls) + **Twilio** (utility/edgecases only)
+- SendGrid for email, **Quo (formerly OpenPhone)** (primary VoIP) + **Retell AI** (missed call AI callbacks via Twilio SIP) + **Twilio** (SIP trunk for Retell AI + SMS blasts)
 
 ## Git Workflow
 Local Crostini is the dev machine. Commit and push from local. VPS pulls.
@@ -64,7 +64,7 @@ app.register_blueprint(customers_bp)
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
-- **Phase 3 🔜 (NEXT)** — Dialpad + Twilio + Retell AI + Google Meet + HealthSherpa + Calendly webhooks
+- **Phase 3 🔜 (NEXT)** — Quo (OpenPhone) + Twilio SIP + Retell AI + Google Meet + HealthSherpa + Calendly webhooks
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
 - [x] Install PostgreSQL on VPS
@@ -84,13 +84,15 @@ app.register_blueprint(customers_bp)
 - `is_admin` is recalculated from `ADMIN_EMAILS` on every OAuth login — DB value gets overwritten
 
 ## Phase 3 Pre-Code Checklist (after Phase 2.5 complete)
-- [ ] Dialpad account provisioned — sign BAA in Admin Portal immediately on signup
+- [ ] Quo (OpenPhone) account provisioned — webhook signing key from Quo dashboard → QUO_WEBHOOK_SIGNING_KEY in .env
+- [ ] Quo API key → QUO_API_KEY in .env (Authorization header, no Bearer prefix)
+- [ ] Quo webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/quo`
 - [ ] Retell AI trial — call own number, evaluate quality with Medicare senior persona
+- [ ] Twilio account SID + auth token in .env (required for Retell AI SIP trunking — Quo does not support SIP)
 - [ ] HealthSherpa agency account + captive join code distributed to LOA agents
 - [ ] Google Workspace admin: Meet recording + transcription enabled for domain
 - [ ] Calendly plan tier confirmed for API (Professional or Teams)
-- [ ] Webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/dialpad`
-- [ ] HMAC secrets stored in .env for: Twilio, Retell, Calendly, HealthSherpa, Google Meet
+- [ ] Secrets in .env: QUO_WEBHOOK_SIGNING_KEY, QUO_API_KEY, RETELL_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, CALENDLY_WEBHOOK_SECRET, HEALTHSHERPA_WEBHOOK_SECRET, GOOGLE_MEET_WEBHOOK_SECRET
 
 ## Key Files
 - `FOUNDERS_PORTAL_CONTEXT.md` — full project context, agent roster, carrier details, roadmap

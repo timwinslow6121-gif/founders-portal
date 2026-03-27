@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Agents see complete communication history on every customer profile — calls, SMS threads, voicemails, and meeting summaries appear automatically without manual entry. Agents can send CMS-approved SMS templates (admin-approved) and targeted email campaigns from within the portal. Inbound calls from unknown numbers surface in a per-agent resolution queue. Calendly bookings trigger a pre-call brief on the agent dashboard. All agency_id query scoping lands in this phase. Dialpad is the primary telephony provider; Twilio handles edge cases only.
+Agents see complete communication history on every customer profile — calls, SMS threads, voicemails, and meeting summaries appear automatically without manual entry. Agents can send CMS-approved SMS templates (admin-approved) and targeted email campaigns from within the portal. Inbound calls from unknown numbers surface in a per-agent resolution queue. Calendly bookings trigger a pre-call brief on the agent dashboard. All agency_id query scoping lands in this phase. Quo (formerly OpenPhone) is the primary VoIP/telephony provider; Twilio provides SIP trunking for Retell AI callbacks (Quo does not expose SIP).
 
 </domain>
 
@@ -14,16 +14,17 @@ Agents see complete communication history on every customer profile — calls, S
 ## Implementation Decisions
 
 ### Telephony architecture
-- **Dialpad is the primary telephony service** — webhooks for call.completed, call.missed, voicemail.created
-- **Twilio is edge-case only** — for situations where Dialpad cannot deliver (e.g., programmatic SMS blasts, Retell AI SIP trunking)
-- **Retell AI** handles inbound missed calls — AI triage, appointment booking mid-call via Calendly
-- ROADMAP references to "Twilio as primary" are superseded by this decision
-- HMAC signature verification required on all webhook endpoints (Dialpad signing secret, Retell AI, Calendly, HealthSherpa)
+- **Quo (formerly OpenPhone) is the primary VoIP service** — webhooks for `call.completed` (all calls; detect missed via `status in ("no-answer","missed")`), `call.recording.completed` (voicemail), `message.received`, `message.delivered`
+- **Twilio is required for Retell AI SIP trunking** — Quo does not expose SIP; Retell AI only supports Twilio/Telnyx/Vonage for SIP. Twilio also handles programmatic SMS blasts.
+- **Retell AI** handles missed-call AI callbacks — portal detects missed call via Quo webhook → triggers Retell AI outbound callback via Twilio SIP
+- Dialpad was evaluated and rejected — did not work with Retell AI. Quo confirmed compatible.
+- **Quo webhook auth: HMAC-SHA256** (stdlib `hmac`/`base64`, no PyJWT needed). Header: `openphone-signature`. Format: `hmac;1;<timestamp_ms>;<base64_digest>`. Signing key is base64-encoded in dashboard — must decode to binary before use.
+- HMAC signature verification required on all webhook endpoints (Quo signing key, Retell AI, Calendly, HealthSherpa)
 
 ### Data model — extend CustomerNote, not new tables
 - Do NOT add 8 new tables from ROADMAP (CallLog, SmsMessage, etc.)
-- Extend CustomerNote with additional webhook ID fields: `dialpad_call_id`, `twilio_msg_sid`, `retell_call_id`
-- Add new note_type values: `voicemail` (Dialpad voicemail.created events), `healthsherpa_enrollment`
+- Extend CustomerNote with additional webhook ID fields: `quo_call_id` (replaces dialpad_call_id), `twilio_msg_sid`, `retell_call_id`
+- Add new note_type values: `voicemail` (Quo call.recording.completed events), `healthsherpa_enrollment`
 - Existing note_type values retained: `call`, `missed_call`, `sms`, `meeting_summary`, `appointment_scheduled`, `general`
 - `UnmatchedCall` table still needed (separate from CustomerNote — no customer to link to yet)
 
@@ -33,7 +34,7 @@ Agents see complete communication history on every customer profile — calls, S
 - If no match found: log to UnmatchedCall table (do NOT auto-create stub customers)
 
 ### Unmatched call resolution
-- Agent-scoped: each agent sees only their own unmatched calls (keyed by Dialpad line/agent)
+- Agent-scoped: each agent sees only their own unmatched calls (keyed by Quo userId → User lookup)
 - Admin sees all unmatched calls across all agents
 - Sidebar badge on agent dashboard shows unresolved count (e.g., "3 unresolved calls")
 - Resolution UI: agent searches existing customers by name/phone to link, OR clicks "New customer" to create a lead from the number
@@ -70,7 +71,7 @@ Agents see complete communication history on every customer profile — calls, S
 - Matching: Meet event linked to a Calendly appointment via shared booking reference if available; fallback to agent + timestamp proximity
 
 ### Claude's Discretion
-- Exact Dialpad webhook event schema and field names (researcher to verify against Dialpad docs)
+- Exact Quo webhook event schema and field names (see QUO_RESEARCH.md — confirmed against OpenPhone OpenAPI spec)
 - Retell AI SIP trunk configuration specifics
 - HealthSherpa webhook payload structure and consent field presence
 - Calendly webhook event payload structure for invitee phone/email
@@ -83,7 +84,7 @@ Agents see complete communication history on every customer profile — calls, S
 <specifics>
 ## Specific Ideas
 
-- "Dialpad is primary, Twilio is for edge cases" — supersedes ROADMAP which listed Twilio as primary
+- "Quo is primary VoIP, Twilio is required for Retell AI SIP" — supersedes ROADMAP and earlier Dialpad decision. Dialpad rejected after testing — incompatible with Retell AI.
 - Retell AI handles the missed-call AI experience (inbound, appointment booking mid-call)
 - The unmatched call sidebar badge should feel like email unread counts — agents notice it without a page visit
 - Pre-call brief should show current plan + last interaction + open tasks — enough context without overwhelming
@@ -112,7 +113,7 @@ Agents see complete communication history on every customer profile — calls, S
 - `app/templates/base.html`: Sidebar nav needs unmatched-call badge count (context processor or template variable)
 - `app/routes.py` dashboard builder: Upcoming appointments card added to `_build_dashboard_context()` return dict
 - `app/models.py`: CustomerNote extended; UnmatchedCall added; Customer gains `sms_consent_at`; new SmsTemplate model for the template library
-- `.env` / `config.py`: New secrets — DIALPAD_HMAC_SECRET, RETELL_WEBHOOK_SECRET, CALENDLY_WEBHOOK_SECRET, HEALTHSHERPA_WEBHOOK_SECRET, GOOGLE_MEET_WEBHOOK_SECRET
+- `.env` / `config.py`: New secrets — QUO_WEBHOOK_SIGNING_KEY (base64, decode before use), QUO_API_KEY, RETELL_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, CALENDLY_WEBHOOK_SECRET, HEALTHSHERPA_WEBHOOK_SECRET, GOOGLE_MEET_WEBHOOK_SECRET
 
 </code_context>
 

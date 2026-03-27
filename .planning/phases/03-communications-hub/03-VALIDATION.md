@@ -54,14 +54,14 @@ created: 2026-03-26
 Plan 01 creates the full test infrastructure. The consolidated file names produced by Plan 01 are:
 
 - [ ] `tests/test_agency_scoping.py` — stubs for SC-7 query scoping
-- [ ] `tests/test_comms_webhooks.py` — stubs for SC-1 (Dialpad call/missed/voicemail), SC-2 (Dialpad SMS), SC-3 (Calendly booking), SC-6 (unknown caller queue), HealthSherpa enrollment
+- [ ] `tests/test_comms_webhooks.py` — stubs for SC-1 (Quo call.completed/missed/voicemail), SC-2 (Quo SMS), SC-3 (Calendly booking), SC-6 (unknown caller queue), HealthSherpa enrollment
 - [ ] `tests/test_comms_sms.py` — stubs for SC-5 (template approval + send + consent guard)
 - [ ] `tests/test_meet_pubsub.py` — stubs for SC-4 (Pub/Sub transcript.fileGenerated)
 - [ ] `tests/test_phone_utils.py` — stubs for phone normalization utilities
 - [ ] `tests/conftest.py` — shared fixtures (app factory, test DB, mock agency)
 - [ ] `pytest` — install if not detected in requirements.txt
 
-Note: Individual per-concern files (test_dialpad_webhook.py, test_dialpad_sms.py, test_unmatched_call.py, test_calendly_webhook.py, test_sms_template.py) are NOT created. Coverage for those concerns is consolidated into test_comms_webhooks.py and test_comms_sms.py respectively.
+Note: Individual per-concern files (test_quo_webhook.py, test_quo_sms.py, test_unmatched_call.py, test_calendly_webhook.py, test_sms_template.py) are NOT created. Coverage for those concerns is consolidated into test_comms_webhooks.py and test_comms_sms.py respectively.
 
 ---
 
@@ -69,8 +69,8 @@ Note: Individual per-concern files (test_dialpad_webhook.py, test_dialpad_sms.py
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Dialpad JWT signature validation | SC-1, SC-2 | Requires live Dialpad signing secret + real webhook payload | Send test webhook from Dialpad dashboard; verify 200 response + CustomerNote created |
-| SMS message content visibility | SC-2 | Requires `message_content_export` scope on Dialpad API key | Send test SMS; verify body appears in CustomerNote |
+| Quo HMAC signature validation | SC-1, SC-2 | Requires live QUO_WEBHOOK_SIGNING_KEY + real webhook payload | Send test webhook from Quo dashboard; verify 200 response + CustomerNote created |
+| Retell AI missed-call callback | SC-1 | Requires live Retell AI account + Twilio SIP trunk configured | Miss a call on Quo number; verify AI callback fires via Twilio + UnmatchedCall created |
 | Retell AI missed call triage | SC-1 | Requires live Retell AI account + SIP trunk configured | Call test number; verify AI answers + creates CustomerNote on hangup |
 | Calendly booking → pre-call brief | SC-3 | Requires live Calendly Professional+ account | Book test appointment; verify upcoming appointments card on agent dashboard |
 | Google Meet transcript delivery | SC-4 | Requires Google Workspace Pub/Sub subscription live | Complete Meet call; wait for transcript webhook; verify CustomerNote created |

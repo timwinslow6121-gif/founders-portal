@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-26T17:27:18.730Z"
+stopped_at: Completed 03-communications-hub-01-PLAN.md
+last_updated: "2026-04-02T19:19:43.034Z"
 last_activity: 2026-03-20 — Roadmap created; Phases 1 & 2 validated as complete
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 12
+  completed_plans: 6
   percent: 20
 ---
 
@@ -53,6 +53,7 @@ Progress: [██░░░░░░░░] 20% (phases 1–2 complete, 5 phases 
 *Updated after each plan completion*
 | Phase 02.5-postgresql-migration P01 | 25 | 2 tasks | 6 files |
 | Phase 02.5-postgresql-migration P02 | 25 | 2 tasks | 4 files |
+| Phase 03-communications-hub P01 | 5 | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,10 @@ Recent decisions affecting current work:
 - [Phase 02.5-02]: agency_id FK columns added via Alembic migrations only, not as db.Column in model classes — avoids Alembic conflict in migration 003
 - [Phase 02.5-02]: batch_alter_table used for all ALTER TABLE operations — required for SQLite compatibility; PostgreSQL supports it natively
 - [Phase 02.5-02]: Migration 003 committed but NOT applied locally — requires seed_agency.py backfill first; will be applied on VPS
+- [Phase 03-communications-hub]: PyJWT NOT added to requirements.txt — Quo webhook auth uses stdlib hmac/base64 only (PyJWT is a transitive dep of twilio)
+- [Phase 03-communications-hub]: Migration 004 hand-authored (no local PostgreSQL) — covers all Phase 3 columns/tables explicitly; applied on VPS at deploy
+- [Phase 03-communications-hub]: pytest conftest uses SQLite in-memory DB so tests run locally without VPS access
+- [Phase 03-communications-hub]: UnmatchedCall.provider defaults to quo (primary VoIP); SmsTemplate.status workflow: pending/approved/rejected (TCPA compliance)
 
 ### Pending Todos
 
@@ -84,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T17:27:18.726Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-communications-hub/03-CONTEXT.md
+Last session: 2026-04-02T19:19:43.032Z
+Stopped at: Completed 03-communications-hub-01-PLAN.md
+Resume file: None

@@ -109,7 +109,7 @@ Plans:
   6. Inbound call from unknown number creates an UnmatchedCall record and surfaces in agent's resolution queue
   7. Every database query is scoped to `agency_id` — no query returns cross-tenant data
 
-**Plans:** 7 plans
+**Plans:** 1/7 plans executed
 
 Plans:
 - [ ] 03-01-PLAN.md — Schema migrations + test infrastructure (models, Alembic, pytest fixtures)
@@ -204,7 +204,7 @@ Phases execute in numeric order: 2.5 → 3 → 4 → 5 → 6 → 7
 | 1. Infrastructure & Core | - | Complete | 2026-03-20 |
 | 2. Customer Master | - | Complete | 2026-03-20 |
 | 2.5. PostgreSQL Migration | 0/TBD | Not started | - |
-| 3. Communications Hub | 0/7 | Planned | - |
+| 3. Communications Hub | 1/7 | In Progress|  |
 | 4. Compliance Reference | 0/TBD | Not started | - |
 | 5. Operations | 0/TBD | Not started | - |
 | 6. Analytics | 0/TBD | Not started | - |

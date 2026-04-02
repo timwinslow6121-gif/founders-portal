@@ -1,0 +1,272 @@
+"""
+app/comms/webhooks.py
+
+Quo (formerly OpenPhone) unified webhook handler.
+
+Route:
+    POST /comms/webhook/quo
+
+Handles:
+    call.completed          — answered calls (note_type='call')
+                            — missed calls  (note_type='missed_call')
+    call.recording.completed— voicemails    (note_type='voicemail')
+    message.received        — inbound SMS   (note_type='sms')
+    message.delivered       — outbound SMS  (note_type='sms')
+
+Unknown callers → UnmatchedCall (not CustomerNote).
+All handlers are idempotent: duplicate quo_call_id / twilio_msg_sid returns 200
+without creating a second record.
+
+Every response is HTTP 200 — errors are logged and the request is swallowed to
+prevent Quo from retrying and flooding the queue.
+"""
+
+import requests
+from datetime import datetime
+
+from flask import jsonify, request, current_app
+
+from app.comms import comms_bp
+from app.comms.utils import find_customer_by_phone, normalize_e164, verify_quo_webhook
+from app.extensions import db
+from app.models import CustomerNote, UnmatchedCall, User
+
+
+# ---------------------------------------------------------------------------
+# Webhook entry point
+# ---------------------------------------------------------------------------
+
+@comms_bp.route("/webhook/quo", methods=["POST"])
+def quo_webhook():
+    """
+    Unified entry point for all Quo webhook events.
+
+    1. Verify HMAC signature — abort(403) on failure.
+    2. Route by event type.
+    3. Commit on success; rollback + log on any exception.
+    4. Always return 200 to prevent Quo retry storms.
+    """
+    payload = verify_quo_webhook(request)  # abort(403) on bad sig
+
+    try:
+        event_type = payload.get("type", "")
+        call_obj = payload.get("data", {}).get("object", {})
+
+        # Resolve agency_id — User model has no agency_id column until Plan 07.
+        # Always fall back to DEFAULT_AGENCY_ID from config.
+        agency_id = current_app.config.get("DEFAULT_AGENCY_ID", 1)
+
+        # Resolve agent from Quo userId in the payload
+        quo_user_id = call_obj.get("userId")
+        agent = None
+        if quo_user_id:
+            agent = User.query.filter_by(quo_user_id=quo_user_id).first()
+        agent_id = agent.id if agent else None
+
+        if event_type == "call.completed":
+            _handle_call_completed(call_obj, agency_id, agent_id)
+        elif event_type == "call.recording.completed":
+            _handle_recording_completed(call_obj, agency_id, agent_id)
+        elif event_type in ("message.received", "message.delivered"):
+            _handle_sms(call_obj, event_type, agency_id, agent_id)
+        else:
+            # Forward-compatible: unknown event types are silently accepted
+            current_app.logger.info("quo_webhook: unhandled event_type=%s", event_type)
+
+        db.session.commit()
+
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.error("quo_webhook: unhandled exception: %s", exc, exc_info=True)
+        db.session.rollback()
+        return jsonify({"status": "error"}), 200
+
+    return jsonify({"status": "ok"}), 200
+
+
+# ---------------------------------------------------------------------------
+# Event handlers
+# ---------------------------------------------------------------------------
+
+def _handle_call_completed(call_obj, agency_id, agent_id):
+    """
+    Process a call.completed event.
+
+    Answered call → CustomerNote(note_type='call') for known customer.
+    Missed call   → CustomerNote(note_type='missed_call') for known customer.
+    Unknown phone → UnmatchedCall regardless of answered/missed status.
+    """
+    call_id = call_obj.get("id", "")
+    answered_at = call_obj.get("answeredAt")
+    status = call_obj.get("status", "")
+    missed = status in ("no-answer", "missed") or answered_at is None
+
+    # Idempotency check — CustomerNote has no agency_id column; call_id is globally unique
+    if CustomerNote.query.filter_by(quo_call_id=call_id).first():
+        return
+
+    customer, from_number = _resolve_customer_from_participants(
+        call_obj.get("participants", [])
+    )
+
+    if customer and agent_id:
+        note_type = "missed_call" if missed else "call"
+        duration_seconds = call_obj.get("duration", 0)
+        # duration from Quo is already in SECONDS — do NOT divide by 1000
+        duration_minutes = duration_seconds // 60
+
+        note = CustomerNote(
+            note_type=note_type,
+            quo_call_id=call_id,
+            duration_minutes=duration_minutes,
+            contact_method="phone",
+            customer_id=customer.id,
+            agent_id=agent_id,
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(note)
+    else:
+        # TODO: handle unresolvable agent gracefully (SC-6 admin alert)
+        _create_unmatched_call(
+            call_id, call_obj, agency_id, agent_id, from_number, provider="quo"
+        )
+
+
+def _handle_recording_completed(call_obj, agency_id, agent_id):
+    """
+    Process a call.recording.completed event.
+
+    Fetches the recording URL via GET /v1/call-recordings/{callId} using
+    QUO_API_KEY in the Authorization header (no Bearer prefix — Quo convention).
+
+    Creates CustomerNote(note_type='voicemail') for known customers.
+    Unknown callers → UnmatchedCall.
+    """
+    call_id = call_obj.get("id", "")
+
+    # Idempotency check
+    if CustomerNote.query.filter_by(
+        quo_call_id=call_id, note_type="voicemail"
+    ).first():
+        return
+
+    # Fetch recording URL from Quo REST API
+    recording_url = ""
+    api_key = current_app.config.get("QUO_API_KEY", "")
+    if api_key:
+        try:
+            resp = requests.get(
+                f"https://api.openphone.com/v1/call-recordings/{call_id}",
+                headers={"Authorization": api_key},
+                timeout=5,
+            )
+            recordings = resp.json().get("data", [])
+            if recordings:
+                recording_url = recordings[0].get("url", "")
+        except Exception as exc:  # noqa: BLE001
+            current_app.logger.error(
+                "quo_webhook: failed to fetch recording for %s: %s", call_id, exc
+            )
+
+    customer, from_number = _resolve_customer_from_participants(
+        call_obj.get("participants", [])
+    )
+
+    if customer and agent_id:
+        note = CustomerNote(
+            note_type="voicemail",
+            quo_call_id=call_id,
+            note_text=recording_url,
+            source_url=recording_url,
+            contact_method="phone",
+            customer_id=customer.id,
+            agent_id=agent_id,
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(note)
+    else:
+        # TODO: handle unresolvable agent gracefully (SC-6 admin alert)
+        _create_unmatched_call(
+            call_id, call_obj, agency_id, agent_id, from_number, provider="quo"
+        )
+
+
+def _handle_sms(msg_obj, event_type, agency_id, agent_id):
+    """
+    Process a message.received or message.delivered event.
+
+    Creates CustomerNote(note_type='sms') for known customers.
+    text field is included by default in Quo payloads — no special API scope needed.
+
+    Uses twilio_msg_sid column to store Quo message_id — SMS idempotency key
+    regardless of provider (both are opaque string message IDs).
+    """
+    message_id = msg_obj.get("id", "")
+
+    # Idempotency check
+    if CustomerNote.query.filter_by(twilio_msg_sid=message_id).first():
+        return
+
+    from_number = normalize_e164(msg_obj.get("from", ""))
+    customer = find_customer_by_phone(from_number) if from_number else None
+
+    if customer and agent_id:
+        note = CustomerNote(
+            note_type="sms",
+            twilio_msg_sid=message_id,
+            note_text=msg_obj.get("text", ""),  # default empty string if text absent
+            contact_method="sms",
+            customer_id=customer.id,
+            agent_id=agent_id,
+            created_at=datetime.utcnow(),
+        )
+        db.session.add(note)
+    else:
+        # TODO: handle unresolvable agent gracefully (SC-6 admin alert)
+        _create_unmatched_call(
+            message_id, msg_obj, agency_id, agent_id, from_number, provider="quo"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+def _resolve_customer_from_participants(participants):
+    """
+    Walk the participants list and return (customer, e164_phone) for the first
+    participant that matches a Customer record.
+
+    Returns (None, first_valid_e164_or_None) if no customer is found — the
+    second element is used as from_number for UnmatchedCall records.
+    """
+    first_valid = None
+    for raw_phone in participants:
+        e164 = normalize_e164(raw_phone)
+        if e164:
+            if first_valid is None:
+                first_valid = e164
+            customer = find_customer_by_phone(e164)
+            if customer:
+                return customer, e164
+    return None, first_valid
+
+
+def _create_unmatched_call(call_id, obj, agency_id, agent_id, from_number, provider):
+    """
+    Create an UnmatchedCall record for a call or SMS that could not be matched
+    to a Customer, or where the agent could not be resolved.
+
+    agency_id is required (nullable=False on the model).
+    """
+    unmatched = UnmatchedCall(
+        provider=provider,
+        call_sid=call_id,
+        from_number=from_number,
+        to_number=None,
+        direction=obj.get("direction", "incoming"),
+        duration_seconds=obj.get("duration", 0),
+        occurred_at=datetime.utcnow(),
+        agency_id=agency_id,
+        agent_id=agent_id,
+    )
+    db.session.add(unmatched)

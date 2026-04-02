@@ -30,3 +30,6 @@ def inject_unmatched_count():
 @comms_bp.route("/health")
 def health():
     return jsonify({"status": "ok"}), 200
+
+
+from app.comms import webhooks  # noqa: E402,F401 — registers /comms/webhook/* routes

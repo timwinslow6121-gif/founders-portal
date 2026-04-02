@@ -151,7 +151,7 @@ def test_quo_call_completed_creates_note(client, db_session, customer, agent_use
         agent.quo_user_id = "US-test-agent"
         db.session.commit()
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_CALL_PAYLOAD):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_CALL_PAYLOAD):
         resp = _post_quo(client, QUO_CALL_PAYLOAD)
 
     assert resp.status_code == 200
@@ -176,7 +176,7 @@ def test_quo_duplicate_idempotency(client, db_session, customer, agent_user, app
         agent.quo_user_id = "US-test-agent"
         db.session.commit()
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_CALL_PAYLOAD):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_CALL_PAYLOAD):
         resp1 = _post_quo(client, QUO_CALL_PAYLOAD)
         resp2 = _post_quo(client, QUO_CALL_PAYLOAD)
 
@@ -211,7 +211,7 @@ def test_quo_missed_call_creates_unmatched(client, db_session, app):
         agent.quo_user_id = "US-test-agent"
         db.session.commit()
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_MISSED_CALL_PAYLOAD):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_MISSED_CALL_PAYLOAD):
         resp = _post_quo(client, QUO_MISSED_CALL_PAYLOAD)
 
     assert resp.status_code == 200
@@ -250,7 +250,7 @@ def test_quo_unknown_number_creates_unmatched(client, db_session, app):
         agent.quo_user_id = "US-test-agent"
         db.session.commit()
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_UNKNOWN_CALL_PAYLOAD):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_UNKNOWN_CALL_PAYLOAD):
         resp = _post_quo(client, QUO_UNKNOWN_CALL_PAYLOAD)
 
     assert resp.status_code == 200
@@ -283,8 +283,8 @@ def test_quo_recording_completed_creates_voicemail_note(
         "data": [{"url": "https://quo.com/recordings/test.mp3"}]
     }
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_RECORDING_PAYLOAD), \
-         patch("requests.get", return_value=mock_recording_resp):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_RECORDING_PAYLOAD), \
+         patch("app.comms.webhooks.requests.get", return_value=mock_recording_resp):
         resp = _post_quo(client, QUO_RECORDING_PAYLOAD)
 
     assert resp.status_code == 200
@@ -309,7 +309,7 @@ def test_quo_sms_received_creates_note(client, db_session, customer, agent_user,
         agent.quo_user_id = "US-test-agent"
         db.session.commit()
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_SMS_PAYLOAD):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_SMS_PAYLOAD):
         resp = _post_quo(client, QUO_SMS_PAYLOAD)
 
     assert resp.status_code == 200
@@ -337,7 +337,7 @@ def test_quo_sms_missing_text_creates_note_anyway(
         agent.quo_user_id = "US-test-agent"
         db.session.commit()
 
-    with patch("app.comms.utils.verify_quo_webhook", return_value=QUO_SMS_NO_TEXT_PAYLOAD):
+    with patch("app.comms.webhooks.verify_quo_webhook", return_value=QUO_SMS_NO_TEXT_PAYLOAD):
         resp = _post_quo(client, QUO_SMS_NO_TEXT_PAYLOAD)
 
     assert resp.status_code == 200

@@ -27,7 +27,12 @@ from datetime import datetime
 from flask import jsonify, request, current_app
 
 from app.comms import comms_bp
-from app.comms.utils import find_customer_by_phone, normalize_e164, verify_quo_webhook
+from app.comms.utils import (
+    find_customer_by_phone,
+    normalize_e164,
+    verify_calendly_webhook,
+    verify_quo_webhook,
+)
 from app.extensions import db
 from app.models import CustomerNote, UnmatchedCall, User
 
@@ -251,6 +256,29 @@ def _resolve_customer_from_participants(participants):
     return None, first_valid
 
 
+def _extract_phone_from_qna(qna_list):
+    """
+    Scan Calendly questions_and_answers list for any item where the question
+    contains "phone" (case-insensitive) and return the answer string, or None.
+    """
+    for item in qna_list:
+        if "phone" in item.get("question", "").lower():
+            return item.get("answer", "").strip() or None
+    return None
+
+
+def _extract_calendly_event_id(invitee_uri):
+    """
+    Extract the Calendly event ID from the invitee URI.
+
+    Example URI: "https://api.calendly.com/xxx/invitees/inv-001"
+    Returns: "inv-001"
+    """
+    if not invitee_uri:
+        return ""
+    return invitee_uri.rstrip("/").split("/")[-1]
+
+
 def _create_unmatched_call(call_id, obj, agency_id, agent_id, from_number, provider):
     """
     Create an UnmatchedCall record for a call or SMS that could not be matched
@@ -270,3 +298,112 @@ def _create_unmatched_call(call_id, obj, agency_id, agent_id, from_number, provi
         agent_id=agent_id,
     )
     db.session.add(unmatched)
+
+
+# ---------------------------------------------------------------------------
+# Calendly webhook entry point
+# ---------------------------------------------------------------------------
+
+@comms_bp.route("/webhook/calendly", methods=["POST"])
+def calendly_webhook():
+    """
+    Unified entry point for Calendly webhook events.
+
+    1. Verify Calendly-Webhook-Signature header — abort(403) on failure.
+       (verify_calendly_webhook is mocked in tests via patch.)
+    2. Ignore events other than "invitee.created" — return 200 with status "ignored".
+    3. Idempotency: if a CustomerNote already has calendly_event_id == extracted event ID, skip.
+    4. Match customer: phone first (from questions_and_answers), then email.
+    5. Resolve agent from event_memberships[0].user_email.
+    6. Matched customer + agent → CustomerNote(note_type='appointment_scheduled').
+    7. No match → UnmatchedCall(provider='calendly').
+    8. Always return 200.
+    """
+    # verify_calendly_webhook is imported at module level so tests can patch it
+    verify_calendly_webhook(request)  # abort(403) on bad sig; returns body on success
+    data = request.get_json(force=True) or {}
+
+    try:
+        event_type = data.get("event", "")
+
+        if event_type != "invitee.created":
+            current_app.logger.info(
+                "calendly_webhook: ignored event_type=%s", event_type
+            )
+            return jsonify({"status": "ignored"}), 200
+
+        payload = data.get("payload", {})
+        invitee = payload.get("invitee", {})
+        scheduled_event = payload.get("scheduled_event", {})
+
+        # Extract event ID from invitee URI (last path segment)
+        invitee_uri = invitee.get("uri", "")
+        event_id = _extract_calendly_event_id(invitee_uri)
+
+        # Idempotency check
+        if event_id and CustomerNote.query.filter_by(calendly_event_id=event_id).first():
+            return jsonify({"status": "duplicate"}), 200
+
+        agency_id = current_app.config.get("DEFAULT_AGENCY_ID", 1)
+
+        # Resolve agent from scheduled_event.event_memberships[0].user_email
+        memberships = scheduled_event.get("event_memberships", [])
+        agent = None
+        if memberships:
+            agent_email = memberships[0].get("user_email", "")
+            if agent_email:
+                agent = User.query.filter_by(email=agent_email).first()
+        agent_id = agent.id if agent else None
+
+        # Resolve customer: phone first, then email
+        qna = invitee.get("questions_and_answers", [])
+        raw_phone = _extract_phone_from_qna(qna)
+        customer = None
+        if raw_phone:
+            e164_phone = normalize_e164(raw_phone)
+            if e164_phone:
+                customer = find_customer_by_phone(e164_phone)
+        if customer is None:
+            invitee_email = invitee.get("email", "")
+            if invitee_email:
+                from app.models import Customer
+                customer = Customer.query.filter_by(email=invitee_email).first()
+
+        start_time = scheduled_event.get("start_time", "")
+
+        if customer and agent_id:
+            note = CustomerNote(
+                note_type="appointment_scheduled",
+                calendly_event_id=event_id,
+                note_text=f"Appointment: {start_time}",
+                contact_method="video",
+                customer_id=customer.id,
+                agent_id=agent_id,
+                created_at=datetime.utcnow(),
+            )
+            db.session.add(note)
+        else:
+            from_number = invitee.get("email", "") or ""
+            unmatched = UnmatchedCall(
+                provider="calendly",
+                call_sid=event_id,
+                from_number=from_number,
+                to_number=None,
+                direction="inbound",
+                duration_seconds=0,
+                occurred_at=datetime.utcnow(),
+                agency_id=agency_id,
+                agent_id=agent_id,
+            )
+            db.session.add(unmatched)
+
+        db.session.commit()
+
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.error(
+            "calendly_webhook: unhandled exception: %s", exc, exc_info=True
+        )
+        db.session.rollback()
+        return jsonify({"status": "error"}), 200
+
+    return jsonify({"status": "ok"}), 200

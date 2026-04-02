@@ -2,62 +2,60 @@
 {% block title %}Dashboard — Founders Portal{% endblock %}
 
 {% block content %}
+
 {% if viewing_agent %}
-<div style="display:flex;align-items:center;gap:16px;background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:13px;">
-  <a href="{{ url_for('main.admin_overview') }}" style="color:#185FA5;text-decoration:none;font-weight:500;white-space:nowrap;">← Agency Overview</a>
-  <span style="color:#1B2A4A;">Viewing: <strong>{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
+<div style="display:flex;align-items:center;gap:16px;background:rgba(218,196,149,0.06);border-left:2px solid rgba(218,196,149,0.3);padding:10px 16px;margin-bottom:32px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">
+  <a href="{{ url_for('main.admin_overview') }}" style="color:var(--gold);text-decoration:none;font-weight:500;white-space:nowrap;">← Agency Overview</a>
+  <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:500;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
 </div>
 {% endif %}
+
 <div class="page-header">
   <div>
     <h1 class="page-title">{% if viewing_agent %}{{ viewing_agent.display_name }}'s Dashboard{% else %}Dashboard{% endif %}</h1>
-    <p class="page-sub">
-      Last import: {{ last_import or 'No imports yet' }}
-      {% if policy_count %} · {{ policy_count }} active policies{% endif %}
-    </p>
+    <p class="page-sub">Last import: {{ last_import or 'No imports yet' }}{% if policy_count %} · {{ policy_count }} active policies{% endif %}</p>
   </div>
   {% if current_user.is_admin and not viewing_agent %}
-  <a href="/upload" class="btn-primary">Upload carrier files</a>
+  <a href="/upload" class="btn-primary">Upload Carrier Files</a>
   {% endif %}
 </div>
 
 <!-- Metric cards -->
 <div class="metric-grid">
   <div class="metric-card">
-    <div class="metric-label">Active policies</div>
+    <div class="metric-label">Active Policies</div>
     <div class="metric-value">{{ policy_count }}</div>
     <div class="metric-sub">across {{ carrier_count }} carriers</div>
   </div>
   <div class="metric-card">
-    <div class="metric-label">Upcoming terms (90 days)</div>
+    <div class="metric-label">Upcoming Terms (90 days)</div>
     <div class="metric-value {% if terms_90 > 0 %}metric-value-warn{% endif %}">{{ terms_90 }}</div>
     <div class="metric-sub">
-      {% if terms_30 > 0 %}<span style="color:#A32D2D;">{{ terms_30 }} under 30 days</span>
+      {% if terms_30 > 0 %}<span style="color:var(--status-error-text);">{{ terms_30 }} under 30 days</span>
       {% else %}none critical{% endif %}
     </div>
   </div>
   <div class="metric-card">
-    <div class="metric-label">Est. monthly commission</div>
+    <div class="metric-label">Est. Monthly Commission</div>
     <div class="metric-value">{{ monthly_commission }}</div>
     <div class="metric-sub">at 55% · MAPD only</div>
   </div>
   <div class="metric-card">
-    <div class="metric-label">Est. annual commission</div>
+    <div class="metric-label">Est. Annual Commission</div>
     <div class="metric-value">{{ annual_commission }}</div>
     <div class="metric-sub">projected from current BOB</div>
   </div>
 </div>
 
-<!-- Carrier breakdown + recent imports -->
+<!-- Carrier breakdown + commission -->
 <div class="two-col-grid">
 
-  <!-- Carrier breakdown -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Policies by carrier</span>
-      <span class="card-sub">{{ policy_count }} total</span>
+      <span class="card-title">Policies by Carrier</span>
+      <span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--slate);">{{ policy_count }} total</span>
     </div>
-    <div class="card-body" style="padding: 0;">
+    <div style="padding:0;">
       {% if carrier_breakdown %}
         {% for row in carrier_breakdown %}
         <div class="carrier-row">
@@ -75,13 +73,12 @@
     </div>
   </div>
 
-  <!-- Commission by carrier -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Commission estimate by carrier</span>
-      <span class="card-sub">55% split · $28.91/mo MAPD</span>
+      <span class="card-title">Commission by Carrier</span>
+      <span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--slate);">55% split · $28.91/mo MAPD</span>
     </div>
-    <div class="card-body" style="padding: 0;">
+    <div style="padding:0;">
       {% if carrier_breakdown %}
       <table class="data-table">
         <thead>
@@ -98,14 +95,14 @@
             <td class="fw-medium">{{ row.carrier }}</td>
             <td>{{ row.count }}</td>
             <td>{{ row.gross_monthly }}</td>
-            <td class="fw-medium" style="color:#3B6D11;">{{ row.your_monthly }}</td>
+            <td class="fw-medium" style="color:var(--status-resolved);">{{ row.your_monthly }}</td>
           </tr>
           {% endfor %}
-          <tr style="border-top: 1px solid #E2E6ED;">
-            <td class="fw-medium">Total</td>
-            <td class="fw-medium">{{ policy_count }}</td>
-            <td class="fw-medium">{{ total_gross_monthly }}</td>
-            <td class="fw-medium" style="color:#3B6D11;">{{ monthly_commission }}</td>
+          <tr style="border-top:1px solid rgba(76,70,61,0.3);">
+            <td class="fw-medium" style="color:var(--ivory-bright);">Total</td>
+            <td class="fw-medium" style="color:var(--ivory-bright);">{{ policy_count }}</td>
+            <td class="fw-medium" style="color:var(--ivory-bright);">{{ total_gross_monthly }}</td>
+            <td class="fw-medium" style="color:var(--gold);">{{ monthly_commission }}</td>
           </tr>
         </tbody>
       </table>
@@ -118,13 +115,13 @@
 </div>
 
 <!-- Upcoming terminations -->
-<div class="card" style="margin-top: 20px;">
+<div class="card" style="margin-top:24px;">
   <div class="card-header">
-    <span class="card-title">Upcoming terminations</span>
-    <span class="card-sub">Next 90 days</span>
+    <span class="card-title">Upcoming Terminations</span>
+    <span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--slate);">Next 90 days</span>
   </div>
   {% if upcoming_terms %}
-  <div style="padding: 0;">
+  <div style="padding:0;">
     <table class="data-table">
       <thead>
         <tr>
@@ -133,15 +130,15 @@
           <th style="width:14%">Phone</th>
           <th style="width:14%">Carrier</th>
           <th style="width:18%">Plan</th>
-          <th style="width:10%">Term date</th>
+          <th style="width:10%">Term Date</th>
           <th style="width:10%">Days</th>
         </tr>
       </thead>
       <tbody>
         {% for p in upcoming_terms %}
-        <tr class="row-{{ p.urgency_class }}">
+        <tr class="row-urgency-{{ p.urgency_class }}">
           <td class="fw-medium">{{ p.full_name }}</td>
-          <td>{{ p.dob.strftime('%m/%d/%Y') if p.dob else '—' }}</td>
+          <td class="text-muted">{{ p.dob.strftime('%m/%d/%Y') if p.dob else '—' }}</td>
           <td>{{ p.phone or '—' }}</td>
           <td>{{ p.carrier }}</td>
           <td>{{ p.plan_name or '—' }}</td>
@@ -156,12 +153,12 @@
   </div>
   {% else %}
   <div class="card-body">
-    <p class="empty-state-text">No terminations in the next 90 days.</p>
+    <p class="empty-cell">No terminations in the next 90 days.</p>
   </div>
   {% endif %}
 </div>
 
-{# Upcoming Appointments card — only shown for agents (not admin overview) #}
+{# Upcoming Appointments — agents only #}
 {% if not viewing_agent %}
 {% include 'comms/partials/upcoming_appointments.html' %}
 {% endif %}
@@ -171,120 +168,102 @@
 
 {% block styles %}
 <style>
-  .page-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 24px;
-  }
-  .page-title {
-    font-size: 22px;
-    font-weight: 500;
-    color: #1B2A4A;
-    margin: 0 0 4px 0;
-  }
-  .page-sub {
-    font-size: 13px;
-    color: #4A5568;
-    margin: 0;
-  }
-
-  /* Metric cards */
+  /* Metric grid */
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 2px;
+    margin-bottom: 24px;
   }
   .metric-card {
-    background: #F4F6F9;
-    border-radius: 8px;
-    padding: 12px 14px;
+    background: var(--surface-low);
+    padding: 24px 20px;
+    border-left: 2px solid rgba(218,196,149,0.15);
   }
   .metric-label {
-    font-size: 11px;
-    color: #4A5568;
-    margin-bottom: 6px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 12px;
   }
   .metric-value {
-    font-size: 24px;
-    font-weight: 500;
-    color: #1B2A4A;
-    line-height: 1.1;
+    font-family: var(--font-serif);
+    font-size: 2.2rem;
+    font-weight: 300;
+    color: var(--ivory-bright);
+    line-height: 1;
   }
-  .metric-value-warn { color: #854F0B; }
+  .metric-value-warn { color: var(--status-progress); }
   .metric-sub {
-    font-size: 11px;
-    color: #4A5568;
-    margin-top: 4px;
+    font-size: 10px;
+    color: var(--slate);
+    margin-top: 8px;
+    letter-spacing: 0.04em;
   }
 
   /* Two-col layout */
   .two-col-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 20px;
+    gap: 2px;
   }
 
   /* Carrier bar rows */
   .carrier-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
-    border-bottom: 0.5px solid #E2E6ED;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(76,70,61,0.15);
+    transition: background 0.15s ease;
   }
   .carrier-row:last-child { border-bottom: none; }
+  .carrier-row:hover { background: var(--surface-mid); }
   .carrier-name {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
-    color: #1B2A4A;
-    width: 100px;
+    color: var(--ivory);
+    width: 90px;
     flex-shrink: 0;
+    letter-spacing: 0.03em;
   }
   .carrier-bar-wrap {
     flex: 1;
-    height: 6px;
-    background: #E2E6ED;
-    border-radius: 99px;
+    height: 2px;
+    background: rgba(76,70,61,0.3);
     overflow: hidden;
   }
   .carrier-bar {
     height: 100%;
-    background: #185FA5;
-    border-radius: 99px;
+    background: linear-gradient(90deg, var(--gold) 0%, var(--gold-dim) 100%);
+    transition: width 0.4s ease;
   }
   .carrier-count {
+    font-family: var(--font-serif);
     font-size: 13px;
-    font-weight: 500;
-    color: #1B2A4A;
+    color: var(--ivory);
     width: 32px;
     text-align: right;
     flex-shrink: 0;
   }
   .carrier-pct {
-    font-size: 12px;
-    color: #4A5568;
+    font-size: 10px;
+    color: var(--slate);
     width: 36px;
     text-align: right;
     flex-shrink: 0;
+    letter-spacing: 0.05em;
   }
 
-  /* Urgency row colors */
-  .row-red td    { background: #FCEBEB; }
-  .row-amber td  { background: #FAEEDA; }
-  .row-yellow td { background: #FFF2CC; }
-  .row-red:hover td    { background: #f8d7d7; }
-  .row-amber:hover td  { background: #f5e0c0; }
-  .row-yellow:hover td { background: #f5e8a0; }
-
-  .empty-state-text {
-    font-size: 13px;
-    color: #888888;
-    margin: 0;
-    text-align: center;
-    padding: 16px 0;
-  }
+  /* Urgency row tints — subtle, ink-consistent */
+  .row-urgency-red td    { background: rgba(255,180,171,0.05); }
+  .row-urgency-amber td  { background: rgba(201,168,76,0.05); }
+  .row-urgency-yellow td { background: rgba(201,168,76,0.03); }
+  .row-urgency-red:hover td    { background: rgba(255,180,171,0.09); }
+  .row-urgency-amber:hover td  { background: rgba(201,168,76,0.09); }
+  .row-urgency-yellow:hover td { background: rgba(201,168,76,0.06); }
 
   @media (max-width: 1023px) {
     .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

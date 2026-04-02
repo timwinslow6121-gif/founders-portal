@@ -3,274 +3,386 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Founders Portal — Sign In</title>
+  <title>Founders Insurance — Private Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      font-family: 'Inter', -apple-system, sans-serif;
-      background: #060e20;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      position: relative;
+    /* ── MASTER LUX TOKENS ── */
+    :root {
+      --ink:          #0A0A09;
+      --surface:      #131312;
+      --surface-low:  #1C1C1A;
+      --surface-mid:  #20201E;
+      --surface-high: #2A2A29;
+      --surface-top:  #353533;
+      --gold:         #DAC495;
+      --gold-dim:     #A08E71;
+      --gold-muted:   #9C8B6E;
+      --ivory:        #E5E2DF;
+      --ivory-bright: #F6F4EF;
+      --slate:        #6B665C;
+      --outline:      #989084;
+      --outline-var:  #4C463D;
+      --error:        #FFB4AB;
     }
 
-    /* Atmospheric depth layers */
+    html, body {
+      height: 100%;
+      background: var(--ink);
+      color: var(--ivory);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtle radial warmth — felt not seen */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(164,201,255,0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 80% at 80% 30%, rgba(230,195,100,0.04) 0%, transparent 50%);
+        radial-gradient(ellipse 70% 50% at 10% 50%, rgba(218,196,149,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 70% at 90% 80%, rgba(218,196,149,0.03) 0%, transparent 50%);
       pointer-events: none;
     }
 
-    /* Subtle grid texture */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(164,201,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(164,201,255,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none;
+    /* ── LAYOUT ── */
+    .split {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    .login-wrap {
+    /* Left panel — branding hero */
+    .panel-left {
+      display: none;
       position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 420px;
-      padding: 24px;
+      width: 50%;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 56px 64px;
+      background: var(--surface);
+    }
+    @media (min-width: 1024px) {
+      .panel-left { display: flex; }
     }
 
-    .card {
-      background: rgba(45, 52, 73, 0.6);
-      backdrop-filter: blur(40px);
-      -webkit-backdrop-filter: blur(40px);
-      border-radius: 24px;
-      padding: 48px 40px 40px;
-      text-align: center;
-      outline: 1px solid rgba(164,201,255,0.12);
+    /* Mesh texture overlay */
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(at 0% 0%, rgba(218,196,149,0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(160,142,113,0.05) 0px, transparent 50%);
+      pointer-events: none;
     }
 
-    /* Fingerprint ambient icon */
-    .fingerprint-wrap {
+    .panel-left-content { position: relative; z-index: 1; }
+
+    .brand-crest {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .crest-box {
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(218,196,149,0.4);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 28px;
+    }
+    .crest-box svg { width: 16px; height: 16px; }
+    .brand-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--gold);
     }
 
-    .fingerprint-icon {
-      width: 48px;
-      height: 48px;
-      opacity: 0.18;
+    .hero-headline {
+      font-family: 'Noto Serif', serif;
+      font-size: clamp(3.5rem, 5vw, 5rem);
+      font-weight: 300;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: var(--ivory-bright);
+    }
+    .hero-headline em {
+      font-style: italic;
+      background: linear-gradient(135deg, #DAC495 0%, #A08E71 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    /* "FOUNDERS PORTAL" gold label */
-    .portal-label {
-      font-size: 0.7rem;
-      font-weight: 600;
+    .hero-rule {
+      width: 64px;
+      height: 1px;
+      background: var(--gold-dim);
+      margin-top: 40px;
+      opacity: 0.5;
+    }
+
+    .hero-footer {
+      font-size: 9px;
+      font-weight: 400;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: #e6c364;
-      margin-bottom: 12px;
+      color: var(--slate);
+      line-height: 2;
+      max-width: 280px;
     }
 
-    h1 {
-      font-size: 1.75rem;
+    /* Right panel — form */
+    .panel-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 48px 32px;
+      background: var(--surface);
+      position: relative;
+      overflow: hidden;
+    }
+    @media (min-width: 1024px) {
+      .panel-right { background: var(--ink); }
+    }
+
+    /* Large ghost letters behind form */
+    .panel-right::before {
+      content: 'FI';
+      position: absolute;
+      bottom: -20px;
+      right: -10px;
+      font-family: 'Noto Serif', serif;
+      font-size: 180px;
       font-weight: 700;
-      letter-spacing: 0.1em;
-      color: #e2e8f0;
+      color: rgba(218,196,149,0.04);
+      pointer-events: none;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .form-wrap {
+      width: 100%;
+      max-width: 400px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Mobile logo */
+    .mobile-logo {
+      display: block;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    @media (min-width: 1024px) {
+      .mobile-logo { display: none; }
+    }
+    .mobile-logo-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .mobile-logo-title {
+      font-family: 'Noto Serif', serif;
+      font-size: 1.75rem;
+      font-weight: 300;
+      color: var(--ivory-bright);
+    }
+
+    /* Form header */
+    .form-header {
+      margin-bottom: 48px;
+    }
+    .form-eyebrow {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold);
       margin-bottom: 12px;
-      line-height: 1.2;
     }
-
-    .subtitle {
-      font-size: 0.8125rem;
-      color: #94a3b8;
+    .form-subtext {
+      font-size: 13px;
+      color: var(--outline);
       line-height: 1.6;
-      margin-bottom: 36px;
     }
 
-    /* Error state */
-    .error {
-      background: rgba(127,29,29,0.4);
-      color: #fca5a5;
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-size: 0.8125rem;
-      margin-bottom: 20px;
-      outline: 1px solid rgba(252,165,165,0.2);
+    /* Error */
+    .error-msg {
+      background: rgba(255,180,171,0.08);
+      border-left: 2px solid rgba(255,180,171,0.4);
+      color: var(--error);
+      padding: 12px 16px;
+      font-size: 12px;
+      margin-bottom: 32px;
+      letter-spacing: 0.02em;
     }
 
-    /* Google sign-in button */
+    /* Google button — stays white per Google brand guidelines */
     .google-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
-      padding: 13px 20px;
-      background: #ffffff;
+      padding: 16px 24px;
+      background: #fff;
       border: none;
-      border-radius: 10px;
+      color: #1F2937;
       font-family: 'Inter', sans-serif;
-      font-size: 0.875rem;
+      font-size: 13px;
       font-weight: 500;
-      color: #1f2937;
+      letter-spacing: 0.02em;
       cursor: pointer;
       text-decoration: none;
-      transition: background 0.15s, transform 0.1s;
+      transition: background 0.2s ease, opacity 0.2s ease;
     }
+    .google-btn:hover { background: #F1F5F9; }
+    .google-btn:active { opacity: 0.85; }
+    .google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 
-    .google-btn:hover {
-      background: #f1f5f9;
-      transform: translateY(-1px);
-    }
-
-    .google-btn:active {
-      transform: translateY(0);
-    }
-
-    .google-icon {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    /* Encryption subline */
-    .encrypt-line {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      margin-top: 18px;
-      font-size: 0.6875rem;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: #4ade80;
-      opacity: 0.7;
-    }
-
-    .encrypt-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: #4ade80;
-      flex-shrink: 0;
-    }
-
-    /* Domain restriction note */
-    .domain-note {
-      margin-top: 10px;
-      font-size: 0.6875rem;
-      color: #475569;
-      letter-spacing: 0.04em;
-    }
-
-    /* Footer status bar */
-    .vault-footer {
-      margin-top: 28px;
+    /* Below-button meta */
+    .form-meta {
+      margin-top: 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-
-    .vault-status {
+    .meta-secure {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 0.6rem;
-      font-weight: 600;
-      letter-spacing: 0.15em;
+      gap: 7px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #4ade80;
+      color: #8A9A5B;
     }
-
-    .status-pulse {
-      width: 6px;
-      height: 6px;
+    .secure-dot {
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
-      background: #4ade80;
+      background: #8A9A5B;
       animation: pulse 2.4s ease-in-out infinite;
     }
-
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
-
-    .vault-copy {
-      font-size: 0.6rem;
-      color: #334155;
+    .meta-domain {
+      font-size: 10px;
+      color: var(--slate);
       letter-spacing: 0.05em;
+    }
+
+    /* Bottom rule */
+    .form-footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(76,70,61,0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-copy {
+      font-size: 9px;
+      color: rgba(107,102,92,0.5);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .footer-year {
+      font-size: 9px;
+      color: rgba(107,102,92,0.4);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
-  <div class="login-wrap">
-    <div class="card">
+  <div class="split">
 
-      <!-- Fingerprint ambient decoration -->
-      <div class="fingerprint-wrap">
-        <svg class="fingerprint-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M32 4C16.536 4 4 16.536 4 32c0 5.26 1.48 10.18 4.06 14.36" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M32 12c-11.046 0-20 8.954-20 20 0 3.6.952 6.98 2.62 9.9" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M32 20c-6.627 0-12 5.373-12 12 0 2.16.57 4.19 1.57 5.94" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M32 28a4 4 0 0 0-4 4c0 6 4 12 4 12s4-6 4-12a4 4 0 0 0-4-4z" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M44 22.5C41.2 18.6 36.9 16 32 16" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M52 32c0-3.94-1.04-7.64-2.86-10.84" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M60 32c0-15.464-12.536-28-28-28" stroke="#a4c9ff" stroke-width="2.5" stroke-linecap="round"/>
-        </svg>
-      </div>
-
-      <div class="portal-label">Founders Portal</div>
-
-      <h1>The Command Center<br>Awaits.</h1>
-
-      <p class="subtitle">Your book of business, commission reports,<br>and agency tools — secured.</p>
-
-      {% if error %}
-      <div class="error">{{ error }}</div>
-      {% endif %}
-
-      <a href="/auth/google" class="google-btn">
-        <svg class="google-icon" viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-        </svg>
-        Sign in with Google
-      </a>
-
-      <div class="encrypt-line">
-        <span class="encrypt-dot"></span>
-        End-to-end encrypted session
-      </div>
-
-      <div class="domain-note">@foundersinsuranceagency.com accounts only</div>
-
-      <div class="vault-footer">
-        <div class="vault-status">
-          <span class="status-pulse"></span>
-          Vault Core: Operational
+    <!-- LEFT: branding hero -->
+    <section class="panel-left">
+      <div class="panel-left-content brand-crest">
+        <div class="crest-box">
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 1L2 4v4c0 3.31 2.58 5.94 6 6.92C11.42 13.94 14 11.31 14 8V4L8 1z" stroke="#DAC495" stroke-width="1.2" stroke-linejoin="round"/>
+          </svg>
         </div>
-        <div class="vault-copy">© 2026 Founders Insurance Agency</div>
+        <span class="brand-label">Founders Insurance</span>
       </div>
 
-    </div>
+      <div class="panel-left-content">
+        <h1 class="hero-headline">
+          The Private<br>
+          <em>Portal</em>
+        </h1>
+        <div class="hero-rule"></div>
+      </div>
+
+      <div class="panel-left-content">
+        <p class="hero-footer">
+          Reserved for authorized members of Founders Insurance Agency. Access is monitored and restricted to @foundersinsuranceagency.com accounts.
+        </p>
+      </div>
+    </section>
+
+    <!-- RIGHT: form -->
+    <section class="panel-right">
+      <div class="form-wrap">
+
+        <!-- Mobile-only logo -->
+        <div class="mobile-logo">
+          <div class="mobile-logo-label">Founders Insurance</div>
+          <div class="mobile-logo-title">Private Portal</div>
+        </div>
+
+        <div class="form-header">
+          <div class="form-eyebrow">Authorized Access</div>
+          <p class="form-subtext">Sign in with your agency Google account to continue.</p>
+        </div>
+
+        {% if error %}
+        <div class="error-msg">{{ error }}</div>
+        {% endif %}
+
+        <a href="/auth/google" class="google-btn">
+          <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Sign in with Google
+        </a>
+
+        <div class="form-meta">
+          <div class="meta-secure">
+            <span class="secure-dot"></span>
+            Encrypted session
+          </div>
+          <div class="meta-domain">@foundersinsuranceagency.com only</div>
+        </div>
+
+        <div class="form-footer">
+          <span class="footer-copy">© 2026 Founders Insurance Agency</span>
+          <span class="footer-year">Est. 2024</span>
+        </div>
+      </div>
+    </section>
+
   </div>
 </body>
 </html>

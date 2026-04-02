@@ -4,152 +4,489 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Founders Portal{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; color: #4A5568; background: #F4F6F9; display: flex; min-height: 100vh; }
-    .sidebar { width: 200px; min-width: 200px; background: #FFFFFF; border-right: 0.5px solid #E2E6ED; display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; overflow-y: auto; }
-    .sidebar-logo { padding: 16px 16px 12px; border-bottom: 0.5px solid #E2E6ED; }
-    .sidebar-logo-name { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.3; }
-    .sidebar-logo-sub { font-size: 11px; color: #888888; margin-top: 2px; }
-    .sidebar-nav { flex: 1; padding: 8px 0; }
-    .nav-section-label { font-size: 10px; color: #888888; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 16px 4px; }
-    .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; font-size: 13px; color: #4A5568; text-decoration: none; border-radius: 8px; margin: 1px 4px; }
-    .nav-item:hover { background: #F4F6F9; color: #1B2A4A; }
-    .nav-item.active { background: #E6F1FB; color: #185FA5; font-weight: 500; }
-    .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .sidebar-footer { padding: 12px 16px; border-top: 0.5px solid #E2E6ED; display: flex; align-items: center; gap: 8px; }
-    .sidebar-avatar { width: 28px; height: 28px; border-radius: 50%; background: #B5D4F4; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #185FA5; flex-shrink: 0; }
-    .sidebar-user-name { font-size: 12px; font-weight: 500; color: #1B2A4A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sidebar-signout { font-size: 11px; color: #888888; text-decoration: none; display: block; margin-top: 1px; }
-    .sidebar-signout:hover { color: #A32D2D; }
-    .main { margin-left: 200px; flex: 1; padding: 24px; min-width: 0; }
-    .card { background: #FFFFFF; border: 0.5px solid #E2E6ED; border-radius: 12px; overflow: hidden; }
-    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 0.5px solid #E2E6ED; }
-    .card-title { font-size: 15px; font-weight: 500; color: #1B2A4A; }
-    .card-body { padding: 20px; }
-    .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; display: inline-block; }
-    .badge-red { background: #FCEBEB; color: #A32D2D; }
-    .badge-amber { background: #FAEEDA; color: #854F0B; }
-    .badge-yellow { background: #FFF2CC; color: #633806; }
-    .badge-green { background: #EAF3DE; color: #3B6D11; }
-    .badge-blue { background: #E6F1FB; color: #185FA5; }
-    .badge-gray { background: #F4F6F9; color: #4A5568; }
-    .badge-navy { background: #1B2A4A; color: #FFFFFF; }
-    .btn-primary { background: #185FA5; color: #FFFFFF; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-block; }
-    .btn-primary:hover { background: #14508F; }
-    .btn-secondary { background: #FFFFFF; color: #1B2A4A; border: 0.5px solid #E2E6ED; border-radius: 8px; padding: 8px 16px; font-size: 13px; cursor: pointer; text-decoration: none; display: inline-block; }
-    .alert { padding: 10px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; }
-    .alert-success { background: #EAF3DE; color: #2D6A4F; }
-    .alert-error { background: #FCEBEB; color: #A32D2D; }
-    .alert-warning { background: #FAEEDA; color: #854F0B; }
-    .alert-info { background: #E6F1FB; color: #185FA5; }
-    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
-    .data-table th { font-size: 11px; font-weight: 500; color: #4A5568; text-align: left; padding: 8px 16px; border-bottom: 0.5px solid #E2E6ED; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
-    .data-table td { padding: 9px 16px; border-bottom: 0.5px solid #E2E6ED; color: #1B2A4A; vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ════════════════════════════════════════
+       MASTER LUX DESIGN TOKENS
+       The Private Gallery — Unified System
+       ════════════════════════════════════════ */
+    :root {
+      /* Surfaces — tonal depth stack */
+      --ink:          #0A0A09;   /* deepest canvas */
+      --surface:      #131312;   /* primary work surface */
+      --surface-low:  #1C1C1A;   /* sidebar, secondary zones */
+      --surface-mid:  #20201E;   /* hover states, subtle lift */
+      --surface-high: #2A2A29;   /* cards, raised elements */
+      --surface-top:  #353533;   /* highest interactive tier */
+
+      /* Gold — used sparingly for intent + identity */
+      --gold:         #DAC495;   /* primary accent */
+      --gold-dim:     #A08E71;   /* gradient end / secondary */
+      --gold-muted:   #9C8B6E;   /* metadata, inactive labels */
+
+      /* Text */
+      --ivory:        #E5E2DF;   /* primary readable text */
+      --ivory-bright: #F6F4EF;   /* high-contrast headlines */
+      --slate:        #6B665C;   /* de-emphasized / metadata */
+      --on-gold:      #3C2F0C;   /* text on gold backgrounds */
+
+      /* Structural */
+      --outline:      #989084;   /* subtle boundaries */
+      --outline-var:  #4C463D;   /* ghost borders at 15% opacity */
+
+      /* Status — muted jewel tones */
+      --status-open:       #989084;
+      --status-progress:   #C9A84C;
+      --status-waiting:    #9D8DF1;
+      --status-resolved:   #8A9A5B;
+      --status-error:      #FFB4AB;
+      --status-error-bg:   rgba(255,180,171,0.08);
+      --status-error-text: #FFB4AB;
+
+      /* Typography */
+      --font-serif: 'Noto Serif', Georgia, serif;
+      --font-sans:  'Inter', -apple-system, sans-serif;
+
+      /* Elevation shadow — ambient, not structural */
+      --shadow-float: 0px 24px 48px rgba(0,0,0,0.5);
+    }
+
+    /* ── RESET ── */
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--ivory);
+      background: var(--ink);
+      display: flex;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ════════════════════════════════════════
+       SIDEBAR
+       ════════════════════════════════════════ */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--surface-low);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+    /* No scrollbar — the gallery doesn't show its seams */
+    .sidebar::-webkit-scrollbar { display: none; }
+    .sidebar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Logo zone */
+    .sidebar-logo {
+      padding: 28px 20px 24px;
+    }
+    .sidebar-logo-name {
+      font-family: var(--font-serif);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--gold);
+      letter-spacing: 0.02em;
+      line-height: 1.3;
+    }
+    .sidebar-logo-sub {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--gold-muted);
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+
+    /* Nav sections */
+    .sidebar-nav { flex: 1; padding: 8px 0 16px; }
+
+    .nav-section-label {
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--slate);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      padding: 20px 20px 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold-muted);
+      text-decoration: none;
+      transition: color 0.2s ease, background 0.2s ease;
+      opacity: 0.7;
+    }
+    .nav-item:hover {
+      background: var(--surface-mid);
+      color: var(--ivory);
+      opacity: 1;
+    }
+    .nav-item.active {
+      background: var(--surface-mid);
+      color: var(--gold);
+      font-weight: 500;
+      opacity: 1;
+    }
+
+    /* Nav dot replaced with thin left rule on active */
+    .nav-dot {
+      width: 1px;
+      height: 12px;
+      flex-shrink: 0;
+      background: currentColor;
+      opacity: 0.4;
+    }
+    .nav-item.active .nav-dot,
+    .nav-item:hover .nav-dot { opacity: 1; }
+
+    /* Badge */
+    .nav-badge {
+      margin-left: auto;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      padding: 2px 7px;
+      background: rgba(218,196,149,0.15);
+      color: var(--gold);
+    }
+
+    /* User footer */
+    .sidebar-footer {
+      padding: 20px;
+      border-top: 1px solid rgba(76,70,61,0.15);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-avatar {
+      width: 30px;
+      height: 30px;
+      background: var(--surface-high);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 12px;
+      font-style: italic;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+    .sidebar-user-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ivory);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sidebar-signout {
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--slate);
+      text-decoration: none;
+      display: block;
+      margin-top: 2px;
+      transition: color 0.2s ease;
+    }
+    .sidebar-signout:hover { color: var(--status-error-text); }
+
+    /* ════════════════════════════════════════
+       MAIN CONTENT
+       ════════════════════════════════════════ */
+    .main {
+      margin-left: 220px;
+      flex: 1;
+      padding: 40px 48px;
+      min-width: 0;
+      background: var(--ink);
+    }
+
+    /* ════════════════════════════════════════
+       CARDS
+       No borders — tonal depth only
+       ════════════════════════════════════════ */
+    .card {
+      background: var(--surface-low);
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--surface-high);
+    }
+    .card-title {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--ivory-bright);
+      letter-spacing: 0.01em;
+    }
+    .card-body { padding: 24px 20px; }
+
+    /* ════════════════════════════════════════
+       BADGES — muted jewel tones
+       ════════════════════════════════════════ */
+    .badge {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      display: inline-block;
+    }
+    /* Map old color names → new muted jewel tokens */
+    .badge-red     { background: rgba(255,180,171,0.1); color: var(--status-error-text); }
+    .badge-amber   { background: rgba(201,168,76,0.12); color: var(--status-progress); }
+    .badge-yellow  { background: rgba(201,168,76,0.12); color: var(--status-progress); }
+    .badge-green   { background: rgba(138,154,91,0.12); color: var(--status-resolved); }
+    .badge-blue    { background: rgba(218,196,149,0.1); color: var(--gold); }
+    .badge-gray    { background: rgba(152,144,132,0.12); color: var(--outline); }
+    .badge-navy    { background: var(--surface-top); color: var(--ivory); }
+    .badge-violet  { background: rgba(157,141,241,0.12); color: var(--status-waiting); }
+
+    /* ════════════════════════════════════════
+       BUTTONS
+       ════════════════════════════════════════ */
+    .btn-primary {
+      background: var(--gold);
+      color: var(--on-gold);
+      border: none;
+      padding: 10px 20px;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: opacity 0.2s ease;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--ivory);
+      border: 1px solid rgba(76,70,61,0.4);
+      padding: 10px 20px;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .btn-secondary:hover {
+      border-color: rgba(218,196,149,0.4);
+      color: var(--gold);
+    }
+
+    /* ════════════════════════════════════════
+       ALERTS
+       ════════════════════════════════════════ */
+    .alert {
+      padding: 12px 16px;
+      font-size: 12px;
+      margin-bottom: 20px;
+      border-left: 2px solid;
+      letter-spacing: 0.02em;
+    }
+    .alert-success { background: rgba(138,154,91,0.08); color: var(--status-resolved); border-color: rgba(138,154,91,0.4); }
+    .alert-error   { background: var(--status-error-bg); color: var(--status-error-text); border-color: rgba(255,180,171,0.4); }
+    .alert-warning { background: rgba(201,168,76,0.08); color: var(--status-progress); border-color: rgba(201,168,76,0.4); }
+    .alert-info    { background: rgba(218,196,149,0.06); color: var(--gold); border-color: rgba(218,196,149,0.3); }
+
+    /* ════════════════════════════════════════
+       DATA TABLE
+       No dividers — tonal rows only
+       ════════════════════════════════════════ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      table-layout: fixed;
+    }
+    .data-table th {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--slate);
+      text-align: left;
+      padding: 12px 20px;
+      background: var(--surface-high);
+    }
+    .data-table td {
+      padding: 12px 20px;
+      color: var(--ivory);
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid rgba(76,70,61,0.15);
+    }
     .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: #F4F6F9; }
-    .mono { font-family: 'Courier New', monospace; font-size: 11px; }
-    .fw-medium { font-weight: 500; }
-    .text-muted { color: #888888; }
-    .empty-cell { text-align: center; color: #888888; font-size: 13px; padding: 32px 16px !important; }
+    .data-table tr:hover td { background: var(--surface-mid); }
+
+    /* ════════════════════════════════════════
+       UTILITY
+       ════════════════════════════════════════ */
+    .mono        { font-family: 'Courier New', monospace; font-size: 11px; color: var(--gold-muted); }
+    .fw-medium   { font-weight: 500; }
+    .text-muted  { color: var(--slate); }
+    .empty-cell  { text-align: center; color: var(--slate); font-size: 12px; padding: 40px 20px !important; letter-spacing: 0.05em; }
+
+    /* Page header pattern used across templates */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+    .page-title {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 300;
+      color: var(--ivory-bright);
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+      margin: 0 0 6px;
+    }
+    .page-sub {
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--slate);
+      margin: 0;
+    }
+
     {% block styles %}{% endblock %}
   </style>
 </head>
 <body>
   <nav class="sidebar">
     <div class="sidebar-logo">
-      <img src="https://foundersinsuranceagency.com/wp-content/uploads/2025/06/FoundersIns_Logo_Color_OnLight-scaled.png"
-           alt="Founders Insurance"
-           style="width:100%;max-width:160px;height:auto;display:block;margin:0 auto 6px;">
-      <div class="sidebar-logo-sub" style="text-align:center;">Agent Portal</div>
+      <div class="sidebar-logo-name">Founders Insurance</div>
+      <div class="sidebar-logo-sub">Agent Portal</div>
     </div>
+
     <div class="sidebar-nav">
       {% if current_user.is_admin %}
-      {# ── AJ ADMIN SIDEBAR ── #}
+      {# ── ADMIN SIDEBAR ── #}
       <div class="nav-section-label">Agency</div>
       <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Overview
+        <span class="nav-dot"></span>Overview
       </a>
       <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Agent settings
+        <span class="nav-dot"></span>Agent Settings
       </a>
       <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Upload carrier files
+        <span class="nav-dot"></span>Upload Carrier Files
       </a>
       <div class="nav-section-label">Commissions</div>
       <a href="{{ url_for('commission.commission_admin') }}"
          class="nav-item {% if 'commissions' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#639922;"></span>Commission audit
+        <span class="nav-dot"></span>Commission Audit
       </a>
       <div class="nav-section-label">Tools</div>
       <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
-        <span class="nav-dot" style="background:#7F77DD;"></span>Birthday labels
+        <span class="nav-dot"></span>Birthday Labels
       </a>
       <a href="/admin/pharmacies" class="nav-item {% if '/admin/pharmacies' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Pharmacies
+        <span class="nav-dot"></span>Pharmacies
       </a>
       <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#C9A84C;"></span>SMS Templates
+        <span class="nav-dot"></span>SMS Templates
       </a>
       <div class="nav-section-label">Alerts</div>
       <a href="{{ url_for('comms.resolution_queue') }}"
          class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Unmatched Calls
+        <span class="nav-dot"></span>Unmatched Calls
         {% if unmatched_call_count %}
-        <span class="badge" style="background:#C9A84C;color:#1B2A4A;margin-left:auto;">{{ unmatched_call_count }}</span>
+        <span class="nav-badge">{{ unmatched_call_count }}</span>
         {% endif %}
       </a>
+
       {% else %}
       {# ── AGENT SIDEBAR ── #}
-      <div class="nav-section-label">My book</div>
+      <div class="nav-section-label">My Book</div>
       <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
-        <span class="nav-dot" style="background:#378ADD;"></span>Dashboard
+        <span class="nav-dot"></span>Dashboard
       </a>
       <a href="/customers" class="nav-item {% if '/customers' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#378ADD;"></span>Customers
+        <span class="nav-dot"></span>Customers
       </a>
       <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
-        <span class="nav-dot" style="background:#378ADD;"></span>Upcoming terms
+        <span class="nav-dot"></span>Upcoming Terms
       </a>
       <div class="nav-section-label">Commissions</div>
       <a href="{{ url_for('commission.commission_index') }}"
          class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
-        <span class="nav-dot" style="background:#639922;"></span>Commission audit
+        <span class="nav-dot"></span>Commission Audit
       </a>
       <a href="/forecast" class="nav-item {% if request.path == '/forecast' %}active{% endif %}">
-        <span class="nav-dot" style="background:#639922;"></span>Forecast
+        <span class="nav-dot"></span>Forecast
       </a>
       <div class="nav-section-label">Tools</div>
       <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
-        <span class="nav-dot" style="background:#7F77DD;"></span>Birthday labels
+        <span class="nav-dot"></span>Birthday Labels
       </a>
       <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
-        <span class="nav-dot" style="background:#378ADD;"></span>Upload BOB files
+        <span class="nav-dot"></span>Upload BOB Files
       </a>
       <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#C9A84C;"></span>SMS Templates
+        <span class="nav-dot"></span>SMS Templates
       </a>
       <div class="nav-section-label">Alerts</div>
       <a href="/unmatched" class="nav-item {% if request.path == '/unmatched' %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Unmatched policies
+        <span class="nav-dot"></span>Unmatched Policies
       </a>
       <a href="{{ url_for('comms.resolution_queue') }}"
          class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
-        <span class="nav-dot" style="background:#E24B4A;"></span>Unmatched Calls
+        <span class="nav-dot"></span>Unmatched Calls
         {% if unmatched_call_count %}
-        <span class="badge" style="background:#C9A84C;color:#1B2A4A;margin-left:auto;">{{ unmatched_call_count }}</span>
+        <span class="nav-badge">{{ unmatched_call_count }}</span>
         {% endif %}
       </a>
       {% endif %}
     </div>
+
     <div class="sidebar-footer">
       <div class="sidebar-avatar">{{ current_user.initials }}</div>
       <div style="min-width:0;">
         <div class="sidebar-user-name">{{ current_user.display_name }}</div>
-        <a href="/auth/logout" class="sidebar-signout">Sign out</a>
+        <a href="/auth/logout" class="sidebar-signout">Sign Out</a>
       </div>
     </div>
   </nav>
+
   <main class="main">
     {% block content %}{% endblock %}
   </main>

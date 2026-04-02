@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-communications-hub-03-PLAN.md
-last_updated: "2026-04-02T19:31:09.435Z"
+stopped_at: Completed 03-communications-hub-04-PLAN.md (awaiting human-verify checkpoint)
+last_updated: "2026-04-02T19:38:40.121Z"
 last_activity: 2026-03-20 — Roadmap created; Phases 1 & 2 validated as complete
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 12
-  completed_plans: 8
+  completed_plans: 10
   percent: 20
 ---
 
@@ -56,6 +56,8 @@ Progress: [██░░░░░░░░] 20% (phases 1–2 complete, 5 phases 
 | Phase 03-communications-hub P01 | 5 | 3 tasks | 10 files |
 | Phase 03-communications-hub P02 | 18 | 3 tasks | 5 files |
 | Phase 03-communications-hub P03 | 5 | 2 tasks | 3 files |
+| Phase 03-communications-hub P05 | 4 | 2 tasks | 9 files |
+| Phase 03-communications-hub P04 | 6 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -80,6 +82,10 @@ Recent decisions affecting current work:
 - [Phase 03-communications-hub]: verify_retell_webhook base64 step marked LOW confidence — comment directs maintainer to verify against Retell SDK source
 - [Phase 03-communications-hub]: Python mock patches name binding in importing module — patch app.comms.webhooks.verify_quo_webhook not app.comms.utils.verify_quo_webhook
 - [Phase 03-communications-hub]: CustomerNote has no agency_id — idempotency uses quo_call_id only; UnmatchedCall agency_id sourced from DEFAULT_AGENCY_ID config (User has no agency_id until Plan 07)
+- [Phase 03-communications-hub]: CustomerNote has no agency_id column — removed from send_sms_template() note creation; plan 07 sweep will add if needed
+- [Phase 03-communications-hub]: send_sms_template raises ValueError not HTTP error — keeps business logic testable without Flask request context
+- [Phase 03-04]: verify_calendly_webhook imported at module level in webhooks.py so tests patch app.comms.webhooks.verify_calendly_webhook (consistent with Quo pattern)
+- [Phase 03-04]: _agency_id() helper defers User.agency_id FK scoping to Plan 07 with DEFAULT_AGENCY_ID fallback
 
 ### Pending Todos
 
@@ -95,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T19:31:09.432Z
-Stopped at: Completed 03-communications-hub-03-PLAN.md
+Last session: 2026-04-02T19:38:40.119Z
+Stopped at: Completed 03-communications-hub-04-PLAN.md (awaiting human-verify checkpoint)
 Resume file: None

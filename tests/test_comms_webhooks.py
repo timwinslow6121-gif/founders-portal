@@ -351,12 +351,59 @@ def test_quo_sms_missing_text_creates_note_anyway(
 
 
 # ---------------------------------------------------------------------------
-# Calendly stubs (Plan 04) — kept for continuity
+# Calendly tests (Plan 04)
 # ---------------------------------------------------------------------------
 
+CALENDLY_BOOKING_PAYLOAD = {
+    "event": "invitee.created",
+    "payload": {
+        "invitee": {
+            "uri": "https://api.calendly.com/xxx/invitees/inv-001",
+            "email": "john.doe@example.com",
+            "name": "John Doe",
+            "questions_and_answers": [{"question": "Phone number", "answer": "770-555-1234"}]
+        },
+        "scheduled_event": {
+            "start_time": "2026-04-01T14:00:00.000Z",
+            "end_time": "2026-04-01T15:00:00.000Z",
+            "event_memberships": [{"user_email": "agent@test.com"}]
+        }
+    }
+}
+
+
 def test_calendly_booking_creates_note(client, db_session, customer, agent_user):
-    pytest.skip("requires comms blueprint — implement in Plan 04")
+    """
+    POST /comms/webhook/calendly with invitee.created for a known customer
+    (matched by phone from questions_and_answers) must create
+    CustomerNote(note_type='appointment_scheduled').
+    """
+    with patch('app.comms.webhooks.verify_calendly_webhook', return_value=None):
+        resp = client.post('/comms/webhook/calendly',
+                           data=json.dumps(CALENDLY_BOOKING_PAYLOAD),
+                           content_type='application/json')
+    assert resp.status_code == 200
+    from app.models import CustomerNote
+    note = CustomerNote.query.filter_by(calendly_event_id="inv-001").first()
+    assert note is not None
+    assert note.note_type == "appointment_scheduled"
 
 
-def test_calendly_unmatched_booking(client, db_session):
-    pytest.skip("requires comms blueprint — implement in Plan 04")
+def test_calendly_unmatched_creates_unmatched_call(client, db_session, agent_user):
+    """
+    POST /comms/webhook/calendly with invitee.created for an unknown invitee
+    (no phone in Q&A, unknown email) must create an UnmatchedCall with
+    provider='calendly'.
+    """
+    import copy
+    payload = copy.deepcopy(CALENDLY_BOOKING_PAYLOAD)
+    payload["payload"]["invitee"]["questions_and_answers"] = []
+    payload["payload"]["invitee"]["email"] = "unknown@example.com"
+    with patch('app.comms.webhooks.verify_calendly_webhook', return_value=None):
+        resp = client.post('/comms/webhook/calendly',
+                           data=json.dumps(payload),
+                           content_type='application/json')
+    assert resp.status_code == 200
+    from app.models import UnmatchedCall
+    uc = UnmatchedCall.query.filter_by(provider="calendly").first()
+    assert uc is not None

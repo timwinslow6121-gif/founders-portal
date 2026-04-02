@@ -36,6 +36,9 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     last_login = db.Column(db.DateTime)
+    quo_user_id = db.Column(db.String(64))
+    # Quo userId (pattern "US...") — maps webhook data.object.userId to portal User
+    # Set by admin in agent settings; NULL for unmapped agents
 
     policies = db.relationship("Policy", back_populates="agent", lazy="dynamic")
 
@@ -304,6 +307,9 @@ class Customer(db.Model):
     manually_edited   = db.Column(db.Boolean, default=False, nullable=False)
     last_carrier_sync = db.Column(db.DateTime)
 
+    # SMS consent — NULL = no consent; datetime = consent given at this timestamp
+    sms_consent_at    = db.Column(db.DateTime)
+
     # Audit
     created_by_id     = db.Column(db.Integer, db.ForeignKey("users.id"))
     created_by        = db.relationship("User", foreign_keys=[created_by_id])
@@ -364,6 +370,7 @@ class CustomerNote(db.Model):
     note_text            = db.Column(db.Text)
     note_type            = db.Column(db.String(32), default="general", index=True)
     # call / meeting / email / sms / general / missed_call / appointment_scheduled / meeting_summary
+    # voicemail / healthsherpa_enrollment / task
     contact_method       = db.Column(db.String(32))   # phone / sms / email / in_person / video
     duration_minutes     = db.Column(db.Integer)
     source_url           = db.Column(db.String(512))  # Fireflies transcript, call recording URL
@@ -371,7 +378,14 @@ class CustomerNote(db.Model):
     # Integration keys — set when note is auto-created by a webhook
     openphone_call_id    = db.Column(db.String(128))
     calendly_event_id    = db.Column(db.String(128))
-    fireflies_meeting_id = db.Column(db.String(128))
+    fireflies_meeting_id = db.Column(db.String(128))   # superseded by source_url — keep for backward compat
+
+    # Phase 3 integration keys — Quo (formerly OpenPhone) replaces Dialpad
+    quo_call_id          = db.Column(db.String(128))
+    twilio_msg_sid       = db.Column(db.String(128))
+    retell_call_id       = db.Column(db.String(128))
+    resolved             = db.Column(db.Boolean, default=False, nullable=False)
+    # resolved: used when note_type='task' — True = task is complete
 
     created_at           = db.Column(db.DateTime, server_default=db.func.now(), index=True)
 
@@ -447,3 +461,72 @@ class AgentCarrierContract(db.Model):
 
     def __repr__(self):
         return f"<AgentCarrierContract {self.agent_id} {self.carrier} active={self.is_active}>"
+
+
+class UnmatchedCall(db.Model):
+    """
+    Stores inbound calls/voicemails from phone numbers that could not be matched
+    to a Customer record. Agents can review and resolve by linking to a customer.
+
+    provider default is "quo" — Quo (formerly OpenPhone) is the primary VoIP provider.
+    direction values: inbound / outbound
+    """
+    __tablename__ = "unmatched_calls"
+
+    id               = db.Column(db.Integer, primary_key=True)
+    agency_id        = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agency           = db.relationship("Agency", foreign_keys=[agency_id])
+    agent_id         = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    agent            = db.relationship("User", foreign_keys=[agent_id])
+
+    provider         = db.Column(db.String(32), default="quo")   # quo / twilio / retell
+    call_sid         = db.Column(db.String(128))                 # provider's call/message ID
+    from_number      = db.Column(db.String(32))                  # E.164, e.g. +17705551234
+    to_number        = db.Column(db.String(32))                  # E.164, agency number called
+    direction        = db.Column(db.String(16))                  # inbound / outbound
+    duration_seconds = db.Column(db.Integer)
+    occurred_at      = db.Column(db.DateTime, nullable=False)
+
+    # Resolution tracking — agent links this record to a Customer and optionally a Note
+    resolved         = db.Column(db.Boolean, default=False, nullable=False)
+    resolved_at      = db.Column(db.DateTime)
+    resolved_by_id   = db.Column(db.Integer, db.ForeignKey("users.id"))
+    resolved_by      = db.relationship("User", foreign_keys=[resolved_by_id])
+    resolved_note_id = db.Column(db.Integer, db.ForeignKey("customer_notes.id"))
+    resolved_note    = db.relationship("CustomerNote", foreign_keys=[resolved_note_id])
+
+    created_at       = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"<UnmatchedCall from={self.from_number} provider={self.provider} resolved={self.resolved}>"
+
+
+class SmsTemplate(db.Model):
+    """
+    Pre-approved SMS message templates for agent use in SC-5 SMS blast/send flows.
+
+    status workflow: pending → approved (admin review) or rejected
+    Agents may only use templates with status='approved'.
+    Admin creates or approves; created_by_id tracks authorship.
+    """
+    __tablename__ = "sms_templates"
+
+    id              = db.Column(db.Integer, primary_key=True)
+    agency_id       = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agency          = db.relationship("Agency", foreign_keys=[agency_id])
+
+    name            = db.Column(db.String(256), nullable=False)
+    body            = db.Column(db.Text, nullable=False)
+    status          = db.Column(db.String(32), default="pending")
+    # status: pending / approved / rejected
+
+    created_by_id   = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    created_by      = db.relationship("User", foreign_keys=[created_by_id])
+    reviewed_by_id  = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    reviewed_by     = db.relationship("User", foreign_keys=[reviewed_by_id])
+    reviewed_at     = db.Column(db.DateTime)
+
+    created_at      = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"<SmsTemplate {self.name!r} status={self.status}>"

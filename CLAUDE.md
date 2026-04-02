@@ -53,18 +53,25 @@ app.register_blueprint(customers_bp)
 
 **Multi-tenant requirement (Phase 2.5+):** Every table gets `agency_id` FK (non-nullable). Every query MUST be scoped: `Customer.query.filter_by(agency_id=current_user.agency_id, ...)`. Missing agency_id = data leak across tenants.
 
-## UX Design System
-- Navy `#1B2A4A`, Blue `#185FA5`, Gold `#C9A84C`
-- 200px sidebar, system font stack
-- CSS lives in `{% block styles %}` per template — no separate CSS files
-- Class names: `.card`, `.data-table`, `.btn-primary`, `.btn-secondary`, `.badge`, `.nav-item`
-- **Login page** uses its own dark theme (`#060e20` bg, glassmorphic card, Inter font, gold `#e6c364` label) — does not extend base.html
+## UX Design System — The Private Gallery (Lux Theme)
+- **Palette:** Ink `#0A0A09` bg, Surface `#131312`, Surface-Low `#1C1C1A`, Gold `#DAC495`, Ivory `#E5E2DF`
+- **No borders** — depth via tonal background shifts only. Ghost border fallback: `rgba(76,70,61,0.15)`
+- **No border-radius** — all elements 0px (sharp, architectural)
+- **Fonts:** Noto Serif (headlines/serif moments) + Inter (UI labels/body). Both loaded via Google Fonts in base.html.
+- **Typography pattern:** labels `9-10px, uppercase, letter-spacing: 0.15-0.2em`. Serif numbers for metrics.
+- **220px sidebar** (`var(--surface-low)`), uppercase nav items, thin 1px vertical rule dots
+- CSS lives in `{% block styles %}` per template — no separate CSS files. CSS vars defined in base.html `:root`.
+- Class names: `.card`, `.data-table`, `.btn-primary`, `.btn-secondary`, `.badge`, `.nav-item` — same names, Lux styling
+- Status badges use muted jewel tones: error=`#FFB4AB`, progress=`#C9A84C`, resolved=`#8A9A5B`, waiting=`#9D8DF1`
+- **Login page** extends its own split-screen layout (no base.html). Left: serif hero on `#131312`. Right: Google button on `#0A0A09`.
+- Design reference: `stitch_founders_portal_lux.zip` — The Private Gallery spec
 
 ## Build Status
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
-- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-05 complete: Phase 3 schema foundation + comms blueprint + Quo webhook handler + Calendly webhook + SMS template approval workflow (agent suggest, admin approve/reject, send_sms_template() with consent guard, customer profile SMS send modal). Plans 06-07 remaining.
+- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-05 deployed to VPS. Plans 06-07 remaining (Google Meet subscriber + HealthSherpa + agency_id scoping sweep).
+- **Lux Theme ✅** — login, base.html, dashboard rethemed to The Private Gallery design system (2026-04-02)
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
 - [x] Install PostgreSQL on VPS
@@ -76,6 +83,10 @@ app.register_blueprint(customers_bp)
 - [x] Add 2GB swap file to VPS
 - [x] Update Gunicorn: `--workers 2 --threads 4 --worker-class gthread`
 - [x] Remove SQLite from `requirements.txt`
+
+## VPS Deployment Gotcha
+- Always use `./venv/bin/pip install -r requirements.txt` on VPS — plain `pip install` installs to system Python, causing ModuleNotFoundError on startup
+- Deploy command: `cd /var/www/founders-portal && git pull && ./venv/bin/pip install -r requirements.txt && flask db upgrade && systemctl restart founders-portal`
 
 ## VPS-Only State (not in git)
 - `.env` on VPS has `SECRET_KEY`, `DATABASE_URL` (PostgreSQL), `ADMIN_EMAILS=admin@foundersinsuranceagency.com` — never commit

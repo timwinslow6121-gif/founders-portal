@@ -35,6 +35,8 @@
 .inline-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .inline-form input, .inline-form select { padding: 7px 10px; border: 0.5px solid #E2E6ED; border-radius: 6px; font-size: 12px; width: 100%; }
 .section-label { font-size: 10px; color: #888888; text-transform: uppercase; letter-spacing: 0.05em; }
+.form-control { width: 100%; padding: 8px 10px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; }
+.form-control:focus { outline: none; border-color: #185FA5; }
 {% endblock %}
 
 {% block content %}
@@ -166,6 +168,28 @@
           {% if customer.pharmacy %}{{ customer.pharmacy.name }}
           {% else %}—{% endif %}
         </span></div>
+        <div class="detail-row" style="align-items:center;">
+          <span class="detail-label">SMS Consent</span>
+          <span class="detail-value">
+            {% if customer.sms_consent_at %}
+              <span class="badge badge-green">Granted {{ customer.sms_consent_at.strftime('%b %d, %Y') }}</span>
+            {% else %}
+              <span class="badge badge-gray">Not granted</span>
+            {% endif %}
+          </span>
+        </div>
+        <!-- SMS consent toggle -->
+        <div style="padding:10px 0 4px;">
+          <form method="POST" action="{{ url_for('customers.customer_toggle_sms_consent', customer_id=customer.id) }}" style="display:flex;align-items:center;gap:10px;">
+            {% if customer.sms_consent_at %}
+              <button type="submit" class="btn-secondary" style="padding:5px 12px;font-size:12px;">Revoke SMS Consent</button>
+              <span style="font-size:11px;color:#888888;">Customer requested opt-out? Click to revoke.</span>
+            {% else %}
+              <button type="submit" class="btn-primary" style="padding:5px 12px;font-size:12px;">Enable SMS Consent</button>
+              <span style="font-size:11px;color:#888888;">Customer verbally consented to SMS communications.</span>
+            {% endif %}
+          </form>
+        </div>
       </div>
     </div>
 
@@ -302,6 +326,9 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- SMS send -->
+    {% include "comms/sms_send_modal.html" %}
 
   </div>
 </div>

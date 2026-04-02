@@ -5,10 +5,12 @@ Blueprint for customer master records — search, profile view, notes, contacts,
 Agents see only their own customers; admins see all.
 """
 
+from datetime import datetime
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, User, Pharmacy
+from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, User, Pharmacy, SmsTemplate
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -178,6 +180,18 @@ def customer_profile(customer_id):
     contacts = customer.contacts.all()
     aor_history = customer.aor_history.limit(20).all()
     agents = User.query.order_by(User.name).all()
+
+    # SMS: pass approved templates for the send modal
+    agency_id = getattr(current_user, 'agency_id', None)
+    if agency_id:
+        approved_templates = SmsTemplate.query.filter_by(
+            agency_id=agency_id, status="approved"
+        ).order_by(SmsTemplate.name).all()
+    else:
+        approved_templates = SmsTemplate.query.filter_by(
+            status="approved"
+        ).order_by(SmsTemplate.name).all()
+
     return render_template(
         "customer_profile.html",
         customer=customer,
@@ -187,6 +201,7 @@ def customer_profile(customer_id):
         aor_history=aor_history,
         agents=agents,
         pharmacies=Pharmacy.query.order_by(Pharmacy.name).all(),
+        approved_templates=approved_templates,
     )
 
 
@@ -257,6 +272,28 @@ def customer_link_pharmacy(customer_id):
     customer.manually_edited = True
     db.session.commit()
     flash("Pharmacy updated.", "success")
+    return redirect(url_for("customers.customer_profile", customer_id=customer_id))
+
+
+@customers_bp.route("/customers/<int:customer_id>/sms-consent", methods=["POST"])
+@login_required
+def customer_toggle_sms_consent(customer_id):
+    """
+    Toggle SMS consent on/off for a customer.
+    Granting consent records the current UTC timestamp.
+    Revoking consent sets sms_consent_at back to NULL.
+    """
+    customer = _customer_query().filter_by(id=customer_id).first_or_404()
+    if customer.sms_consent_at is None:
+        customer.sms_consent_at = datetime.utcnow()
+        customer.manually_edited = True
+        db.session.commit()
+        flash("SMS consent granted.", "success")
+    else:
+        customer.sms_consent_at = None
+        customer.manually_edited = True
+        db.session.commit()
+        flash("SMS consent revoked.", "success")
     return redirect(url_for("customers.customer_profile", customer_id=customer_id))
 
 

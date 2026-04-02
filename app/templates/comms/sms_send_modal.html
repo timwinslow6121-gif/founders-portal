@@ -1,0 +1,74 @@
+{#
+  app/templates/comms/sms_send_modal.html
+
+  Included in customer_profile.html.
+  Context variables required:
+    customer          — Customer model instance
+    approved_templates — list of SmsTemplate (status='approved')
+#}
+
+{% set has_consent = customer.sms_consent_at is not none %}
+{% set has_phone = customer.phone_primary %}
+
+<div class="card" style="margin-top:16px;">
+  <div class="card-header">
+    <span class="card-title">Send SMS</span>
+    {% if has_consent %}
+      <span class="badge badge-green" style="font-size:11px;">Consent on file</span>
+    {% else %}
+      <span class="badge badge-amber" style="font-size:11px;">No consent</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+
+    {% if not has_phone %}
+      <p style="font-size:13px;color:#888888;">No phone number on file — cannot send SMS.</p>
+
+    {% elif not has_consent %}
+      <p style="font-size:13px;color:#854F0B;background:#FAEEDA;border-radius:8px;padding:10px 12px;margin:0 0 12px;">
+        Customer has not consented to SMS. Toggle "SMS Consent" in the Edit section below and save before sending.
+      </p>
+      <button class="btn-secondary" disabled style="opacity:0.5;cursor:not-allowed;">Send SMS (consent required)</button>
+
+    {% elif approved_templates %}
+      <form method="POST" action="{{ url_for('comms.sms_send') }}">
+        <input type="hidden" name="customer_id" value="{{ customer.id }}">
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <select name="template_id" class="form-control" required
+                    style="width:100%;padding:7px 10px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:13px;color:#1B2A4A;"
+                    onchange="updatePreview(this)">
+              <option value="">— Select a template —</option>
+              {% for tmpl in approved_templates %}
+              <option value="{{ tmpl.id }}" data-body="{{ tmpl.body | e }}">{{ tmpl.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn-primary" style="padding:7px 16px;">Send SMS</button>
+        </div>
+        <div id="sms-preview" style="display:none;margin-top:10px;padding:10px 12px;background:#F4F6F9;border-radius:8px;font-size:12px;color:#4A5568;white-space:pre-wrap;"></div>
+      </form>
+
+    {% else %}
+      <p style="font-size:13px;color:#888888;">
+        No approved SMS templates available.
+        <a href="{{ url_for('comms.sms_templates_list') }}" style="color:#185FA5;">Suggest a template</a> for admin review.
+      </p>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+function updatePreview(sel) {
+  var preview = document.getElementById('sms-preview');
+  var selected = sel.options[sel.selectedIndex];
+  var body = selected.getAttribute('data-body') || '';
+  if (body) {
+    preview.textContent = body;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+</script>

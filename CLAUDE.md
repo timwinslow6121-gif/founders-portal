@@ -64,7 +64,7 @@ app.register_blueprint(customers_bp)
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
-- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-02 complete: Phase 3 schema foundation + comms blueprint (app/comms/ package, normalize_e164, find_customer_by_phone, webhook verifiers for Quo/Calendly/Retell, config slots, 7 pytest passing). Plans 03-07 remaining.
+- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-03 complete: Phase 3 schema foundation + comms blueprint + Quo webhook handler (POST /comms/webhook/quo, call/missed/voicemail/SMS handling, UnmatchedCall fallback, idempotency, 8 tests passing). Plans 04-07 remaining.
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
 - [x] Install PostgreSQL on VPS

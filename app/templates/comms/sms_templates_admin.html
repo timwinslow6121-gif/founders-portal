@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}SMS Templates — Founders Portal{% endblock %}
+
+{% block styles %}
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 500; color: #1B2A4A; }
+.template-body-preview { max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #4A5568; font-size: 12px; }
+.form-group { margin-bottom: 14px; }
+.form-label { display: block; font-size: 11px; font-weight: 500; color: #4A5568; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.form-control { width: 100%; padding: 8px 10px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; }
+.form-control:focus { outline: none; border-color: #185FA5; }
+textarea.form-control { resize: vertical; min-height: 80px; }
+.char-count { font-size: 11px; color: #888888; text-align: right; margin-top: 3px; }
+.char-count.over { color: #A32D2D; font-weight: 500; }
+.action-row { display: flex; gap: 8px; }
+{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<div class="page-header">
+  <div class="page-title">SMS Templates</div>
+</div>
+
+<!-- Templates table -->
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <span class="card-title">
+      {% if current_user.is_admin %}All Templates{% else %}My Templates{% endif %}
+    </span>
+    <span class="text-muted" style="font-size:12px;">{{ templates|length }} template{% if templates|length != 1 %}s{% endif %}</span>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:22%">Name</th>
+        <th style="width:40%">Body preview</th>
+        <th style="width:10%">Status</th>
+        <th style="width:14%">Created by</th>
+        <th style="width:14%">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tmpl in templates %}
+      <tr>
+        <td class="fw-medium">{{ tmpl.name }}</td>
+        <td><div class="template-body-preview" title="{{ tmpl.body }}">{{ tmpl.body }}</div></td>
+        <td>
+          {% if tmpl.status == 'approved' %}
+            <span class="badge badge-green">Approved</span>
+          {% elif tmpl.status == 'rejected' %}
+            <span class="badge badge-gray">Rejected</span>
+          {% else %}
+            <span class="badge badge-amber">Pending</span>
+          {% endif %}
+        </td>
+        <td class="text-muted">{{ tmpl.created_by.display_name if tmpl.created_by else '—' }}</td>
+        <td>
+          {% if current_user.is_admin and tmpl.status == 'pending' %}
+          <div class="action-row">
+            <form method="POST" action="{{ url_for('comms.sms_template_approve', template_id=tmpl.id) }}" style="display:inline;">
+              <button type="submit" class="btn-primary" style="padding:4px 10px;font-size:11px;">Approve</button>
+            </form>
+            <form method="POST" action="{{ url_for('comms.sms_template_reject', template_id=tmpl.id) }}" style="display:inline;">
+              <button type="submit" class="btn-secondary" style="padding:4px 10px;font-size:11px;">Reject</button>
+            </form>
+          </div>
+          {% elif tmpl.status == 'approved' %}
+            <span class="text-muted" style="font-size:11px;">
+              Approved {% if tmpl.reviewed_at %}{{ tmpl.reviewed_at.strftime('%b %d') }}{% endif %}
+            </span>
+          {% elif tmpl.status == 'rejected' %}
+            <span class="text-muted" style="font-size:11px;">
+              Rejected {% if tmpl.reviewed_at %}{{ tmpl.reviewed_at.strftime('%b %d') }}{% endif %}
+            </span>
+          {% else %}
+            <span class="text-muted" style="font-size:11px;">Awaiting review</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="empty-cell">No templates yet. Use the form below to suggest one.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Suggest new template form -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Suggest New Template</span>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('comms.sms_template_create') }}">
+      <div class="form-group">
+        <label class="form-label" for="tmpl-name">Template name</label>
+        <input id="tmpl-name" type="text" name="name" class="form-control"
+               placeholder="e.g. AEP Review Reminder" required maxlength="256">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="tmpl-body">Message body <span class="text-muted">(max 160 characters)</span></label>
+        <textarea id="tmpl-body" name="body" class="form-control"
+                  placeholder="Your message here. Always include opt-out: Reply STOP to opt out."
+                  maxlength="160" required
+                  oninput="updateCount(this)"></textarea>
+        <div class="char-count" id="char-count">0 / 160</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button type="submit" class="btn-primary">Submit for Review</button>
+        <span class="text-muted" style="font-size:12px;">Submitted templates require admin approval before agents can send them.</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function updateCount(el) {
+  var count = el.value.length;
+  var counter = document.getElementById('char-count');
+  counter.textContent = count + ' / 160';
+  if (count > 160) {
+    counter.classList.add('over');
+  } else {
+    counter.classList.remove('over');
+  }
+}
+</script>
+{% endblock %}

@@ -33,3 +33,4 @@ def health():
 
 
 from app.comms import webhooks  # noqa: E402,F401 — registers /comms/webhook/* routes
+from app.comms import templates_admin  # noqa: E402,F401 — registers /comms/sms-templates/* routes

@@ -1,0 +1,102 @@
+{#
+  Upcoming Appointments card partial.
+  Included via: {% include 'comms/partials/upcoming_appointments.html' %}
+
+  Context variables expected:
+    upcoming_appointments  — list of CustomerNote(note_type='appointment_scheduled')
+                             ordered by created_at desc, limit 5
+#}
+<div class="card" style="margin-top:20px;">
+  <div class="card-header">
+    <span class="card-title">Upcoming Appointments</span>
+    <span class="badge badge-blue">{{ upcoming_appointments|length if upcoming_appointments else 0 }}</span>
+  </div>
+  <div style="padding:0;">
+    {% if upcoming_appointments %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:200px;">Customer</th>
+          <th style="width:200px;">Time</th>
+          <th>Pre-call brief</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for note in upcoming_appointments %}
+        <tr>
+          <td>
+            <a href="{{ url_for('customers.customer_profile', customer_id=note.customer_id) }}"
+               style="color:#185FA5;font-weight:500;text-decoration:none;">
+              {{ note.customer.display_name if note.customer else 'Customer #' ~ note.customer_id }}
+            </a>
+          </td>
+          <td class="mono text-muted" style="font-size:11px;">
+            {% if note.note_text and 'Appointment:' in note.note_text %}
+              {{ note.note_text.replace('Appointment:', '').strip() }}
+            {% else %}
+              {{ note.created_at.strftime('%b %d %Y %I:%M %p') if note.created_at else '—' }}
+            {% endif %}
+          </td>
+          <td>
+            <details>
+              <summary style="cursor:pointer;color:#185FA5;font-size:12px;list-style:none;">
+                View pre-call brief
+              </summary>
+              <div style="padding:10px 0 4px;font-size:12px;color:#1B2A4A;">
+                {% if note.customer %}
+                  {# Active policies — pulled from policy relationship via customer #}
+                  {% set customer = note.customer %}
+
+                  {# Most recent note (excluding this appointment note) #}
+                  {% set last_notes = customer.notes.filter_by().limit(6).all() %}
+                  {% set last_note = None %}
+                  {% for n in last_notes %}
+                    {% if n.id != note.id and last_note is none %}
+                      {% set last_note = n %}
+                    {% endif %}
+                  {% endfor %}
+
+                  {# Open tasks #}
+                  {% set open_tasks = customer.notes.filter_by(note_type='task', resolved=False).all() %}
+
+                  <div style="margin-bottom:8px;">
+                    <span style="font-weight:500;color:#1B2A4A;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">
+                      Last Note
+                    </span><br>
+                    {% if last_note %}
+                      <span class="text-muted">{{ last_note.created_at.strftime('%b %d') if last_note.created_at else '' }}</span>
+                      {{ last_note.note_text[:120] ~ ('…' if last_note.note_text and last_note.note_text|length > 120 else '') if last_note.note_text else '(no text)' }}
+                    {% else %}
+                      <span class="text-muted">No previous notes.</span>
+                    {% endif %}
+                  </div>
+
+                  {% if open_tasks %}
+                  <div>
+                    <span style="font-weight:500;color:#A32D2D;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">
+                      Open Tasks ({{ open_tasks|length }})
+                    </span>
+                    {% for task in open_tasks %}
+                    <div style="padding:2px 0;color:#4A5568;">
+                      &bull; {{ task.note_text[:80] ~ ('…' if task.note_text and task.note_text|length > 80 else '') if task.note_text else '(no description)' }}
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <div class="text-muted">No open tasks.</div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">Customer record not found.</span>
+                {% endif %}
+              </div>
+            </details>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-cell">No upcoming appointments. Calendly bookings will appear here.</div>
+    {% endif %}
+  </div>
+</div>

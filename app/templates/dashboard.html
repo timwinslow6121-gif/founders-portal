@@ -161,6 +161,11 @@
   {% endif %}
 </div>
 
+{# Upcoming Appointments card — only shown for agents (not admin overview) #}
+{% if not viewing_agent %}
+{% include 'comms/partials/upcoming_appointments.html' %}
+{% endif %}
+
 {% endblock %}
 
 

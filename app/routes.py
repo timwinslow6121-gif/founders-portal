@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, abort, request,
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
-from app.models import Policy, ImportBatch, User
+from app.models import CustomerNote, Policy, ImportBatch, User
 
 main = Blueprint('main', __name__)
 
@@ -83,6 +83,16 @@ def _build_dashboard_context(agent_id, today):
                    .order_by(ImportBatch.upload_date.desc()).first())
     last_import = last_batch.upload_date.strftime('%b %d, %Y') if last_batch else None
 
+    # TODO: upcoming appointments query stores appointment time in note_text as
+    # "Appointment: {start_time}".  A proper datetime column would be better
+    # but is out of scope for Plan 04.  Plan 05+ may add an appointment_at column.
+    upcoming = (CustomerNote.query
+                .filter_by(agent_id=agent_id, note_type="appointment_scheduled")
+                .filter(CustomerNote.note_text.contains("Appointment:"))
+                .order_by(CustomerNote.created_at.desc())
+                .limit(5)
+                .all())
+
     return dict(
         policy_count=policy_count,
         carrier_count=carrier_count,
@@ -94,6 +104,7 @@ def _build_dashboard_context(agent_id, today):
         annual_commission=_fmt(total_your * 12),
         total_gross_monthly=_fmt(total_gross),
         last_import=last_import,
+        upcoming_appointments=upcoming,
     )
 
 

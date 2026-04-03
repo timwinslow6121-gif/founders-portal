@@ -78,8 +78,13 @@ app.register_blueprint(customers_bp)
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
-- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-05 deployed to VPS. Plans 06-07 remaining (Google Meet subscriber + HealthSherpa + agency_id scoping sweep).
-- **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
+- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-05 deployed to VPS. Plan 06 blocked on external provisioning (see below). Plan 07 (agency_id scoping sweep) is next to execute.
+- **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Dashboard rebuilt to original spec (activity-first: Unified Timeline, Tasks, Alerts, NC Enrollment Windows). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
+
+## Phase 3.06 External Blockers (as of 2026-04-02)
+- **HealthSherpa** — Agency admin account created, awaiting provisioning email from HealthSherpa. Use agency account (not individual agent). Once provisioned: register webhook URL + get HEALTHSHERPA_WEBHOOK_SECRET.
+- **Google Meet Pub/Sub** — Tim is Google Workspace admin. Needs: Meet recording + transcription enabled for domain, Pub/Sub topic + subscription created, GOOGLE_APPLICATION_CREDENTIALS service account on VPS, GOOGLE_MEET_PUBSUB_SUBSCRIPTION in .env.
+- Code for 3.06 can be written now; services just need to be registered once accounts are active.
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
 - [x] Install PostgreSQL on VPS
@@ -102,16 +107,15 @@ app.register_blueprint(customers_bp)
 - Admin login: `admin@foundersinsuranceagency.com` (shared AJ+Tim). Agent test login: `tim@foundersinsuranceagency.com`
 - `is_admin` is recalculated from `ADMIN_EMAILS` on every OAuth login — DB value gets overwritten
 
-## Phase 3 Pre-Code Checklist (after Phase 2.5 complete)
-- [ ] Quo (OpenPhone) account provisioned — webhook signing key from Quo dashboard → QUO_WEBHOOK_SIGNING_KEY in .env
-- [ ] Quo API key → QUO_API_KEY in .env (Authorization header, no Bearer prefix)
-- [ ] Quo webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/quo`
-- [ ] Retell AI trial — call own number, evaluate quality with Medicare senior persona
-- [ ] Twilio account SID + auth token in .env (required for Retell AI SIP trunking — Quo does not support SIP)
-- [ ] HealthSherpa agency account + captive join code distributed to LOA agents
-- [ ] Google Workspace admin: Meet recording + transcription enabled for domain
-- [ ] Calendly plan tier confirmed for API (Professional or Teams)
-- [ ] Secrets in .env: QUO_WEBHOOK_SIGNING_KEY, QUO_API_KEY, RETELL_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, CALENDLY_WEBHOOK_SECRET, HEALTHSHERPA_WEBHOOK_SECRET, GOOGLE_MEET_WEBHOOK_SECRET
+## Phase 3 Pre-Code Checklist
+- [x] Quo (OpenPhone) account provisioned — QUO_WEBHOOK_SIGNING_KEY + QUO_API_KEY in .env
+- [x] Quo webhook URL registered: `https://portal.foundersinsuranceagency.com/comms/webhook/quo`
+- [x] Retell AI configured with Twilio SIP trunking
+- [x] Twilio account SID + auth token in .env
+- [x] Calendly webhook active — CALENDLY_WEBHOOK_SECRET in .env
+- [ ] HealthSherpa agency account — created, awaiting provisioning. Register webhook once active. Add HEALTHSHERPA_WEBHOOK_SECRET to .env.
+- [ ] Google Meet: enable recording + transcription in Workspace admin, create Pub/Sub topic/subscription, add service account credentials to VPS, add GOOGLE_MEET_PUBSUB_SUBSCRIPTION to .env
+- [ ] Distribute HealthSherpa captive join code to LOA agents once provisioned
 
 ## Key Files
 - `FOUNDERS_PORTAL_CONTEXT.md` — full project context, agent roster, carrier details, roadmap

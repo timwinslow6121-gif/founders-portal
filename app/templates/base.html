@@ -625,22 +625,16 @@
            class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit
         </a>
-        <a href="/forecast" class="nav-item {% if request.path == '/forecast' %}active{% endif %}">
-          <span class="nav-dot"></span>Forecast
-        </a>
         <div class="nav-section-label">Tools</div>
         <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
           <span class="nav-dot"></span>Birthday Labels
-        </a>
-        <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
-          <span class="nav-dot"></span>Upload BOB Files
         </a>
         <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>SMS Templates
         </a>
         <div class="nav-section-label">Alerts</div>
-        <a href="/unmatched" class="nav-item {% if request.path == '/unmatched' %}active{% endif %}">
-          <span class="nav-dot"></span>Unmatched Policies
+        <a href="{{ url_for('comms.resolution_queue') }}" class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Unmatched Calls
         </a>
         <a href="{{ url_for('comms.resolution_queue') }}"
            class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">

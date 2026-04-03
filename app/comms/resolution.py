@@ -76,12 +76,14 @@ def link_unmatched_call(call_id):
         flash("Customer ID is required.", "error")
         return redirect(url_for("comms.resolution_queue"))
 
-    # NOTE: agency_id not on Customer yet (Plan 07) — omit agency_id filter for now
-    customer = Customer.query.filter_by(id=customer_id).first_or_404()
+    customer = Customer.query.filter_by(
+        id=customer_id, agency_id=_agency_id()
+    ).first_or_404()
 
     note_type = "appointment_scheduled" if uc.provider == "calendly" else "call"
 
     note = CustomerNote(
+        agency_id=_agency_id(),
         customer_id=customer.id,
         agent_id=current_user.id,
         note_type=note_type,

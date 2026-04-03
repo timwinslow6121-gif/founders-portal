@@ -3,74 +3,10 @@
 
 {% block styles %}
 <style>
-  /* ── ENROLLMENT PERIOD BANNER ── */
-  .period-banner {
-    background: var(--surface-low);
-    border: 1px solid var(--border);
-    padding: 20px 28px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    position: relative;
-    overflow: hidden;
-    animation: fadeSlideIn 0.5s ease both;
-  }
+  /* Override main padding for dashboard — needs tighter control */
+  .main { padding: 28px 32px 48px; }
 
-  .period-banner::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
-    opacity: 0.4;
-  }
-
-  .period-item {
-    flex: 1;
-    padding: 0 24px;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .period-item:first-child { padding-left: 0; }
-  .period-item:last-child { border-right: none; padding-right: 0; }
-
-  .period-label {
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--slate);
-    margin-bottom: 6px;
-  }
-
-  .period-value {
-    font-family: var(--font-serif);
-    font-weight: 400;
-    font-size: 28px;
-    color: var(--ivory-bright);
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .period-value.urgent { color: var(--status-error); }
-  .period-value.active { color: var(--status-resolved); }
-  .period-value .unit {
-    font-size: 14px;
-    font-weight: 300;
-    color: var(--slate);
-    margin-left: 4px;
-  }
-
-  .period-sub {
-    font-size: 11px;
-    color: var(--slate);
-    font-weight: 300;
-  }
-  .period-sub .highlight { color: var(--gold); }
-
-  /* ── ADMIN BANNER ── */
+  /* ── ADMIN VIEWING BANNER ── */
   .admin-banner {
     display: flex;
     align-items: center;
@@ -84,70 +20,143 @@
     text-transform: uppercase;
   }
 
-  /* ── METRIC CARDS ── */
+  /* ── ENROLLMENT PERIOD BANNER ── */
+  .period-banner {
+    background: var(--surface-low);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    position: relative;
+    overflow: hidden;
+    animation: fadeSlideIn 0.5s ease both;
+    min-height: 80px;
+  }
+
+  .period-banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    opacity: 0.4;
+  }
+
+  .period-item {
+    flex: 1;
+    padding: 0 20px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+  }
+  .period-item:first-child { padding-left: 0; }
+  .period-item:last-child  { border-right: none; padding-right: 0; }
+
+  .period-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 5px;
+    white-space: nowrap;
+  }
+
+  .period-value {
+    font-family: var(--font-serif);
+    font-weight: 300;
+    font-size: 26px;
+    color: var(--ivory-bright);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .period-value.urgent { color: var(--status-error); }
+  .period-value.good   { color: var(--status-resolved); }
+  .period-value .unit  {
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--slate);
+    margin-left: 3px;
+  }
+
+  .period-sub {
+    font-size: 10px;
+    color: var(--slate);
+    font-weight: 300;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .period-sub .hl { color: var(--gold); }
+
+  /* ── METRIC CARDS ROW ── */
   .metrics-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 2px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .metric-card {
     background: var(--surface-low);
-    padding: 18px 20px;
+    padding: 16px 18px;
     border-left: 2px solid transparent;
-    cursor: default;
     animation: fadeSlideIn 0.5s ease both;
-    transition: background 0.2s;
+    transition: background 0.15s;
+    cursor: default;
   }
   .metric-card:hover { background: var(--surface-mid); }
-  .metric-card:nth-child(1) { animation-delay: 0.1s; }
-  .metric-card:nth-child(2) { animation-delay: 0.15s; }
-  .metric-card:nth-child(3) { animation-delay: 0.2s; }
-  .metric-card:nth-child(4) { animation-delay: 0.25s; }
+  .metric-card:nth-child(1) { animation-delay: 0.08s; }
+  .metric-card:nth-child(2) { animation-delay: 0.12s; }
+  .metric-card:nth-child(3) { animation-delay: 0.16s; }
+  .metric-card:nth-child(4) { animation-delay: 0.20s; }
 
-  .metric-card.c-ember  { border-left-color: rgba(255,180,171,0.4); }
-  .metric-card.c-amber  { border-left-color: rgba(201,168,76,0.4); }
-  .metric-card.c-sage   { border-left-color: rgba(138,154,91,0.4); }
+  .metric-card.c-ember  { border-left-color: rgba(255,180,171,0.5); }
+  .metric-card.c-amber  { border-left-color: rgba(201,168,76,0.5); }
+  .metric-card.c-sage   { border-left-color: rgba(138,154,91,0.5); }
+  .metric-card.c-gold   { border-left-color: rgba(218,196,149,0.4); }
 
-  .metric-label {
+  .m-label {
     font-size: 9px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--slate);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 6px;
   }
 
-  .metric-dot {
+  .m-dot {
     width: 5px;
     height: 5px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .metric-number {
+  .m-number {
     font-family: var(--font-serif);
     font-weight: 300;
-    font-size: 2.2rem;
+    font-size: 2rem;
     line-height: 1;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
 
-  .metric-detail {
+  .m-detail {
     font-size: 10px;
     color: var(--slate);
     font-weight: 300;
-    letter-spacing: 0.03em;
   }
 
-  /* ── TWO-COLUMN LAYOUT ── */
-  .content-grid {
+  /* ── MAIN TWO-COLUMN GRID ── */
+  .dash-grid {
     display: grid;
-    grid-template-columns: 1fr 360px;
+    grid-template-columns: 1fr 340px;
     gap: 2px;
     align-items: start;
   }
@@ -155,21 +164,20 @@
   /* ── PANEL ── */
   .dash-panel {
     background: var(--surface-low);
-    border: none;
-    animation: fadeSlideIn 0.5s ease 0.3s both;
+    animation: fadeSlideIn 0.5s ease 0.25s both;
   }
-
   .dash-panel + .dash-panel { margin-top: 2px; }
 
-  .panel-header {
+  .panel-hd {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 13px 20px;
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
-  .panel-title {
+  .panel-hd-title {
     font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.2em;
@@ -177,75 +185,76 @@
     color: var(--gold);
   }
 
-  .panel-meta {
+  .panel-hd-meta {
     font-size: 10px;
     color: var(--slate);
-    letter-spacing: 0.03em;
   }
 
   .panel-filter {
     display: flex;
-    gap: 2px;
+    gap: 1px;
   }
 
-  .filter-btn {
-    padding: 4px 10px;
+  .flt-btn {
+    padding: 3px 10px;
     border: none;
     background: transparent;
     color: var(--slate);
     font-family: var(--font-sans);
     font-size: 10px;
-    font-weight: 400;
     cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.05em;
+    transition: color 0.15s;
+    letter-spacing: 0.04em;
   }
-  .filter-btn:hover { color: var(--ivory); }
-  .filter-btn.active { color: var(--gold); }
+  .flt-btn:hover { color: var(--ivory); }
+  .flt-btn.on { color: var(--gold); }
 
   .panel-body {
-    max-height: 520px;
     overflow-y: auto;
+    max-height: 500px;
     scrollbar-width: thin;
     scrollbar-color: var(--surface-high) transparent;
   }
   .panel-body::-webkit-scrollbar { width: 4px; }
   .panel-body::-webkit-scrollbar-thumb { background: var(--surface-high); }
 
-  /* ── TIMELINE ENTRIES ── */
+  /* ── TIMELINE ── */
   .tl-entry {
     display: flex;
     gap: 12px;
-    padding: 13px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.12s;
   }
   .tl-entry:hover { background: var(--surface-mid); }
   .tl-entry:last-child { border-bottom: none; }
 
   .tl-icon {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 13px;
+    margin-top: 1px;
   }
+  .tl-icon svg { width: 14px; height: 14px; }
+
   .tl-icon.missed  { color: var(--status-error); }
+  .tl-icon.vm      { color: var(--status-error); }
   .tl-icon.call    { color: var(--status-resolved); }
   .tl-icon.appt    { color: var(--status-progress); }
   .tl-icon.enroll  { color: var(--status-resolved); }
   .tl-icon.sms     { color: var(--gold); }
-  .tl-icon.bday    { color: var(--status-error); }
-  .tl-icon.vm      { color: var(--status-error); }
+  .tl-icon.mail    { color: var(--slate); }
+  .tl-icon.bday    { color: var(--status-error); opacity: 0.7; }
 
   .tl-body { flex: 1; min-width: 0; }
 
   .tl-top {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
     margin-bottom: 2px;
   }
@@ -257,19 +266,19 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-right: 12px;
   }
 
   .tl-time {
     font-size: 10px;
     color: var(--slate);
     flex-shrink: 0;
-    margin-left: 12px;
+    white-space: nowrap;
   }
 
   .tl-desc {
     font-size: 11px;
     color: var(--slate);
-    font-weight: 300;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -280,59 +289,57 @@
     font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.1em;
-    padding: 1px 6px;
+    padding: 1px 5px;
     margin-right: 5px;
     text-transform: uppercase;
   }
-  .tl-tag.urgent  { background: rgba(255,180,171,0.1); color: var(--status-error); }
-  .tl-tag.info    { background: rgba(157,141,241,0.1); color: var(--status-waiting); }
-  .tl-tag.success { background: rgba(138,154,91,0.1);  color: var(--status-resolved); }
+  .tl-tag.urgent  { background: rgba(255,180,171,0.12); color: var(--status-error); }
+  .tl-tag.info    { background: rgba(157,141,241,0.12); color: var(--status-waiting); }
+  .tl-tag.success { background: rgba(138,154,91,0.12);  color: var(--status-resolved); }
 
   /* ── TASK ITEMS ── */
   .task-item {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 12px 20px;
+    padding: 11px 20px;
     border-bottom: 1px solid var(--border);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.12s;
   }
   .task-item:hover { background: var(--surface-mid); }
   .task-item:last-child { border-bottom: none; }
 
   .task-check {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     border: 1px solid var(--border);
     flex-shrink: 0;
-    margin-top: 1px;
+    margin-top: 2px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: border-color 0.2s;
     position: relative;
   }
   .task-check:hover { border-color: var(--gold-dim); }
-  .task-check.done {
-    border-color: var(--status-resolved);
-    background: var(--status-resolved);
-  }
+  .task-check.done  { border-color: var(--status-resolved); background: var(--status-resolved); }
   .task-check.done::after {
     content: '';
     position: absolute;
-    top: 3px; left: 4px;
+    top: 2px; left: 4px;
     width: 4px; height: 6px;
     border: solid var(--ink);
     border-width: 0 1.5px 1.5px 0;
     transform: rotate(45deg);
   }
 
+  .task-body { flex: 1; min-width: 0; }
+
   .task-text {
     font-size: 12px;
     color: var(--ivory);
     font-weight: 300;
     line-height: 1.4;
-    flex: 1;
   }
   .task-text.done-text { text-decoration: line-through; color: var(--slate); }
 
@@ -343,12 +350,12 @@
   }
   .task-meta .overdue { color: var(--status-error); }
 
-  .task-priority {
-    width: 3px;
-    height: 3px;
+  .task-dot {
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     flex-shrink: 0;
-    margin-top: 7px;
+    margin-top: 6px;
   }
 
   /* ── ALERT ITEMS ── */
@@ -356,10 +363,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 20px;
+    padding: 11px 20px;
     border-bottom: 1px solid var(--border);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.12s;
   }
   .alert-item:hover { background: var(--surface-mid); }
   .alert-item:last-child { border-bottom: none; }
@@ -373,13 +380,16 @@
   .alert-bar.warning  { background: var(--status-progress); }
   .alert-bar.info     { background: var(--status-waiting); }
 
-  .alert-content { flex: 1; min-width: 0; }
+  .alert-body { flex: 1; min-width: 0; }
 
   .alert-title {
     font-size: 12px;
     color: var(--ivory);
     font-weight: 400;
     margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .alert-detail {
@@ -388,11 +398,12 @@
     font-weight: 300;
   }
 
-  .alert-action {
+  .alert-cta {
     font-size: 10px;
     color: var(--gold-dim);
     white-space: nowrap;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
   }
 
   /* ── SEP GRID ── */
@@ -405,9 +416,8 @@
 
   .sep-cell {
     background: var(--surface-low);
-    padding: 11px 16px;
-    transition: background 0.15s;
-    cursor: default;
+    padding: 10px 14px;
+    transition: background 0.12s;
   }
   .sep-cell:hover { background: var(--surface-mid); }
 
@@ -441,60 +451,6 @@
     gap: 2px;
   }
 
-  /* ── CARRIER BAR ROWS (commission panel) ── */
-  .carrier-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 11px 20px;
-    border-bottom: 1px solid var(--border);
-    transition: background 0.15s;
-  }
-  .carrier-row:last-child { border-bottom: none; }
-  .carrier-row:hover { background: var(--surface-mid); }
-
-  .carrier-name {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--ivory);
-    width: 90px;
-    flex-shrink: 0;
-  }
-
-  .carrier-bar-wrap {
-    flex: 1;
-    height: 2px;
-    background: rgba(76,70,61,0.3);
-    overflow: hidden;
-  }
-
-  .carrier-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold) 0%, var(--gold-dim) 100%);
-    transition: width 0.4s ease;
-  }
-
-  .carrier-count {
-    font-family: var(--font-serif);
-    font-size: 13px;
-    color: var(--ivory);
-    width: 30px;
-    text-align: right;
-    flex-shrink: 0;
-  }
-
-  .carrier-pct {
-    font-size: 10px;
-    color: var(--slate);
-    width: 36px;
-    text-align: right;
-    flex-shrink: 0;
-    letter-spacing: 0.04em;
-  }
-
-  /* ── RESPONSIVE HELPERS ── */
-  @media (max-width: 640px) { .hide-sm { display: none; } }
-
   /* ── ANIMATIONS ── */
   @keyframes fadeSlideIn {
     from { opacity: 0; transform: translateY(6px); }
@@ -503,20 +459,21 @@
 
   /* ── RESPONSIVE ── */
   @media (max-width: 1100px) {
-    .content-grid { grid-template-columns: 1fr; }
-    .right-col { flex-direction: row; flex-wrap: wrap; }
-    .right-col .dash-panel { flex: 1; min-width: 280px; }
-    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+    .dash-grid     { grid-template-columns: 1fr; }
+    .right-col     { flex-direction: row; flex-wrap: wrap; }
+    .right-col .dash-panel { flex: 1; min-width: 260px; }
+    .metrics-row   { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 768px) {
+    .main          { padding: 16px 16px 40px; }
     .period-banner { flex-wrap: wrap; }
-    .period-item { min-width: 50%; padding: 10px 14px; border-right: none; border-bottom: 1px solid var(--border); }
+    .period-item   { min-width: 50%; padding: 10px 12px; border-right: none; border-bottom: 1px solid var(--border); }
     .period-item:nth-child(odd) { border-right: 1px solid var(--border); }
-    .period-item:last-child, .period-item:nth-last-child(2):nth-child(odd) { border-bottom: none; }
-    .metrics-row { grid-template-columns: 1fr 1fr; gap: 2px; }
-    .metric-number { font-size: 1.8rem; }
-    .right-col { flex-direction: column; }
+    .period-item:last-child, .period-item:nth-last-child(2) { border-bottom: none; }
+    .metrics-row   { grid-template-columns: 1fr 1fr; }
+    .m-number      { font-size: 1.7rem; }
+    .right-col     { flex-direction: column; }
   }
 </style>
 {% endblock %}
@@ -526,7 +483,7 @@
 {% if viewing_agent %}
 <div class="admin-banner">
   <a href="{{ url_for('main.admin_overview') }}" style="color:var(--gold);text-decoration:none;font-weight:500;white-space:nowrap;">← Agency Overview</a>
-  <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:500;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
+  <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:400;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
 </div>
 {% endif %}
 
@@ -534,24 +491,24 @@
 <div class="period-banner">
   <div class="period-item">
     <div class="period-label">MA OEP Status</div>
-    <div class="period-value urgent" id="js-oep-value">—</div>
-    <div class="period-sub">Ends <span class="highlight">March 31, 2026</span></div>
+    <div class="period-value urgent" id="js-oep-val">—</div>
+    <div class="period-sub">Ends <span class="hl">March 31, 2026</span></div>
   </div>
   <div class="period-item">
     <div class="period-label">Until AEP Opens</div>
-    <div class="period-value" id="js-aep-value">—</div>
+    <div class="period-value" id="js-aep-val">—</div>
     <div class="period-sub">Oct 15 – Dec 7, 2026</div>
   </div>
   <div class="period-item">
     <div class="period-label">Active BOB</div>
-    <div class="period-value active">{{ policy_count }}</div>
-    <div class="period-sub">across {{ carrier_count }} carriers{% if viewing_agent %} — {{ viewing_agent.display_name }}{% endif %}</div>
+    <div class="period-value good">{{ policy_count }}</div>
+    <div class="period-sub">across {{ carrier_count }} carriers{% if viewing_agent %} · {{ viewing_agent.display_name }}{% endif %}</div>
   </div>
   <div class="period-item">
     <div class="period-label">Pending Terminations</div>
-    <div class="period-value {% if terms_30 > 0 %}urgent{% elif terms_90 > 0 %}{% endif %}">{{ terms_90 }}</div>
+    <div class="period-value {% if terms_30 > 0 %}urgent{% endif %}">{{ terms_90 }}</div>
     <div class="period-sub">
-      {% if terms_30 > 0 %}<span class="highlight">{{ terms_30 }} under 30 days</span>
+      {% if terms_30 > 0 %}<span class="hl">{{ terms_30 }} under 30 days</span>
       {% else %}in next 90 days{% endif %}
     </div>
   </div>
@@ -560,173 +517,176 @@
 <!-- ── METRIC CARDS ── -->
 <div class="metrics-row">
   <div class="metric-card c-ember">
-    <div class="metric-label"><span class="metric-dot" style="background:var(--status-error);"></span> Active Policies</div>
-    <div class="metric-number" style="color:var(--ivory-bright);">{{ policy_count }}</div>
-    <div class="metric-detail">across {{ carrier_count }} carriers</div>
+    <div class="m-label"><span class="m-dot" style="background:var(--status-error);"></span>Active Policies</div>
+    <div class="m-number" style="color:var(--ivory-bright);">{{ policy_count }}</div>
+    <div class="m-detail">across {{ carrier_count }} carriers</div>
   </div>
   <div class="metric-card c-amber">
-    <div class="metric-label"><span class="metric-dot" style="background:var(--status-progress);"></span> Upcoming Terms</div>
-    <div class="metric-number" style="color:{% if terms_90 > 0 %}var(--status-progress){% else %}var(--ivory-bright){% endif %};">{{ terms_90 }}</div>
-    <div class="metric-detail">{% if terms_30 > 0 %}{{ terms_30 }} critical (under 30d){% else %}none critical{% endif %}</div>
+    <div class="m-label"><span class="m-dot" style="background:var(--status-progress);"></span>Upcoming Terms</div>
+    <div class="m-number" style="color:{% if terms_90 > 0 %}var(--status-progress){% else %}var(--ivory-bright){% endif %};">{{ terms_90 }}</div>
+    <div class="m-detail">{% if terms_30 > 0 %}{{ terms_30 }} critical (under 30d){% else %}none critical{% endif %}</div>
   </div>
-  <div class="metric-card">
-    <div class="metric-label"><span class="metric-dot" style="background:var(--gold-dim);"></span> Est. Monthly Commission</div>
-    <div class="metric-number" style="color:var(--gold);">{{ monthly_commission }}</div>
-    <div class="metric-detail">at 55% · MAPD only</div>
+  <div class="metric-card c-gold">
+    <div class="m-label"><span class="m-dot" style="background:var(--gold-dim);"></span>Est. Monthly Commission</div>
+    <div class="m-number" style="color:var(--gold);">{{ monthly_commission }}</div>
+    <div class="m-detail">at 55% · MAPD only</div>
   </div>
   <div class="metric-card c-sage">
-    <div class="metric-label"><span class="metric-dot" style="background:var(--status-resolved);"></span> Est. Annual Commission</div>
-    <div class="metric-number" style="color:var(--status-resolved);">{{ annual_commission }}</div>
-    <div class="metric-detail">projected from current BOB</div>
+    <div class="m-label"><span class="m-dot" style="background:var(--status-resolved);"></span>Est. Annual Commission</div>
+    <div class="m-number" style="color:var(--status-resolved);">{{ annual_commission }}</div>
+    <div class="m-detail">projected from current BOB</div>
   </div>
 </div>
 
-<!-- ── TWO-COLUMN LAYOUT ── -->
-<div class="content-grid">
+<!-- ── MAIN GRID ── -->
+<div class="dash-grid">
 
-  <!-- ── LEFT: UNIFIED TIMELINE / CARRIER BREAKDOWN ── -->
+  <!-- LEFT: Unified Timeline -->
   <div>
-
-    <!-- Carrier breakdown -->
     <div class="dash-panel">
-      <div class="panel-header">
-        <span class="panel-title">Policies by Carrier</span>
-        <span class="panel-meta">{{ policy_count }} total</span>
-      </div>
-      {% if carrier_breakdown %}
-        {% for row in carrier_breakdown %}
-        <div class="carrier-row">
-          <div class="carrier-name">{{ row.carrier }}</div>
-          <div class="carrier-bar-wrap">
-            <div class="carrier-bar" style="width:{{ row.pct }}%;"></div>
-          </div>
-          <div class="carrier-count">{{ row.count }}</div>
-          <div class="carrier-pct">{{ row.pct }}%</div>
+      <div class="panel-hd">
+        <span class="panel-hd-title">Unified Timeline</span>
+        <div class="panel-filter">
+          <button class="flt-btn on"  data-filter="all">All</button>
+          <button class="flt-btn" data-filter="calls">Calls</button>
+          <button class="flt-btn" data-filter="email">Email</button>
+          <button class="flt-btn" data-filter="enroll">Enrollments</button>
+          <button class="flt-btn" data-filter="appt">Appts</button>
         </div>
-        {% endfor %}
-      {% else %}
-        <div style="padding:24px 20px;font-size:11px;color:var(--slate);">No policy data. Upload carrier files to populate.</div>
-      {% endif %}
+      </div>
+      <div class="panel-body" id="js-timeline">
+
+        {% if upcoming_terms %}
+          {% for p in upcoming_terms[:3] %}
+          <div class="tl-entry" data-type="alert">
+            <div class="tl-icon missed">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8"/><circle cx="8" cy="11" r="0.5" fill="currentColor"/></svg>
+            </div>
+            <div class="tl-body">
+              <div class="tl-top">
+                <span class="tl-name">{{ p.full_name }}</span>
+                <span class="tl-time">{{ p.term_date.strftime('%b %d') if p.term_date else '—' }}</span>
+              </div>
+              <div class="tl-desc"><span class="tl-tag urgent">term</span>{{ p.carrier }} — {{ p.days_until_term }} days · {{ p.plan_name or 'Unknown plan' }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% endif %}
+
+        <!-- Static illustrative entries — replace with real comms data in Phase 3 -->
+        <div class="tl-entry" data-type="calls">
+          <div class="tl-icon missed">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2l2 4-2 2a10 10 0 005 5l2-2 4 2v2a1 1 0 01-1 1C6 16 1 10 1 3a1 1 0 011-1z"/><line x1="11" y1="1" x2="15" y2="5"/><line x1="15" y1="1" x2="11" y2="5"/></svg>
+          </div>
+          <div class="tl-body">
+            <div class="tl-top">
+              <span class="tl-name">Missed call — unknown caller</span>
+              <span class="tl-time">Today</span>
+            </div>
+            <div class="tl-desc"><span class="tl-tag urgent">missed</span>Inbound — Quo integration coming in Phase 3</div>
+          </div>
+        </div>
+
+        <div class="tl-entry" data-type="appt">
+          <div class="tl-icon appt">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="10" y1="2" x2="10" y2="6"/></svg>
+          </div>
+          <div class="tl-body">
+            <div class="tl-top">
+              <span class="tl-name">Calendly appointments</span>
+              <span class="tl-time">Soon</span>
+            </div>
+            <div class="tl-desc"><span class="tl-tag info">upcoming</span>Live appointment feed — Calendly webhook in Phase 3</div>
+          </div>
+        </div>
+
+        <div class="tl-entry" data-type="enroll">
+          <div class="tl-icon enroll">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8l3 3 5-6"/></svg>
+          </div>
+          <div class="tl-body">
+            <div class="tl-top">
+              <span class="tl-name">HealthSherpa enrollments</span>
+              <span class="tl-time">Soon</span>
+            </div>
+            <div class="tl-desc"><span class="tl-tag success">enrolled</span>Live enrollment feed — HealthSherpa webhook in Phase 3</div>
+          </div>
+        </div>
+
+        {% if not upcoming_terms and terms_90 == 0 %}
+        <div style="padding:32px 20px;text-align:center;font-size:11px;color:var(--slate);">
+          Timeline populates with calls, appointments, and enrollments in Phase 3.<br>
+          <span style="color:var(--gold-dim);">Quo · Calendly · HealthSherpa</span>
+        </div>
+        {% endif %}
+
+      </div>
     </div>
 
-    <!-- Commission table -->
-    <div class="dash-panel" style="margin-top:2px;">
-      <div class="panel-header">
-        <span class="panel-title">Commission by Carrier</span>
-        <span class="panel-meta">55% split · $28.91/mo MAPD</span>
-      </div>
-      {% if carrier_breakdown %}
-      <div style="overflow-x:auto;">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Carrier</th>
-              <th>Policies</th>
-              <th>Gross/mo</th>
-              <th>Your 55%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in carrier_breakdown %}
-            <tr>
-              <td class="fw-medium">{{ row.carrier }}</td>
-              <td>{{ row.count }}</td>
-              <td>{{ row.gross_monthly }}</td>
-              <td class="fw-medium" style="color:var(--status-resolved);">{{ row.your_monthly }}</td>
-            </tr>
-            {% endfor %}
-            <tr style="border-top:1px solid rgba(76,70,61,0.3);">
-              <td class="fw-medium" style="color:var(--ivory-bright);">Total</td>
-              <td class="fw-medium" style="color:var(--ivory-bright);">{{ policy_count }}</td>
-              <td class="fw-medium" style="color:var(--ivory-bright);">{{ total_gross_monthly }}</td>
-              <td class="fw-medium" style="color:var(--gold);">{{ monthly_commission }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-        <div style="padding:24px 20px;font-size:11px;color:var(--slate);">No data yet.</div>
-      {% endif %}
-    </div>
-
-    <!-- Upcoming terminations -->
-    <div class="dash-panel" style="margin-top:2px;">
-      <div class="panel-header">
-        <span class="panel-title">Upcoming Terminations</span>
-        <span class="panel-meta">Next 90 days</span>
-      </div>
-      {% if upcoming_terms %}
-      <div style="overflow-x:auto;">
-        <table class="data-table" style="min-width:520px;">
-          <thead>
-            <tr>
-              <th>Member</th>
-              <th>DOB</th>
-              <th class="hide-sm">Phone</th>
-              <th>Carrier</th>
-              <th class="hide-sm">Plan</th>
-              <th>Term Date</th>
-              <th>Days</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in upcoming_terms %}
-            <tr>
-              <td class="fw-medium">{{ p.full_name }}</td>
-              <td style="color:var(--slate);">{{ p.dob.strftime('%m/%d/%Y') if p.dob else '—' }}</td>
-              <td class="hide-sm">{{ p.phone or '—' }}</td>
-              <td>{{ p.carrier }}</td>
-              <td class="hide-sm">{{ p.plan_name or '—' }}</td>
-              <td>{{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }}</td>
-              <td><span class="badge badge-{{ p.urgency_class }}">{{ p.days_until_term }}d</span></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-        <div style="padding:24px 20px;font-size:11px;color:var(--slate);">No terminations in the next 90 days.</div>
-      {% endif %}
-    </div>
-
-    <!-- Upcoming appointments (agents only) -->
+    <!-- Upcoming appointments partial (Calendly) -->
     {% if not viewing_agent %}
     {% include 'comms/partials/upcoming_appointments.html' %}
     {% endif %}
-
   </div>
 
-  <!-- ── RIGHT COLUMN ── -->
+  <!-- RIGHT COLUMN -->
   <div class="right-col">
+
+    <!-- Outstanding Tasks (placeholder until task model exists) -->
+    <div class="dash-panel">
+      <div class="panel-hd">
+        <span class="panel-hd-title">Outstanding Tasks</span>
+        <span class="panel-hd-meta">{{ terms_90 }} open</span>
+      </div>
+      <div class="panel-body">
+        {% if upcoming_terms %}
+          {% for p in upcoming_terms[:5] %}
+          <div class="task-item">
+            <div class="task-check {% if p.urgency_class == 'red' %}{% endif %}"></div>
+            <div class="task-body">
+              <div class="task-text">Contact {{ p.full_name }} — {{ p.carrier }} term</div>
+              <div class="task-meta">
+                {% if p.urgency_class == 'red' %}<span class="overdue">{{ p.days_until_term }} DAYS LEFT</span>
+                {% else %}{{ p.term_date.strftime('%b %d, %Y') if p.term_date else '—' }}{% endif %}
+              </div>
+            </div>
+            <div class="task-dot" style="background:{% if p.urgency_class == 'red' %}var(--status-error){% elif p.urgency_class == 'amber' %}var(--status-progress){% else %}var(--status-waiting){% endif %};"></div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding:20px;font-size:11px;color:var(--slate);">No urgent tasks. Full task management coming in Phase 3.</div>
+        {% endif %}
+      </div>
+    </div>
 
     <!-- Alerts & Terminations -->
     <div class="dash-panel">
-      <div class="panel-header">
-        <span class="panel-title">Alerts &amp; Terminations</span>
+      <div class="panel-hd">
+        <span class="panel-hd-title">Alerts &amp; Terminations</span>
       </div>
       <div class="panel-body">
         {% if upcoming_terms %}
           {% for p in upcoming_terms[:4] %}
           <div class="alert-item">
             <div class="alert-bar {% if p.urgency_class == 'red' %}critical{% elif p.urgency_class == 'amber' %}warning{% else %}info{% endif %}"></div>
-            <div class="alert-content">
+            <div class="alert-body">
               <div class="alert-title">{{ p.full_name }} — {{ p.carrier }}</div>
-              <div class="alert-detail">Term {{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }} · {{ p.days_until_term }} days</div>
+              <div class="alert-detail">Term {{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }} · {{ p.days_until_term }}d · {{ p.plan_name or '—' }}</div>
             </div>
-            <div class="alert-action">View →</div>
+            <div class="alert-cta">View →</div>
           </div>
           {% endfor %}
         {% else %}
-          <div style="padding:20px;font-size:11px;color:var(--slate);">No critical alerts.</div>
+          <div style="padding:16px 20px;font-size:11px;color:var(--slate);">No critical alerts.</div>
         {% endif %}
       </div>
     </div>
 
     <!-- NC Enrollment Windows -->
     <div class="dash-panel">
-      <div class="panel-header">
-        <span class="panel-title">NC Enrollment Windows</span>
-        <span class="panel-meta" id="js-today-date"></span>
+      <div class="panel-hd">
+        <span class="panel-hd-title">NC Enrollment Windows</span>
+        <span class="panel-hd-meta" id="js-today-date"></span>
       </div>
       <div class="sep-grid">
         <div class="sep-cell">
@@ -762,21 +722,20 @@
       </div>
     </div>
 
-    <!-- Quick actions -->
+    <!-- Admin quick actions -->
     {% if current_user.is_admin and not viewing_agent %}
     <div class="dash-panel">
-      <div class="panel-header">
-        <span class="panel-title">Quick Actions</span>
+      <div class="panel-hd">
+        <span class="panel-hd-title">Quick Actions</span>
       </div>
-      <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
-        <a href="/upload" class="btn-primary" style="text-align:center;text-decoration:none;">Upload Carrier Files</a>
-        <a href="{{ url_for('main.admin_overview') }}" class="btn-secondary" style="text-align:center;text-decoration:none;">Agency Overview</a>
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+        <a href="/upload" class="btn-primary" style="text-align:center;text-decoration:none;display:block;">Upload Carrier Files</a>
+        <a href="{{ url_for('main.admin_overview') }}" class="btn-secondary" style="text-align:center;text-decoration:none;display:block;">Agency Overview</a>
       </div>
     </div>
     {% endif %}
 
   </div>
-
 </div>
 
 {% endblock %}
@@ -785,49 +744,62 @@
 <script>
 (function() {
   const now = new Date();
-  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   // Today label
   const todayEl = document.getElementById('js-today-date');
-  if (todayEl) {
-    todayEl.textContent = monthNames[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
-  }
+  if (todayEl) todayEl.textContent = monthsShort[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
 
   // OEP — ends March 31 of current year
-  const oepEnd = new Date(now.getFullYear(), 2, 31);
-  const oepDiff = Math.ceil((oepEnd - now) / (1000 * 60 * 60 * 24));
-  const oepVal = document.getElementById('js-oep-value');
-  const oepStatus = document.getElementById('js-oep-status');
+  const oepEnd   = new Date(now.getFullYear(), 2, 31, 23, 59, 59);
+  const oepDiff  = Math.ceil((oepEnd - now) / 86400000);
+  const oepVal   = document.getElementById('js-oep-val');
+  const oepStat  = document.getElementById('js-oep-status');
+
   if (oepVal) {
     if (oepDiff < 0) {
       oepVal.textContent = 'Closed';
       oepVal.classList.remove('urgent');
-      if (oepStatus) { oepStatus.textContent = 'Closed'; oepStatus.className = 'sep-status closed'; }
+      oepVal.style.color = 'var(--slate)';
+      if (oepStat) { oepStat.textContent = 'Closed'; oepStat.className = 'sep-status closed'; }
     } else if (oepDiff === 0) {
       oepVal.textContent = 'Closes Today';
-      if (oepStatus) { oepStatus.textContent = 'Closes Today'; oepStatus.className = 'sep-status limited'; }
+      if (oepStat) { oepStat.textContent = 'Closes Today'; oepStat.className = 'sep-status limited'; }
     } else if (oepDiff === 1) {
       oepVal.textContent = 'Tomorrow';
-      if (oepStatus) { oepStatus.textContent = 'Closes Tomorrow'; oepStatus.className = 'sep-status limited'; }
+      if (oepStat) { oepStat.textContent = 'Closes Tomorrow'; oepStat.className = 'sep-status limited'; }
     } else {
       oepVal.innerHTML = oepDiff + '<span class="unit">days</span>';
-      if (oepStatus) { oepStatus.textContent = oepDiff + ' days left'; oepStatus.className = 'sep-status limited'; }
+      if (oepStat) { oepStat.textContent = oepDiff + ' days left'; oepStat.className = 'sep-status limited'; }
     }
   }
 
   // AEP — starts Oct 15 of current year
   const aepStart = new Date(now.getFullYear(), 9, 15);
-  const aepDiff = Math.ceil((aepStart - now) / (1000 * 60 * 60 * 24));
-  const aepVal = document.getElementById('js-aep-value');
+  const aepDiff  = Math.ceil((aepStart - now) / 86400000);
+  const aepVal   = document.getElementById('js-aep-val');
   if (aepVal) {
     if (aepDiff <= 0) {
       aepVal.innerHTML = 'Open Now';
+      aepVal.classList.remove('urgent');
       aepVal.style.color = 'var(--status-resolved)';
     } else {
       aepVal.innerHTML = aepDiff + '<span class="unit">days</span>';
     }
   }
+
+  // Timeline filter
+  document.querySelectorAll('.flt-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.flt-btn').forEach(b => b.classList.remove('on'));
+      this.classList.add('on');
+      const filter = this.dataset.filter;
+      document.querySelectorAll('#js-timeline .tl-entry').forEach(entry => {
+        entry.style.display = (filter === 'all' || entry.dataset.type === filter) ? '' : 'none';
+      });
+    });
+  });
 })();
 </script>
 {% endblock %}

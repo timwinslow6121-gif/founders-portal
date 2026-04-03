@@ -2,86 +2,185 @@
 {% block title %}Customers — Founders Portal{% endblock %}
 
 {% block styles %}
-.search-bar { display: flex; gap: 8px; margin-bottom: 20px; }
-.search-bar input { flex: 1; padding: 8px 12px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; background: #FFFFFF; }
-.search-bar input:focus { outline: none; border-color: #185FA5; box-shadow: 0 0 0 2px rgba(24,95,165,0.1); }
-.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.page-title { font-size: 20px; font-weight: 500; color: #1B2A4A; }
-.pager { display: flex; gap: 4px; align-items: center; font-size: 12px; color: #888888; }
-.pager a { padding: 4px 10px; border: 0.5px solid #E2E6ED; border-radius: 6px; text-decoration: none; color: #185FA5; }
-.pager a:hover { background: #F4F6F9; }
+/* ── Search bar ── */
+.cust-search-wrap { margin-bottom: 24px; }
+.cust-search-wrap input[type="text"] {
+  background: var(--surface-mid);
+  border: 1px solid var(--border);
+  color: var(--ivory);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 10px 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.cust-search-wrap input:focus { border-color: rgba(218,196,149,0.4); }
+.cust-search-wrap input::placeholder { color: var(--slate); }
+
+/* ── Pager ── */
+.pager {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--slate);
+  letter-spacing: 0.05em;
+  flex-wrap: wrap;
+}
+.pager a {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--gold-muted);
+  transition: border-color 0.2s, color 0.2s;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.pager a:hover {
+  border-color: rgba(218,196,149,0.35);
+  color: var(--gold);
+}
+
+/* ── Table ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll .data-table { min-width: 560px; }
+
+/* ── Mobile card list (replaces table on small screens) ── */
+.cust-cards { display: none; }
+.cust-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+  text-decoration: none;
+  color: inherit;
+}
+.cust-card:last-child { border-bottom: none; }
+.cust-card:hover { background: var(--surface-mid); }
+.cust-card-avatar {
+  width: 36px;
+  height: 36px;
+  background: var(--surface-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.cust-card-body { flex: 1; min-width: 0; }
+.cust-card-name { font-size: 14px; font-weight: 500; color: var(--ivory); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cust-card-meta { font-size: 11px; color: var(--slate); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cust-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+@media (max-width: 768px) {
+  .table-scroll { display: none; }
+  .cust-cards { display: block; }
+  /* Stack header items */
+  .card-header { align-items: flex-start; flex-direction: column; }
+  .pager { margin-top: 8px; }
+}
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <div class="page-title">Customers</div>
-  <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add customer</a>
+  <div>
+    <h1 class="page-title">Customers</h1>
+    <p class="page-sub">{{ customers.total }} total members</p>
+  </div>
+  <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add Customer</a>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">{{ message }}</div>
-  {% endfor %}
-{% endwith %}
-
-<div class="search-bar">
+<div class="cust-search-wrap">
   <input type="text" id="search-input" placeholder="Search by name, MBI, or phone…" value="{{ q }}" autocomplete="off">
 </div>
 
-<div id="search-results" {% if q %}style="display:none"{% endif %}>
-  <!-- AJAX results render here -->
-</div>
+<div id="search-results"></div>
 
-<div id="full-list" {% if q %}style="display:none"{% endif %}>
+<div id="full-list">
   <div class="card">
     <div class="card-header">
       <span class="card-title">
         {% if q %}Results for "{{ q }}"{% else %}All customers{% endif %}
-        <span class="text-muted" style="font-weight:400; font-size:13px; margin-left:6px;">{{ customers.total }} total</span>
       </span>
       <div class="pager">
         {% if customers.has_prev %}
-          <a href="{{ url_for('customers.customers_list', page=customers.prev_num, q=q) }}">Prev</a>
+          <a href="{{ url_for('customers.customers_list', page=customers.prev_num, q=q) }}">← Prev</a>
         {% endif %}
-        <span>{{ customers.page }} / {{ customers.pages }}</span>
+        <span>{{ customers.page }} of {{ customers.pages }}</span>
         {% if customers.has_next %}
-          <a href="{{ url_for('customers.customers_list', page=customers.next_num, q=q) }}">Next</a>
+          <a href="{{ url_for('customers.customers_list', page=customers.next_num, q=q) }}">Next →</a>
         {% endif %}
       </div>
     </div>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th style="width:30%">Name</th>
-          <th style="width:16%">MBI</th>
-          <th style="width:14%">Phone</th>
-          <th style="width:18%">Agent</th>
-          <th style="width:12%">Stage</th>
-          <th style="width:10%">Pharmacy</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for c in customers.items %}
-        <tr style="cursor:pointer" onclick="window.location='{{ url_for('customers.customer_profile', customer_id=c.id) }}'">
-          <td class="fw-medium">{{ c.display_name }}</td>
-          <td class="mono">{{ c.mbi or '—' }}</td>
-          <td>{{ c.phone_primary or '—' }}</td>
-          <td>{{ c.primary_agent.display_name if c.primary_agent else '—' }}</td>
-          <td>
-            {% set stage = c.deal_stage or 'Active' %}
-            {% if stage == 'Active' %}<span class="badge badge-green">{{ stage }}</span>
-            {% elif stage == 'Termed' %}<span class="badge badge-gray">{{ stage }}</span>
-            {% elif stage == 'Enrolled' %}<span class="badge badge-blue">{{ stage }}</span>
-            {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
-            {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
-          </td>
-          <td>{{ c.pharmacy.name if c.pharmacy else '—' }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="6" class="empty-cell">No customers found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+    {# Desktop table #}
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:28%">Name</th>
+            <th style="width:15%">MBI</th>
+            <th style="width:14%">Phone</th>
+            <th style="width:20%">Agent</th>
+            <th style="width:12%">Stage</th>
+            <th style="width:11%">Pharmacy</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in customers.items %}
+          <tr style="cursor:pointer" onclick="window.location='{{ url_for('customers.customer_profile', customer_id=c.id) }}'">
+            <td class="fw-medium">{{ c.display_name }}</td>
+            <td class="mono">{{ c.mbi or '—' }}</td>
+            <td>{{ c.phone_primary or '—' }}</td>
+            <td>{{ c.primary_agent.display_name if c.primary_agent else '—' }}</td>
+            <td>
+              {% set stage = c.deal_stage or 'Active' %}
+              {% if stage == 'Active' %}<span class="badge badge-green">{{ stage }}</span>
+              {% elif stage == 'Termed' %}<span class="badge badge-gray">{{ stage }}</span>
+              {% elif stage == 'Enrolled' %}<span class="badge badge-blue">{{ stage }}</span>
+              {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
+              {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
+            </td>
+            <td class="text-muted">{{ c.pharmacy.name if c.pharmacy else '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="empty-cell">No customers found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Mobile card list #}
+    <div class="cust-cards">
+      {% for c in customers.items %}
+      {% set stage = c.deal_stage or 'Active' %}
+      <a class="cust-card" href="{{ url_for('customers.customer_profile', customer_id=c.id) }}">
+        <div class="cust-card-avatar">{{ c.display_name[0] if c.display_name else '?' }}</div>
+        <div class="cust-card-body">
+          <div class="cust-card-name">{{ c.display_name }}</div>
+          <div class="cust-card-meta">{{ c.phone_primary or c.mbi or '—' }} · {{ c.primary_agent.display_name if c.primary_agent else '—' }}</div>
+        </div>
+        <div class="cust-card-right">
+          {% if stage == 'Active' %}<span class="badge badge-green">{{ stage }}</span>
+          {% elif stage == 'Termed' %}<span class="badge badge-gray">{{ stage }}</span>
+          {% elif stage == 'Enrolled' %}<span class="badge badge-blue">{{ stage }}</span>
+          {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
+          {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
+        </div>
+      </a>
+      {% else %}
+      <div class="empty-cell">No customers found.</div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -93,47 +192,66 @@ const searchResults = document.getElementById('search-results');
 const fullList = document.getElementById('full-list');
 let debounce;
 
+function renderResults(data) {
+  if (!data.length) {
+    searchResults.innerHTML = '<div class="card"><div class="card-body"><p class="empty-cell" style="padding:24px">No customers found.</p></div></div>';
+    return;
+  }
+  const isMobile = window.innerWidth <= 768;
+
+  if (isMobile) {
+    const cards = data.map(c => `
+      <a class="cust-card" href="${c.url}">
+        <div class="cust-card-avatar">${(c.name || '?')[0]}</div>
+        <div class="cust-card-body">
+          <div class="cust-card-name">${c.name}</div>
+          <div class="cust-card-meta">${c.phone || c.mbi || '—'} · ${c.agent || '—'}</div>
+        </div>
+      </a>`).join('');
+    searchResults.innerHTML = `
+      <div class="card">
+        <div class="card-header"><span class="card-title">Results (${data.length})</span></div>
+        <div class="cust-cards">${cards}</div>
+      </div>`;
+  } else {
+    const rows = data.map(c => `
+      <tr style="cursor:pointer" onclick="window.location='${c.url}'">
+        <td class="fw-medium">${c.name}</td>
+        <td class="mono">${c.mbi || '—'}</td>
+        <td>${c.phone || '—'}</td>
+        <td>${c.agent || '—'}</td>
+        <td></td><td></td>
+      </tr>`).join('');
+    searchResults.innerHTML = `
+      <div class="card">
+        <div class="card-header"><span class="card-title">Results (${data.length})</span></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr>
+              <th style="width:28%">Name</th><th style="width:15%">MBI</th>
+              <th style="width:14%">Phone</th><th style="width:20%">Agent</th>
+              <th style="width:12%"></th><th style="width:11%"></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+}
+
 searchInput.addEventListener('input', () => {
   clearTimeout(debounce);
   const q = searchInput.value.trim();
   if (q.length < 2) {
-    searchResults.style.display = 'none';
     searchResults.innerHTML = '';
     fullList.style.display = '';
     return;
   }
   debounce = setTimeout(() => {
+    fullList.style.display = 'none';
     fetch(`/customers/search?q=${encodeURIComponent(q)}`)
       .then(r => r.json())
-      .then(data => {
-        fullList.style.display = 'none';
-        if (!data.length) {
-          searchResults.innerHTML = '<p style="color:#888;font-size:13px;padding:16px 0;">No customers found.</p>';
-          searchResults.style.display = '';
-          return;
-        }
-        let rows = data.map(c => `
-          <tr style="cursor:pointer" onclick="window.location='${c.url}'">
-            <td class="fw-medium">${c.name}</td>
-            <td class="mono">${c.mbi || '—'}</td>
-            <td>${c.phone || '—'}</td>
-            <td>${c.agent || '—'}</td>
-            <td></td><td></td>
-          </tr>`).join('');
-        searchResults.innerHTML = `
-          <div class="card">
-            <div class="card-header"><span class="card-title">Results (${data.length})</span></div>
-            <table class="data-table">
-              <thead><tr>
-                <th style="width:30%">Name</th><th style="width:16%">MBI</th>
-                <th style="width:14%">Phone</th><th style="width:18%">Agent</th>
-                <th style="width:12%"></th><th style="width:10%"></th>
-              </tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>`;
-        searchResults.style.display = '';
-      });
+      .then(data => renderResults(data));
   }, 250);
 });
 </script>

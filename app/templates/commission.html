@@ -1,100 +1,105 @@
 {% extends "base.html" %}
 {% block title %}Commission Audit{% endblock %}
 {% block styles %}
-/* ── Page layout ── */
-.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
-.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
-
-/* ── Flash alerts ── */
-.alert{padding:10px 16px;border-radius:8px;font-size:13px;margin-bottom:16px}
-.alert-success{background:#EAF3DE;color:#2D6A4F}
-.alert-warning{background:#FAEEDA;color:#854F0B}
-.alert-error{background:#FCEBEB;color:#A32D2D}
-
 /* ── Viewing banner ── */
-.viewing-banner{display:flex;align-items:center;gap:16px;background:#E6F1FB;border:0.5px solid #B5D4F4;border-radius:8px;padding:8px 14px;margin-bottom:16px;font-size:13px}
-.viewing-back{color:#185FA5;text-decoration:none;font-weight:500}
+.viewing-banner {
+  display: flex; align-items: center; gap: 16px;
+  background: rgba(218,196,149,0.06);
+  border-left: 2px solid rgba(218,196,149,0.3);
+  padding: 10px 16px; margin-bottom: 24px;
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.viewing-back { color: var(--gold); text-decoration: none; font-weight: 500; white-space: nowrap; }
 
-/* ── Hero total bar (agent view) ── */
-.hero{background:#1B2A4A;border-radius:12px;padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:20px}
-.hero-label{font-size:12px;color:#8FA3C4;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
-.hero-value{font-size:36px;font-weight:500;color:#FFFFFF;line-height:1}
-.hero-sub{font-size:12px;color:#8FA3C4;margin-top:4px}
-.hero-divider{width:0.5px;background:#2D4470;align-self:stretch}
-.hero-item{flex:1}
-.hero-status{display:flex;align-items:center;gap:8px;margin-top:8px}
-.hero-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:99px}
-.hero-badge-green{background:#2D6A4F;color:#FFFFFF}
-.hero-badge-red{background:#A32D2D;color:#FFFFFF}
-.hero-badge-amber{background:#854F0B;color:#FFFFFF}
+/* ── Hero total bar ── */
+.hero {
+  background: var(--surface-low);
+  padding: 24px 28px; margin-bottom: 24px;
+  display: flex; align-items: stretch; gap: 0;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.hero-item { flex: 1; padding: 0 24px; border-right: 1px solid var(--border); min-width: 130px; }
+.hero-item:first-child { padding-left: 0; }
+.hero-item:last-child { border-right: none; padding-right: 0; }
+.hero-label { font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
+.hero-value { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300; color: var(--ivory-bright); line-height: 1; }
+.hero-sub { font-size: 10px; color: var(--slate); margin-top: 6px; }
 
 /* ── Carrier status cards ── */
-.carrier-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px}
-.carrier-card{background:#FFFFFF;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;cursor:pointer;transition:box-shadow 0.15s}
-.carrier-card:hover{box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-.carrier-card-top{padding:14px 16px 10px}
-.carrier-card-name{font-size:13px;font-weight:500;color:#1B2A4A;margin-bottom:2px}
-.carrier-card-period{font-size:11px;color:#888}
-.carrier-card-amount{font-size:22px;font-weight:500;color:#1B2A4A;margin:8px 0 4px}
-.carrier-card-sub{font-size:11px;color:#4A5568}
-.carrier-card-footer{padding:8px 16px;border-top:0.5px solid #E2E6ED;display:flex;align-items:center;justify-content:space-between}
-.carrier-card-diff{font-size:12px;font-weight:500}
-.carrier-card-diff.ok{color:#2D6A4F}
-.carrier-card-diff.bad{color:#A32D2D}
-.carrier-card.verified{border-top:3px solid #2D6A4F}
-.carrier-card.discrepancy{border-top:3px solid #A32D2D}
-.carrier-card.pending{border-top:3px solid #C9A84C}
+.carrier-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px; margin-bottom: 24px; }
+.carrier-card { background: var(--surface-low); overflow: hidden; cursor: pointer; transition: background 0.15s; }
+.carrier-card:hover { background: var(--surface-mid); }
+.carrier-card-top { padding: 14px 16px 10px; }
+.carrier-card-name { font-size: 12px; font-weight: 500; color: var(--ivory); margin-bottom: 2px; }
+.carrier-card-period { font-size: 10px; color: var(--slate); letter-spacing: 0.05em; }
+.carrier-card-amount { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 300; color: var(--ivory-bright); margin: 10px 0 4px; line-height: 1; }
+.carrier-card-sub { font-size: 10px; color: var(--slate); }
+.carrier-card-footer { padding: 8px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.carrier-card-diff { font-size: 11px; font-weight: 500; }
+.carrier-card-diff.ok { color: var(--status-resolved); }
+.carrier-card-diff.bad { color: var(--status-error); }
+.carrier-card.verified  { border-top: 2px solid var(--status-resolved); }
+.carrier-card.discrepancy { border-top: 2px solid var(--status-error); }
+.carrier-card.pending   { border-top: 2px solid var(--status-progress); }
 
-/* ── Line items detail card ── */
-.detail-card{background:#FFFFFF;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;margin-bottom:16px}
-.detail-header{padding:12px 16px;border-bottom:0.5px solid #E2E6ED;display:flex;align-items:center;justify-content:space-between}
-.detail-title{font-size:14px;font-weight:500;color:#1B2A4A}
-.detail-meta{font-size:12px;color:#4A5568}
+/* ── Detail card ── */
+.detail-card { background: var(--surface-low); overflow: hidden; margin-bottom: 2px; }
+.detail-header { padding: 12px 18px; background: var(--surface-high); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.detail-title { font-family: var(--font-serif); font-size: 14px; font-weight: 400; color: var(--ivory-bright); }
+.detail-meta { font-size: 10px; color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase; }
 
-/* ── Audit math strip ── */
-.math-strip{display:flex;border-bottom:0.5px solid #E2E6ED}
-.math-cell{flex:1;padding:14px 16px;border-right:0.5px solid #E2E6ED}
-.math-cell:last-child{border-right:none}
-.math-label{font-size:11px;color:#4A5568;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em}
-.math-value{font-size:20px;font-weight:500;color:#1B2A4A}
-.math-sub{font-size:11px;color:#888;margin-top:2px}
-.math-value.ok{color:#2D6A4F}
-.math-value.bad{color:#A32D2D}
+/* ── Math strip ── */
+.math-strip { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.math-cell { flex: 1; padding: 14px 18px; border-right: 1px solid var(--border); min-width: 110px; }
+.math-cell:last-child { border-right: none; }
+.math-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.math-value { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 300; color: var(--ivory-bright); }
+.math-sub { font-size: 10px; color: var(--slate); margin-top: 4px; }
+.math-value.ok  { color: var(--status-resolved); }
+.math-value.bad { color: var(--status-error); }
 
 /* ── Tables ── */
-.stmt-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
-.stmt-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 16px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
-.stmt-table td{padding:9px 16px;border-bottom:0.5px solid #E2E6ED;color:#1B2A4A;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.stmt-table tr:last-child td{border-bottom:none}
-.stmt-table tr:hover td{background:#F4F6F9}
+.stmt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.stmt-table th { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); text-align: left; padding: 10px 16px; background: var(--surface-high); white-space: nowrap; }
+.stmt-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--ivory); vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stmt-table tr:last-child td { border-bottom: none; }
+.stmt-table tr:hover td { background: var(--surface-mid); }
+.stmt-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* ── Badges ── */
-.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
-.badge-green{background:#EAF3DE;color:#2D6A4F}
-.badge-red{background:#FCEBEB;color:#A32D2D}
-.badge-amber{background:#FAEEDA;color:#854F0B}
-.badge-blue{background:#E6F1FB;color:#185FA5}
-.badge-gray{background:#F4F6F9;color:#4A5568}
-.badge-gold{background:#FDF3DC;color:#7A5C00}
+/* ── Badge overrides (Lux) ── */
+.badge-gold { background: rgba(201,168,76,0.12); color: var(--status-progress); }
 
 /* ── Admin layout ── */
-.admin-layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
-.upload-card{background:#FFFFFF;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;margin-bottom:16px}
-.upload-header{background:#1B2A4A;color:#FFFFFF;padding:10px 16px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
-.upload-body{padding:16px}
-.upload-body label{display:block;font-size:12px;color:#4A5568;margin-bottom:6px;font-weight:500}
-.upload-body input[type=file]{width:100%;padding:8px 10px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:13px;color:#1B2A4A;background:#F4F6F9;margin-bottom:12px}
-.btn-upload{background:#185FA5;color:#FFFFFF;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;width:100%}
-.btn-upload:hover{background:#14508F}
-.upload-hint{font-size:11px;color:#888;margin-top:10px;line-height:1.6}
+.admin-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 2px; align-items: start; }
+.upload-card { background: var(--surface-low); overflow: hidden; margin-bottom: 2px; }
+.upload-header { background: var(--surface-high); color: var(--gold); padding: 11px 18px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; }
+.upload-body { padding: 18px; }
+.upload-body input[type=file] { background: var(--surface-mid); border: 1px solid var(--border); color: var(--ivory); font-size: 12px; padding: 8px 10px; width: 100%; margin-bottom: 12px; }
+.btn-upload { background: var(--gold); color: var(--on-gold); border: none; padding: 10px 16px; font-family: var(--font-sans); font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; width: 100%; }
+.btn-upload:hover { opacity: 0.85; }
+.upload-hint { font-size: 10px; color: var(--slate); margin-top: 10px; line-height: 1.7; letter-spacing: 0.04em; }
 
-/* ── Agent summary table ── */
-.agent-summary-card{background:#FFFFFF;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden}
-.section-banner{background:#1B2A4A;color:#FFFFFF;padding:10px 16px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.06em}
-.empty-state{padding:40px 20px;text-align:center;color:#888;font-size:13px}
-.avatar{width:28px;height:28px;border-radius:50%;background:#B5D4F4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#185FA5;flex-shrink:0;vertical-align:middle;margin-right:8px}
-.amount-pos{color:#2D6A4F;font-weight:500}
-.amount-neg{color:#A32D2D;font-weight:500}
+/* ── Agent summary ── */
+.agent-summary-card { background: var(--surface-low); overflow: hidden; }
+.section-banner { background: var(--surface-high); color: var(--gold); padding: 11px 18px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; }
+.empty-state { padding: 40px 20px; text-align: center; color: var(--slate); font-size: 12px; }
+.agent-avatar-sm { width: 24px; height: 24px; background: var(--surface-top); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-size: 9px; font-style: italic; color: var(--gold); flex-shrink: 0; vertical-align: middle; margin-right: 6px; }
+.amount-pos { color: var(--status-resolved); font-weight: 500; }
+.amount-neg { color: var(--status-error); font-weight: 500; }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .admin-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .hero { flex-direction: column; gap: 0; }
+  .hero-item { padding: 14px 0; border-right: none; border-bottom: 1px solid var(--border); }
+  .hero-item:last-child { border-bottom: none; }
+  .carrier-cards { grid-template-columns: 1fr 1fr; }
+  .math-strip { flex-direction: column; }
+  .math-cell { border-right: none; border-bottom: 1px solid var(--border); }
+  .math-cell:last-child { border-bottom: none; }
+}
 {% endblock %}
 
 {% block content %}
@@ -102,17 +107,21 @@
 {% if viewing_agent %}
 <div class="viewing-banner">
   <a href="{{ url_for('commission.commission_admin') }}" class="viewing-back">← Commission Audit</a>
-  <span style="color:#1B2A4A;">Viewing: <strong>{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
+  <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:500;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
 </div>
 {% endif %}
 
-<h1 class="page-title">Commission Audit</h1>
-<p class="page-sub">
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Commission Audit</h1>
+    <p class="page-sub">
   {% if is_admin and not viewing_agent %}All agents · upload carrier statements below
   {% elif viewing_agent %}{{ viewing_agent.display_name }}'s commission history
   {% else %}Your verified commission statements
   {% endif %}
 </p>
+  </div>
+</div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for category, message in messages %}
@@ -155,10 +164,10 @@
       <div class="hero-item">
         <div class="hero-label">Audit status</div>
         {% if all_verified %}
-          <div class="hero-value" style="color:#4ADE80;">✓ Verified</div>
+          <div class="hero-value" style="color:var(--status-resolved);">✓ Verified</div>
           <div class="hero-sub">All carriers match to the penny</div>
         {% else %}
-          <div class="hero-value" style="color:#FCA5A5;">⚠ Review needed</div>
+          <div class="hero-value" style="color:var(--status-error);">⚠ Review needed</div>
           <div class="hero-sub">Difference of ${{ "{:,.2f}".format(total_diff|abs) }}</div>
         {% endif %}
       </div>
@@ -250,7 +259,7 @@
               {% elif 'HA' in action or 'HRA' in action %}<span class="badge badge-gold">Bonus</span>
               {% else %}<span class="badge badge-gray">{{ action[:12] if action else '—' }}</span>{% endif %}
             </td>
-            <td style="color:#4A5568">{{ item.get('eff_date') or item.get('period') or item.get('month') or '—' }}</td>
+            <td style="color:var(--slate)">{{ item.get('eff_date') or item.get('period') or item.get('month') or '—' }}</td>
             <td style="text-align:right" class="{{ 'amount-neg' if item.get('amount') and item.get('amount') < 0 else '' }}">
               {% if item.get('amount') is none %}—
               {% elif item.get('amount') < 0 %}-${{ "{:,.2f}".format(item.get('amount')|abs) }}
@@ -259,7 +268,7 @@
           </tr>
           {% endfor %}
           {% if s.line_items_parsed|length > 30 %}
-          <tr><td colspan="4" style="text-align:center;color:#888;font-size:11px;padding:10px;">
+          <tr><td colspan="4" style="text-align:center;color:var(--slate);font-size:11px;padding:10px;">
             + {{ s.line_items_parsed|length - 30 }} more line items not shown
           </td></tr>
           {% endif %}
@@ -276,6 +285,7 @@
       <span style="font-size:12px;color:#aaa;margin-top:4px;display:block;">
         {% if not is_admin %}Ask AJ to upload your carrier statements to the portal.{% endif %}
       </span>
+    </div>
     </div>
   </div>
   {% endif %}
@@ -308,13 +318,13 @@
   <div class="hero-divider"></div>
   <div class="hero-item">
     <div class="hero-label">Statements verified</div>
-    <div class="hero-value" style="color:#4ADE80">{{ agency_verified }} / {{ all_stmts|length }}</div>
+    <div class="hero-value" style="color:var(--status-resolved)">{{ agency_verified }} / {{ all_stmts|length }}</div>
     <div class="hero-sub">{{ all_stmts|length - agency_verified }} pending review</div>
   </div>
   <div class="hero-divider"></div>
   <div class="hero-item">
     <div class="hero-label">Founders retains (45%)</div>
-    <div class="hero-value" style="color:#C9A84C">${{ "{:,.2f}".format(agency_gross - agency_expected) }}</div>
+    <div class="hero-value" style="color:var(--status-progress)">${{ "{:,.2f}".format(agency_gross - agency_expected) }}</div>
     <div class="hero-sub">Before overhead</div>
   </div>
 </div>
@@ -390,14 +400,14 @@
               {% if loop.first %}
               <td rowspan="{{ summary.statements|length }}" style="vertical-align:top;padding-top:12px;">
                 <a href="{{ url_for('commission.commission_agent_detail', agent_id=summary.agent.id) }}"
-                   style="color:#185FA5;text-decoration:none;display:flex;align-items:center;gap:6px;">
-                  <span class="avatar">{{ summary.agent.initials }}</span>
-                  <span style="font-weight:500">{{ summary.agent.display_name }}</span>
+                   style="color:var(--gold);text-decoration:none;display:flex;align-items:center;gap:6px;">
+                  <span class="agent-avatar-sm">{{ summary.agent.initials }}</span>
+                  <span style="font-weight:500;color:var(--gold);">{{ summary.agent.display_name }}</span>
                 </a>
               </td>
               {% endif %}
               <td>{{ s.carrier }}</td>
-              <td style="color:#4A5568">{{ s.period_label }}</td>
+              <td style="color:var(--slate)">{{ s.period_label }}</td>
               <td>${{ "{:,.2f}".format(s.gross_amount) }}</td>
               <td>${{ "{:,.2f}".format(s.expected_amount) }}</td>
               <td>${{ "{:,.2f}".format(s.paid_amount) }}</td>

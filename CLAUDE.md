@@ -61,7 +61,15 @@ app.register_blueprint(customers_bp)
 - **Typography pattern:** labels `9-10px, uppercase, letter-spacing: 0.15-0.2em`. Serif numbers for metrics.
 - **220px sidebar** (`var(--surface-low)`), uppercase nav items, thin 1px vertical rule dots
 - CSS lives in `{% block styles %}` per template — no separate CSS files. CSS vars defined in base.html `:root`.
+- Templates must NOT redefine `.page-title`, `.alert-*`, `.badge`, `.btn-primary`, `.btn-secondary`, `.card`, `.data-table` — these are owned by base.html. Override only if genuinely necessary.
 - Class names: `.card`, `.data-table`, `.btn-primary`, `.btn-secondary`, `.badge`, `.nav-item` — same names, Lux styling
+- **Mobile:** Sidebar is off-canvas drawer on ≤768px — `sidebar.open` class + `sidebar-overlay` backdrop. Hamburger + `mobile-topbar` in base.html. JS: `openSidebar()` / `closeSidebar()`.
+- **Tables on mobile:** Wrap in `<div class="table-scroll">` — applies `overflow-x: auto` and sets `min-width` on the table. Already in base.html styles.
+- **Mobile cards:** Customer list and search results render as `.cust-card` stacked list on ≤768px instead of table. Pattern reusable for other list views.
+- **`--border` token:** `rgba(76,70,61,0.18)` — use this instead of raw rgba for consistent tonal borders. Defined in base.html `:root`.
+- **`labels.html` exception:** Birthday labels template uses light-mode colors intentionally — white background/dark ink for print output. Do not Lux-theme it.
+- **Google button stays white:** `login.html` Google OAuth button must remain `#fff` per Google brand guidelines regardless of Lux theme.
+- **Stitch reference files:** `Founder_Portal_Lux_Design/*.html` — HTML mockups for each major view. `founders-portal-responsive.html` has the full mobile pattern reference.
 - Status badges use muted jewel tones: error=`#FFB4AB`, progress=`#C9A84C`, resolved=`#8A9A5B`, waiting=`#9D8DF1`
 - **Login page** extends its own split-screen layout (no base.html). Left: serif hero on `#131312`. Right: Google button on `#0A0A09`.
 - Design reference: `stitch_founders_portal_lux.zip` — The Private Gallery spec
@@ -71,7 +79,7 @@ app.register_blueprint(customers_bp)
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
 - **Phase 3 🔄 (IN PROGRESS)** — Plans 01-05 deployed to VPS. Plans 06-07 remaining (Google Meet subscriber + HealthSherpa + agency_id scoping sweep).
-- **Lux Theme ✅** — login, base.html, dashboard rethemed to The Private Gallery design system (2026-04-02)
+- **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
 
 ## Phase 2.5 Pre-Code Checklist ✅ COMPLETE (2026-03-26)
 - [x] Install PostgreSQL on VPS

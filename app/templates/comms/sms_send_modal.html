@@ -36,7 +36,7 @@
         <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
           <div style="flex:1;min-width:200px;">
             <select name="template_id" class="form-control" required
-                    style="width:100%;padding:7px 10px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:13px;color:#1B2A4A;"
+                    style="width:100%;padding:7px 10px;background:var(--surface-mid);border:1px solid var(--border);color:var(--ivory);"
                     onchange="updatePreview(this)">
               <option value="">— Select a template —</option>
               {% for tmpl in approved_templates %}
@@ -52,7 +52,7 @@
     {% else %}
       <p style="font-size:13px;color:#888888;">
         No approved SMS templates available.
-        <a href="{{ url_for('comms.sms_templates_list') }}" style="color:#185FA5;">Suggest a template</a> for admin review.
+        <a href="{{ url_for('comms.sms_templates_list') }}" style="color:var(--gold);">Suggest a template</a> for admin review.
       </p>
     {% endif %}
 

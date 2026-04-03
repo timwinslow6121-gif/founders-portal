@@ -1,273 +1,833 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Founders Portal{% endblock %}
 
-{% block content %}
-
-{% if viewing_agent %}
-<div style="display:flex;align-items:center;gap:16px;background:rgba(218,196,149,0.06);border-left:2px solid rgba(218,196,149,0.3);padding:10px 16px;margin-bottom:32px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">
-  <a href="{{ url_for('main.admin_overview') }}" style="color:var(--gold);text-decoration:none;font-weight:500;white-space:nowrap;">← Agency Overview</a>
-  <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:500;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
-</div>
-{% endif %}
-
-<div class="page-header">
-  <div>
-    <h1 class="page-title">{% if viewing_agent %}{{ viewing_agent.display_name }}'s Dashboard{% else %}Dashboard{% endif %}</h1>
-    <p class="page-sub">Last import: {{ last_import or 'No imports yet' }}{% if policy_count %} · {{ policy_count }} active policies{% endif %}</p>
-  </div>
-  {% if current_user.is_admin and not viewing_agent %}
-  <a href="/upload" class="btn-primary">Upload Carrier Files</a>
-  {% endif %}
-</div>
-
-<!-- Metric cards -->
-<div class="metric-grid">
-  <div class="metric-card">
-    <div class="metric-label">Active Policies</div>
-    <div class="metric-value">{{ policy_count }}</div>
-    <div class="metric-sub">across {{ carrier_count }} carriers</div>
-  </div>
-  <div class="metric-card">
-    <div class="metric-label">Upcoming Terms (90 days)</div>
-    <div class="metric-value {% if terms_90 > 0 %}metric-value-warn{% endif %}">{{ terms_90 }}</div>
-    <div class="metric-sub">
-      {% if terms_30 > 0 %}<span style="color:var(--status-error-text);">{{ terms_30 }} under 30 days</span>
-      {% else %}none critical{% endif %}
-    </div>
-  </div>
-  <div class="metric-card">
-    <div class="metric-label">Est. Monthly Commission</div>
-    <div class="metric-value">{{ monthly_commission }}</div>
-    <div class="metric-sub">at 55% · MAPD only</div>
-  </div>
-  <div class="metric-card">
-    <div class="metric-label">Est. Annual Commission</div>
-    <div class="metric-value">{{ annual_commission }}</div>
-    <div class="metric-sub">projected from current BOB</div>
-  </div>
-</div>
-
-<!-- Carrier breakdown + commission -->
-<div class="two-col-grid">
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Policies by Carrier</span>
-      <span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--slate);">{{ policy_count }} total</span>
-    </div>
-    <div style="padding:0;">
-      {% if carrier_breakdown %}
-        {% for row in carrier_breakdown %}
-        <div class="carrier-row">
-          <div class="carrier-name">{{ row.carrier }}</div>
-          <div class="carrier-bar-wrap">
-            <div class="carrier-bar" style="width: {{ row.pct }}%;"></div>
-          </div>
-          <div class="carrier-count">{{ row.count }}</div>
-          <div class="carrier-pct">{{ row.pct }}%</div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div class="empty-cell">No policy data. Upload carrier files to populate.</div>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Commission by Carrier</span>
-      <span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--slate);">55% split · $28.91/mo MAPD</span>
-    </div>
-    <div style="padding:0;">
-      {% if carrier_breakdown %}
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Carrier</th>
-            <th>Policies</th>
-            <th>Gross/mo</th>
-            <th>Your 55%</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in carrier_breakdown %}
-          <tr>
-            <td class="fw-medium">{{ row.carrier }}</td>
-            <td>{{ row.count }}</td>
-            <td>{{ row.gross_monthly }}</td>
-            <td class="fw-medium" style="color:var(--status-resolved);">{{ row.your_monthly }}</td>
-          </tr>
-          {% endfor %}
-          <tr style="border-top:1px solid rgba(76,70,61,0.3);">
-            <td class="fw-medium" style="color:var(--ivory-bright);">Total</td>
-            <td class="fw-medium" style="color:var(--ivory-bright);">{{ policy_count }}</td>
-            <td class="fw-medium" style="color:var(--ivory-bright);">{{ total_gross_monthly }}</td>
-            <td class="fw-medium" style="color:var(--gold);">{{ monthly_commission }}</td>
-          </tr>
-        </tbody>
-      </table>
-      {% else %}
-        <div class="empty-cell">No data yet.</div>
-      {% endif %}
-    </div>
-  </div>
-
-</div>
-
-<!-- Upcoming terminations -->
-<div class="card" style="margin-top:24px;">
-  <div class="card-header">
-    <span class="card-title">Upcoming Terminations</span>
-    <span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--slate);">Next 90 days</span>
-  </div>
-  {% if upcoming_terms %}
-  <div style="padding:0;">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th style="width:22%">Member</th>
-          <th style="width:12%">DOB</th>
-          <th style="width:14%">Phone</th>
-          <th style="width:14%">Carrier</th>
-          <th style="width:18%">Plan</th>
-          <th style="width:10%">Term Date</th>
-          <th style="width:10%">Days</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in upcoming_terms %}
-        <tr class="row-urgency-{{ p.urgency_class }}">
-          <td class="fw-medium">{{ p.full_name }}</td>
-          <td class="text-muted">{{ p.dob.strftime('%m/%d/%Y') if p.dob else '—' }}</td>
-          <td>{{ p.phone or '—' }}</td>
-          <td>{{ p.carrier }}</td>
-          <td>{{ p.plan_name or '—' }}</td>
-          <td>{{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }}</td>
-          <td>
-            <span class="badge badge-{{ p.urgency_class }}">{{ p.days_until_term }}d</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="card-body">
-    <p class="empty-cell">No terminations in the next 90 days.</p>
-  </div>
-  {% endif %}
-</div>
-
-{# Upcoming Appointments — agents only #}
-{% if not viewing_agent %}
-{% include 'comms/partials/upcoming_appointments.html' %}
-{% endif %}
-
-{% endblock %}
-
-
 {% block styles %}
 <style>
-  /* Metric grid */
-  .metric-grid {
+  /* ── ENROLLMENT PERIOD BANNER ── */
+  .period-banner {
+    background: var(--surface-low);
+    border: 1px solid var(--border);
+    padding: 20px 28px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    position: relative;
+    overflow: hidden;
+    animation: fadeSlideIn 0.5s ease both;
+  }
+
+  .period-banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    opacity: 0.4;
+  }
+
+  .period-item {
+    flex: 1;
+    padding: 0 24px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .period-item:first-child { padding-left: 0; }
+  .period-item:last-child { border-right: none; padding-right: 0; }
+
+  .period-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 6px;
+  }
+
+  .period-value {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: 28px;
+    color: var(--ivory-bright);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .period-value.urgent { color: var(--status-error); }
+  .period-value.active { color: var(--status-resolved); }
+  .period-value .unit {
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--slate);
+    margin-left: 4px;
+  }
+
+  .period-sub {
+    font-size: 11px;
+    color: var(--slate);
+    font-weight: 300;
+  }
+  .period-sub .highlight { color: var(--gold); }
+
+  /* ── ADMIN BANNER ── */
+  .admin-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(218,196,149,0.06);
+    border-left: 2px solid rgba(218,196,149,0.3);
+    padding: 10px 16px;
+    margin-bottom: 24px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── METRIC CARDS ── */
+  .metrics-row {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 2px;
     margin-bottom: 24px;
   }
+
   .metric-card {
     background: var(--surface-low);
-    padding: 24px 20px;
-    border-left: 2px solid rgba(218,196,149,0.15);
+    padding: 18px 20px;
+    border-left: 2px solid transparent;
+    cursor: default;
+    animation: fadeSlideIn 0.5s ease both;
+    transition: background 0.2s;
   }
+  .metric-card:hover { background: var(--surface-mid); }
+  .metric-card:nth-child(1) { animation-delay: 0.1s; }
+  .metric-card:nth-child(2) { animation-delay: 0.15s; }
+  .metric-card:nth-child(3) { animation-delay: 0.2s; }
+  .metric-card:nth-child(4) { animation-delay: 0.25s; }
+
+  .metric-card.c-ember  { border-left-color: rgba(255,180,171,0.4); }
+  .metric-card.c-amber  { border-left-color: rgba(201,168,76,0.4); }
+  .metric-card.c-sage   { border-left-color: rgba(138,154,91,0.4); }
+
   .metric-label {
     font-size: 9px;
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--slate);
-    margin-bottom: 12px;
-  }
-  .metric-value {
-    font-family: var(--font-serif);
-    font-size: 2.2rem;
-    font-weight: 300;
-    color: var(--ivory-bright);
-    line-height: 1;
-  }
-  .metric-value-warn { color: var(--status-progress); }
-  .metric-sub {
-    font-size: 10px;
-    color: var(--slate);
-    margin-top: 8px;
-    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  /* Two-col layout */
-  .two-col-grid {
+  .metric-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .metric-number {
+    font-family: var(--font-serif);
+    font-weight: 300;
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .metric-detail {
+    font-size: 10px;
+    color: var(--slate);
+    font-weight: 300;
+    letter-spacing: 0.03em;
+  }
+
+  /* ── TWO-COLUMN LAYOUT ── */
+  .content-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 1fr 360px;
+    gap: 2px;
+    align-items: start;
+  }
+
+  /* ── PANEL ── */
+  .dash-panel {
+    background: var(--surface-low);
+    border: none;
+    animation: fadeSlideIn 0.5s ease 0.3s both;
+  }
+
+  .dash-panel + .dash-panel { margin-top: 2px; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .panel-meta {
+    font-size: 10px;
+    color: var(--slate);
+    letter-spacing: 0.03em;
+  }
+
+  .panel-filter {
+    display: flex;
     gap: 2px;
   }
 
-  /* Carrier bar rows */
-  .carrier-row {
+  .filter-btn {
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: var(--slate);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .filter-btn:hover { color: var(--ivory); }
+  .filter-btn.active { color: var(--gold); }
+
+  .panel-body {
+    max-height: 520px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-high) transparent;
+  }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--surface-high); }
+
+  /* ── TIMELINE ENTRIES ── */
+  .tl-entry {
+    display: flex;
+    gap: 12px;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .tl-entry:hover { background: var(--surface-mid); }
+  .tl-entry:last-child { border-bottom: none; }
+
+  .tl-icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+  .tl-icon.missed  { color: var(--status-error); }
+  .tl-icon.call    { color: var(--status-resolved); }
+  .tl-icon.appt    { color: var(--status-progress); }
+  .tl-icon.enroll  { color: var(--status-resolved); }
+  .tl-icon.sms     { color: var(--gold); }
+  .tl-icon.bday    { color: var(--status-error); }
+  .tl-icon.vm      { color: var(--status-error); }
+
+  .tl-body { flex: 1; min-width: 0; }
+
+  .tl-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+
+  .tl-name {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ivory);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tl-time {
+    font-size: 10px;
+    color: var(--slate);
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  .tl-desc {
+    font-size: 11px;
+    color: var(--slate);
+    font-weight: 300;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tl-tag {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 1px 6px;
+    margin-right: 5px;
+    text-transform: uppercase;
+  }
+  .tl-tag.urgent  { background: rgba(255,180,171,0.1); color: var(--status-error); }
+  .tl-tag.info    { background: rgba(157,141,241,0.1); color: var(--status-waiting); }
+  .tl-tag.success { background: rgba(138,154,91,0.1);  color: var(--status-resolved); }
+
+  /* ── TASK ITEMS ── */
+  .task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .task-item:hover { background: var(--surface-mid); }
+  .task-item:last-child { border-bottom: none; }
+
+  .task-check {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    margin-top: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .task-check:hover { border-color: var(--gold-dim); }
+  .task-check.done {
+    border-color: var(--status-resolved);
+    background: var(--status-resolved);
+  }
+  .task-check.done::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 4px;
+    width: 4px; height: 6px;
+    border: solid var(--ink);
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+  }
+
+  .task-text {
+    font-size: 12px;
+    color: var(--ivory);
+    font-weight: 300;
+    line-height: 1.4;
+    flex: 1;
+  }
+  .task-text.done-text { text-decoration: line-through; color: var(--slate); }
+
+  .task-meta {
+    font-size: 10px;
+    color: var(--slate);
+    margin-top: 2px;
+  }
+  .task-meta .overdue { color: var(--status-error); }
+
+  .task-priority {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+
+  /* ── ALERT ITEMS ── */
+  .alert-item {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 20px;
-    border-bottom: 1px solid rgba(76,70,61,0.15);
-    transition: background 0.15s ease;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .alert-item:hover { background: var(--surface-mid); }
+  .alert-item:last-child { border-bottom: none; }
+
+  .alert-bar {
+    width: 2px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  .alert-bar.critical { background: var(--status-error); }
+  .alert-bar.warning  { background: var(--status-progress); }
+  .alert-bar.info     { background: var(--status-waiting); }
+
+  .alert-content { flex: 1; min-width: 0; }
+
+  .alert-title {
+    font-size: 12px;
+    color: var(--ivory);
+    font-weight: 400;
+    margin-bottom: 2px;
+  }
+
+  .alert-detail {
+    font-size: 10px;
+    color: var(--slate);
+    font-weight: 300;
+  }
+
+  .alert-action {
+    font-size: 10px;
+    color: var(--gold-dim);
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── SEP GRID ── */
+  .sep-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .sep-cell {
+    background: var(--surface-low);
+    padding: 11px 16px;
+    transition: background 0.15s;
+    cursor: default;
+  }
+  .sep-cell:hover { background: var(--surface-mid); }
+
+  .sep-type {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin-bottom: 3px;
+  }
+
+  .sep-status {
+    font-size: 12px;
+    font-weight: 400;
+    margin-bottom: 1px;
+  }
+  .sep-status.open    { color: var(--status-resolved); }
+  .sep-status.closed  { color: var(--slate); }
+  .sep-status.limited { color: var(--status-progress); }
+
+  .sep-note {
+    font-size: 9px;
+    color: var(--slate);
+  }
+
+  /* ── RIGHT COLUMN ── */
+  .right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  /* ── CARRIER BAR ROWS (commission panel) ── */
+  .carrier-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
   }
   .carrier-row:last-child { border-bottom: none; }
   .carrier-row:hover { background: var(--surface-mid); }
+
   .carrier-name {
     font-size: 11px;
     font-weight: 500;
     color: var(--ivory);
     width: 90px;
     flex-shrink: 0;
-    letter-spacing: 0.03em;
   }
+
   .carrier-bar-wrap {
     flex: 1;
     height: 2px;
     background: rgba(76,70,61,0.3);
     overflow: hidden;
   }
+
   .carrier-bar {
     height: 100%;
     background: linear-gradient(90deg, var(--gold) 0%, var(--gold-dim) 100%);
     transition: width 0.4s ease;
   }
+
   .carrier-count {
     font-family: var(--font-serif);
     font-size: 13px;
     color: var(--ivory);
-    width: 32px;
+    width: 30px;
     text-align: right;
     flex-shrink: 0;
   }
+
   .carrier-pct {
     font-size: 10px;
     color: var(--slate);
     width: 36px;
     text-align: right;
     flex-shrink: 0;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
   }
 
-  /* Urgency row tints — subtle, ink-consistent */
-  .row-urgency-red td    { background: rgba(255,180,171,0.05); }
-  .row-urgency-amber td  { background: rgba(201,168,76,0.05); }
-  .row-urgency-yellow td { background: rgba(201,168,76,0.03); }
-  .row-urgency-red:hover td    { background: rgba(255,180,171,0.09); }
-  .row-urgency-amber:hover td  { background: rgba(201,168,76,0.09); }
-  .row-urgency-yellow:hover td { background: rgba(201,168,76,0.06); }
+  /* ── RESPONSIVE HELPERS ── */
+  @media (max-width: 640px) { .hide-sm { display: none; } }
 
-  @media (max-width: 1023px) {
-    .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .two-col-grid { grid-template-columns: 1fr; }
+  /* ── ANIMATIONS ── */
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1100px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .right-col { flex-direction: row; flex-wrap: wrap; }
+    .right-col .dash-panel { flex: 1; min-width: 280px; }
+    .metrics-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 768px) {
+    .period-banner { flex-wrap: wrap; }
+    .period-item { min-width: 50%; padding: 10px 14px; border-right: none; border-bottom: 1px solid var(--border); }
+    .period-item:nth-child(odd) { border-right: 1px solid var(--border); }
+    .period-item:last-child, .period-item:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+    .metrics-row { grid-template-columns: 1fr 1fr; gap: 2px; }
+    .metric-number { font-size: 1.8rem; }
+    .right-col { flex-direction: column; }
   }
 </style>
+{% endblock %}
+
+{% block content %}
+
+{% if viewing_agent %}
+<div class="admin-banner">
+  <a href="{{ url_for('main.admin_overview') }}" style="color:var(--gold);text-decoration:none;font-weight:500;white-space:nowrap;">← Agency Overview</a>
+  <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:500;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
+</div>
+{% endif %}
+
+<!-- ── ENROLLMENT PERIOD BANNER ── -->
+<div class="period-banner">
+  <div class="period-item">
+    <div class="period-label">MA OEP Status</div>
+    <div class="period-value urgent" id="js-oep-value">—</div>
+    <div class="period-sub">Ends <span class="highlight">March 31, 2026</span></div>
+  </div>
+  <div class="period-item">
+    <div class="period-label">Until AEP Opens</div>
+    <div class="period-value" id="js-aep-value">—</div>
+    <div class="period-sub">Oct 15 – Dec 7, 2026</div>
+  </div>
+  <div class="period-item">
+    <div class="period-label">Active BOB</div>
+    <div class="period-value active">{{ policy_count }}</div>
+    <div class="period-sub">across {{ carrier_count }} carriers{% if viewing_agent %} — {{ viewing_agent.display_name }}{% endif %}</div>
+  </div>
+  <div class="period-item">
+    <div class="period-label">Pending Terminations</div>
+    <div class="period-value {% if terms_30 > 0 %}urgent{% elif terms_90 > 0 %}{% endif %}">{{ terms_90 }}</div>
+    <div class="period-sub">
+      {% if terms_30 > 0 %}<span class="highlight">{{ terms_30 }} under 30 days</span>
+      {% else %}in next 90 days{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ── METRIC CARDS ── -->
+<div class="metrics-row">
+  <div class="metric-card c-ember">
+    <div class="metric-label"><span class="metric-dot" style="background:var(--status-error);"></span> Active Policies</div>
+    <div class="metric-number" style="color:var(--ivory-bright);">{{ policy_count }}</div>
+    <div class="metric-detail">across {{ carrier_count }} carriers</div>
+  </div>
+  <div class="metric-card c-amber">
+    <div class="metric-label"><span class="metric-dot" style="background:var(--status-progress);"></span> Upcoming Terms</div>
+    <div class="metric-number" style="color:{% if terms_90 > 0 %}var(--status-progress){% else %}var(--ivory-bright){% endif %};">{{ terms_90 }}</div>
+    <div class="metric-detail">{% if terms_30 > 0 %}{{ terms_30 }} critical (under 30d){% else %}none critical{% endif %}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label"><span class="metric-dot" style="background:var(--gold-dim);"></span> Est. Monthly Commission</div>
+    <div class="metric-number" style="color:var(--gold);">{{ monthly_commission }}</div>
+    <div class="metric-detail">at 55% · MAPD only</div>
+  </div>
+  <div class="metric-card c-sage">
+    <div class="metric-label"><span class="metric-dot" style="background:var(--status-resolved);"></span> Est. Annual Commission</div>
+    <div class="metric-number" style="color:var(--status-resolved);">{{ annual_commission }}</div>
+    <div class="metric-detail">projected from current BOB</div>
+  </div>
+</div>
+
+<!-- ── TWO-COLUMN LAYOUT ── -->
+<div class="content-grid">
+
+  <!-- ── LEFT: UNIFIED TIMELINE / CARRIER BREAKDOWN ── -->
+  <div>
+
+    <!-- Carrier breakdown -->
+    <div class="dash-panel">
+      <div class="panel-header">
+        <span class="panel-title">Policies by Carrier</span>
+        <span class="panel-meta">{{ policy_count }} total</span>
+      </div>
+      {% if carrier_breakdown %}
+        {% for row in carrier_breakdown %}
+        <div class="carrier-row">
+          <div class="carrier-name">{{ row.carrier }}</div>
+          <div class="carrier-bar-wrap">
+            <div class="carrier-bar" style="width:{{ row.pct }}%;"></div>
+          </div>
+          <div class="carrier-count">{{ row.count }}</div>
+          <div class="carrier-pct">{{ row.pct }}%</div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:24px 20px;font-size:11px;color:var(--slate);">No policy data. Upload carrier files to populate.</div>
+      {% endif %}
+    </div>
+
+    <!-- Commission table -->
+    <div class="dash-panel" style="margin-top:2px;">
+      <div class="panel-header">
+        <span class="panel-title">Commission by Carrier</span>
+        <span class="panel-meta">55% split · $28.91/mo MAPD</span>
+      </div>
+      {% if carrier_breakdown %}
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Carrier</th>
+              <th>Policies</th>
+              <th>Gross/mo</th>
+              <th>Your 55%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in carrier_breakdown %}
+            <tr>
+              <td class="fw-medium">{{ row.carrier }}</td>
+              <td>{{ row.count }}</td>
+              <td>{{ row.gross_monthly }}</td>
+              <td class="fw-medium" style="color:var(--status-resolved);">{{ row.your_monthly }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="border-top:1px solid rgba(76,70,61,0.3);">
+              <td class="fw-medium" style="color:var(--ivory-bright);">Total</td>
+              <td class="fw-medium" style="color:var(--ivory-bright);">{{ policy_count }}</td>
+              <td class="fw-medium" style="color:var(--ivory-bright);">{{ total_gross_monthly }}</td>
+              <td class="fw-medium" style="color:var(--gold);">{{ monthly_commission }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div style="padding:24px 20px;font-size:11px;color:var(--slate);">No data yet.</div>
+      {% endif %}
+    </div>
+
+    <!-- Upcoming terminations -->
+    <div class="dash-panel" style="margin-top:2px;">
+      <div class="panel-header">
+        <span class="panel-title">Upcoming Terminations</span>
+        <span class="panel-meta">Next 90 days</span>
+      </div>
+      {% if upcoming_terms %}
+      <div style="overflow-x:auto;">
+        <table class="data-table" style="min-width:520px;">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>DOB</th>
+              <th class="hide-sm">Phone</th>
+              <th>Carrier</th>
+              <th class="hide-sm">Plan</th>
+              <th>Term Date</th>
+              <th>Days</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in upcoming_terms %}
+            <tr>
+              <td class="fw-medium">{{ p.full_name }}</td>
+              <td style="color:var(--slate);">{{ p.dob.strftime('%m/%d/%Y') if p.dob else '—' }}</td>
+              <td class="hide-sm">{{ p.phone or '—' }}</td>
+              <td>{{ p.carrier }}</td>
+              <td class="hide-sm">{{ p.plan_name or '—' }}</td>
+              <td>{{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }}</td>
+              <td><span class="badge badge-{{ p.urgency_class }}">{{ p.days_until_term }}d</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div style="padding:24px 20px;font-size:11px;color:var(--slate);">No terminations in the next 90 days.</div>
+      {% endif %}
+    </div>
+
+    <!-- Upcoming appointments (agents only) -->
+    {% if not viewing_agent %}
+    {% include 'comms/partials/upcoming_appointments.html' %}
+    {% endif %}
+
+  </div>
+
+  <!-- ── RIGHT COLUMN ── -->
+  <div class="right-col">
+
+    <!-- Alerts & Terminations -->
+    <div class="dash-panel">
+      <div class="panel-header">
+        <span class="panel-title">Alerts &amp; Terminations</span>
+      </div>
+      <div class="panel-body">
+        {% if upcoming_terms %}
+          {% for p in upcoming_terms[:4] %}
+          <div class="alert-item">
+            <div class="alert-bar {% if p.urgency_class == 'red' %}critical{% elif p.urgency_class == 'amber' %}warning{% else %}info{% endif %}"></div>
+            <div class="alert-content">
+              <div class="alert-title">{{ p.full_name }} — {{ p.carrier }}</div>
+              <div class="alert-detail">Term {{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }} · {{ p.days_until_term }} days</div>
+            </div>
+            <div class="alert-action">View →</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding:20px;font-size:11px;color:var(--slate);">No critical alerts.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- NC Enrollment Windows -->
+    <div class="dash-panel">
+      <div class="panel-header">
+        <span class="panel-title">NC Enrollment Windows</span>
+        <span class="panel-meta" id="js-today-date"></span>
+      </div>
+      <div class="sep-grid">
+        <div class="sep-cell">
+          <div class="sep-type">MA OEP</div>
+          <div class="sep-status limited" id="js-oep-status">—</div>
+          <div class="sep-note">Jan 1 – Mar 31</div>
+        </div>
+        <div class="sep-cell">
+          <div class="sep-type">AEP</div>
+          <div class="sep-status closed">Closed</div>
+          <div class="sep-note">Oct 15 – Dec 7</div>
+        </div>
+        <div class="sep-cell">
+          <div class="sep-type">IEP / Turning 65</div>
+          <div class="sep-status open">Always Open</div>
+          <div class="sep-note">7-month window per client</div>
+        </div>
+        <div class="sep-cell">
+          <div class="sep-type">NC Medigap GI</div>
+          <div class="sep-status open">Open</div>
+          <div class="sep-note">Birthday rule — annual</div>
+        </div>
+        <div class="sep-cell">
+          <div class="sep-type">CSNP / DSNP</div>
+          <div class="sep-status open">Quarterly</div>
+          <div class="sep-note">Dual/chronic — continuous</div>
+        </div>
+        <div class="sep-cell">
+          <div class="sep-type">5-Star SEP</div>
+          <div class="sep-status open">Open</div>
+          <div class="sep-note">Dec 8 – Nov 30 annually</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    {% if current_user.is_admin and not viewing_agent %}
+    <div class="dash-panel">
+      <div class="panel-header">
+        <span class="panel-title">Quick Actions</span>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:8px;">
+        <a href="/upload" class="btn-primary" style="text-align:center;text-decoration:none;">Upload Carrier Files</a>
+        <a href="{{ url_for('main.admin_overview') }}" class="btn-secondary" style="text-align:center;text-decoration:none;">Agency Overview</a>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const now = new Date();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+  // Today label
+  const todayEl = document.getElementById('js-today-date');
+  if (todayEl) {
+    todayEl.textContent = monthNames[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+  }
+
+  // OEP — ends March 31 of current year
+  const oepEnd = new Date(now.getFullYear(), 2, 31);
+  const oepDiff = Math.ceil((oepEnd - now) / (1000 * 60 * 60 * 24));
+  const oepVal = document.getElementById('js-oep-value');
+  const oepStatus = document.getElementById('js-oep-status');
+  if (oepVal) {
+    if (oepDiff < 0) {
+      oepVal.textContent = 'Closed';
+      oepVal.classList.remove('urgent');
+      if (oepStatus) { oepStatus.textContent = 'Closed'; oepStatus.className = 'sep-status closed'; }
+    } else if (oepDiff === 0) {
+      oepVal.textContent = 'Closes Today';
+      if (oepStatus) { oepStatus.textContent = 'Closes Today'; oepStatus.className = 'sep-status limited'; }
+    } else if (oepDiff === 1) {
+      oepVal.textContent = 'Tomorrow';
+      if (oepStatus) { oepStatus.textContent = 'Closes Tomorrow'; oepStatus.className = 'sep-status limited'; }
+    } else {
+      oepVal.innerHTML = oepDiff + '<span class="unit">days</span>';
+      if (oepStatus) { oepStatus.textContent = oepDiff + ' days left'; oepStatus.className = 'sep-status limited'; }
+    }
+  }
+
+  // AEP — starts Oct 15 of current year
+  const aepStart = new Date(now.getFullYear(), 9, 15);
+  const aepDiff = Math.ceil((aepStart - now) / (1000 * 60 * 60 * 24));
+  const aepVal = document.getElementById('js-aep-value');
+  if (aepVal) {
+    if (aepDiff <= 0) {
+      aepVal.innerHTML = 'Open Now';
+      aepVal.style.color = 'var(--status-resolved)';
+    } else {
+      aepVal.innerHTML = aepDiff + '<span class="unit">days</span>';
+    }
+  }
+})();
+</script>
 {% endblock %}

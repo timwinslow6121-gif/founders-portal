@@ -13,43 +13,63 @@ and PRODUCT_VISION.md. Supersedes SESSION_UPDATE_2026-03-23.md entirely.
 | # | Topic | Decision | Notes |
 |---|---|---|---|
 | 1 | AI Voice Engine | **Retell AI** | Better reliability per Reddit; pay for quality over Vapi's dev flexibility |
-| 2 | Telephony | **Twilio** | Both sessions aligned; confirmed final |
+| 2 | Telephony | **Dialpad** (primary) + **Twilio** (utility only) | Dialpad is agent-facing UI — calls, SMS, desk phones, webhooks. Twilio handles edge cases only: automated SMS campaigns, Retell AI SIP trunking, robocall compliance. Twilio does NOT replace Dialpad as the phone system. |
 | 3 | PostgreSQL migration | **Not yet started — must be added as explicit phase** | Currently SQLite; multi-tenant agency_id architecture must be built into PostgreSQL from scratch, not retrofitted |
 | 4 | White-label target | **Medicare agencies only** | Pharmacies are referral partners, not SaaS customers. Remove pharmacy language from PRODUCT_VISION.md |
 | 5 | Automation platform | **Make.com** | n8n not viable on 1GB VPS; Make.com already in stack and working |
 
 ---
 
-## 1. FINAL Telephony Decision: Twilio
+## 1. FINAL Telephony Decision: Dialpad (primary) + Twilio (utility)
 
-**Decision:** Twilio replaces RingCentral as agency telephony backbone.
-Quo trial (started March 23) and Dialpad trial (started March 24) continue
-for evaluation but Twilio is the intended production platform.
+**Decision:** Two-layer telephony stack. Dialpad is the agent-facing
+platform agents actually use day to day. Twilio is the invisible utility
+layer underneath for the pieces Dialpad doesn't handle.
 
-**Why Twilio wins:**
-- Raw API access — no walled gardens, no platform restrictions
-- Native SIP trunking partner for Retell AI and Vapi
-- Pay-as-you-go — near-zero cost in off-season, scales for AEP
-- Programmatic SMS routing without per-segment gotchas
-- Automatic 100% call recording (CMS compliance requirement)
-- ~60% cost reduction vs RingCentral at equivalent volume
-- Every webhook, every call event, every SMS — fully programmable
-- One Twilio account serves all agents (no per-seat licensing)
+Twilio does NOT replace Dialpad. Twilio is NOT the primary phone system.
 
-**Migration plan:**
-- Port main Founders agency number to Twilio
-- Provision fresh local numbers for 4-5 pilot agents (~$1.15/number/mo)
-- Store `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` in VPS .env
-- Webhook URL: `https://portal.foundersinsuranceagency.com/comms/webhook/twilio`
+**Dialpad — primary agent phone system:**
+- Mobile app agents actually use for calls and SMS
+- Desktop softphone for office use
+- Shared numbers and inboxes
+- AI call summaries and transcriptions on every call
+- Call recording native (CMS compliance)
+- Webhooks fire on every call/SMS event → portal
+- BAA available in Admin Portal (sign immediately on signup)
+- Desk phone support if ever needed
+- Google Workspace native integration
+- $15/user/mo (Standard) — pilot 4 agents = $60/mo
+- Replaces RingCentral directly — same agents, same workflow, better API
 
-**Cost estimate — pending RingCentral records pull:**
-- Voice calls: ~$0.0085/min inbound, ~$0.013/min outbound
-- SMS: ~$0.0079/message
-- Phone numbers: ~$1.15/number/month
-- Full cost model to be built once RingCentral usage data is retrieved
+**Twilio — utility layer, edge cases only (~$0/mo until needed):**
+- SIP trunking to Retell AI for missed call AI handling
+- Automated outbound SMS that shouldn't come from an agent's number
+  (e.g. "your enrollment confirmation received" triggered by HealthSherpa)
+- Robocall compliance recordings if outbound campaigns ever run
+- SendGrid (owned by Twilio) — email campaigns and transactional email
+- Fallback if Dialpad API SMS limits cause issues at scale
+- Pay-as-you-go: $0 until used, pennies when used
 
-**Action item:** Pull RingCentral call/SMS volume data to build accurate
-AEP vs off-season cost comparison before canceling RingCentral.
+**Why Twilio is NOT the primary phone system:**
+Twilio is pure infrastructure — no mobile app, no softphone UI,
+no shared inbox, no agent-facing interface whatsoever. Building a
+Dialpad/Quo equivalent on raw Twilio would take months of engineering
+(WebRTC, mobile apps, real-time sync). Dialpad already built all of that.
+Use Dialpad for the UI. Use Twilio for the plumbing Dialpad can't do.
+
+**Migration from RingCentral:**
+- Port agency numbers to Dialpad (not Twilio)
+- Provision Dialpad numbers for each pilot agent
+- Store `DIALPAD_API_KEY`, `DIALPAD_WEBHOOK_SECRET` in VPS .env
+- Webhook URL: `https://portal.foundersinsuranceagency.com/comms/webhook/dialpad`
+- Keep Twilio account ready for Retell SIP + automated SMS use cases
+- Store `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` in VPS .env (separate)
+
+**Cost estimate (4 pilot agents):**
+- Dialpad Standard: 4 × $15/mo = $60/mo
+- Retell AI (AEP): ~$42-48 for entire AEP season
+- Twilio utility: ~$5-10/mo (mostly just number rental if any)
+- Total: ~$65-70/mo vs ~$180-200/mo for RingCentral equivalent
 
 ---
 
@@ -58,11 +78,11 @@ AEP vs off-season cost comparison before canceling RingCentral.
 **Architecture is identical regardless of which is chosen:**
 
 ```
-Client calls Twilio number
+Client calls Dialpad number
 ↓
-Twilio routes to AI Voice Engine (Vapi or Retell) via SIP
+If agent unavailable: Dialpad forwards via SIP to Retell AI
 ↓
-AI Voice Engine answers, conducts conversation:
+Retell AI answers, conducts conversation:
   - Triage: appointment or message?
   - If appointment: Charlotte or Kannapolis?
   - Hits Make.com mid-call → Calendly API → checks availability
@@ -109,20 +129,20 @@ Agent dashboard updated — zero manual entry
 
 ---
 
-## 3. Communication Stack — Updated for Twilio
+## 3. Communication Stack — Final
 
 | Channel | Tool | Direction | Cost |
 |---|---|---|---|
-| Phone calls (human) | Twilio | Both | ~$0.01/min |
-| Phone calls (AI) | Twilio → Vapi/Retell | Inbound missed | ~$0.07-0.08/min AI |
-| SMS (conversational) | Twilio | Both | ~$0.008/msg |
+| Phone calls (human) | **Dialpad** | Both | $15/user/mo subscription |
+| Phone calls (AI — missed) | Dialpad SIP → **Retell AI** | Inbound only | ~$0.07-0.08/min |
+| SMS (conversational) | **Dialpad** | Both | Subscription |
 | SMS (appointment reminders) | Calendly native | Outbound | Free (native) |
-| SMS (automated short) | Twilio programmatic | Outbound | ~$0.008/msg |
+| SMS (automated/system) | **Twilio** (edge case only) | Outbound | ~$0.008/msg |
 | Email (transactional/campaigns) | SendGrid | Outbound | Existing |
 | Email (pre-call ANOC summary) | Make.com → SendGrid | Outbound | Minimal |
 | Appointments | Calendly | Inbound | Existing |
 | In-person recordings | Google Meet (unique per appt) | Agent-initiated | $0 (Workspace BAA) |
-| Remote/phone recordings | Dialpad native | Both | Subscription |
+
 | Post-appt summary email | Make.com → SendGrid | Outbound | Minimal |
 | Enrollment data | HealthSherpa webhooks | Inbound | Free |
 
@@ -184,7 +204,8 @@ class Agency(db.Model):
     name                    # "Founders Insurance Agency"
     slug                    # "founders" — used in URLs
     google_workspace_domain # "foundersinsuranceagency.com"
-    twilio_account_sid      # per-agency Twilio subaccount (future)
+    dialpad_api_key         # per-agency Dialpad API key
+    twilio_account_sid      # per-agency Twilio subaccount (future, edge cases only)
     healthsherpa_agency_id  # for webhook routing
     plan_tier               # 'solo' / 'small' / 'agency' / 'enterprise'
     is_active
@@ -348,18 +369,18 @@ All queries scoped to `agent_id` + `agency_id`. Dashboard shows their data only.
 
 **Full inbound call data flow:**
 ```
-Client calls Twilio number
-→ If agent available: ring agent device
-→ If agent unavailable: route to Vapi/Retell AI
+Client calls Dialpad number
+→ If agent available: ring agent on Dialpad app (mobile/desktop)
+→ If agent unavailable: Dialpad SIP-forwards to Retell AI
 
-[AI path]
+[AI path — Retell]
 → AI conducts conversation
 → Books appointment OR takes message
 → Post-call webhook → Make.com → portal
 
-[Human path]
-→ Agent answers
-→ Call recorded by Twilio (100% recording)
+[Human path — Dialpad]
+→ Agent answers via Dialpad app
+→ Call recorded by Dialpad native recording
 → Transcript generated
 → Post-call webhook → portal
 
@@ -417,12 +438,13 @@ class CustomerPhone(db.Model):
 class CallLog(db.Model):
     id, agency_id, customer_id  # customer_id nullable if unresolved
     agent_id, household_id
-    twilio_call_sid             # Twilio's call identifier
-    vapi_call_id                # Vapi/Retell call identifier
+    dialpad_call_id             # Dialpad's call identifier (primary)
+    retell_call_id              # Retell AI call identifier (AI calls only)
+    twilio_call_sid             # Twilio SIP leg identifier (if applicable)
     direction                   # 'inbound' / 'outbound'
     from_number, to_number
     duration_seconds
-    recording_url               # Twilio recording URL
+    recording_url               # Dialpad recording URL
     transcript_url
     ai_summary                  # Vapi/Retell native summary
     ai_action_items             # JSON array
@@ -487,7 +509,7 @@ class AgentLocation(db.Model):
 
 ## 10. Phone Number Resolution Chain
 
-Every inbound Twilio webhook runs this chain:
+Every inbound Dialpad webhook runs this chain (Retell webhook for AI-handled calls):
 
 ```
 Step 1: Exact match on CustomerPhone table (scoped to agency_id)
@@ -593,9 +615,10 @@ preference. Harold knows where he wants to go.
 
 ```
 ┌─────────────────────────────────────────────┐
-│           TWILIO (Telephony)                │
-│  Phone numbers, call routing, recording     │
-│  ~$0.01/min + $1.15/number/mo               │
+│           DIALPAD (Primary Telephony)       │
+│  Agent mobile app, desktop softphone, SMS   │
+│  Call recording, AI summaries, webhooks     │
+│  $15/user/mo — agents actually use this     │
 └──────────────┬──────────────────────────────┘
                │ SIP forward when unavailable
                ▼
@@ -633,11 +656,12 @@ preference. Harold knows where he wants to go.
 ```
 
 **Total new monthly cost (AEP estimate):**
-- Twilio: ~$50-80 (pending RingCentral data pull)
-- Vapi/Retell AI: ~$42-48
+- Dialpad (4 agents): ~$60/mo
+- Retell AI: ~$42-48 for all of AEP
 - ElevenLabs voice (optional): ~$5-22
-- **Total: ~$100-150/month during AEP peak**
-- **Off-season: ~$5-10 (just number rental)**
+- Twilio (utility/SIP): ~$5-10/mo
+- **Total: ~$107-118/month during AEP peak**
+- **Off-season: ~$60-65/mo (Dialpad subscription only)**
 
 ---
 
@@ -844,7 +868,9 @@ Medicare-specific:
 **Immediate action items (this week):**
 - [ ] Pull RingCentral usage data — calls/min/SMS volume for AEP vs off-season
 - [ ] Email medicare-integrations@healthsherpa.com — get webhook docs + access
-- [ ] Provision Twilio account — get account SID, auth token
+- [ ] Sign up for Dialpad — provision numbers for pilot agents
+- [ ] Sign Dialpad BAA immediately from Admin Portal
+- [ ] Provision Twilio account (for Retell SIP + edge case SMS only)
 - [ ] Add 2GB swap file to VPS
 - [ ] Update Gunicorn config to threading model
 - [ ] Test Retell AI free trial — call own number, act as Medicare senior, evaluate quality
@@ -879,9 +905,9 @@ foreign keys into SQLite — they must land in PostgreSQL from the start.
 
 **Webhook handlers (Phase 3):**
 - [ ] HealthSherpa enrollment webhook — HIGHEST PRIORITY
-- [ ] Twilio call webhook → CallLog → phone resolution → tasks
-- [ ] Twilio SMS webhook → SmsMessage → resolution chain
-- [ ] Retell post-call webhook → CallLog + AI summary + action items
+- [ ] Dialpad call webhook → CallLog → phone resolution → tasks
+- [ ] Dialpad SMS webhook → SmsMessage → resolution chain
+- [ ] Retell post-call webhook → CallLog + AI summary (AI calls only)
 - [ ] Calendly booking webhook → customer match → pre-call brief
 - [ ] Google Meet Workspace Events webhook → transcript → CustomerNote
 
@@ -891,13 +917,13 @@ foreign keys into SQLite — they must land in PostgreSQL from the start.
 - [ ] Upcoming appointments panel
 - [ ] Unmatched call queue
 - [ ] Pre-call brief template
-- [ ] Screen pop for incoming calls (Twilio → portal → browser push)
+- [ ] Screen pop for incoming calls (Dialpad webhook → portal → browser push)
 
 ---
 
 ## 17. Open Questions / Things to Verify
 
-- [ ] Does Twilio support SIP forwarding to Retell on standard account tier?
+- [ ] Does Dialpad Standard plan support SIP forwarding to Retell? (verify during trial)
 - [ ] Does NixiHost VPS firewall need ports opened for SIP traffic?
 - [ ] HealthSherpa carrier list — confirm UHC, Humana, Aetna, BCBS NC, Devoted, Healthspring all present
 - [ ] FMO contractual requirement for MedicareCENTER vs HealthSherpa freedom to switch?
@@ -944,6 +970,7 @@ Build to the new standard from day one — don't build to the old standard and r
       `Customer.query.filter_by(id=id, agency_id=current_user.agency_id).first_or_404()`
 - [ ] HMAC signature verification on ALL webhook endpoints
       (HealthSherpa, Dialpad, Retell, Calendly, Google Meet)
+      Note: Twilio webhooks only needed if automated SMS edge cases are built
 - [ ] Flask-Limiter rate limiting — prevents DDoS and runaway webhook loops
 - [ ] Flask SECRET_KEY is a long random string — not 'dev' or any guessable value
 - [ ] Zero raw SQL f-strings — always SQLAlchemy ORM parameterized queries

@@ -16,27 +16,28 @@
        ════════════════════════════════════════ */
     :root {
       /* Surfaces — tonal depth stack */
-      --ink:          #0A0A09;   /* deepest canvas */
-      --surface:      #131312;   /* primary work surface */
-      --surface-low:  #1C1C1A;   /* sidebar, secondary zones */
-      --surface-mid:  #20201E;   /* hover states, subtle lift */
-      --surface-high: #2A2A29;   /* cards, raised elements */
-      --surface-top:  #353533;   /* highest interactive tier */
+      --ink:          #0A0A09;
+      --surface:      #131312;
+      --surface-low:  #1C1C1A;
+      --surface-mid:  #20201E;
+      --surface-high: #2A2A29;
+      --surface-top:  #353533;
 
       /* Gold — used sparingly for intent + identity */
-      --gold:         #DAC495;   /* primary accent */
-      --gold-dim:     #A08E71;   /* gradient end / secondary */
-      --gold-muted:   #9C8B6E;   /* metadata, inactive labels */
+      --gold:         #DAC495;
+      --gold-dim:     #A08E71;
+      --gold-muted:   #9C8B6E;
 
       /* Text */
-      --ivory:        #E5E2DF;   /* primary readable text */
-      --ivory-bright: #F6F4EF;   /* high-contrast headlines */
-      --slate:        #6B665C;   /* de-emphasized / metadata */
-      --on-gold:      #3C2F0C;   /* text on gold backgrounds */
+      --ivory:        #E5E2DF;
+      --ivory-bright: #F6F4EF;
+      --slate:        #6B665C;
+      --on-gold:      #3C2F0C;
 
       /* Structural */
-      --outline:      #989084;   /* subtle boundaries */
-      --outline-var:  #4C463D;   /* ghost borders at 15% opacity */
+      --outline:      #989084;
+      --outline-var:  #4C463D;
+      --border:       rgba(76,70,61,0.18);
 
       /* Status — muted jewel tones */
       --status-open:       #989084;
@@ -51,28 +52,52 @@
       --font-serif: 'Noto Serif', Georgia, serif;
       --font-sans:  'Inter', -apple-system, sans-serif;
 
+      /* Layout */
+      --sidebar-w:  220px;
+      --topbar-h:   52px;
+
       /* Elevation shadow — ambient, not structural */
       --shadow-float: 0px 24px 48px rgba(0,0,0,0.5);
     }
 
     /* ── RESET ── */
+    html, body { margin: 0; height: 100%; }
     body {
-      margin: 0;
       font-family: var(--font-sans);
       font-size: 13px;
       color: var(--ivory);
       background: var(--ink);
-      display: flex;
-      min-height: 100vh;
       -webkit-font-smoothing: antialiased;
     }
+
+    /* ════════════════════════════════════════
+       APP SHELL
+       ════════════════════════════════════════ */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ════════════════════════════════════════
+       SIDEBAR OVERLAY (mobile backdrop)
+       ════════════════════════════════════════ */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 90;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.open { display: block; }
 
     /* ════════════════════════════════════════
        SIDEBAR
        ════════════════════════════════════════ */
     .sidebar {
-      width: 220px;
-      min-width: 220px;
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
       background: var(--surface-low);
       display: flex;
       flex-direction: column;
@@ -82,14 +107,16 @@
       bottom: 0;
       z-index: 100;
       overflow-y: auto;
+      transition: transform 0.32s cubic-bezier(0.22,1,0.36,1);
     }
-    /* No scrollbar — the gallery doesn't show its seams */
+    /* No scrollbar */
     .sidebar::-webkit-scrollbar { display: none; }
     .sidebar { -ms-overflow-style: none; scrollbar-width: none; }
 
     /* Logo zone */
     .sidebar-logo {
       padding: 28px 20px 24px;
+      flex-shrink: 0;
     }
     .sidebar-logo-name {
       font-family: var(--font-serif);
@@ -125,7 +152,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 9px 20px;
+      padding: 10px 20px;
       font-size: 11px;
       font-weight: 400;
       letter-spacing: 0.12em;
@@ -134,6 +161,7 @@
       text-decoration: none;
       transition: color 0.2s ease, background 0.2s ease;
       opacity: 0.7;
+      min-height: 40px;
     }
     .nav-item:hover {
       background: var(--surface-mid);
@@ -147,7 +175,6 @@
       opacity: 1;
     }
 
-    /* Nav dot replaced with thin left rule on active */
     .nav-dot {
       width: 1px;
       height: 12px;
@@ -158,7 +185,6 @@
     .nav-item.active .nav-dot,
     .nav-item:hover .nav-dot { opacity: 1; }
 
-    /* Badge */
     .nav-badge {
       margin-left: auto;
       font-size: 9px;
@@ -171,11 +197,12 @@
 
     /* User footer */
     .sidebar-footer {
-      padding: 20px;
-      border-top: 1px solid rgba(76,70,61,0.15);
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-shrink: 0;
     }
     .sidebar-avatar {
       width: 30px;
@@ -212,10 +239,60 @@
     .sidebar-signout:hover { color: var(--status-error-text); }
 
     /* ════════════════════════════════════════
+       MOBILE TOPBAR
+       ════════════════════════════════════════ */
+    .mobile-topbar {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--topbar-h);
+      background: var(--surface-low);
+      border-bottom: 1px solid var(--border);
+      z-index: 80;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+    .hamburger {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--gold-muted);
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .hamburger:hover { color: var(--ivory); }
+    .hamburger svg { width: 20px; height: 20px; }
+
+    .topbar-brand {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--gold);
+      letter-spacing: 0.02em;
+    }
+    .topbar-brand-sub {
+      font-size: 8px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold-muted);
+      margin-left: 8px;
+      opacity: 0.7;
+    }
+
+    /* ════════════════════════════════════════
        MAIN CONTENT
        ════════════════════════════════════════ */
     .main {
-      margin-left: 220px;
+      margin-left: var(--sidebar-w);
       flex: 1;
       padding: 40px 48px;
       min-width: 0;
@@ -224,7 +301,6 @@
 
     /* ════════════════════════════════════════
        CARDS
-       No borders — tonal depth only
        ════════════════════════════════════════ */
     .card {
       background: var(--surface-low);
@@ -234,8 +310,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 14px 20px;
       background: var(--surface-high);
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .card-title {
       font-family: var(--font-serif);
@@ -247,7 +325,7 @@
     .card-body { padding: 24px 20px; }
 
     /* ════════════════════════════════════════
-       BADGES — muted jewel tones
+       BADGES
        ════════════════════════════════════════ */
     .badge {
       font-size: 9px;
@@ -257,14 +335,13 @@
       padding: 3px 8px;
       display: inline-block;
     }
-    /* Map old color names → new muted jewel tokens */
-    .badge-red     { background: rgba(255,180,171,0.1); color: var(--status-error-text); }
-    .badge-amber   { background: rgba(201,168,76,0.12); color: var(--status-progress); }
-    .badge-yellow  { background: rgba(201,168,76,0.12); color: var(--status-progress); }
-    .badge-green   { background: rgba(138,154,91,0.12); color: var(--status-resolved); }
-    .badge-blue    { background: rgba(218,196,149,0.1); color: var(--gold); }
+    .badge-red     { background: rgba(255,180,171,0.1);  color: var(--status-error-text); }
+    .badge-amber   { background: rgba(201,168,76,0.12);  color: var(--status-progress); }
+    .badge-yellow  { background: rgba(201,168,76,0.12);  color: var(--status-progress); }
+    .badge-green   { background: rgba(138,154,91,0.12);  color: var(--status-resolved); }
+    .badge-blue    { background: rgba(218,196,149,0.1);  color: var(--gold); }
     .badge-gray    { background: rgba(152,144,132,0.12); color: var(--outline); }
-    .badge-navy    { background: var(--surface-top); color: var(--ivory); }
+    .badge-navy    { background: var(--surface-top);     color: var(--ivory); }
     .badge-violet  { background: rgba(157,141,241,0.12); color: var(--status-waiting); }
 
     /* ════════════════════════════════════════
@@ -284,6 +361,7 @@
       text-decoration: none;
       display: inline-block;
       transition: opacity 0.2s ease;
+      white-space: nowrap;
     }
     .btn-primary:hover { opacity: 0.85; }
 
@@ -301,6 +379,7 @@
       text-decoration: none;
       display: inline-block;
       transition: border-color 0.2s ease, color 0.2s ease;
+      white-space: nowrap;
     }
     .btn-secondary:hover {
       border-color: rgba(218,196,149,0.4);
@@ -317,14 +396,13 @@
       border-left: 2px solid;
       letter-spacing: 0.02em;
     }
-    .alert-success { background: rgba(138,154,91,0.08); color: var(--status-resolved); border-color: rgba(138,154,91,0.4); }
-    .alert-error   { background: var(--status-error-bg); color: var(--status-error-text); border-color: rgba(255,180,171,0.4); }
-    .alert-warning { background: rgba(201,168,76,0.08); color: var(--status-progress); border-color: rgba(201,168,76,0.4); }
-    .alert-info    { background: rgba(218,196,149,0.06); color: var(--gold); border-color: rgba(218,196,149,0.3); }
+    .alert-success { background: rgba(138,154,91,0.08);   color: var(--status-resolved);   border-color: rgba(138,154,91,0.4); }
+    .alert-error   { background: var(--status-error-bg);  color: var(--status-error-text); border-color: rgba(255,180,171,0.4); }
+    .alert-warning { background: rgba(201,168,76,0.08);   color: var(--status-progress);   border-color: rgba(201,168,76,0.4); }
+    .alert-info    { background: rgba(218,196,149,0.06);  color: var(--gold);              border-color: rgba(218,196,149,0.3); }
 
     /* ════════════════════════════════════════
        DATA TABLE
-       No dividers — tonal rows only
        ════════════════════════════════════════ */
     .data-table {
       width: 100%;
@@ -341,6 +419,7 @@
       text-align: left;
       padding: 12px 20px;
       background: var(--surface-high);
+      white-space: nowrap;
     }
     .data-table td {
       padding: 12px 20px;
@@ -349,10 +428,50 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      border-bottom: 1px solid rgba(76,70,61,0.15);
+      border-bottom: 1px solid var(--border);
     }
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: var(--surface-mid); }
+
+    /* Scroll wrapper for tables on narrow screens */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ════════════════════════════════════════
+       FORM ELEMENTS
+       ════════════════════════════════════════ */
+    input[type="text"],
+    input[type="search"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    select,
+    textarea {
+      background: var(--surface-mid);
+      border: 1px solid var(--border);
+      color: var(--ivory);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      padding: 9px 12px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s ease;
+      -webkit-appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(218,196,149,0.4);
+    }
+    input::placeholder, textarea::placeholder {
+      color: var(--slate);
+    }
+    label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--slate);
+      display: block;
+      margin-bottom: 6px;
+    }
 
     /* ════════════════════════════════════════
        UTILITY
@@ -362,16 +481,17 @@
     .text-muted  { color: var(--slate); }
     .empty-cell  { text-align: center; color: var(--slate); font-size: 12px; padding: 40px 20px !important; letter-spacing: 0.05em; }
 
-    /* Page header pattern used across templates */
     .page-header {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
+      gap: 16px;
+      flex-wrap: wrap;
     }
     .page-title {
       font-family: var(--font-serif);
-      font-size: 2rem;
+      font-size: clamp(1.5rem, 3vw, 2rem);
       font-weight: 300;
       color: var(--ivory-bright);
       letter-spacing: -0.01em;
@@ -387,109 +507,193 @@
       margin: 0;
     }
 
+    /* ════════════════════════════════════════
+       RESPONSIVE — TABLET
+       ════════════════════════════════════════ */
+    @media (max-width: 1100px) {
+      .main { padding: 32px 32px; }
+    }
+
+    /* ════════════════════════════════════════
+       RESPONSIVE — MOBILE
+       sidebar becomes off-canvas drawer
+       ════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        box-shadow: 4px 0 32px rgba(0,0,0,0.6);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .mobile-topbar {
+        display: flex;
+      }
+      .main {
+        margin-left: 0;
+        padding: calc(var(--topbar-h) + 20px) 16px 32px;
+      }
+      /* Make all tables horizontally scrollable */
+      .data-table {
+        table-layout: auto;
+        min-width: 600px;
+      }
+    }
+
     {% block styles %}{% endblock %}
   </style>
 </head>
 <body>
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <div class="sidebar-logo-name">Founders Insurance</div>
-      <div class="sidebar-logo-sub">Agent Portal</div>
+
+  <!-- Mobile off-canvas overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- Mobile topbar (hamburger + brand) -->
+  <div class="mobile-topbar">
+    <button class="hamburger" onclick="openSidebar()" aria-label="Open navigation">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <line x1="3" y1="5" x2="17" y2="5"/>
+        <line x1="3" y1="10" x2="17" y2="10"/>
+        <line x1="3" y1="15" x2="17" y2="15"/>
+      </svg>
+    </button>
+    <div>
+      <span class="topbar-brand">Founders Insurance</span>
+      <span class="topbar-brand-sub">Portal</span>
     </div>
+    <div style="width:40px;"></div>{# balance the hamburger #}
+  </div>
 
-    <div class="sidebar-nav">
-      {% if current_user.is_admin %}
-      {# ── ADMIN SIDEBAR ── #}
-      <div class="nav-section-label">Agency</div>
-      <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
-        <span class="nav-dot"></span>Overview
-      </a>
-      <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>Agent Settings
-      </a>
-      <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
-        <span class="nav-dot"></span>Upload Carrier Files
-      </a>
-      <div class="nav-section-label">Commissions</div>
-      <a href="{{ url_for('commission.commission_admin') }}"
-         class="nav-item {% if 'commissions' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>Commission Audit
-      </a>
-      <div class="nav-section-label">Tools</div>
-      <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
-        <span class="nav-dot"></span>Birthday Labels
-      </a>
-      <a href="/admin/pharmacies" class="nav-item {% if '/admin/pharmacies' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>Pharmacies
-      </a>
-      <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>SMS Templates
-      </a>
-      <div class="nav-section-label">Alerts</div>
-      <a href="{{ url_for('comms.resolution_queue') }}"
-         class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>Unmatched Calls
-        {% if unmatched_call_count %}
-        <span class="nav-badge">{{ unmatched_call_count }}</span>
-        {% endif %}
-      </a>
-
-      {% else %}
-      {# ── AGENT SIDEBAR ── #}
-      <div class="nav-section-label">My Book</div>
-      <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
-        <span class="nav-dot"></span>Dashboard
-      </a>
-      <a href="/customers" class="nav-item {% if '/customers' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>Customers
-      </a>
-      <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
-        <span class="nav-dot"></span>Upcoming Terms
-      </a>
-      <div class="nav-section-label">Commissions</div>
-      <a href="{{ url_for('commission.commission_index') }}"
-         class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
-        <span class="nav-dot"></span>Commission Audit
-      </a>
-      <a href="/forecast" class="nav-item {% if request.path == '/forecast' %}active{% endif %}">
-        <span class="nav-dot"></span>Forecast
-      </a>
-      <div class="nav-section-label">Tools</div>
-      <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
-        <span class="nav-dot"></span>Birthday Labels
-      </a>
-      <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
-        <span class="nav-dot"></span>Upload BOB Files
-      </a>
-      <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>SMS Templates
-      </a>
-      <div class="nav-section-label">Alerts</div>
-      <a href="/unmatched" class="nav-item {% if request.path == '/unmatched' %}active{% endif %}">
-        <span class="nav-dot"></span>Unmatched Policies
-      </a>
-      <a href="{{ url_for('comms.resolution_queue') }}"
-         class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
-        <span class="nav-dot"></span>Unmatched Calls
-        {% if unmatched_call_count %}
-        <span class="nav-badge">{{ unmatched_call_count }}</span>
-        {% endif %}
-      </a>
-      {% endif %}
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="sidebar-avatar">{{ current_user.initials }}</div>
-      <div style="min-width:0;">
-        <div class="sidebar-user-name">{{ current_user.display_name }}</div>
-        <a href="/auth/logout" class="sidebar-signout">Sign Out</a>
+  <div class="app-shell">
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-name">Founders Insurance</div>
+        <div class="sidebar-logo-sub">Agent Portal</div>
       </div>
-    </div>
-  </nav>
 
-  <main class="main">
-    {% block content %}{% endblock %}
-  </main>
+      <div class="sidebar-nav">
+        {% if current_user.is_admin %}
+        {# ── ADMIN SIDEBAR ── #}
+        <div class="nav-section-label">Agency</div>
+        <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
+          <span class="nav-dot"></span>Overview
+        </a>
+        <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Agent Settings
+        </a>
+        <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
+          <span class="nav-dot"></span>Upload Carrier Files
+        </a>
+        <div class="nav-section-label">Commissions</div>
+        <a href="{{ url_for('commission.commission_admin') }}"
+           class="nav-item {% if 'commissions' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Commission Audit
+        </a>
+        <div class="nav-section-label">Tools</div>
+        <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
+          <span class="nav-dot"></span>Birthday Labels
+        </a>
+        <a href="/admin/pharmacies" class="nav-item {% if '/admin/pharmacies' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Pharmacies
+        </a>
+        <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>SMS Templates
+        </a>
+        <div class="nav-section-label">Alerts</div>
+        <a href="{{ url_for('comms.resolution_queue') }}"
+           class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Unmatched Calls
+          {% if unmatched_call_count %}
+          <span class="nav-badge">{{ unmatched_call_count }}</span>
+          {% endif %}
+        </a>
+
+        {% else %}
+        {# ── AGENT SIDEBAR ── #}
+        <div class="nav-section-label">My Book</div>
+        <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+          <span class="nav-dot"></span>Dashboard
+        </a>
+        <a href="/customers" class="nav-item {% if '/customers' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Customers
+        </a>
+        <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
+          <span class="nav-dot"></span>Upcoming Terms
+        </a>
+        <div class="nav-section-label">Commissions</div>
+        <a href="{{ url_for('commission.commission_index') }}"
+           class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
+          <span class="nav-dot"></span>Commission Audit
+        </a>
+        <a href="/forecast" class="nav-item {% if request.path == '/forecast' %}active{% endif %}">
+          <span class="nav-dot"></span>Forecast
+        </a>
+        <div class="nav-section-label">Tools</div>
+        <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
+          <span class="nav-dot"></span>Birthday Labels
+        </a>
+        <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
+          <span class="nav-dot"></span>Upload BOB Files
+        </a>
+        <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>SMS Templates
+        </a>
+        <div class="nav-section-label">Alerts</div>
+        <a href="/unmatched" class="nav-item {% if request.path == '/unmatched' %}active{% endif %}">
+          <span class="nav-dot"></span>Unmatched Policies
+        </a>
+        <a href="{{ url_for('comms.resolution_queue') }}"
+           class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Unmatched Calls
+          {% if unmatched_call_count %}
+          <span class="nav-badge">{{ unmatched_call_count }}</span>
+          {% endif %}
+        </a>
+        {% endif %}
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-avatar">{{ current_user.initials }}</div>
+        <div style="min-width:0;">
+          <div class="sidebar-user-name">{{ current_user.display_name }}</div>
+          <a href="/auth/logout" class="sidebar-signout">Sign Out</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main" id="mainContent">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('open');
+      document.getElementById('sidebarOverlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    // Close on nav click (mobile UX)
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        if (window.innerWidth <= 768) closeSidebar();
+      });
+    });
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeSidebar();
+    });
+  </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

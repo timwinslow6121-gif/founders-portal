@@ -2,41 +2,120 @@
 {% block title %}{{ customer.display_name }} — Founders Portal{% endblock %}
 
 {% block styles %}
-.profile-header { background: #FFFFFF; border: 0.5px solid #E2E6ED; border-radius: 12px; padding: 20px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 20px; }
-.profile-avatar { width: 48px; height: 48px; border-radius: 50%; background: #B5D4F4; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 500; color: #185FA5; flex-shrink: 0; }
-.profile-name { font-size: 20px; font-weight: 500; color: #1B2A4A; line-height: 1.2; }
-.profile-meta { font-size: 12px; color: #888888; margin-top: 4px; }
-.profile-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* ── Profile header ── */
+.profile-header {
+  background: var(--surface-low);
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.profile-avatar {
+  width: 44px;
+  height: 44px;
+  background: var(--surface-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.profile-name {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 300;
+  color: var(--ivory-bright);
+  line-height: 1.2;
+}
+.profile-meta { font-size: 11px; color: var(--slate); margin-top: 5px; }
+.profile-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+
+/* ── Profile grid ── */
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
 .profile-grid.full { grid-template-columns: 1fr; }
-.section-header { font-size: 11px; font-weight: 500; color: #4A5568; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
-.detail-row { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 0.5px solid #F4F6F9; font-size: 13px; }
+
+/* ── Section header ── */
+.section-header {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--slate); margin-bottom: 12px;
+}
+
+/* ── Detail rows ── */
+.detail-row {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+}
 .detail-row:last-child { border-bottom: none; }
-.detail-label { font-size: 11px; color: #888888; min-width: 100px; flex-shrink: 0; }
-.detail-value { color: #1B2A4A; }
-.note-item { padding: 12px 0; border-bottom: 0.5px solid #F4F6F9; }
+.detail-label { font-size: 10px; color: var(--slate); min-width: 100px; flex-shrink: 0; letter-spacing: 0.04em; }
+.detail-value { color: var(--ivory); }
+
+/* ── Notes ── */
+.note-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .note-item:last-child { border-bottom: none; }
-.note-meta { font-size: 11px; color: #888888; margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
-.note-text { font-size: 13px; color: #1B2A4A; white-space: pre-wrap; }
-.add-note-form { border-top: 0.5px solid #E2E6ED; padding-top: 16px; margin-top: 8px; }
-.note-input { width: 100%; padding: 8px 10px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; resize: vertical; min-height: 72px; }
-.note-input:focus { outline: none; border-color: #185FA5; }
-.note-controls { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
-.note-controls select { padding: 6px 10px; border: 0.5px solid #E2E6ED; border-radius: 6px; font-size: 12px; color: #1B2A4A; }
-.contact-item { padding: 10px 0; border-bottom: 0.5px solid #F4F6F9; font-size: 13px; }
+.note-meta { font-size: 10px; color: var(--slate); margin-bottom: 4px; display: flex; gap: 8px; align-items: center; letter-spacing: 0.04em; }
+.note-text { font-size: 12px; color: var(--ivory); white-space: pre-wrap; line-height: 1.6; }
+.add-note-form { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 8px; }
+.note-input {
+  width: 100%; padding: 9px 12px; background: var(--surface-mid);
+  border: 1px solid var(--border); color: var(--ivory); font-family: var(--font-sans);
+  font-size: 13px; resize: vertical; min-height: 72px; outline: none;
+  transition: border-color 0.2s;
+}
+.note-input::placeholder { color: var(--slate); }
+.note-input:focus { border-color: rgba(218,196,149,0.4); }
+.note-controls { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
+.note-controls select {
+  padding: 6px 10px; background: var(--surface-mid); border: 1px solid var(--border);
+  color: var(--ivory); font-family: var(--font-sans); font-size: 11px;
+}
+
+/* ── Contacts ── */
+.contact-item { padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
 .contact-item:last-child { border-bottom: none; }
-.contact-name { font-weight: 500; color: #1B2A4A; }
-.contact-rel { font-size: 11px; color: #888888; margin-left: 6px; }
-.aor-row { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 0.5px solid #F4F6F9; font-size: 13px; }
+.contact-name { font-weight: 500; color: var(--ivory); }
+.contact-rel { font-size: 10px; color: var(--slate); margin-left: 6px; }
+
+/* ── AOR rows ── */
+.aor-row { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
 .aor-row:last-child { border-bottom: none; }
-.add-contact-toggle { font-size: 12px; color: #185FA5; cursor: pointer; text-decoration: underline; margin-top: 8px; display: inline-block; }
-.inline-form { border-top: 0.5px solid #E2E6ED; padding-top: 12px; margin-top: 8px; display: none; }
+
+/* ── Inline forms (add contact) ── */
+.add-contact-toggle {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gold-muted); cursor: pointer; margin-top: 10px; display: inline-block;
+  transition: color 0.2s;
+}
+.add-contact-toggle:hover { color: var(--gold); }
+.inline-form { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 10px; display: none; }
 .inline-form.open { display: block; }
 .inline-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.inline-form input, .inline-form select { padding: 7px 10px; border: 0.5px solid #E2E6ED; border-radius: 6px; font-size: 12px; width: 100%; }
-.section-label { font-size: 10px; color: #888888; text-transform: uppercase; letter-spacing: 0.05em; }
-.form-control { width: 100%; padding: 8px 10px; border: 0.5px solid #E2E6ED; border-radius: 8px; font-size: 13px; color: #1B2A4A; }
-.form-control:focus { outline: none; border-color: #185FA5; }
+.inline-form input, .inline-form select {
+  padding: 8px 10px; background: var(--surface-mid); border: 1px solid var(--border);
+  color: var(--ivory); font-family: var(--font-sans); font-size: 12px; width: 100%;
+  outline: none;
+}
+.inline-form input:focus, .inline-form select:focus { border-color: rgba(218,196,149,0.4); }
+
+.section-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); }
+
+.form-control {
+  width: 100%; padding: 9px 12px; background: var(--surface-mid);
+  border: 1px solid var(--border); color: var(--ivory); font-family: var(--font-sans); font-size: 13px;
+  outline: none; transition: border-color 0.2s;
+}
+.form-control::placeholder { color: var(--slate); }
+.form-control:focus { border-color: rgba(218,196,149,0.4); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .inline-form-grid { grid-template-columns: 1fr; }
+}
 {% endblock %}
 
 {% block content %}
@@ -134,14 +213,14 @@
           {% for aor in aor_history %}
           <div class="aor-row">
             <span class="badge badge-blue">{{ aor.carrier }}</span>
-            <span style="color:#1B2A4A;flex:1;">{{ aor.plan_name or '' }}</span>
+            <span style="color:var(--ivory);flex:1;">{{ aor.plan_name or '' }}</span>
             <span class="text-muted">{{ aor.agent.display_name if aor.agent else '—' }}</span>
             <span class="text-muted">{{ aor.effective_date.strftime('%m/%d/%Y') if aor.effective_date else '' }}</span>
             {% if not aor.end_date %}<span class="badge badge-green" style="font-size:10px;">Active</span>{% endif %}
           </div>
           {% endfor %}
         {% else %}
-          <div style="color:#888;font-size:13px;">No AOR history on file.</div>
+          <div style="color:var(--slate);font-size:12px;">No AOR history on file.</div>
         {% endif %}
       </div>
     </div>
@@ -183,10 +262,10 @@
           <form method="POST" action="{{ url_for('customers.customer_toggle_sms_consent', customer_id=customer.id) }}" style="display:flex;align-items:center;gap:10px;">
             {% if customer.sms_consent_at %}
               <button type="submit" class="btn-secondary" style="padding:5px 12px;font-size:12px;">Revoke SMS Consent</button>
-              <span style="font-size:11px;color:#888888;">Customer requested opt-out? Click to revoke.</span>
+              <span style="font-size:10px;color:var(--slate);">Customer requested opt-out? Click to revoke.</span>
             {% else %}
               <button type="submit" class="btn-primary" style="padding:5px 12px;font-size:12px;">Enable SMS Consent</button>
-              <span style="font-size:11px;color:#888888;">Customer verbally consented to SMS communications.</span>
+              <span style="font-size:10px;color:var(--slate);">Customer verbally consented to SMS communications.</span>
             {% endif %}
           </form>
         </div>
@@ -248,14 +327,14 @@
               <span>{{ note.agent.display_name if note.agent else '—' }}</span>
               <span>{{ note.created_at.strftime('%b %d, %Y %I:%M %p') if note.created_at else '' }}</span>
               {% if note.source_url %}
-                <a href="{{ note.source_url }}" target="_blank" style="font-size:11px;color:#185FA5;">View transcript</a>
+                <a href="{{ note.source_url }}" target="_blank" style="font-size:10px;color:var(--gold);">View transcript</a>
               {% endif %}
             </div>
             <div class="note-text">{{ note.note_text or '' }}</div>
           </div>
           {% endfor %}
         {% else %}
-          <div style="color:#888;font-size:13px;padding-top:12px;">No notes yet.</div>
+          <div style="color:var(--slate);font-size:12px;padding-top:12px;">No notes yet.</div>
         {% endif %}
       </div>
     </div>
@@ -271,7 +350,7 @@
           <span class="contact-name">{{ c.contact_name }}</span>
           {% if c.relationship %}<span class="contact-rel">{{ c.relationship }}</span>{% endif %}
           {% if c.is_primary %}<span class="badge badge-blue" style="font-size:10px;margin-left:4px;">Primary</span>{% endif %}
-          <div style="font-size:12px;color:#888888;margin-top:2px;">
+          <div style="font-size:11px;color:var(--slate);margin-top:2px;">
             {% if c.phone %}{{ c.phone }}{% endif %}
             {% if c.email %} &middot; {{ c.email }}{% endif %}
           </div>
@@ -313,7 +392,7 @@
       </div>
       <div class="card-body">
         <form method="POST" action="{{ url_for('customers.customer_link_pharmacy', customer_id=customer.id) }}" style="display:flex;gap:8px;align-items:center;">
-          <select name="pharmacy_id" style="flex:1;padding:7px 10px;border:0.5px solid #E2E6ED;border-radius:6px;font-size:13px;">
+          <select name="pharmacy_id" style="flex:1;padding:7px 10px;background:var(--surface-mid);border:1px solid var(--border);color:var(--ivory);font-family:var(--font-sans);font-size:13px;">
             <option value="">— No pharmacy —</option>
             {% for ph in pharmacies %}
             <option value="{{ ph.id }}" {{ 'selected' if customer.pharmacy_id == ph.id }}>{{ ph.name }}</option>
@@ -322,7 +401,7 @@
           <button type="submit" class="btn-secondary" style="padding:7px 14px;font-size:12px;">Update</button>
         </form>
         {% if current_user.is_admin %}
-          <div style="margin-top:8px;"><a href="{{ url_for('pharmacies.pharmacy_list') }}" style="font-size:12px;color:#185FA5;">Manage pharmacies</a></div>
+          <div style="margin-top:8px;"><a href="{{ url_for('pharmacies.pharmacy_list') }}" style="font-size:11px;color:var(--gold);">Manage pharmacies</a></div>
         {% endif %}
       </div>
     </div>

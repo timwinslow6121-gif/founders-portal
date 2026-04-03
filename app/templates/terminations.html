@@ -1,55 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Upcoming Terminations{% endblock %}
 {% block styles %}
-.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
-.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
-.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
-.filter-tabs{display:flex;gap:4px}
-.filter-tab{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:500;text-decoration:none;border:0.5px solid #E2E6ED;color:#4A5568;background:#fff;display:flex;align-items:center;gap:6px}
-.filter-tab:hover{background:#F4F6F9}
-.filter-tab.active{background:#1B2A4A;color:#fff;border-color:#1B2A4A}
-.filter-tab .count{font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(255,255,255,0.2)}
-.filter-tab:not(.active) .count{background:#F4F6F9;color:#4A5568}
-.filter-tab.tab-critical.active{background:#A32D2D;border-color:#A32D2D}
-.filter-tab.tab-warning.active{background:#854F0B;border-color:#854F0B}
-.filter-tab.tab-watch.active{background:#633806;border-color:#633806}
-.toolbar-right{display:flex;align-items:center;gap:8px}
-.carrier-select{padding:6px 10px;border:0.5px solid #E2E6ED;border-radius:8px;font-size:12px;color:#1B2A4A;background:#fff;cursor:pointer}
-.btn-export{background:#F4F6F9;color:#1B2A4A;border:0.5px solid #E2E6ED;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.btn-export:hover{background:#E2E6ED}
-.card{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden}
-.data-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
-.data-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 16px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
-.data-table td{padding:9px 16px;border-bottom:0.5px solid #E2E6ED;color:#1B2A4A;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.data-table tr:last-child td{border-bottom:none}
-.row-red td{background:#FCEBEB}
-.row-amber td{background:#FAEEDA}
-.row-yellow td{background:#FFF2CC}
-.row-red:hover td{background:#f5d5d5}
-.row-amber:hover td{background:#f0dcc0}
-.row-yellow:hover td{background:#f5e8a0}
-.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
-.badge-red{background:#FCEBEB;color:#A32D2D}
-.badge-amber{background:#FAEEDA;color:#854F0B}
-.badge-yellow{background:#FFF2CC;color:#633806}
-.badge-green{background:#EAF3DE;color:#2D6A4F}
-.empty-state{padding:48px 20px;text-align:center;color:#888;font-size:13px}
-.summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.summary-card{border-radius:8px;padding:12px 16px}
-.summary-card.all{background:#F4F6F9}
-.summary-card.critical{background:#FCEBEB}
-.summary-card.warning{background:#FAEEDA}
-.summary-card.watch{background:#FFF2CC}
-.summary-label{font-size:11px;color:#4A5568;margin-bottom:4px}
-.summary-card.critical .summary-label{color:#A32D2D}
-.summary-card.warning .summary-label{color:#854F0B}
-.summary-card.watch .summary-label{color:#633806}
-.summary-value{font-size:24px;font-weight:500;color:#1B2A4A}
-.summary-sub{font-size:11px;color:#888;margin-top:2px}
+.toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+.filter-tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+.filter-tab {
+  padding: 7px 14px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  text-decoration: none; border: 1px solid var(--border); color: var(--gold-muted);
+  display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+}
+.filter-tab:hover { border-color: rgba(218,196,149,0.35); color: var(--gold); }
+.filter-tab.active { background: var(--surface-high); color: var(--gold); border-color: rgba(218,196,149,0.3); }
+.filter-tab.tab-critical.active { color: var(--status-error); border-color: rgba(255,180,171,0.35); }
+.filter-tab.tab-warning.active  { color: var(--status-progress); border-color: rgba(201,168,76,0.35); }
+.filter-tab.tab-watch.active    { color: var(--status-waiting); border-color: rgba(157,141,241,0.35); }
+.filter-tab .count {
+  font-size: 9px; padding: 1px 5px; background: rgba(218,196,149,0.1); color: var(--gold);
+}
+.toolbar-right { display: flex; align-items: center; gap: 8px; }
+.carrier-select {
+  padding: 7px 10px; background: var(--surface-mid); border: 1px solid var(--border);
+  color: var(--ivory); font-family: var(--font-sans); font-size: 11px; cursor: pointer;
+}
+.btn-export {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--gold-muted); text-decoration: none; padding: 7px 12px; border: 1px solid var(--border);
+  display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;
+}
+.btn-export:hover { border-color: rgba(218,196,149,0.35); color: var(--gold); }
+
+/* Row urgency tints — Lux style */
+.row-red td    { background: rgba(255,180,171,0.06); }
+.row-amber td  { background: rgba(201,168,76,0.06); }
+.row-yellow td { background: rgba(157,141,241,0.04); }
+.row-red:hover td    { background: rgba(255,180,171,0.10); }
+.row-amber:hover td  { background: rgba(201,168,76,0.10); }
+.row-yellow:hover td { background: rgba(157,141,241,0.07); }
+
+.empty-state { padding: 48px 20px; text-align: center; color: var(--slate); font-size: 12px; }
+
+.summary-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; margin-bottom: 24px; }
+.summary-card { background: var(--surface-low); padding: 16px 18px; }
+.summary-card.critical { border-top: 2px solid var(--status-error); }
+.summary-card.warning  { border-top: 2px solid var(--status-progress); }
+.summary-card.watch    { border-top: 2px solid var(--status-waiting); }
+.summary-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
+.summary-card.critical .summary-label { color: var(--status-error); }
+.summary-card.warning  .summary-label { color: var(--status-progress); }
+.summary-card.watch    .summary-label { color: var(--status-waiting); }
+.summary-value { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300; color: var(--ivory-bright); line-height: 1; }
+.summary-sub { font-size: 10px; color: var(--slate); margin-top: 6px; }
+
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll .data-table { min-width: 640px; }
+
+@media (max-width: 768px) {
+  .summary-bar { grid-template-columns: 1fr 1fr; }
+  .toolbar { flex-direction: column; align-items: flex-start; }
+  .filter-tabs { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
 {% endblock %}
 {% block content %}
 
-<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
+<div class="page-header">
   <div>
     <h1 class="page-title">Upcoming Terminations</h1>
     <p class="page-sub">Active policies with term dates in the next 90 days</p>
@@ -117,6 +129,7 @@
 {# Table #}
 <div class="card">
   {% if terms %}
+  <div class="table-scroll">
   <table class="data-table">
     <colgroup>
       <col style="width:18%"><col style="width:9%"><col style="width:11%">
@@ -158,6 +171,7 @@
       {% endfor %}
     </tbody>
   </table>
+  </div>
   {% else %}
   <div class="empty-state">
     {% if counts.all == 0 %}

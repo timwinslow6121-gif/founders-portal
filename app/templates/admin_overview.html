@@ -1,40 +1,170 @@
 {% extends "base.html" %}
 {% block title %}Agency Overview{% endblock %}
+
 {% block styles %}
-.page-title{font-size:22px;font-weight:500;color:#1B2A4A;margin:0 0 2px}
-.page-sub{font-size:12px;color:#4A5568;margin:0 0 20px}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-.metric{background:#F4F6F9;border-radius:8px;padding:12px 14px}
-.metric-label{font-size:11px;color:#4A5568;margin-bottom:6px}
-.metric-value{font-size:22px;font-weight:500;color:#1B2A4A}
-.metric-sub{font-size:11px;color:#4A5568;margin-top:2px}
-.metric-sub.warn{color:#A32D2D}
-.section{background:#fff;border:0.5px solid #E2E6ED;border-radius:12px;overflow:hidden;margin-bottom:20px}
-.section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:0.5px solid #E2E6ED}
-.section-title{font-size:14px;font-weight:500;color:#1B2A4A}
-.section-meta{font-size:12px;color:#4A5568}
-.agent-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
-.agent-table th{font-size:11px;font-weight:500;color:#4A5568;text-align:left;padding:8px 16px;border-bottom:0.5px solid #E2E6ED;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap}
-.agent-table td{padding:9px 16px;border-bottom:0.5px solid #E2E6ED;color:#1B2A4A;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.agent-table tr:last-child td{border-bottom:none}
-.agent-table tr:hover td{background:#F4F6F9}
-.avatar{width:28px;height:28px;border-radius:50%;background:#B5D4F4;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#185FA5;flex-shrink:0;vertical-align:middle;margin-right:8px}
-.bar-wrap{background:#F4F6F9;border-radius:99px;height:6px;width:100%;margin-top:4px}
-.bar-fill{background:#185FA5;border-radius:99px;height:6px}
-.carrier-tag{font-size:10px;background:#E6F1FB;color:#185FA5;padding:1px 6px;border-radius:99px;font-weight:500;margin-right:3px}
-.badge{font-size:11px;font-weight:500;padding:2px 8px;border-radius:99px;display:inline-block}
-.badge-red{background:#FCEBEB;color:#A32D2D}
-.badge-amber{background:#FAEEDA;color:#854F0B}
-.badge-green{background:#EAF3DE;color:#3B6D11}
-.carrier-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:16px}
-.carrier-card{background:#F4F6F9;border-radius:8px;padding:10px 12px;text-align:center}
-.carrier-name{font-size:11px;color:#4A5568;margin-bottom:4px}
-.carrier-count{font-size:18px;font-weight:500;color:#1B2A4A}
-.carrier-pct{font-size:11px;color:#888;margin-top:2px}
+/* ── Metric grid ── */
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  margin-bottom: 24px;
+}
+.metric {
+  background: var(--surface-low);
+  padding: 22px 18px;
+  border-left: 2px solid rgba(218,196,149,0.12);
+}
+.metric-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 10px;
+}
+.metric-value {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 300;
+  color: var(--ivory-bright);
+  line-height: 1;
+}
+.metric-sub {
+  font-size: 10px;
+  color: var(--slate);
+  margin-top: 7px;
+  letter-spacing: 0.04em;
+}
+.metric-sub.warn { color: var(--status-error-text); }
+
+/* ── Agent avatar ── */
+.agent-avatar {
+  width: 26px;
+  height: 26px;
+  background: var(--surface-top);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 10px;
+  font-style: italic;
+  color: var(--gold);
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* ── Bar chart ── */
+.bar-wrap {
+  background: rgba(76,70,61,0.3);
+  height: 2px;
+  width: 100%;
+  margin-top: 5px;
+  overflow: hidden;
+}
+.bar-fill {
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-dim) 100%);
+  height: 100%;
+}
+
+/* ── Carrier tags ── */
+.carrier-tag {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: rgba(218,196,149,0.1);
+  color: var(--gold);
+  padding: 2px 7px;
+  display: inline-block;
+  margin-right: 3px;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+/* ── Carrier grid ── */
+.carrier-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+  padding: 2px;
+}
+.carrier-card {
+  background: var(--surface-mid);
+  padding: 16px 14px;
+  text-align: center;
+}
+.carrier-card-name {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 8px;
+}
+.carrier-card-count {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 300;
+  color: var(--ivory-bright);
+  line-height: 1;
+}
+.carrier-card-pct {
+  font-size: 10px;
+  color: var(--slate);
+  margin-top: 4px;
+}
+
+/* ── Agent breakdown table ── */
+.agent-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 720px;
+}
+.agent-table th {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-align: left;
+  padding: 11px 16px;
+  background: var(--surface-high);
+  white-space: nowrap;
+}
+.agent-table td {
+  padding: 11px 16px;
+  color: var(--ivory);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+.agent-table tr:last-child td { border-bottom: none; }
+.agent-table tr:hover td { background: var(--surface-mid); }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .carrier-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .metrics { grid-template-columns: 1fr 1fr; gap: 2px; }
+  .metric { padding: 16px 14px; }
+  .metric-value { font-size: 1.6rem; }
+  .carrier-grid { grid-template-columns: repeat(2, 1fr); }
+}
 {% endblock %}
+
 {% block content %}
-<h1 class="page-title">Agency Overview</h1>
-<p class="page-sub">All agents · {{ today.strftime('%B %d, %Y') }}</p>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Agency Overview</h1>
+    <p class="page-sub">All agents · {{ today.strftime('%B %d, %Y') }}</p>
+  </div>
+</div>
 
 <div class="metrics">
   <div class="metric">
@@ -59,63 +189,66 @@
   </div>
 </div>
 
-<div class="section">
-  <div class="section-header">
-    <span class="section-title">Carrier Breakdown — Agency</span>
-    <span class="section-meta">{{ total_policies }} total policies</span>
+<div class="card" style="margin-bottom:2px;">
+  <div class="card-header">
+    <span class="card-title">Carrier Breakdown</span>
+    <span class="text-muted" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">{{ total_policies }} total</span>
   </div>
   <div class="carrier-grid">
     {% for row in agency_carrier_rows %}
     <div class="carrier-card">
-      <div class="carrier-name">{{ row.carrier }}</div>
-      <div class="carrier-count">{{ "{:,}".format(row.count) }}</div>
-      <div class="carrier-pct">{{ row.pct }}%</div>
+      <div class="carrier-card-name">{{ row.carrier }}</div>
+      <div class="carrier-card-count">{{ "{:,}".format(row.count) }}</div>
+      <div class="carrier-card-pct">{{ row.pct }}%</div>
     </div>
     {% endfor %}
   </div>
 </div>
 
-<div class="section">
-  <div class="section-header">
-    <span class="section-title">Agent Breakdown</span>
-    <span class="section-meta">{{ agent_rows|length }} agents</span>
+<div class="card" style="margin-top:2px;">
+  <div class="card-header">
+    <span class="card-title">Agent Breakdown</span>
+    <span class="text-muted" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">{{ agent_rows|length }} agents</span>
   </div>
-  <table class="agent-table">
-    <colgroup>
-      <col style="width:180px"><col style="width:90px"><col style="width:150px">
-      <col style="width:110px"><col style="width:120px"><col style="width:120px"><col style="width:180px">
-    </colgroup>
-    <thead>
-      <tr>
-        <th>Agent</th><th>Policies</th><th>Share of Book</th>
-        <th>Terms &lt;30d</th><th>Monthly Est.</th><th>Annual Est.</th><th>Top Carriers</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in agent_rows %}
-      <tr>
-        <td>
-          <a href="{{ url_for('main.agent_detail', agent_id=row.agent.id) }}" style="text-decoration:none;display:inline-flex;align-items:center;">
-            <span class="avatar">{{ row.agent.initials }}</span>
-            <span style="font-weight:500;color:#185FA5;">{{ row.agent.display_name }}</span>
-          </a>
-        </td>
-        <td style="font-weight:500">{{ "{:,}".format(row.count) }}</td>
-        <td>
-          <div style="font-size:11px;color:#4A5568;margin-bottom:3px">{{ row.pct_of_agency }}%</div>
-          <div class="bar-wrap"><div class="bar-fill" style="width:{{ row.pct_of_agency }}%"></div></div>
-        </td>
-        <td>
-          {% if row.terms_30 > 0 %}<span class="badge badge-red">{{ row.terms_30 }} critical</span>
-          {% elif row.terms_90 > 0 %}<span class="badge badge-amber">{{ row.terms_90 }} upcoming</span>
-          {% else %}<span class="badge badge-green">None</span>{% endif %}
-        </td>
-        <td style="font-weight:500">{{ row.monthly_yours }}</td>
-        <td style="font-weight:500">{{ row.annual_yours }}</td>
-        <td>{% for carrier, count in row.top_carriers %}<span class="carrier-tag">{{ carrier }} {{ count }}</span>{% endfor %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="agent-table-scroll">
+    <table class="agent-table">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Policies</th>
+          <th style="width:140px">Share of Book</th>
+          <th>Terms &lt;30d</th>
+          <th>Monthly Est.</th>
+          <th>Annual Est.</th>
+          <th>Top Carriers</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in agent_rows %}
+        <tr>
+          <td>
+            <a href="{{ url_for('main.agent_detail', agent_id=row.agent.id) }}" style="text-decoration:none;display:inline-flex;align-items:center;">
+              <span class="agent-avatar">{{ row.agent.initials }}</span>
+              <span style="font-weight:500;color:var(--gold);">{{ row.agent.display_name }}</span>
+            </a>
+          </td>
+          <td class="fw-medium">{{ "{:,}".format(row.count) }}</td>
+          <td>
+            <div style="font-size:10px;color:var(--slate);margin-bottom:4px;">{{ row.pct_of_agency }}%</div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:{{ row.pct_of_agency }}%"></div></div>
+          </td>
+          <td>
+            {% if row.terms_30 > 0 %}<span class="badge badge-red">{{ row.terms_30 }} critical</span>
+            {% elif row.terms_90 > 0 %}<span class="badge badge-amber">{{ row.terms_90 }} upcoming</span>
+            {% else %}<span class="badge badge-green">None</span>{% endif %}
+          </td>
+          <td class="fw-medium" style="color:var(--status-resolved);">{{ row.monthly_yours }}</td>
+          <td class="fw-medium">{{ row.annual_yours }}</td>
+          <td>{% for carrier, count in row.top_carriers %}<span class="carrier-tag">{{ carrier }} {{ count }}</span>{% endfor %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

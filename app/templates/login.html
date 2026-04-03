@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Founders Insurance — Private Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -146,13 +146,15 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 48px 32px;
+      padding: 48px 24px;
+      padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
       background: var(--surface);
       position: relative;
-      overflow: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     @media (min-width: 1024px) {
-      .panel-right { background: var(--ink); }
+      .panel-right { background: var(--ink); padding: 48px 32px; }
     }
 
     /* Large ghost letters behind form */
@@ -172,7 +174,7 @@
 
     .form-wrap {
       width: 100%;
-      max-width: 400px;
+      max-width: 380px;
       position: relative;
       z-index: 1;
     }
@@ -242,15 +244,20 @@
       border: none;
       color: #1F2937;
       font-family: 'Inter', sans-serif;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       letter-spacing: 0.02em;
       cursor: pointer;
       text-decoration: none;
-      transition: background 0.2s ease, opacity 0.2s ease;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .google-btn:hover { background: #F1F5F9; }
-    .google-btn:active { opacity: 0.85; }
+    .google-btn:active { background: #E8EDF2; }
+    /* Touch target sizing */
+    @media (max-width: 768px) {
+      .google-btn { padding: 18px 24px; font-size: 15px; }
+    }
     .google-icon { width: 18px; height: 18px; flex-shrink: 0; }
 
     /* Below-button meta */

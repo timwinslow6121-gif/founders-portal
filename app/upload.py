@@ -1,9 +1,9 @@
 """
 app/upload.py
 
-Admin-only blueprint for carrier BOB file uploads.
-Handles file validation, parsing dispatch, and database upsert.
-Only users with is_admin == True can access these routes.
+Blueprint for carrier BOB file uploads. Available to all agents and admins.
+Agents upload their own BOB and see only their own import history.
+Admins see all import history across all agents.
 """
 
 import os
@@ -146,31 +146,17 @@ ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 MAX_FILE_BYTES = 50 * 1024 * 1024  # 50 MB
 
 
-def _admin_required(f):
-    """Decorator: redirect non-admin users to dashboard with a flash message."""
-    from functools import wraps
-
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash("Access denied. Admin privileges required.", "error")
-            return redirect(url_for("main.dashboard"))
-        return f(*args, **kwargs)
-
-    return decorated
-
-
 @upload_bp.route("/upload", methods=["GET"])
 @login_required
-@_admin_required
 def upload_page():
-    """Render the carrier file upload page with recent import history."""
-    recent_batches = (
-        ImportBatch.query
-        .order_by(ImportBatch.upload_date.desc())
-        .limit(20)
-        .all()
-    )
+    """Render the carrier file upload page with recent import history.
+
+    Agents see only their own batches; admins see all.
+    """
+    q = ImportBatch.query.filter_by(agency_id=current_user.agency_id)
+    if not current_user.is_admin:
+        q = q.filter_by(uploaded_by_id=current_user.id)
+    recent_batches = q.order_by(ImportBatch.upload_date.desc()).limit(20).all()
     return render_template(
         "upload.html",
         carriers=SUPPORTED_CARRIERS,
@@ -180,7 +166,6 @@ def upload_page():
 
 @upload_bp.route("/upload", methods=["POST"])
 @login_required
-@_admin_required
 def process_upload():
     """
     Accept a carrier BOB file upload, parse it, and upsert into the Policy table.
@@ -225,8 +210,11 @@ def process_upload():
         flash("File exceeds the 50 MB size limit.", "error")
         return redirect(url_for("upload.upload_page"))
 
-    # Capture agency_id once from current_user for use throughout this upload
+    # Capture context once from current_user for use throughout this upload
     upload_agency_id = current_user.agency_id
+    # For agent uploads: policies and customers are attributed to the uploader.
+    # For admin uploads: agent_id stays None here — admin matches via carrier file later.
+    upload_agent_id = current_user.id if not current_user.is_admin else None
 
     # Create an ImportBatch record immediately so we can track errors
     batch = ImportBatch(
@@ -296,10 +284,13 @@ def process_upload():
             existing.status = rec["status"]
             existing.last_seen_date = today
             existing.import_batch_id = batch.id
+            if upload_agent_id:
+                existing.agent_id = upload_agent_id
             updated_count += 1
         else:
             policy = Policy(
                 agency_id=upload_agency_id,
+                agent_id=upload_agent_id,
                 carrier=rec["carrier"],
                 member_id=rec["member_id"],
                 mbi=rec["mbi"],
@@ -327,10 +318,11 @@ def process_upload():
             new_count += 1
 
         # Upsert the customer master record from this policy row
+        effective_agent_id = upload_agent_id or (existing.agent_id if existing else None)
         try:
             _upsert_customer_from_policy(
                 rec,
-                existing.agent_id if existing else None,
+                effective_agent_id,
                 batch.id,
                 upload_agency_id,
             )
@@ -362,15 +354,15 @@ def process_upload():
 
 @upload_bp.route("/upload/history")
 @login_required
-@_admin_required
 def import_history():
-    """JSON endpoint — returns recent import batches for the history table."""
-    batches = (
-        ImportBatch.query
-        .order_by(ImportBatch.upload_date.desc())
-        .limit(50)
-        .all()
-    )
+    """JSON endpoint — returns recent import batches for the history table.
+
+    Agents see only their own batches; admins see all.
+    """
+    q = ImportBatch.query.filter_by(agency_id=current_user.agency_id)
+    if not current_user.is_admin:
+        q = q.filter_by(uploaded_by_id=current_user.id)
+    batches = q.order_by(ImportBatch.upload_date.desc()).limit(50).all()
     return jsonify([
         {
             "id": b.id,
@@ -434,7 +426,6 @@ def _detect_carrier(filepath: str, filename: str) -> str:
 
 @upload_bp.route("/upload/bulk", methods=["POST"])
 @login_required
-@_admin_required
 def bulk_upload():
     today = date.today()
     upload_dir = os.path.join(current_app.instance_path, "uploads")

@@ -629,6 +629,9 @@
         <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
           <span class="nav-dot"></span>Birthday Labels
         </a>
+        <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
+          <span class="nav-dot"></span>Upload BOB Files
+        </a>
         <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>SMS Templates
         </a>

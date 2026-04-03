@@ -407,3 +407,64 @@ def test_calendly_unmatched_creates_unmatched_call(client, db_session, agent_use
     from app.models import UnmatchedCall
     uc = UnmatchedCall.query.filter_by(provider="calendly").first()
     assert uc is not None
+
+
+# ---------------------------------------------------------------------------
+# HealthSherpa tests (Plan 06)
+# ---------------------------------------------------------------------------
+
+HEALTHSHERPA_ENROLLMENT_PAYLOAD = {
+    "event_type": "enrollment_submitted",
+    "id": "hs-enroll-001",
+    "member": {
+        "first_name": "John",
+        "last_name": "Doe",
+        "phone": "7705551234",
+    },
+    "plan": {
+        "carrier_name": "UHC",
+        "plan_name": "AARP MedicareComplete",
+    },
+    "agent_npn": "12345",
+}
+
+
+def test_healthsherpa_enrollment_creates_note(client, db_session, customer, agent_user):
+    """
+    POST /comms/webhook/healthsherpa with a known customer phone must create
+    CustomerNote(note_type='healthsherpa_enrollment').
+    """
+    with patch("app.comms.webhooks._verify_healthsherpa", return_value=None):
+        resp = client.post(
+            "/comms/webhook/healthsherpa",
+            data=json.dumps(HEALTHSHERPA_ENROLLMENT_PAYLOAD),
+            content_type="application/json",
+        )
+    assert resp.status_code == 200
+    from app.models import CustomerNote
+    note = CustomerNote.query.filter_by(note_type="healthsherpa_enrollment").first()
+    assert note is not None
+    assert "UHC" in note.note_text
+
+
+def test_healthsherpa_unknown_member_creates_unmatched(client, db_session, agent_user):
+    """
+    POST /comms/webhook/healthsherpa with a phone not in the Customer table
+    must create UnmatchedCall(provider='healthsherpa').
+    """
+    payload = {
+        "event_type": "enrollment_submitted",
+        "id": "hs-enroll-999",
+        "member": {"first_name": "Unknown", "last_name": "Person", "phone": "5550000000"},
+        "plan": {"carrier_name": "Aetna", "plan_name": "Unknown Plan"},
+    }
+    with patch("app.comms.webhooks._verify_healthsherpa", return_value=None):
+        resp = client.post(
+            "/comms/webhook/healthsherpa",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+    assert resp.status_code == 200
+    from app.models import UnmatchedCall
+    uc = UnmatchedCall.query.filter_by(provider="healthsherpa").first()
+    assert uc is not None

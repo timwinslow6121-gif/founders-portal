@@ -1,0 +1,17 @@
+[Unit]
+Description=Google Meet Pub/Sub Transcript Subscriber
+After=network.target founders-portal.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/founders-portal
+EnvironmentFile=/var/www/founders-portal/.env
+ExecStart=/var/www/founders-portal/venv/bin/python app/scripts/meet_subscriber.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

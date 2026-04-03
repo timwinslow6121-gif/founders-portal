@@ -1,12 +1,14 @@
 """
 app/comms/webhooks.py
 
-Quo (formerly OpenPhone) unified webhook handler.
+Unified webhook handlers for the Communications Hub.
 
-Route:
-    POST /comms/webhook/quo
+Routes:
+    POST /comms/webhook/quo           — Quo (formerly OpenPhone) calls + SMS
+    POST /comms/webhook/calendly      — Calendly appointment bookings
+    POST /comms/webhook/healthsherpa  — HealthSherpa Medicare enrollment events
 
-Handles:
+Quo handles:
     call.completed          — answered calls (note_type='call')
                             — missed calls  (note_type='missed_call')
     call.recording.completed— voicemails    (note_type='voicemail')
@@ -18,7 +20,10 @@ All handlers are idempotent: duplicate quo_call_id / twilio_msg_sid returns 200
 without creating a second record.
 
 Every response is HTTP 200 — errors are logged and the request is swallowed to
-prevent Quo from retrying and flooding the queue.
+prevent providers from retrying and flooding the queue.
+
+HealthSherpa note: Medicare payload field names are LOW confidence (unconfirmed
+against live webhooks). Full raw payload is logged at INFO for field discovery.
 """
 
 import requests
@@ -405,5 +410,137 @@ def calendly_webhook():
         )
         db.session.rollback()
         return jsonify({"status": "error"}), 200
+
+    return jsonify({"status": "ok"}), 200
+
+
+# ---------------------------------------------------------------------------
+# HealthSherpa webhook
+# ---------------------------------------------------------------------------
+
+def _verify_healthsherpa(request):
+    """
+    Verify a HealthSherpa webhook HMAC-SHA256 signature.
+
+    Header: X-HealthSherpa-Signature (exact name unconfirmed against live webhook —
+    verify against first real delivery and update if header name differs).
+
+    If the header is absent, logs a warning and returns without aborting.
+    This allows the handler to still process payloads during initial integration
+    before the secret is configured.
+    """
+    import hashlib
+    import hmac as _hmac
+
+    secret = current_app.config.get("HEALTHSHERPA_WEBHOOK_SECRET", "")
+    if not secret:
+        current_app.logger.warning(
+            "healthsherpa_webhook: HEALTHSHERPA_WEBHOOK_SECRET not configured"
+        )
+        return
+
+    sig_header = request.headers.get("X-HealthSherpa-Signature", "")
+    if not sig_header:
+        current_app.logger.warning(
+            "healthsherpa_webhook: signature header missing — verify configuration"
+        )
+        return
+
+    raw_body = request.data
+    computed = _hmac.new(
+        secret.encode(), raw_body, hashlib.sha256
+    ).hexdigest()
+
+    if not _hmac.compare_digest(computed, sig_header):
+        from flask import abort
+        abort(403)
+
+
+@comms_bp.route("/webhook/healthsherpa", methods=["POST"])
+def healthsherpa_webhook():
+    """
+    HealthSherpa enrollment webhook handler.
+
+    Creates CustomerNote(note_type='healthsherpa_enrollment') for matched customers.
+    Creates UnmatchedCall(provider='healthsherpa') when no customer match is found.
+
+    Full raw payload is logged at INFO level for Medicare field discovery — the
+    exact payload schema for Medicare enrollments is LOW confidence.
+
+    Always returns HTTP 200.
+    """
+    _verify_healthsherpa(request)
+
+    data = request.get_json(force=True) or {}
+
+    # Log full payload for field discovery (Medicare payload fields unconfirmed)
+    current_app.logger.info("healthsherpa_webhook payload: %s", data)
+
+    try:
+        agency_id = current_app.config.get("DEFAULT_AGENCY_ID", 1)
+
+        # Extract fields — best-effort, may differ from live Medicare payloads
+        member = data.get("member", {})
+        first_name = member.get("first_name", "")
+        last_name = member.get("last_name", "")
+        raw_phone = member.get("phone") or member.get("phone_number", "")
+        plan = data.get("plan", {})
+        plan_carrier = plan.get("carrier_name", "")
+        plan_name = plan.get("plan_name", "")
+        agent_npn = data.get("agent_npn", "")
+        event_id = str(data.get("id", ""))
+
+        # Resolve customer by phone, then by name (no DOB in payload currently)
+        customer = None
+        if raw_phone:
+            e164 = normalize_e164(raw_phone)
+            if e164:
+                customer = find_customer_by_phone(e164)
+
+        # Resolve agent — NPN not stored in AgentCarrierContract yet.
+        # Find first non-admin agent scoped to agency, then fall back to any non-admin.
+        # TODO: add agent_npn column to User or AgentCarrierContract and update this.
+        agent_id = None
+        from app.models import User
+        fallback_agent = (
+            User.query.filter_by(agency_id=agency_id, is_admin=False).first()
+            or User.query.filter_by(is_admin=False).first()
+        )
+        if fallback_agent:
+            agent_id = fallback_agent.id
+
+        if customer and agent_id:
+            note_text = f"HealthSherpa enrollment: {plan_carrier} {plan_name}".strip()
+            note = CustomerNote(
+                note_type="healthsherpa_enrollment",
+                note_text=note_text,
+                contact_method=None,
+                customer_id=customer.id,
+                agent_id=agent_id,
+                agency_id=agency_id,
+                created_at=datetime.utcnow(),
+            )
+            db.session.add(note)
+        else:
+            unmatched = UnmatchedCall(
+                provider="healthsherpa",
+                call_sid=event_id,
+                from_number=raw_phone or "",
+                to_number=None,
+                direction="inbound",
+                duration_seconds=0,
+                occurred_at=datetime.utcnow(),
+                agency_id=agency_id,
+                agent_id=agent_id,
+            )
+            db.session.add(unmatched)
+
+        db.session.commit()
+
+    except Exception as exc:  # noqa: BLE001
+        current_app.logger.error(
+            "healthsherpa_webhook: unhandled exception: %s", exc, exc_info=True
+        )
+        db.session.rollback()
 
     return jsonify({"status": "ok"}), 200

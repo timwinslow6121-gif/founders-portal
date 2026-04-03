@@ -30,12 +30,13 @@ app.register_blueprint(customers_bp)
 ## Current Blueprints
 - `routes.py` — dashboard, admin overview, agent detail (no blueprint, registered directly)
 - `auth.py` — Google OAuth
-- `upload.py` — BOB import + commission statements
+- `upload.py` — BOB import (agents + admins); commission statements (admin only via commission/)
 - `labels.py` — birthday labels PDF
-- `agent_settings.py` — carrier contracts, splits
-- `commission/` — audit, forecast
+- `agent_settings.py` — carrier contracts, splits (admin-only)
+- `commission/` — audit (admin + agent views)
 - `customers.py` — customer list, profile, notes, contacts, merge (`customers_bp`)
 - `pharmacies.py` — partner pharmacy CRUD, admin-only (`pharmacies_bp`)
+- `comms/` — Quo/Twilio/Calendly webhooks, SMS, unmatched call resolution (`comms_bp`)
 
 ## Database Rules — READ BEFORE TOUCHING models.py OR upload.py
 
@@ -52,6 +53,10 @@ app.register_blueprint(customers_bp)
 **Flask-Migrate:** Every schema change requires a migration. Never use `db.create_all()` in production.
 
 **Multi-tenant requirement (Phase 2.5+):** Every table gets `agency_id` FK (non-nullable). Every query MUST be scoped: `Customer.query.filter_by(agency_id=current_user.agency_id, ...)`. Missing agency_id = data leak across tenants.
+
+**agency_id scoping sweep complete (Plan 03-07, 2026-04-03):** All Customer, Policy, CommissionStatement, CustomerNote, CustomerAorHistory, AgentCarrierContract, ImportBatch queries are now scoped. `_upsert_customer_from_policy()` takes explicit `agency_id` param — do NOT use `current_user` inside it. No new migration was needed — DB columns already existed from Phase 2.5; Plan 07 added ORM column definitions to models.py.
+
+**BOB upload access:** `/upload` is open to all agents (not admin-only). Agent uploads attribute policies to `current_user.id` automatically. Admin uploads leave `agent_id` unset (matched later via carrier file). Agents see only their own import history; admins see all.
 
 ## UX Design System — The Private Gallery (Lux Theme)
 - **Palette:** Ink `#0A0A09` bg, Surface `#131312`, Surface-Low `#1C1C1A`, Gold `#DAC495`, Ivory `#E5E2DF`
@@ -78,8 +83,15 @@ app.register_blueprint(customers_bp)
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
-- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-05 deployed to VPS. Plan 06 blocked on external provisioning (see below). Plan 07 (agency_id scoping sweep) is next to execute.
+- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-07 complete locally (2026-04-03). Plan 06 still blocked on external provisioning. Plan 07 (agency_id scoping sweep) ✅ done. Next: deploy to VPS + human UAT, then continue with remaining Phase 3 plans.
 - **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Dashboard rebuilt to original spec (activity-first: Unified Timeline, Tasks, Alerts, NC Enrollment Windows). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
+
+## Agent Nav — what's in the sidebar (as of 2026-04-03)
+My Book: Dashboard, Customers, Upcoming Terms
+Commissions: Commission Audit
+Tools: Birthday Labels, Upload BOB Files, SMS Templates
+Alerts: Unmatched Calls
+**/forecast is NOT implemented** — do not add it to nav until the route exists.
 
 ## Phase 3.06 External Blockers (as of 2026-04-02)
 - **HealthSherpa** — Agency admin account created, awaiting provisioning email from HealthSherpa. Use agency account (not individual agent). Once provisioned: register webhook URL + get HEALTHSHERPA_WEBHOOK_SECRET.

@@ -311,7 +311,7 @@ PARSERS = {
 @login_required
 def commission_index():
     statements = (CommissionStatement.query
-                  .filter_by(agent_id=current_user.id)
+                  .filter_by(agent_id=current_user.id, agency_id=current_user.agency_id)
                   .order_by(CommissionStatement.statement_date.desc())
                   .all())
     for s in statements:
@@ -328,14 +328,16 @@ def commission_admin():
     agents = (User.query
               .filter(User.email != "admin@foundersinsuranceagency.com")
               .order_by(User.name).all())
+    agency_id = current_user.agency_id
     agent_summaries = []
     for agent in agents:
         stmts = (CommissionStatement.query
-                 .filter_by(agent_id=agent.id)
+                 .filter_by(agent_id=agent.id, agency_id=agency_id)
                  .order_by(CommissionStatement.statement_date.desc())
                  .limit(5).all())
         agent_summaries.append({"agent": agent, "statements": stmts})
     recent = (CommissionStatement.query
+              .filter_by(agency_id=agency_id)
               .order_by(CommissionStatement.upload_date.desc())
               .limit(20).all())
     return render_template("commission.html",
@@ -398,8 +400,10 @@ def commission_upload():
     status       = "verified" if abs(difference) < 0.02 else "discrepancy"
 
     existing = CommissionStatement.query.filter_by(
-        carrier=carrier, agent_id=agent_id, period_label=period_label).first()
-    stmt = existing or CommissionStatement(carrier=carrier, agent_id=agent_id)
+        carrier=carrier, agent_id=agent_id, period_label=period_label,
+        agency_id=current_user.agency_id).first()
+    stmt = existing or CommissionStatement(
+        carrier=carrier, agent_id=agent_id, agency_id=current_user.agency_id)
     if not existing:
         db.session.add(stmt)
 
@@ -432,7 +436,7 @@ def commission_agent_detail(agent_id):
         abort(403)
     agent = User.query.get_or_404(agent_id)
     statements = (CommissionStatement.query
-                  .filter_by(agent_id=agent_id)
+                  .filter_by(agent_id=agent_id, agency_id=current_user.agency_id)
                   .order_by(CommissionStatement.statement_date.desc())
                   .all())
     for s in statements:

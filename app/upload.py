@@ -20,12 +20,15 @@ from app.parsers import parse_carrier_file, SUPPORTED_CARRIERS
 upload_bp = Blueprint("upload", __name__)
 
 
-def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int) -> None:
+def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency_id: int) -> None:
     """
     Create or update a Customer record from a parsed policy row.
 
     Called after every policy upsert. Uses MBI as the primary key.
     Humana fallback: match on humana_id, then name+DOB+zip (all three required).
+
+    agency_id must be passed explicitly — this function runs in a batch loop
+    without guaranteed Flask request context per record.
 
     Guards:
     - If customer.manually_edited is True, contact fields are not overwritten.
@@ -38,11 +41,11 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int) -> Non
     now = datetime.utcnow()
     customer = None
 
-    # --- Locate existing customer ---
+    # --- Locate existing customer (always scoped to agency) ---
     if mbi:
-        customer = Customer.query.filter_by(mbi=mbi).first()
+        customer = Customer.query.filter_by(mbi=mbi, agency_id=agency_id).first()
     elif humana_id:
-        customer = Customer.query.filter_by(humana_id=humana_id).first()
+        customer = Customer.query.filter_by(humana_id=humana_id, agency_id=agency_id).first()
         if not customer:
             # Final fallback: name + DOB + zip (all three must match)
             fn = (rec.get("first_name") or "").strip().lower()
@@ -53,6 +56,7 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int) -> Non
                 customer = (
                     Customer.query
                     .filter(
+                        Customer.agency_id == agency_id,
                         db.func.lower(Customer.first_name) == fn,
                         db.func.lower(Customer.last_name) == ln,
                         Customer.dob == dob,
@@ -92,6 +96,7 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int) -> Non
     else:
         # New customer — create from policy data
         customer = Customer(
+            agency_id=agency_id,
             mbi=mbi,
             humana_id=humana_id,
             first_name=rec.get("first_name") or "",
@@ -122,6 +127,7 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int) -> Non
         ).first()
         if not existing_aor:
             aor = CustomerAorHistory(
+                agency_id=agency_id,
                 customer_id=customer.id,
                 agent_id=agent_id,
                 carrier=carrier,
@@ -219,8 +225,12 @@ def process_upload():
         flash("File exceeds the 50 MB size limit.", "error")
         return redirect(url_for("upload.upload_page"))
 
+    # Capture agency_id once from current_user for use throughout this upload
+    upload_agency_id = current_user.agency_id
+
     # Create an ImportBatch record immediately so we can track errors
     batch = ImportBatch(
+        agency_id=upload_agency_id,
         carrier=carrier,
         filename=filename,
         uploaded_by_id=current_user.id,
@@ -261,6 +271,7 @@ def process_upload():
         existing = Policy.query.filter_by(
             carrier=rec["carrier"],
             member_id=rec["member_id"],
+            agency_id=upload_agency_id,
         ).first()
 
         if existing:
@@ -288,6 +299,7 @@ def process_upload():
             updated_count += 1
         else:
             policy = Policy(
+                agency_id=upload_agency_id,
                 carrier=rec["carrier"],
                 member_id=rec["member_id"],
                 mbi=rec["mbi"],
@@ -316,7 +328,12 @@ def process_upload():
 
         # Upsert the customer master record from this policy row
         try:
-            _upsert_customer_from_policy(rec, existing.agent_id if existing else None, batch.id)
+            _upsert_customer_from_policy(
+                rec,
+                existing.agent_id if existing else None,
+                batch.id,
+                upload_agency_id,
+            )
         except Exception as e:
             current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
 

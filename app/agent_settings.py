@@ -27,14 +27,17 @@ def settings_index():
               .order_by(User.name).all())
 
     # Build per-agent contract map
+    agency_id = current_user.agency_id
     agent_data = []
     for agent in agents:
         contracts = {c.carrier: c for c in
-                     AgentCarrierContract.query.filter_by(agent_id=agent.id).all()}
+                     AgentCarrierContract.query.filter_by(
+                         agent_id=agent.id, agency_id=agency_id).all()}
         # Fill in any missing carriers
         for carrier in CARRIERS:
             if carrier not in contracts:
                 contracts[carrier] = AgentCarrierContract(
+                    agency_id=agency_id,
                     agent_id=agent.id, carrier=carrier,
                     is_active=False, split_rate=0.55,
                     id_type="NPN", id_value=""
@@ -65,7 +68,7 @@ def settings_agent(agent_id):
             id_value  = request.form.get(f"id_value_{carrier}", "").strip()
 
             contract = AgentCarrierContract.query.filter_by(
-                agent_id=agent.id, carrier=carrier
+                agent_id=agent.id, carrier=carrier, agency_id=current_user.agency_id
             ).first()
 
             if contract:
@@ -75,6 +78,7 @@ def settings_agent(agent_id):
                 contract.id_value   = id_value
             else:
                 contract = AgentCarrierContract(
+                    agency_id  = current_user.agency_id,
                     agent_id   = agent.id,
                     carrier    = carrier,
                     is_active  = is_active,
@@ -89,10 +93,12 @@ def settings_agent(agent_id):
         return redirect(url_for("settings.settings_agent", agent_id=agent_id))
 
     contracts = {c.carrier: c for c in
-                 AgentCarrierContract.query.filter_by(agent_id=agent.id).all()}
+                 AgentCarrierContract.query.filter_by(
+                     agent_id=agent.id, agency_id=current_user.agency_id).all()}
     for carrier in CARRIERS:
         if carrier not in contracts:
             contracts[carrier] = AgentCarrierContract(
+                agency_id=current_user.agency_id,
                 agent_id=agent.id, carrier=carrier,
                 is_active=False, split_rate=0.55,
                 id_type="NPN", id_value=""

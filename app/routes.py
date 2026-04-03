@@ -24,14 +24,14 @@ def _urgency(term_date, today):
     return 'green', days
 
 
-def _build_dashboard_context(agent_id, today):
+def _build_dashboard_context(agent_id, today, agency_id):
     ninety_days = today + timedelta(days=90)
     thirty_days = today + timedelta(days=30)
 
-    base         = Policy.query.filter_by(status='active', agent_id=agent_id)
+    base         = Policy.query.filter_by(status='active', agent_id=agent_id, agency_id=agency_id)
     policy_count = base.count()
     carrier_count = (db.session.query(func.count(func.distinct(Policy.carrier)))
-                     .filter_by(status='active', agent_id=agent_id)
+                     .filter_by(status='active', agent_id=agent_id, agency_id=agency_id)
                      .scalar() or 0)
 
     raw_terms = (
@@ -58,7 +58,7 @@ def _build_dashboard_context(agent_id, today):
 
     carrier_rows = (
         db.session.query(Policy.carrier, func.count(Policy.id).label('count'))
-        .filter_by(status='active', agent_id=agent_id)
+        .filter_by(status='active', agent_id=agent_id, agency_id=agency_id)
         .group_by(Policy.carrier)
         .order_by(func.count(Policy.id).desc()).all()
     )
@@ -79,7 +79,7 @@ def _build_dashboard_context(agent_id, today):
         })
 
     total_your  = round(total_gross * SPLIT_RATE, 2)
-    last_batch  = (ImportBatch.query.filter_by(status='success')
+    last_batch  = (ImportBatch.query.filter_by(status='success', agency_id=agency_id)
                    .order_by(ImportBatch.upload_date.desc()).first())
     last_import = last_batch.upload_date.strftime('%b %d, %Y') if last_batch else None
 
@@ -87,7 +87,8 @@ def _build_dashboard_context(agent_id, today):
     # "Appointment: {start_time}".  A proper datetime column would be better
     # but is out of scope for Plan 04.  Plan 05+ may add an appointment_at column.
     upcoming = (CustomerNote.query
-                .filter_by(agent_id=agent_id, note_type="appointment_scheduled")
+                .filter_by(agent_id=agent_id, agency_id=agency_id,
+                            note_type="appointment_scheduled")
                 .filter(CustomerNote.note_text.contains("Appointment:"))
                 .order_by(CustomerNote.created_at.desc())
                 .limit(5)
@@ -117,7 +118,7 @@ def index():
 @login_required
 def dashboard():
     today = date.today()
-    ctx   = _build_dashboard_context(current_user.id, today)
+    ctx   = _build_dashboard_context(current_user.id, today, current_user.agency_id)
     return render_template('dashboard.html', viewing_agent=None, **ctx)
 
 
@@ -128,7 +129,7 @@ def agent_detail(agent_id):
         abort(403)
     agent = User.query.get_or_404(agent_id)
     today = date.today()
-    ctx   = _build_dashboard_context(agent_id, today)
+    ctx   = _build_dashboard_context(agent_id, today, current_user.agency_id)
     return render_template('dashboard.html', viewing_agent=agent, **ctx)
 
 
@@ -142,14 +143,17 @@ def admin_overview():
     ninety_days = today + timedelta(days=90)
     thirty_days = today + timedelta(days=30)
 
-    total_policies      = Policy.query.filter_by(status='active').count()
+    agency_id           = current_user.agency_id
+    total_policies      = Policy.query.filter_by(status='active', agency_id=agency_id).count()
     total_terms_90      = (Policy.query.filter(
                                Policy.status=='active',
+                               Policy.agency_id==agency_id,
                                Policy.term_date.isnot(None),
                                Policy.term_date >= today,
                                Policy.term_date <= ninety_days).count())
     total_terms_30      = (Policy.query.filter(
                                Policy.status=='active',
+                               Policy.agency_id==agency_id,
                                Policy.term_date.isnot(None),
                                Policy.term_date >= today,
                                Policy.term_date <= thirty_days).count())
@@ -157,7 +161,7 @@ def admin_overview():
 
     agency_carriers = (
         db.session.query(Policy.carrier, func.count(Policy.id).label('count'))
-        .filter_by(status='active')
+        .filter_by(status='active', agency_id=agency_id)
         .group_by(Policy.carrier)
         .order_by(func.count(Policy.id).desc()).all()
     )
@@ -173,20 +177,24 @@ def admin_overview():
 
     agent_rows = []
     for agent in agents:
-        count = Policy.query.filter_by(status='active', agent_id=agent.id).count()
+        count = Policy.query.filter_by(
+            status='active', agent_id=agent.id, agency_id=agency_id
+        ).count()
         if count == 0:
             continue
         t30 = (Policy.query.filter(Policy.status=='active', Policy.agent_id==agent.id,
+                                    Policy.agency_id==agency_id,
                                     Policy.term_date.isnot(None),
                                     Policy.term_date >= today,
                                     Policy.term_date <= thirty_days).count())
         t90 = (Policy.query.filter(Policy.status=='active', Policy.agent_id==agent.id,
+                                    Policy.agency_id==agency_id,
                                     Policy.term_date.isnot(None),
                                     Policy.term_date >= today,
                                     Policy.term_date <= ninety_days).count())
         top_carriers = (
             db.session.query(Policy.carrier, func.count(Policy.id).label('count'))
-            .filter_by(status='active', agent_id=agent.id)
+            .filter_by(status='active', agent_id=agent.id, agency_id=agency_id)
             .group_by(Policy.carrier)
             .order_by(func.count(Policy.id).desc())
             .limit(3).all()
@@ -233,6 +241,7 @@ def terminations():
 
     base = Policy.query.filter(
         Policy.agent_id == current_user.id,
+        Policy.agency_id == current_user.agency_id,
         Policy.status == 'active',
         Policy.term_date.isnot(None),
         Policy.term_date >= today,
@@ -299,6 +308,7 @@ def terminations_export():
 
     base = Policy.query.filter(
         Policy.agent_id == current_user.id,
+        Policy.agency_id == current_user.agency_id,
         Policy.status == 'active',
         Policy.term_date.isnot(None),
         Policy.term_date >= today,

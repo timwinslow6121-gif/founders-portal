@@ -31,11 +31,15 @@ def get_customer_policies(customer):
     Return all Policy records linked to a customer across all carriers.
     Primary join: Policy.mbi == customer.mbi
     Humana fallback: match on phone + DOB when MBI is null.
+    All queries scoped to customer's agency_id.
     """
     policies = []
+    agency_id = customer.agency_id
 
     if customer.mbi:
-        policies = Policy.query.filter_by(mbi=customer.mbi).order_by(Policy.carrier).all()
+        policies = Policy.query.filter_by(
+            mbi=customer.mbi, agency_id=agency_id
+        ).order_by(Policy.carrier).all()
 
     # Collect carriers already found via MBI to avoid duplicates
     found_carriers = {p.carrier for p in policies}
@@ -44,14 +48,17 @@ def get_customer_policies(customer):
     if "Humana" not in found_carriers and customer.phone_primary and customer.dob:
         humana_policies = (
             Policy.query
-            .filter_by(carrier="Humana", phone=customer.phone_primary, dob=customer.dob)
+            .filter_by(carrier="Humana", phone=customer.phone_primary,
+                       dob=customer.dob, agency_id=agency_id)
             .all()
         )
         policies.extend(humana_policies)
 
     # Also match by humana_id if available
     if customer.humana_id and "Humana" not in {p.carrier for p in policies}:
-        humana_by_id = Policy.query.filter_by(carrier="Humana", member_id=customer.humana_id).all()
+        humana_by_id = Policy.query.filter_by(
+            carrier="Humana", member_id=customer.humana_id, agency_id=agency_id
+        ).all()
         policies.extend(humana_by_id)
 
     # Sort: carrier then effective_date desc
@@ -60,8 +67,8 @@ def get_customer_policies(customer):
 
 
 def _customer_query():
-    """Base query scoped by current user — agents see own, admins see all."""
-    q = Customer.query
+    """Base query scoped by agency (multi-tenant) and by agent for non-admins."""
+    q = Customer.query.filter_by(agency_id=current_user.agency_id)
     if not current_user.is_admin:
         q = q.filter_by(primary_agent_id=current_user.id)
     return q
@@ -140,6 +147,7 @@ def customer_new():
             return redirect(url_for("customers.customer_new"))
 
         customer = Customer(
+            agency_id=current_user.agency_id,
             first_name=first_name,
             last_name=last_name,
             full_name=f"{first_name} {last_name}",
@@ -318,7 +326,11 @@ def customer_duplicates():
             Customer.phone_primary,
             func.count(Customer.id).label("cnt"),
         )
-        .filter(Customer.dob.isnot(None), Customer.phone_primary.isnot(None))
+        .filter(
+            Customer.agency_id == current_user.agency_id,
+            Customer.dob.isnot(None),
+            Customer.phone_primary.isnot(None),
+        )
         .group_by(
             func.lower(Customer.first_name),
             func.lower(Customer.last_name),
@@ -336,6 +348,7 @@ def customer_duplicates():
         dupes = (
             Customer.query
             .filter(
+                Customer.agency_id == current_user.agency_id,
                 db.func.lower(Customer.first_name) == row.fn,
                 db.func.lower(Customer.last_name) == row.ln,
                 Customer.dob == row.dob,
@@ -365,8 +378,12 @@ def customer_merge():
         flash("Invalid merge request.", "error")
         return redirect(url_for("customers.customer_duplicates"))
 
-    primary = Customer.query.get_or_404(primary_id)
-    secondary = Customer.query.get_or_404(secondary_id)
+    primary = Customer.query.filter_by(
+        id=primary_id, agency_id=current_user.agency_id
+    ).first_or_404()
+    secondary = Customer.query.filter_by(
+        id=secondary_id, agency_id=current_user.agency_id
+    ).first_or_404()
 
     # Move all child records to the primary
     CustomerNote.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})

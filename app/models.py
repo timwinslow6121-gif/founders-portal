@@ -34,6 +34,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(255))
     picture = db.Column(db.String(512))
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     last_login = db.Column(db.DateTime)
     quo_user_id = db.Column(db.String(64))
@@ -92,6 +93,9 @@ class Policy(db.Model):
     renewal_date = db.Column(db.Date)
     status = db.Column(db.String(32), default="active")
 
+    # Agency linkage (multi-tenant)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
+
     # Agent linkage
     agent_id_carrier = db.Column(db.String(64))   # agent ID as reported by carrier
     agent_id = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
@@ -143,6 +147,7 @@ class ImportBatch(db.Model):
     __tablename__ = "import_batches"
 
     id = db.Column(db.Integer, primary_key=True)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     carrier = db.Column(db.String(64), nullable=False)
     filename = db.Column(db.String(512), nullable=False)
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
@@ -185,6 +190,7 @@ class CommissionStatement(db.Model):
     __tablename__ = "commission_statements"
 
     id             = db.Column(db.Integer, primary_key=True)
+    agency_id      = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     carrier        = db.Column(db.String(64), nullable=False, index=True)
     statement_date = db.Column(db.Date, nullable=False)
     period_label   = db.Column(db.String(32))                # e.g. "February 2026"
@@ -229,6 +235,7 @@ class Pharmacy(db.Model):
     __tablename__ = "pharmacies"
 
     id             = db.Column(db.Integer, primary_key=True)
+    agency_id      = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     name           = db.Column(db.String(256), nullable=False)
     address1       = db.Column(db.String(256))
     city           = db.Column(db.String(128))
@@ -259,6 +266,7 @@ class Customer(db.Model):
     __tablename__ = "customers"
 
     id                = db.Column(db.Integer, primary_key=True)
+    agency_id         = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
 
     # Primary identifier — NULL allowed for Humana-only customers until MBI is resolved
     mbi               = db.Column(db.String(20), unique=True, index=True)
@@ -338,6 +346,7 @@ class CustomerContact(db.Model):
     __tablename__ = "customer_contacts"
 
     id           = db.Column(db.Integer, primary_key=True)
+    agency_id    = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     customer_id  = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"),
                              nullable=False, index=True)
     customer     = db.relationship("Customer", back_populates="contacts")
@@ -361,6 +370,7 @@ class CustomerNote(db.Model):
     __tablename__ = "customer_notes"
 
     id                   = db.Column(db.Integer, primary_key=True)
+    agency_id            = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     customer_id          = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"),
                                      nullable=False, index=True)
     customer             = db.relationship("Customer", back_populates="notes")
@@ -401,6 +411,7 @@ class CustomerAorHistory(db.Model):
     __tablename__ = "customer_aor_history"
 
     id              = db.Column(db.Integer, primary_key=True)
+    agency_id       = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     customer_id     = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"),
                                 nullable=False, index=True)
     customer        = db.relationship("Customer", back_populates="aor_history")
@@ -437,6 +448,7 @@ class AgentCarrierContract(db.Model):
     __tablename__ = "agent_carrier_contracts"
 
     id         = db.Column(db.Integer, primary_key=True)
+    agency_id  = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     agent_id   = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     agent      = db.relationship("User", foreign_keys=[agent_id])
 

@@ -44,10 +44,11 @@ def _title_case(s):
     return " ".join(result)
 
 
-def _get_birthday_policies(month, agent_id):
+def _get_birthday_policies(month, agent_id, agency_id):
     policies = (Policy.query
         .filter(
             Policy.agent_id == agent_id,
+            Policy.agency_id == agency_id,
             Policy.status == "active",
             Policy.dob.isnot(None),
             Policy.address1.isnot(None),
@@ -67,10 +68,11 @@ def _get_birthday_policies(month, agent_id):
     return unique
 
 
-def _policies_missing_address(month, agent_id):
+def _policies_missing_address(month, agent_id, agency_id):
     return (Policy.query
         .filter(
             Policy.agent_id == agent_id,
+            Policy.agency_id == agency_id,
             Policy.status == "active",
             Policy.dob.isnot(None),
             extract("month", Policy.dob) == month,
@@ -189,9 +191,10 @@ def labels_page():
     selected_month = request.args.get("month", type=int, default=today.month)
     if not (1 <= selected_month <= 12):
         selected_month = today.month
-    policies       = _get_birthday_policies(selected_month, current_user.id)
-    no_address     = _policies_missing_address(selected_month, current_user.id)
-    monthly_counts = {m: len(_get_birthday_policies(m, current_user.id)) for m in range(1, 13)}
+    agency_id      = current_user.agency_id
+    policies       = _get_birthday_policies(selected_month, current_user.id, agency_id)
+    no_address     = _policies_missing_address(selected_month, current_user.id, agency_id)
+    monthly_counts = {m: len(_get_birthday_policies(m, current_user.id, agency_id)) for m in range(1, 13)}
     return render_template("labels.html",
         selected_month=selected_month,
         month_name=MONTH_NAMES[selected_month - 1],
@@ -210,7 +213,7 @@ def labels_download():
         flash("Invalid month.", "error")
         return redirect(url_for("labels.labels_page"))
 
-    policies   = _get_birthday_policies(month, current_user.id)
+    policies   = _get_birthday_policies(month, current_user.id, current_user.agency_id)
     month_name = MONTH_NAMES[month - 1]
 
     if not policies:

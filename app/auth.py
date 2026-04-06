@@ -15,6 +15,7 @@ def load_user(user_id):
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '0'
+os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'  # allow Google to return extra scopes (Meet/Pub/Sub)
 
 ALLOWED_DOMAIN  = os.environ.get('ALLOWED_DOMAIN', 'foundersinsuranceagency.com')
 ADMIN_EMAILS    = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',')]

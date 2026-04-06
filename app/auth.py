@@ -65,8 +65,20 @@ def callback():
     if 'oauth_state' not in session:
         return redirect(url_for('auth.login'))
 
-    flow = make_flow()
-    flow.fetch_token(authorization_response=request.url)
+    flow = Flow.from_client_config(
+        CLIENT_CONFIG,
+        scopes=[
+            'openid',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+        ],
+        state=session['oauth_state']
+    )
+    flow.redirect_uri = f"{APP_URL}/auth/callback"
+
+    # request.url may be http:// behind nginx — force https for token exchange
+    authorization_response = request.url.replace('http://', 'https://', 1)
+    flow.fetch_token(authorization_response=authorization_response)
 
     credentials = flow.credentials
     request_session = google_requests.Request()

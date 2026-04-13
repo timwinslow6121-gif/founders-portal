@@ -33,6 +33,11 @@ def _parse_uhc(ws):
             stmt_date = row[0].date()
 
         if re.search(r'[\d,]+\.?\d*\s*x\.?\s*\.?\d+', action):
+            # Gross summary row e.g. "$7,566.59 x.55" — paid is on a separate row
+            continue
+
+        # Paid summary row e.g. "$4,161.62 + $130.81" with numeric paid in col 5
+        if re.search(r'^\$[\d,]+\.\d+\s*\+\s*\$[\d,]+', action):
             if commission and isinstance(commission, (int, float)):
                 paid = float(commission)
             continue
@@ -67,23 +72,24 @@ def _parse_aetna(ws):
     for row in rows:
         if not any(row):
             continue
-        col11 = str(row[11] or "").strip()
-        if re.search(r'[\d,]+\.?\d*\s*x', col11):
-            if row[12] and isinstance(row[12], (int, float)):
-                paid = float(row[12])
+        # Summary row: "202.44 x.525" is in col 9 (Writing Agent Name col), paid in col 10
+        col9 = str(row[9] or "").strip()
+        if re.search(r'[\d,]+\.?\d*\s*x', col9):
+            if row[10] and isinstance(row[10], (int, float)):
+                paid = float(row[10])
             continue
 
-        amount = row[12]
-        if stmt_date is None and row[0] and isinstance(row[0], datetime):
-            stmt_date = row[0].date()
+        amount = row[10]  # Payee Amount is col 10 (index 10)
+        if stmt_date is None and row[7] and isinstance(row[7], datetime):
+            stmt_date = row[7].date()
 
         if amount and isinstance(amount, (int, float)):
             gross += float(amount)
             line_items.append({
-                "member":   str(row[1] or ""),
-                "plan_id":  str(row[3] or ""),
-                "eff_date": str(row[6].date() if isinstance(row[6], datetime) else row[6] or ""),
-                "action":   str(row[2] or ""),
+                "member":   str(row[3] or ""),
+                "plan":     str(row[6] or ""),
+                "eff_date": str(row[7].date() if isinstance(row[7], datetime) else row[7] or ""),
+                "action":   str(row[5] or ""),
                 "amount":   float(amount),
             })
 
@@ -100,29 +106,31 @@ def _parse_humana(ws):
     for row in rows:
         if not any(row):
             continue
-        col4 = str(row[4] or "").strip()
-        if re.search(r'[\$\d,]+\.?\d*\s*x', col4):
-            if row[5] and isinstance(row[5], (int, float)):
-                paid = float(row[5])
+        # Summary row check (not present in all Humana files — skip if found)
+        col8 = str(row[8] or "").strip()
+        if re.search(r'[\$\d,]+\.?\d*\s*x', col8):
+            if row[9] and isinstance(row[9], (int, float)):
+                paid = float(row[9])
             continue
 
-        amount  = row[5]
-        comment = str(row[6] or "").strip()
+        amount  = row[8]   # PaidAmount is col I (index 8)
+        comment = str(row[9] or "").strip()
 
-        if stmt_date is None and row[0] and isinstance(row[0], datetime):
-            stmt_date = row[0].date()
+        if stmt_date is None and row[1] and isinstance(row[1], datetime):
+            stmt_date = row[1].date()
 
         if amount and isinstance(amount, (int, float)):
             gross += float(amount)  # net all rows — chargebacks are negative
             line_items.append({
-                "member":   str(row[2] or ""),
-                "month":    str(row[4] or ""),
-                "action":   comment,
-                "amount":   float(amount),
-                "txn_type": str(row[9] or ""),
-                "eff_date": str(row[10].date() if isinstance(row[10], datetime) else row[10] or ""),
+                "member":  str(row[4] or ""),   # GrpName
+                "month":   str(row[6] or ""),   # MonthPaid
+                "action":  comment,             # Comment (e.g. RENEWAL COMMISSIONS)
+                "amount":  float(amount),
+                "product": str(row[7] or ""),   # Product
             })
 
+    # Humana pays net — paid = gross (no separate paid row)
+    paid = gross
     return gross, 0.0, paid, stmt_date, line_items
 
 
@@ -136,19 +144,20 @@ def _parse_bcbs(ws):
     for row in rows:
         if not any(row):
             continue
-        col11 = str(row[11] or "").strip()
-        if re.search(r'[\$\d,]+\.?\d*\s*x', col11):
-            if row[12] and isinstance(row[12], (int, float)):
-                paid = float(row[12])
+        # Summary row: "$846.88 x .55" in col 9 (Premium Period), paid in col 10
+        col9 = str(row[9] or "").strip()
+        if re.search(r'[\$\d,]+\.?\d*\s*x', col9):
+            if row[10] and isinstance(row[10], (int, float)):
+                paid = float(row[10])
             continue
-        col13 = str(row[13] or "").strip()
+        col13 = str(row[13] or "").strip() if len(row) > 13 else ""
         if col13.startswith("="):
             continue
-        col12 = str(row[12] or "").strip()
+        col12 = str(row[12] or "").strip() if len(row) > 12 else ""
         if col12.lower() == "total:":
             continue
 
-        commission = row[13]
+        commission = row[13] if len(row) > 13 else None
         if commission and isinstance(commission, (int, float)) and float(commission) != 0:
             gross += float(commission)
             line_items.append({
@@ -174,30 +183,22 @@ def _parse_devoted(ws):
     for row in rows:
         if not any(row):
             continue
-        col2 = str(row[2] or "").strip()
-        col3 = str(row[3] or "").strip()
-
-        if re.search(r'[\$\d,]+\s*x\.?\s*\.?\d+', col2):
-            # Summary row — col2 has bonus "e.g. $1,100 x.55"
-            # col3 has total paid "e.g. 605 + 4,389.55 = $4,994.55"
-            bonus_match = re.search(r'\$?([\d,]+)', col2)
-            if bonus_match:
-                bonus += float(bonus_match.group(1).replace(',', ''))
-            # Extract paid from col3 on the same row
-            paid_match = re.search(r'=\s*\$?([\d,]+\.?\d*)', col3)
-            if paid_match:
-                paid = float(paid_match.group(1).replace(',', ''))
+        # Summary row: "347 x .55" in col 8 (Disenroll Date col), paid in col 9
+        col8 = str(row[8] or "").strip()
+        if re.search(r'[\$\d,]+\s*x\.?\s*\.?\d+', col8):
+            if row[9] and isinstance(row[9], (int, float)):
+                paid = float(row[9])
             continue
 
-        amount = row[10]
+        amount = row[11]  # Base Amount is index 11
         if amount and isinstance(amount, (int, float)):
             gross += float(amount)
             line_items.append({
                 "member":    f"{row[5] or ''} {row[6] or ''}".strip(),
                 "member_id": str(row[3] or ""),
-                "eff_date":  str(row[8] or ""),
-                "period":    str(row[9] or ""),
-                "action":    "New/Renewal",
+                "eff_date":  str(row[7] or ""),
+                "period":    str(row[10] or ""),
+                "action":    str(row[9] or "New/Renewal"),
                 "amount":    float(amount),
             })
 
@@ -343,7 +344,7 @@ def _detect_agent_id(ws, carrier):
     agent_col_map = {
         "UHC":          1,   # Writing Agent Name (col B, index 1)
         "Aetna":        8,   # Writing Agent Name (col I, index 8)
-        "Humana":       1,   # WaName (col B, index 1)
+        "Humana":       2,   # WaName (col C, index 2)
         "BCBS":         1,   # Agent Name (col B, index 1)
         "Devoted":      2,   # Agent Name (col C, index 2)
         "Healthspring": 3,   # Writing Broker Name (col D, index 3)

@@ -58,6 +58,10 @@ app.register_blueprint(customers_bp)
 
 **BOB upload access:** `/upload` is open to all agents (not admin-only). Agent uploads attribute policies to `current_user.id` automatically. Admin uploads leave `agent_id` unset (matched later via carrier file). Agents see only their own import history; admins see all.
 
+**commission_statements.agency_id:** Column was missing from DB — added manually via ALTER TABLE on 2026-04-13, migration 005 stamps this. If deploying fresh, `flask db upgrade` will apply it correctly.
+
+**PostgreSQL sequence drift:** After bulk inserts or manual SQL, sequences can fall behind max(id). Fix with: `SELECT setval('tablename_id_seq', (SELECT MAX(id) FROM tablename));` — has affected `commission_statements` and `agent_carrier_contracts` in production.
+
 ## UX Design System — The Private Gallery (Lux Theme)
 - **Palette:** Ink `#0A0A09` bg, Surface `#131312`, Surface-Low `#1C1C1A`, Gold `#DAC495`, Ivory `#E5E2DF`
 - **No borders** — depth via tonal background shifts only. Ghost border fallback: `rgba(76,70,61,0.15)`
@@ -83,8 +87,9 @@ app.register_blueprint(customers_bp)
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
-- **Phase 3 🔄 (IN PROGRESS)** — Plans 01-07 complete locally (2026-04-03). Plan 06 still blocked on external provisioning. Plan 07 (agency_id scoping sweep) ✅ done. Next: deploy to VPS + human UAT, then continue with remaining Phase 3 plans.
+- **Phase 3 ✅ DEPLOYED (2026-04-13)** — Plans 01-07 complete and live on VPS. OAuth login fixed (https force + scope relaxation). Plan 06 still blocked on external provisioning (HealthSherpa + Google Meet Pub/Sub).
 - **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Dashboard rebuilt to original spec (activity-first: Unified Timeline, Tasks, Alerts, NC Enrollment Windows). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
+- **Commission Audit ✅ (2026-04-13)** — All 7 carriers now supported: UHC, Aetna, BCBS, Humana, Devoted, Healthspring, Wellable. Real March 2026 files uploaded and parsing correctly. See Commission Parser Notes below.
 
 ## Agent Nav — what's in the sidebar (as of 2026-04-03)
 My Book: Dashboard, Customers, Upcoming Terms
@@ -118,6 +123,7 @@ Alerts: Unmatched Calls
 - `app/templates/base.html` on VPS had an extra `{% endif %}` (fixed 2026-03-26 during UAT) — local copy and VPS are now in sync
 - Admin login: `admin@foundersinsuranceagency.com` (shared AJ+Tim). Agent test login: `tim@foundersinsuranceagency.com`
 - `is_admin` is recalculated from `ADMIN_EMAILS` on every OAuth login — DB value gets overwritten
+- `OAUTHLIB_RELAX_TOKEN_SCOPE=1` set in auth.py — required because Google Cloud OAuth app has Meet/Pub/Sub scopes configured, causing scope mismatch on basic login flow
 
 ## Phase 3 Pre-Code Checklist
 - [x] Quo (OpenPhone) account provisioned — QUO_WEBHOOK_SIGNING_KEY + QUO_API_KEY in .env
@@ -128,6 +134,28 @@ Alerts: Unmatched Calls
 - [ ] HealthSherpa agency account — created, awaiting provisioning. Register webhook once active. Add HEALTHSHERPA_WEBHOOK_SECRET to .env.
 - [ ] Google Meet: enable recording + transcription in Workspace admin, create Pub/Sub topic/subscription, add service account credentials to VPS, add GOOGLE_MEET_PUBSUB_SUBSCRIPTION to .env
 - [ ] Distribute HealthSherpa captive join code to LOA agents once provisioned
+
+## Commission Parser Notes (app/commission/routes.py)
+
+Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprints column headers. Agent matching via `_detect_agent_id()` + `_normalize_name()`.
+
+**Column indices per carrier (verified against March 2026 files):**
+- UHC: agent=col1, action=col4, commission=col5. Gross summary row: `'$N x.55'` in col4 (skip). Paid row: `'$N + $N'` pattern in col4, paid value in col5.
+- Aetna: agent=col9, amount=col10. Summary row: `'N x.525'` in col9, paid in col10. **Split rate = 52.5%** (not 55%).
+- Humana: agent=col2, amount=col8 (PaidAmount). No separate paid row — Humana pays Tim directly, `paid = gross`. **Split rate = 1.0** in `agent_carrier_contracts` for Tim.
+- BCBS: agent=col1, commission=col13. Summary row: `'$N x .55'` in col9, paid in col10.
+- Devoted: agent=col2, amount=col11 (Base Amount). Summary row: `'N x .55'` in col8, paid in col9. Statement date is string `MM/DD/YYYY` in col0.
+- Healthspring: agent=col3, amount=col7. Summary row: `'N x.55'` in col6, paid in col7.
+- Wellable: agent=col3, advance_amount=col16. Summary row: `'$N x .55'` in col16, paid in col17. All line items flagged `is_advance=True` — clawback risk badge shown in UI.
+
+**Split rates in agent_carrier_contracts (Tim, agent_id=1):**
+- Aetna: 0.525 (52.5%)
+- Humana: 1.0 (direct pay — no agency redistribution)
+- All others: 0.55 (55%)
+
+**Known UHC behavior:** UHC sometimes pays gross×55% + separate HA bonus in a single disbursement. This shows as a discrepancy of the HA bonus amount — this is expected and should be reviewed, not auto-resolved.
+
+**Wellable advance commissions:** 1st-year advances are clawback-eligible if policy lapses within advance period. Flagged with orange "Advance" badge and warning banner in commission detail view. Do not treat as verified income.
 
 ## Key Files
 - `FOUNDERS_PORTAL_CONTEXT.md` — full project context, agent roster, carrier details, roadmap

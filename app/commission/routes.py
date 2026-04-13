@@ -210,6 +210,83 @@ def _parse_devoted(ws):
     return gross, bonus, paid, stmt_date, line_items
 
 
+def _parse_healthspring(ws):
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    line_items = []
+    gross = 0.0
+    paid  = 0.0
+    stmt_date = None
+
+    for row in rows:
+        if not any(row):
+            continue
+        # Summary row: col 6 (Pay Period col) contains "NNN x.55", col 7 is the paid amount
+        col6 = str(row[6] if len(row) > 6 else "").strip()
+        if re.search(r'[\d,]+\s*x\.?\s*\.?\d+', col6):
+            if row[7] and isinstance(row[7], (int, float)):
+                paid = float(row[7])
+            continue
+
+        amount = row[7] if len(row) > 7 else None
+        if amount and isinstance(amount, (int, float)):
+            gross += float(amount)
+            pay_period = row[6]
+            if stmt_date is None and isinstance(pay_period, datetime):
+                stmt_date = pay_period.date()
+            line_items.append({
+                "member":      str(row[8] or ""),   # Member ID
+                "mbi":         str(row[9] or ""),   # MBI
+                "action":      str(row[0] or ""),   # Payment Type
+                "description": str(row[1] or ""),   # Payment Description
+                "amount":      float(amount),
+            })
+
+    if stmt_date is None:
+        stmt_date = date.today()
+    return gross, 0.0, paid, stmt_date, line_items
+
+
+def _parse_wellable(ws):
+    """Wellable advance commissions — flagged as clawback-eligible advances."""
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    line_items = []
+    gross = 0.0
+    paid  = 0.0
+    stmt_date = None
+
+    for row in rows:
+        if not any(row):
+            continue
+        # Summary row: col 16 (Advance Type col) contains "NNN x .55"
+        col16 = str(row[16] if len(row) > 16 else "").strip()
+        if re.search(r'[\$\d,]+\.?\d*\s*x\s*\.?\d+', col16):
+            if row[17] and isinstance(row[17], (int, float)):
+                paid = float(row[17])
+            continue
+
+        advance_amount = row[16] if len(row) > 16 else None
+        if advance_amount and isinstance(advance_amount, (int, float)):
+            gross += float(advance_amount)
+            app_date = row[17] if len(row) > 17 else None
+            if stmt_date is None and isinstance(app_date, datetime):
+                stmt_date = app_date.date()
+            line_items.append({
+                "member":        str(row[5] or ""),   # Insured Name
+                "policy":        str(row[4] or ""),   # Policy number
+                "plan":          str(row[7] or ""),   # Plan Code
+                "premium":       float(row[12]) if row[12] else 0.0,
+                "advance_pct":   float(row[13]) if row[13] else 0.0,
+                "advance_months": str(row[14] or ""),
+                "action":        str(row[15] or ""),  # Advance Type (e.g. "1st Year Advance")
+                "amount":        float(advance_amount),
+                "is_advance":    True,                # clawback flag
+            })
+
+    if stmt_date is None:
+        stmt_date = date.today()
+    return gross, 0.0, paid, stmt_date, line_items
+
+
 def _detect_carrier(ws):
     headers = [str(c.value or "").lower() for c in ws[1]]
     header_str = " ".join(headers)
@@ -223,6 +300,10 @@ def _detect_carrier(ws):
         return "BCBS"
     if "member hicn" in header_str or "agent npn" in header_str:
         return "Devoted"
+    if "payment type" in header_str and "medicare beneficiary identifier" in header_str:
+        return "Healthspring"
+    if "distributor number" in header_str and "advance type" in header_str:
+        return "Wellable"
     return None
 
 
@@ -260,11 +341,13 @@ def _normalize_name(s):
 def _detect_agent_id(ws, carrier):
     """Extract agent name from file and match to a User in the database."""
     agent_col_map = {
-        "UHC":     1,   # Writing Agent Name (col B, index 1)
-        "Aetna":   8,   # Writing Agent Name (col I, index 8)
-        "Humana":  1,   # WaName (col B, index 1)
-        "BCBS":    1,   # Agent Name (col B, index 1)
-        "Devoted": 2,   # Agent Name (col C, index 2)
+        "UHC":          1,   # Writing Agent Name (col B, index 1)
+        "Aetna":        8,   # Writing Agent Name (col I, index 8)
+        "Humana":       1,   # WaName (col B, index 1)
+        "BCBS":         1,   # Agent Name (col B, index 1)
+        "Devoted":      2,   # Agent Name (col C, index 2)
+        "Healthspring": 3,   # Writing Broker Name (col D, index 3)
+        "Wellable":     3,   # Writing Agent Name (col D, index 3)
     }
     col_idx = agent_col_map.get(carrier)
     if col_idx is None:
@@ -299,11 +382,13 @@ def _detect_agent_id(ws, carrier):
 
 
 PARSERS = {
-    "UHC":     _parse_uhc,
-    "Aetna":   _parse_aetna,
-    "Humana":  _parse_humana,
-    "BCBS":    _parse_bcbs,
-    "Devoted": _parse_devoted,
+    "UHC":         _parse_uhc,
+    "Aetna":       _parse_aetna,
+    "Humana":      _parse_humana,
+    "BCBS":        _parse_bcbs,
+    "Devoted":     _parse_devoted,
+    "Healthspring": _parse_healthspring,
+    "Wellable":    _parse_wellable,
 }
 
 

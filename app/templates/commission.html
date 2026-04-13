@@ -67,7 +67,8 @@
 .stmt-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ── Badge overrides (Lux) ── */
-.badge-gold { background: rgba(201,168,76,0.12); color: var(--status-progress); }
+.badge-gold   { background: rgba(201,168,76,0.12); color: var(--status-progress); }
+.badge-orange { background: rgba(201,168,76,0.18); color: #E8A838; border: 1px solid rgba(232,168,56,0.3); }
 
 /* ── Admin layout ── */
 .admin-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 2px; align-items: start; }
@@ -184,7 +185,10 @@
           <div class="carrier-card-sub">your 55% · gross ${{ "{:,.2f}".format(s.gross_amount) }}</div>
         </div>
         <div class="carrier-card-footer">
-          {% if s.status == 'verified' %}
+          {% if s.carrier == 'Wellable' %}
+            <span class="badge badge-orange" title="Advance commissions can be clawed back if policy lapses">⚠ Advance</span>
+            <span class="carrier-card-diff" style="color:var(--status-progress);font-size:0.72rem;">clawback risk</span>
+          {% elif s.status == 'verified' %}
             <span class="badge badge-green">✓ Verified</span>
             <span class="carrier-card-diff ok">$0.00</span>
           {% elif s.status == 'discrepancy' %}
@@ -211,6 +215,13 @@
         </div>
         <span class="detail-meta">{{ s.line_items_parsed|length }} line items · uploaded {{ s.upload_date.strftime('%b %d, %Y') }}</span>
       </div>
+      {% if s.carrier == 'Wellable' %}
+      <div style="background:rgba(201,168,76,0.1);border-left:3px solid var(--status-progress);padding:10px 14px;margin-bottom:14px;font-size:0.8rem;color:var(--ivory);">
+        <strong style="color:var(--status-progress);">Advance Commission</strong> — These are 1st-year advance payments against future renewals.
+        If a policy lapses within the advance period, Wellable will issue a chargeback.
+        Verify all policies are still active before reconciling.
+      </div>
+      {% endif %}
 
       <div class="math-strip">
         <div class="math-cell">
@@ -253,7 +264,8 @@
             <td style="font-weight:500">{{ item.get('member','—') }}</td>
             <td>
               {% set action = item.get('action','') %}
-              {% if action in ('Renewal','RENEW') %}<span class="badge badge-blue">Renewal</span>
+              {% if item.get('is_advance') %}<span class="badge badge-orange" title="Clawback-eligible advance">Advance</span>
+              {% elif action in ('Renewal','RENEW') %}<span class="badge badge-blue">Renewal</span>
               {% elif 'first' in action|lower or 'new' in action|lower %}<span class="badge badge-green">New</span>
               {% elif action and action|float(0) < 0 %}<span class="badge badge-red">Chargeback</span>
               {% elif 'HA' in action or 'HRA' in action %}<span class="badge badge-gold">Bonus</span>

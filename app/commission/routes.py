@@ -15,12 +15,83 @@ from app.commission import commission_bp
 SPLIT_RATE = 0.55
 
 
+def _scan_summary(ws):
+    """
+    Scan every cell in the sheet for AJ's manually typed summary rows.
+    AJ places these inconsistently — column and row position varies month to month.
+
+    Looks for:
+      - Gross×rate row:  "7,566.59 x.55"  or  "$202.44 x.525"  etc.
+      - Paid row:        a numeric cell adjacent to or near a gross×rate cell,
+                         OR a cell matching "$N + $N" pattern (UHC style)
+
+    Returns:
+      (paid, stated_rate)
+      paid        — the numeric amount AJ says was paid (float or None)
+      stated_rate — the split rate AJ used in his formula (float or None)
+                    Callers should compare this against the contract rate.
+    """
+    all_cells = []
+    for row in ws.iter_rows():
+        for cell in row:
+            all_cells.append(cell)
+
+    paid = None
+    stated_rate = None
+
+    for cell in all_cells:
+        val = str(cell.value or "").strip()
+
+        # Pattern: "NNN x .55" or "$NNN,NNN.NN x.525" — gross × split summary
+        m = re.search(r'[\$]?([\d,]+\.?\d*)\s*x\.?\s*(\.?\d+)', val)
+        if m:
+            try:
+                rate = float(m.group(2))
+                if 0 < rate < 1:
+                    stated_rate = rate
+                elif rate > 1:          # e.g. "x55" instead of "x.55"
+                    stated_rate = rate / 100
+            except ValueError:
+                pass
+            # The paid value is often the numeric cell immediately to the right
+            # or below this cell
+            right = ws.cell(row=cell.row, column=cell.column + 1)
+            below = ws.cell(row=cell.row + 1, column=cell.column)
+            for candidate in (right, below):
+                if isinstance(candidate.value, (int, float)):
+                    paid = float(candidate.value)
+                    break
+            continue
+
+        # Pattern: "$4,161.62 + $130.81" — paid = numeric in next cell
+        if re.search(r'^\$[\d,]+\.\d+\s*\+\s*[\$\d]', val):
+            right = ws.cell(row=cell.row, column=cell.column + 1)
+            below = ws.cell(row=cell.row + 1, column=cell.column)
+            for candidate in (right, below):
+                if isinstance(candidate.value, (int, float)):
+                    if paid is None:   # don't overwrite if already found
+                        paid = float(candidate.value)
+                    break
+            continue
+
+        # Pattern: "$283.17 + 27(last month)" — free-text paid note, extract numeric
+        m2 = re.search(r'^\$?([\d,]+\.\d{2})\s*\+\s*[\d\$]', val)
+        if m2:
+            try:
+                if paid is None:
+                    paid = float(m2.group(1).replace(',', ''))
+            except ValueError:
+                pass
+
+    return paid, stated_rate
+
+
 def _parse_uhc(ws):
+    paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
     bonus = 0.0
-    paid  = 0.0
     stmt_date = None
 
     for row in rows:
@@ -32,14 +103,10 @@ def _parse_uhc(ws):
         if stmt_date is None and row[0] and isinstance(row[0], datetime):
             stmt_date = row[0].date()
 
+        # Skip summary rows — _scan_summary already handled them
         if re.search(r'[\d,]+\.?\d*\s*x\.?\s*\.?\d+', action):
-            # Gross summary row e.g. "$7,566.59 x.55" — paid is on a separate row
             continue
-
-        # Paid summary row e.g. "$4,161.62 + $130.81" with numeric paid in col 5
-        if re.search(r'^\$[\d,]+\.\d+\s*\+\s*\$[\d,]+', action):
-            if commission and isinstance(commission, (int, float)):
-                paid = float(commission)
+        if re.search(r'^\$[\d,]+\.\d+\s*\+', action):
             continue
 
         if action.startswith("HA payment"):
@@ -59,27 +126,24 @@ def _parse_uhc(ws):
                 "term_reason": str(row[6] or ""),
             })
 
-    return gross, bonus, paid, stmt_date, line_items
+    return gross, bonus, paid or 0.0, stmt_date, line_items, stated_rate
 
 
 def _parse_aetna(ws):
+    paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
-    paid  = 0.0
     stmt_date = None
 
     for row in rows:
         if not any(row):
             continue
-        # Summary row: "202.44 x.525" is in col 9 (Writing Agent Name col), paid in col 10
-        col9 = str(row[9] or "").strip()
-        if re.search(r'[\d,]+\.?\d*\s*x', col9):
-            if row[10] and isinstance(row[10], (int, float)):
-                paid = float(row[10])
+        # Skip summary rows
+        if re.search(r'[\d,]+\.?\d*\s*x', str(row[9] or "")):
             continue
 
-        amount = row[10]  # Payee Amount is col 10 (index 10)
+        amount = row[10]  # Payee Amount
         if stmt_date is None and row[7] and isinstance(row[7], datetime):
             stmt_date = row[7].date()
 
@@ -93,62 +157,58 @@ def _parse_aetna(ws):
                 "amount":   float(amount),
             })
 
-    return gross, 0.0, paid, stmt_date, line_items
+    return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
 def _parse_humana(ws):
+    paid_scan, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
-    gross      = 0.0
-    paid       = 0.0
-    stmt_date  = None
+    gross     = 0.0
+    stmt_date = None
 
     for row in rows:
         if not any(row):
             continue
-        # Summary row check (not present in all Humana files — skip if found)
-        col8 = str(row[8] or "").strip()
-        if re.search(r'[\$\d,]+\.?\d*\s*x', col8):
-            if row[9] and isinstance(row[9], (int, float)):
-                paid = float(row[9])
+        # Skip summary rows
+        if re.search(r'[\$\d,]+\.?\d*\s*x', str(row[8] or "")):
+            continue
+        if re.search(r'[\$\d,]+\.?\d*\s*x', str(row[7] or "")):
             continue
 
-        amount  = row[8]   # PaidAmount is col I (index 8)
+        amount  = row[8]   # PaidAmount
         comment = str(row[9] or "").strip()
 
         if stmt_date is None and row[1] and isinstance(row[1], datetime):
             stmt_date = row[1].date()
 
         if amount and isinstance(amount, (int, float)):
-            gross += float(amount)  # net all rows — chargebacks are negative
+            gross += float(amount)
             line_items.append({
-                "member":  str(row[4] or ""),   # GrpName
-                "month":   str(row[6] or ""),   # MonthPaid
-                "action":  comment,             # Comment (e.g. RENEWAL COMMISSIONS)
+                "member":  str(row[4] or ""),
+                "month":   str(row[6] or ""),
+                "action":  comment,
                 "amount":  float(amount),
-                "product": str(row[7] or ""),   # Product
+                "product": str(row[7] or ""),
             })
 
-    # Humana pays net — paid = gross (no separate paid row)
-    paid = gross
-    return gross, 0.0, paid, stmt_date, line_items
+    # Humana pays Tim directly — use scanned paid if available, otherwise gross
+    paid = paid_scan if paid_scan is not None else gross
+    return gross, 0.0, paid, stmt_date, line_items, stated_rate
 
 
 def _parse_bcbs(ws):
+    paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
-    paid  = 0.0
     stmt_date = date.today()
 
     for row in rows:
         if not any(row):
             continue
-        # Summary row: "$846.88 x .55" in col 9 (Premium Period), paid in col 10
-        col9 = str(row[9] or "").strip()
-        if re.search(r'[\$\d,]+\.?\d*\s*x', col9):
-            if row[10] and isinstance(row[10], (int, float)):
-                paid = float(row[10])
+        # Skip summary rows
+        if re.search(r'[\$\d,]+\.?\d*\s*x', str(row[9] or "")):
             continue
         col13 = str(row[13] or "").strip() if len(row) > 13 else ""
         if col13.startswith("="):
@@ -169,28 +229,24 @@ def _parse_bcbs(ws):
                 "amount":     float(commission),
             })
 
-    return gross, 0.0, paid, stmt_date, line_items
+    return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
 def _parse_devoted(ws):
+    paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
-    bonus = 0.0
-    paid  = 0.0
     stmt_date = None
 
     for row in rows:
         if not any(row):
             continue
-        # Summary row: "347 x .55" in col 8 (Disenroll Date col), paid in col 9
-        col8 = str(row[8] or "").strip()
-        if re.search(r'[\$\d,]+\s*x\.?\s*\.?\d+', col8):
-            if row[9] and isinstance(row[9], (int, float)):
-                paid = float(row[9])
+        # Skip summary rows
+        if re.search(r'[\$\d,]+\s*x\.?\s*\.?\d+', str(row[8] or "")):
             continue
 
-        amount = row[11]  # Base Amount is index 11
+        amount = row[11]  # Base Amount
         if amount and isinstance(amount, (int, float)):
             gross += float(amount)
             line_items.append({
@@ -208,24 +264,21 @@ def _parse_devoted(ws):
             except Exception:
                 pass
 
-    return gross, bonus, paid, stmt_date, line_items
+    return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
 def _parse_healthspring(ws):
+    paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
-    paid  = 0.0
     stmt_date = None
 
     for row in rows:
         if not any(row):
             continue
-        # Summary row: col 6 (Pay Period col) contains "NNN x.55", col 7 is the paid amount
-        col6 = str(row[6] if len(row) > 6 else "").strip()
-        if re.search(r'[\d,]+\s*x\.?\s*\.?\d+', col6):
-            if row[7] and isinstance(row[7], (int, float)):
-                paid = float(row[7])
+        # Skip summary rows
+        if re.search(r'[\d,]+\s*x\.?\s*\.?\d+', str(row[6] if len(row) > 6 else "")):
             continue
 
         amount = row[7] if len(row) > 7 else None
@@ -235,34 +288,31 @@ def _parse_healthspring(ws):
             if stmt_date is None and isinstance(pay_period, datetime):
                 stmt_date = pay_period.date()
             line_items.append({
-                "member":      str(row[8] or ""),   # Member ID
-                "mbi":         str(row[9] or ""),   # MBI
-                "action":      str(row[0] or ""),   # Payment Type
-                "description": str(row[1] or ""),   # Payment Description
+                "member":      str(row[8] or ""),
+                "mbi":         str(row[9] or ""),
+                "action":      str(row[0] or ""),
+                "description": str(row[1] or ""),
                 "amount":      float(amount),
             })
 
     if stmt_date is None:
         stmt_date = date.today()
-    return gross, 0.0, paid, stmt_date, line_items
+    return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
 def _parse_wellable(ws):
     """Wellable advance commissions — flagged as clawback-eligible advances."""
+    paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
-    paid  = 0.0
     stmt_date = None
 
     for row in rows:
         if not any(row):
             continue
-        # Summary row: col 16 (Advance Type col) contains "NNN x .55"
-        col16 = str(row[16] if len(row) > 16 else "").strip()
-        if re.search(r'[\$\d,]+\.?\d*\s*x\s*\.?\d+', col16):
-            if row[17] and isinstance(row[17], (int, float)):
-                paid = float(row[17])
+        # Skip summary rows
+        if re.search(r'[\$\d,]+\.?\d*\s*x\s*\.?\d+', str(row[16] if len(row) > 16 else "")):
             continue
 
         advance_amount = row[16] if len(row) > 16 else None
@@ -272,20 +322,20 @@ def _parse_wellable(ws):
             if stmt_date is None and isinstance(app_date, datetime):
                 stmt_date = app_date.date()
             line_items.append({
-                "member":        str(row[5] or ""),   # Insured Name
-                "policy":        str(row[4] or ""),   # Policy number
-                "plan":          str(row[7] or ""),   # Plan Code
-                "premium":       float(row[12]) if row[12] else 0.0,
-                "advance_pct":   float(row[13]) if row[13] else 0.0,
+                "member":         str(row[5] or ""),
+                "policy":         str(row[4] or ""),
+                "plan":           str(row[7] or ""),
+                "premium":        float(row[12]) if row[12] else 0.0,
+                "advance_pct":    float(row[13]) if row[13] else 0.0,
                 "advance_months": str(row[14] or ""),
-                "action":        str(row[15] or ""),  # Advance Type (e.g. "1st Year Advance")
-                "amount":        float(advance_amount),
-                "is_advance":    True,                # clawback flag
+                "action":         str(row[15] or ""),
+                "amount":         float(advance_amount),
+                "is_advance":     True,
             })
 
     if stmt_date is None:
         stmt_date = date.today()
-    return gross, 0.0, paid, stmt_date, line_items
+    return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
 def _detect_carrier(ws):
@@ -454,7 +504,7 @@ def commission_upload():
         return redirect(url_for("commission.commission_admin"))
 
     try:
-        gross, bonus, paid, stmt_date, line_items = PARSERS[carrier](ws)
+        gross, bonus, paid, stmt_date, line_items, stated_rate = PARSERS[carrier](ws)
     except Exception as e:
         current_app.logger.error(f"Commission parse error ({carrier}): {e}")
         flash(f"Parse error for {carrier}: {e}", "error")
@@ -485,6 +535,21 @@ def commission_upload():
     difference   = round(expected - paid, 2)
     status       = "verified" if abs(difference) < 0.02 else "discrepancy"
 
+    # Rate discrepancy check — flag when AJ's formula uses a different rate than the contract
+    if stated_rate is not None and abs(stated_rate - agent_split) > 0.001:
+        stated_pct  = round(stated_rate * 100, 2)
+        contract_pct = round(agent_split * 100, 2)
+        wrong_expected = round((gross + bonus) * stated_rate, 2)
+        rate_diff = round(wrong_expected - expected, 2)
+        direction = "underpaid" if rate_diff < 0 else "overpaid"
+        flash(
+            f"⚠ Rate mismatch on {carrier} {period_label}: AJ's file used {stated_pct}% "
+            f"but contract rate is {contract_pct}%. "
+            f"This would have {direction} by "
+            f"${abs(rate_diff):,.2f}. Portal calculated expected at {contract_pct}%.",
+            "warning"
+        )
+
     existing = CommissionStatement.query.filter_by(
         carrier=carrier, agent_id=agent_id, period_label=period_label,
         agency_id=current_user.agency_id).first()
@@ -507,10 +572,11 @@ def commission_upload():
     stmt.uploaded_by_id  = current_user.id
     db.session.commit()
 
+    split_pct = round(agent_split * 100, 2)
     if status == "verified":
-        flash(f"✓ {carrier} {period_label} — verified. Gross ${stmt.gross_amount:,.2f} × 55% = ${expected:,.2f} ✅", "success")
+        flash(f"✓ {carrier} {period_label} — verified. Gross ${stmt.gross_amount:,.2f} × {split_pct}% = ${expected:,.2f} ✅", "success")
     else:
-        flash(f"⚠ {carrier} {period_label} — discrepancy of ${abs(difference):,.2f}. Expected ${expected:,.2f}, paid ${paid:,.2f}.", "warning")
+        flash(f"⚠ {carrier} {period_label} — discrepancy of ${abs(difference):,.2f}. Expected ${expected:,.2f} ({split_pct}%), paid ${paid:,.2f}.", "warning")
 
     return redirect(url_for("commission.commission_admin"))
 

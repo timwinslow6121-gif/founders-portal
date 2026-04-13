@@ -38,9 +38,26 @@
 .carrier-card-diff { font-size: 11px; font-weight: 500; }
 .carrier-card-diff.ok { color: var(--status-resolved); }
 .carrier-card-diff.bad { color: var(--status-error); }
-.carrier-card.verified  { border-top: 2px solid var(--status-resolved); }
-.carrier-card.discrepancy { border-top: 2px solid var(--status-error); }
-.carrier-card.pending   { border-top: 2px solid var(--status-progress); }
+.carrier-card.verified       { border-top: 2px solid var(--status-resolved); }
+.carrier-card.discrepancy    { border-top: 2px solid var(--status-error); }
+.carrier-card.pending        { border-top: 2px solid var(--status-progress); }
+.carrier-card.pending_review { border-top: 2px solid #9D8DF1; }
+.carrier-card.accepted       { border-top: 2px solid var(--status-resolved); }
+.carrier-card.disputed       { border-top: 2px solid #E8A838; }
+
+/* ── Override workflow ── */
+.override-panel { background: rgba(157,141,241,0.06); border-left: 3px solid #9D8DF1; padding: 14px 18px; margin: 0 0 0 0; }
+.override-panel.admin-note { background: rgba(201,168,76,0.06); border-left: 3px solid rgba(201,168,76,0.5); }
+.override-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.override-note-text { font-size: 12px; color: var(--ivory); line-height: 1.6; margin-bottom: 12px; }
+.override-textarea { background: var(--surface-mid); border: 1px solid var(--border); color: var(--ivory); font-family: var(--font-sans); font-size: 12px; padding: 10px 12px; width: 100%; resize: vertical; min-height: 80px; box-sizing: border-box; margin-bottom: 10px; }
+.override-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-accept { background: rgba(138,154,91,0.15); color: var(--status-resolved); border: 1px solid rgba(138,154,91,0.4); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-accept:hover { background: rgba(138,154,91,0.25); }
+.btn-dispute { background: rgba(255,180,171,0.08); color: var(--status-error); border: 1px solid rgba(255,180,171,0.3); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-dispute:hover { background: rgba(255,180,171,0.15); }
+.btn-send-review { background: rgba(157,141,241,0.12); color: #9D8DF1; border: 1px solid rgba(157,141,241,0.3); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-send-review:hover { background: rgba(157,141,241,0.22); }
 
 /* ── Detail card ── */
 .detail-card { background: var(--surface-low); overflow: hidden; margin-bottom: 2px; }
@@ -188,11 +205,17 @@
           {% if s.carrier == 'Wellable' %}
             <span class="badge badge-orange" title="Advance commissions can be clawed back if policy lapses">⚠ Advance</span>
             <span class="carrier-card-diff" style="color:var(--status-progress);font-size:0.72rem;">clawback risk</span>
-          {% elif s.status == 'verified' %}
-            <span class="badge badge-green">✓ Verified</span>
+          {% elif s.status == 'verified' or s.status == 'accepted' %}
+            <span class="badge badge-green">✓ {{ 'Accepted' if s.status == 'accepted' else 'Verified' }}</span>
             <span class="carrier-card-diff ok">$0.00</span>
           {% elif s.status == 'discrepancy' %}
             <span class="badge badge-red">⚠ Discrepancy</span>
+            <span class="carrier-card-diff bad">${{ "{:,.2f}".format(s.difference|abs) }}</span>
+          {% elif s.status == 'pending_review' %}
+            <span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">⏳ Review</span>
+            <span class="carrier-card-diff" style="color:#9D8DF1;">${{ "{:,.2f}".format(s.difference|abs) }}</span>
+          {% elif s.status == 'disputed' %}
+            <span class="badge badge-orange">⚠ Disputed</span>
             <span class="carrier-card-diff bad">${{ "{:,.2f}".format(s.difference|abs) }}</span>
           {% else %}
             <span class="badge badge-gold">Pending</span>
@@ -210,13 +233,45 @@
         <div style="display:flex;align-items:center;gap:10px;">
           <span class="detail-title">{{ s.carrier }} — {{ s.period_label }}</span>
           {% if s.status == 'verified' %}<span class="badge badge-green">✓ Verified</span>
+          {% elif s.status == 'accepted' %}<span class="badge badge-green">✓ Accepted</span>
           {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠ Discrepancy</span>
+          {% elif s.status == 'pending_review' %}<span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">⏳ Awaiting Your Review</span>
+          {% elif s.status == 'disputed' %}<span class="badge badge-orange">⚠ Disputed</span>
           {% else %}<span class="badge badge-gold">Pending</span>{% endif %}
         </div>
         <span class="detail-meta">{{ s.line_items_parsed|length }} line items · uploaded {{ s.upload_date.strftime('%b %d, %Y') }}</span>
       </div>
+
+      {# ── Override review panel (agent view) ── #}
+      {% if s.status == 'pending_review' %}
+      <div class="override-panel">
+        <div class="override-label">AJ's explanation</div>
+        <div class="override-note-text">{{ s.override_note_admin }}</div>
+        <form method="POST" action="{{ url_for('commission.commission_review_override', stmt_id=s.id) }}">
+          <div class="override-label" style="margin-bottom:6px">Your response (optional for acceptance)</div>
+          <textarea name="override_note_agent" class="override-textarea" placeholder="Add a note about this adjustment..."></textarea>
+          <div class="override-actions">
+            <button type="submit" name="action" value="accept" class="btn-accept">✓ Accept</button>
+            <button type="submit" name="action" value="dispute" class="btn-dispute">✗ Dispute</button>
+          </div>
+        </form>
+      </div>
+      {% elif s.status == 'accepted' and s.override_note_admin %}
+      <div class="override-panel admin-note">
+        <div class="override-label">Override — Accepted</div>
+        <div class="override-note-text">{{ s.override_note_admin }}</div>
+        {% if s.override_note_agent %}<div class="override-note-text" style="color:var(--slate)">Your note: {{ s.override_note_agent }}</div>{% endif %}
+      </div>
+      {% elif s.status == 'disputed' %}
+      <div class="override-panel">
+        <div class="override-label">Disputed — pending admin review</div>
+        {% if s.override_note_admin %}<div class="override-note-text"><strong style="color:var(--slate)">AJ:</strong> {{ s.override_note_admin }}</div>{% endif %}
+        {% if s.override_note_agent %}<div class="override-note-text"><strong style="color:var(--slate)">Your dispute:</strong> {{ s.override_note_agent }}</div>{% endif %}
+      </div>
+      {% endif %}
+
       {% if s.carrier == 'Wellable' %}
-      <div style="background:rgba(201,168,76,0.1);border-left:3px solid var(--status-progress);padding:10px 14px;margin-bottom:14px;font-size:0.8rem;color:var(--ivory);">
+      <div style="background:rgba(201,168,76,0.1);border-left:3px solid var(--status-progress);padding:10px 14px;font-size:0.8rem;color:var(--ivory);">
         <strong style="color:var(--status-progress);">Advance Commission</strong> — These are 1st-year advance payments against future renewals.
         If a policy lapses within the advance period, Wellable will issue a chargeback.
         Verify all policies are still active before reconciling.
@@ -374,7 +429,10 @@
             <td>{{ s.period_label }}</td>
             <td>
               {% if s.status == 'verified' %}<span class="badge badge-green">✓</span>
+              {% elif s.status == 'accepted' %}<span class="badge badge-green">Accepted</span>
               {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠</span>
+              {% elif s.status == 'pending_review' %}<span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">Review</span>
+              {% elif s.status == 'disputed' %}<span class="badge badge-orange">Disputed</span>
               {% else %}<span class="badge badge-gold">—</span>{% endif %}
             </td>
           </tr>
@@ -429,9 +487,19 @@
                 {% else %}-${{ "{:,.2f}".format(s.difference|abs) }}{% endif %}
               </td>
               <td>
-                {% if s.status == 'verified' %}<span class="badge badge-green">✓</span>
-                {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠</span>
-                {% else %}<span class="badge badge-gold">—</span>{% endif %}
+                {% if s.status == 'verified' %}
+                  <span class="badge badge-green">✓</span>
+                {% elif s.status == 'accepted' %}
+                  <span class="badge badge-green">Accepted</span>
+                {% elif s.status == 'discrepancy' %}
+                  <span class="badge badge-red" style="cursor:pointer" onclick="document.getElementById('override-form-{{ s.id }}').style.display='block'" title="Click to send for agent review">⚠ Override?</span>
+                {% elif s.status == 'pending_review' %}
+                  <span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">⏳ Sent</span>
+                {% elif s.status == 'disputed' %}
+                  <span class="badge badge-orange" style="cursor:pointer" onclick="document.getElementById('close-dispute-{{ s.id }}').style.display='block'" title="Click to close dispute">⚠ Disputed</span>
+                {% else %}
+                  <span class="badge badge-gold">—</span>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -439,6 +507,44 @@
         {% endfor %}
       </tbody>
     </table>
+    {# Inline override/dispute-close forms — hidden until badge clicked #}
+    {% for summary in agent_summaries %}
+      {% for s in summary.statements %}
+        {% if s.status == 'discrepancy' %}
+        <div id="override-form-{{ s.id }}" style="display:none;" class="override-panel admin-note" style="margin:0 18px 12px;">
+          <div class="override-label">Send {{ s.carrier }} {{ s.period_label }} for Agent Review</div>
+          <div style="font-size:11px;color:var(--slate);margin-bottom:10px;">
+            Discrepancy: ${{ "{:,.2f}".format(s.difference|abs) }} · Expected ${{ "{:,.2f}".format(s.expected_amount) }}, paid ${{ "{:,.2f}".format(s.paid_amount) }}
+          </div>
+          <form method="POST" action="{{ url_for('commission.commission_request_override', stmt_id=s.id) }}">
+            <textarea name="override_note_admin" class="override-textarea" placeholder="Explain the discrepancy to {{ summary.agent.display_name }}...&#10;E.g. PDP renewal amounts match agency override — same amount, different line. Reviewed and correct."></textarea>
+            <div class="override-actions">
+              <button type="submit" class="btn-send-review">Send for Agent Review</button>
+              <button type="button" onclick="document.getElementById('override-form-{{ s.id }}').style.display='none'" style="background:none;border:none;color:var(--slate);font-size:11px;cursor:pointer;padding:8px;">Cancel</button>
+            </div>
+          </form>
+        </div>
+        {% elif s.status == 'disputed' %}
+        <div id="close-dispute-{{ s.id }}" style="display:none;" class="override-panel">
+          <div class="override-label">{{ summary.agent.display_name }}'s Dispute — {{ s.carrier }} {{ s.period_label }}</div>
+          {% if s.override_note_admin %}<div class="override-note-text"><strong style="color:var(--slate)">Your explanation:</strong> {{ s.override_note_admin }}</div>{% endif %}
+          {% if s.override_note_agent %}<div class="override-note-text"><strong style="color:var(--slate)">Agent's dispute:</strong> {{ s.override_note_agent }}</div>{% endif %}
+          <form method="POST" action="{{ url_for('commission.commission_close_dispute', stmt_id=s.id) }}">
+            <div class="override-actions">
+              <button type="submit" class="btn-accept">Close & Mark Accepted</button>
+              <button type="button" onclick="document.getElementById('close-dispute-{{ s.id }}').style.display='none'" style="background:none;border:none;color:var(--slate);font-size:11px;cursor:pointer;padding:8px;">Cancel</button>
+            </div>
+          </form>
+        </div>
+        {% elif s.status == 'pending_review' %}
+        <div style="padding:8px 18px;background:rgba(157,141,241,0.04);border-bottom:1px solid var(--border);font-size:11px;color:#9D8DF1;">
+          {{ s.carrier }} {{ s.period_label }} — sent to {{ summary.agent.display_name }} for review.
+          {% if s.override_note_admin %}<span style="color:var(--slate);"> "{{ s.override_note_admin[:80] }}{% if s.override_note_admin|length > 80 %}…{% endif %}"</span>{% endif %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+
     {% else %}
     <div class="empty-state">
       No statements uploaded yet.<br>

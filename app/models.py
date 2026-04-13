@@ -208,7 +208,19 @@ class CommissionStatement(db.Model):
     difference     = db.Column(db.Float, default=0.0)        # expected - paid (0 = verified)
 
     # Status
-    status         = db.Column(db.String(32), default="pending")  # pending / verified / discrepancy
+    # pending / verified / discrepancy / pending_review / accepted / disputed
+    status         = db.Column(db.String(32), default="pending")
+
+    # Discrepancy override workflow
+    # AJ submits an explanation → agent accepts or disputes
+    override_note_admin  = db.Column(db.Text)   # AJ's explanation of the discrepancy
+    override_note_agent  = db.Column(db.Text)   # agent's acceptance note or dispute reasoning
+    override_requested_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    override_requested_by    = db.relationship("User", foreign_keys=[override_requested_by_id])
+    override_reviewed_by_id  = db.Column(db.Integer, db.ForeignKey("users.id"))
+    override_reviewed_by     = db.relationship("User", foreign_keys=[override_reviewed_by_id])
+    override_requested_at    = db.Column(db.DateTime)
+    override_reviewed_at     = db.Column(db.DateTime)
 
     # Raw line items stored as JSON
     line_items     = db.Column(db.Text)                      # JSON array of member rows

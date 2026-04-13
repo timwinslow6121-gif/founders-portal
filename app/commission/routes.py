@@ -393,7 +393,7 @@ def _detect_agent_id(ws, carrier):
     """Extract agent name from file and match to a User in the database."""
     agent_col_map = {
         "UHC":          1,   # Writing Agent Name (col B, index 1)
-        "Aetna":        8,   # Writing Agent Name (col I, index 8)
+        "Aetna":        9,   # Writing Agent Name (col J, index 9)
         "Humana":       2,   # WaName (col C, index 2)
         "BCBS":         1,   # Agent Name (col B, index 1)
         "Devoted":      2,   # Agent Name (col C, index 2)
@@ -595,3 +595,88 @@ def commission_agent_detail(agent_id):
         s.line_items_parsed = json.loads(s.line_items) if s.line_items else []
     return render_template("commission.html",
         statements=statements, is_admin=True, viewing_agent=agent)
+
+
+# ── Override workflow ──────────────────────────────────────────────────────────
+
+@commission_bp.route("/admin/commissions/<int:stmt_id>/request-override", methods=["POST"])
+@login_required
+def commission_request_override(stmt_id):
+    """Admin submits an explanation for a discrepancy and sends it to the agent for review."""
+    if not current_user.is_admin:
+        abort(403)
+    stmt = CommissionStatement.query.filter_by(
+        id=stmt_id, agency_id=current_user.agency_id).first_or_404()
+    if stmt.status not in ("discrepancy",):
+        flash("Override can only be requested on statements with a discrepancy.", "error")
+        return redirect(url_for("commission.commission_admin"))
+
+    note = request.form.get("override_note_admin", "").strip()
+    if not note:
+        flash("An explanation is required to submit for agent review.", "error")
+        return redirect(url_for("commission.commission_admin"))
+
+    stmt.override_note_admin     = note
+    stmt.override_requested_by_id = current_user.id
+    stmt.override_requested_at   = datetime.utcnow()
+    stmt.override_note_agent     = None
+    stmt.override_reviewed_by_id = None
+    stmt.override_reviewed_at    = None
+    stmt.status                  = "pending_review"
+    db.session.commit()
+
+    agent = User.query.get(stmt.agent_id)
+    flash(f"Override sent to {agent.display_name} for review on {stmt.carrier} {stmt.period_label}.", "success")
+    return redirect(url_for("commission.commission_admin"))
+
+
+@commission_bp.route("/commissions/<int:stmt_id>/review-override", methods=["POST"])
+@login_required
+def commission_review_override(stmt_id):
+    """Agent accepts or disputes an override submitted by admin."""
+    stmt = CommissionStatement.query.filter_by(
+        id=stmt_id, agent_id=current_user.id,
+        agency_id=current_user.agency_id).first_or_404()
+    if stmt.status != "pending_review":
+        flash("This statement is not awaiting your review.", "error")
+        return redirect(url_for("commission.commission_index"))
+
+    action = request.form.get("action")   # "accept" or "dispute"
+    note   = request.form.get("override_note_agent", "").strip()
+
+    if action not in ("accept", "dispute"):
+        flash("Invalid action.", "error")
+        return redirect(url_for("commission.commission_index"))
+    if action == "dispute" and not note:
+        flash("Please provide your reasoning when disputing a discrepancy.", "error")
+        return redirect(url_for("commission.commission_index"))
+
+    stmt.override_note_agent     = note
+    stmt.override_reviewed_by_id = current_user.id
+    stmt.override_reviewed_at    = datetime.utcnow()
+    stmt.status                  = "accepted" if action == "accept" else "disputed"
+    db.session.commit()
+
+    if action == "accept":
+        flash(f"You accepted the {stmt.carrier} {stmt.period_label} override.", "success")
+    else:
+        flash(f"Your dispute on {stmt.carrier} {stmt.period_label} has been submitted to admin for review.", "warning")
+    return redirect(url_for("commission.commission_index"))
+
+
+@commission_bp.route("/admin/commissions/<int:stmt_id>/close-dispute", methods=["POST"])
+@login_required
+def commission_close_dispute(stmt_id):
+    """Admin closes a disputed statement — marks it accepted after reviewing agent's note."""
+    if not current_user.is_admin:
+        abort(403)
+    stmt = CommissionStatement.query.filter_by(
+        id=stmt_id, agency_id=current_user.agency_id).first_or_404()
+    if stmt.status != "disputed":
+        flash("This statement is not in disputed status.", "error")
+        return redirect(url_for("commission.commission_admin"))
+
+    stmt.status = "accepted"
+    db.session.commit()
+    flash(f"{stmt.carrier} {stmt.period_label} dispute closed and marked accepted.", "success")
+    return redirect(url_for("commission.commission_admin"))

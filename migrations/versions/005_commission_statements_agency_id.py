@@ -10,7 +10,7 @@ This migration is a no-op if the column already exists (applied via psql ALTER T
 from alembic import op
 import sqlalchemy as sa
 
-revision = '005_commission_statements_agency_id'
+revision = '005'
 down_revision = '004_phase3_comms_schema'
 branch_labels = None
 depends_on = None

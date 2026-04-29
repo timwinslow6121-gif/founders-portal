@@ -45,6 +45,10 @@
         <div id="file-items"></div>
       </div>
 
+      <form id="upload-form" method="POST" action="/upload/bulk" enctype="multipart/form-data" style="display:none;">
+        <input type="file" name="files" id="form-file-input" multiple>
+      </form>
+
       <div style="margin-top:20px; display:flex; align-items:center; gap:12px;">
         <button type="button" class="btn-primary" id="upload-btn" disabled>Upload and import</button>
         <button type="button" class="btn-secondary" id="clear-all-btn" style="display:none;">Clear all</button>
@@ -202,17 +206,16 @@
 
   uploadBtn.addEventListener('click', () => {
     if (!selectedFiles.length) return;
+
+    // Transfer selected files to the hidden form's file input via DataTransfer,
+    // then submit the form normally so Flask flash messages and the redirect work.
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    document.getElementById('form-file-input').files = dt.files;
+
     uploadBtn.disabled = true;
     uploadBtn.textContent = 'Uploading...';
-    const fd = new FormData();
-    selectedFiles.forEach(f => fd.append('files', f));
-    fetch('/upload/bulk', { method: 'POST', body: fd })
-      .then(resp => { window.location.href = resp.url; })
-      .catch(() => {
-        uploadBtn.disabled = false;
-        renderFileList();
-        alert('Network error — please try again.');
-      });
+    document.getElementById('upload-form').submit();
   });
 
   // Import history

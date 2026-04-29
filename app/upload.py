@@ -458,8 +458,16 @@ def bulk_upload():
             errors.append(f"{filename}: {e}")
             continue
 
-        batch = ImportBatch(carrier=carrier, filename=filename,
-                           uploaded_by_id=current_user.id, status="pending")
+        bulk_agency_id = current_user.agency_id
+        bulk_agent_id = current_user.id if not current_user.is_admin else None
+
+        batch = ImportBatch(
+            agency_id=bulk_agency_id,
+            carrier=carrier,
+            filename=filename,
+            uploaded_by_id=current_user.id,
+            status="pending",
+        )
         db.session.add(batch)
         db.session.commit()
 
@@ -478,7 +486,8 @@ def bulk_upload():
         new_count = updated_count = 0
         for rec in records:
             existing = Policy.query.filter_by(
-                carrier=rec["carrier"], member_id=rec["member_id"]
+                carrier=rec["carrier"], member_id=rec["member_id"],
+                agency_id=bulk_agency_id,
             ).first()
             if existing:
                 existing.mbi = rec["mbi"] or existing.mbi
@@ -501,9 +510,13 @@ def bulk_upload():
                 existing.status = rec["status"]
                 existing.last_seen_date = today
                 existing.import_batch_id = batch.id
+                if bulk_agent_id:
+                    existing.agent_id = bulk_agent_id
                 updated_count += 1
             else:
                 db.session.add(Policy(
+                    agency_id=bulk_agency_id,
+                    agent_id=bulk_agent_id,
                     carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"],
                     first_name=rec["first_name"], last_name=rec["last_name"],
                     full_name=rec["full_name"], plan_name=rec["plan_name"],
@@ -518,8 +531,9 @@ def bulk_upload():
                 new_count += 1
 
             # Upsert the customer master record from this policy row
+            effective_agent_id = bulk_agent_id or (existing.agent_id if existing else None)
             try:
-                _upsert_customer_from_policy(rec, existing.agent_id if existing else None, batch.id)
+                _upsert_customer_from_policy(rec, effective_agent_id, batch.id, bulk_agency_id)
             except Exception as e:
                 current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
 

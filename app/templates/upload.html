@@ -9,12 +9,6 @@
   </div>
 </div>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">{{ message }}</div>
-  {% endfor %}
-{% endwith %}
-
 <div class="upload-grid">
 
   <!-- Multi-file drop zone -->
@@ -86,9 +80,36 @@
   </div>
   <div style="padding:0;">
     <table class="data-table">
-      <thead><tr><th>Date</th><th>Carrier</th><th>Filename</th><th>Uploaded by</th><th>Records</th><th>New</th><th>Updated</th><th>Status</th></tr></thead>
-      <tbody id="history-body"><tr><td colspan="8" class="empty-cell">Loading...</td></tr></tbody>
+      <thead><tr><th>Date</th><th>Carrier</th><th>Filename</th><th>Uploaded by</th><th>Records</th><th>New</th><th>Updated</th><th>Status</th><th></th></tr></thead>
+      <tbody id="history-body"><tr><td colspan="9" class="empty-cell">Loading...</td></tr></tbody>
     </table>
+  </div>
+</div>
+
+<!-- Batch detail modal -->
+<div id="batch-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(10,10,9,0.85);overflow-y:auto;">
+  <div style="max-width:860px;margin:40px auto;background:var(--surface);padding:0;position:relative;">
+    <div style="background:var(--surface-high);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <span id="modal-title" style="font-family:var(--font-serif);font-size:15px;color:var(--ivory-bright);"></span>
+        <span id="modal-sub" style="font-size:10px;color:var(--slate);letter-spacing:0.1em;text-transform:uppercase;margin-left:14px;"></span>
+      </div>
+      <button onclick="closeModal()" style="background:none;border:none;color:var(--slate);font-size:20px;cursor:pointer;line-height:1;">×</button>
+    </div>
+
+    <!-- Tab bar -->
+    <div style="display:flex;border-bottom:1px solid var(--border);">
+      <button class="modal-tab active" onclick="showTab('new')" id="tab-new">New <span id="cnt-new" class="modal-cnt"></span></button>
+      <button class="modal-tab" onclick="showTab('updated')" id="tab-updated">Updated <span id="cnt-updated" class="modal-cnt"></span></button>
+      <button class="modal-tab" onclick="showTab('missing')" id="tab-missing">Not in this import <span id="cnt-missing" class="modal-cnt"></span></button>
+    </div>
+
+    <div id="modal-loading" style="padding:40px;text-align:center;color:var(--slate);font-size:12px;">Loading…</div>
+    <div id="modal-content" style="display:none;">
+      <div id="tab-content-new"></div>
+      <div id="tab-content-updated" style="display:none;"></div>
+      <div id="tab-content-missing" style="display:none;"></div>
+    </div>
   </div>
 </div>
 {% endblock %}
@@ -137,6 +158,36 @@
   .table-note { font-size: 10px; color: var(--slate); padding: 8px 18px 10px; margin: 0; letter-spacing: 0.06em; }
   .history-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .history-scroll .data-table { min-width: 640px; }
+
+  /* Clickable history rows */
+  #history-body tr.clickable { cursor: pointer; }
+  #history-body tr.clickable:hover td { background: var(--surface-high); }
+  .btn-delete-batch {
+    background: none; border: none; color: var(--slate); font-size: 14px;
+    cursor: pointer; padding: 2px 6px; opacity: 0.5;
+  }
+  .btn-delete-batch:hover { color: var(--status-error); opacity: 1; }
+
+  /* Modal tabs */
+  .modal-tab {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--slate); font-family: var(--font-sans); font-size: 10px;
+    font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+    padding: 12px 20px; cursor: pointer; transition: color 0.15s;
+  }
+  .modal-tab:hover { color: var(--ivory); }
+  .modal-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .modal-cnt {
+    display: inline-block; background: var(--surface-high);
+    color: var(--slate); font-size: 9px; padding: 1px 5px; margin-left: 5px;
+  }
+  .modal-tab.active .modal-cnt { background: rgba(218,196,149,0.12); color: var(--gold); }
+
+  /* Missing tab warning */
+  .missing-notice {
+    background: rgba(255,180,171,0.06); border-left: 3px solid var(--status-error);
+    padding: 10px 16px; font-size: 11px; color: var(--ivory); margin: 0;
+  }
 
   @media (max-width: 1023px) { .upload-grid { grid-template-columns: 1fr; } }
 {% endblock %}
@@ -218,32 +269,116 @@
     document.getElementById('upload-form').submit();
   });
 
-  // Import history
-  fetch('/upload/history').then(r => r.json()).then(batches => {
-    const tbody = document.querySelector('#history-body');
-    document.querySelector('#history-count').textContent = `${batches.length} imports`;
-    if (!batches.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">No imports yet.</td></tr>';
-      return;
-    }
-    tbody.innerHTML = batches.map(b => {
-      const badge = b.status === 'success'
-        ? '<span class="badge badge-green">Success</span>'
-        : b.status === 'error'
-        ? `<span class="badge badge-red" title="${b.error_message}">Error</span>`
-        : '<span class="badge badge-gray">Pending</span>';
-      const fname = b.filename.length > 28 ? b.filename.substring(0,25)+'...' : b.filename;
-      return `<tr>
-        <td>${b.upload_date}</td><td class="fw-medium">${b.carrier}</td>
-        <td title="${b.filename}">${fname}</td><td>${b.uploaded_by}</td>
-        <td class="fw-medium">${b.record_count.toLocaleString()}</td>
-        <td style="color:#3B6D11">${b.new_count.toLocaleString()}</td>
-        <td>${b.updated_count.toLocaleString()}</td><td>${badge}</td>
-      </tr>`;
-    }).join('');
-  }).catch(() => {
-    document.querySelector('#history-body').innerHTML =
-      '<tr><td colspan="8" class="empty-cell">Could not load history.</td></tr>';
+  // ── Import history ──────────────────────────────────────────
+  function loadHistory() {
+    fetch('/upload/history').then(r => r.json()).then(batches => {
+      const tbody = document.querySelector('#history-body');
+      document.querySelector('#history-count').textContent = `${batches.length} imports`;
+      if (!batches.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-cell">No imports yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = batches.map(b => {
+        const badge = b.status === 'success'
+          ? '<span class="badge badge-green">Success</span>'
+          : b.status === 'error'
+          ? `<span class="badge badge-red" title="${b.error_message}">Error</span>`
+          : '<span class="badge badge-gray">Pending</span>';
+        const fname = b.filename.length > 28 ? b.filename.substring(0,25)+'...' : b.filename;
+        const canDelete = b.status !== 'success';
+        const deleteBtn = canDelete
+          ? `<button class="btn-delete-batch" title="Remove this record" onclick="deleteBatch(event,${b.id})">×</button>`
+          : '';
+        const rowClass = b.status === 'success' ? 'clickable' : '';
+        return `<tr class="${rowClass}" ${b.status === 'success' ? `onclick="openBatchDetail(${b.id}, '${b.carrier}', '${b.upload_date}')"` : ''}>
+          <td>${b.upload_date}</td><td class="fw-medium">${b.carrier}</td>
+          <td title="${b.filename}">${fname}</td><td>${b.uploaded_by}</td>
+          <td class="fw-medium">${b.record_count.toLocaleString()}</td>
+          <td style="color:var(--status-resolved)">${b.new_count.toLocaleString()}</td>
+          <td>${b.updated_count.toLocaleString()}</td>
+          <td>${badge}</td>
+          <td style="width:32px;padding:0 4px;">${deleteBtn}</td>
+        </tr>`;
+      }).join('');
+    }).catch(() => {
+      document.querySelector('#history-body').innerHTML =
+        '<tr><td colspan="9" class="empty-cell">Could not load history.</td></tr>';
+    });
+  }
+  loadHistory();
+
+  function deleteBatch(e, id) {
+    e.stopPropagation();
+    if (!confirm('Remove this import record?')) return;
+    fetch(`/upload/batch/${id}/delete`, { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) loadHistory();
+        else alert(data.error || 'Could not delete.');
+      });
+  }
+
+  // ── Batch detail modal ───────────────────────────────────────
+  let activeTab = 'new';
+
+  function openBatchDetail(id, carrier, date) {
+    document.getElementById('batch-modal').style.display = 'block';
+    document.getElementById('modal-title').textContent = `${carrier} import`;
+    document.getElementById('modal-sub').textContent = date;
+    document.getElementById('modal-loading').style.display = 'block';
+    document.getElementById('modal-content').style.display = 'none';
+    showTab('new');
+
+    fetch(`/upload/batch/${id}/detail`).then(r => r.json()).then(data => {
+      document.getElementById('modal-loading').style.display = 'none';
+      document.getElementById('modal-content').style.display = 'block';
+
+      document.getElementById('cnt-new').textContent = data.new.length;
+      document.getElementById('cnt-updated').textContent = data.updated.length;
+      document.getElementById('cnt-missing').textContent = data.missing.length;
+
+      if (data.missing.length > 0) {
+        document.getElementById('tab-missing').style.color = 'var(--status-error)';
+      }
+
+      document.getElementById('tab-content-new').innerHTML = renderPolicyTable(data.new,
+        data.new.length ? '' : 'No new members in this import.');
+      document.getElementById('tab-content-updated').innerHTML = renderPolicyTable(data.updated,
+        data.updated.length ? '' : 'No existing members were updated.');
+      document.getElementById('tab-content-missing').innerHTML =
+        (data.missing.length ? '<div class="missing-notice">These members were in a previous import but did not appear in this one — they may have termed, transferred, or lapsed.</div>' : '') +
+        renderPolicyTable(data.missing, data.missing.length ? '' : 'All previously imported members are still active in this carrier file.');
+    });
+  }
+
+  function renderPolicyTable(rows, emptyMsg) {
+    if (!rows.length) return `<div style="padding:24px 20px;color:var(--slate);font-size:12px;">${emptyMsg}</div>`;
+    return `<div style="overflow-x:auto;"><table class="data-table" style="font-size:11px;">
+      <thead><tr><th>Member</th><th>Plan</th><th>Type</th><th>Eff Date</th><th>Term Date</th><th>Last Seen</th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td style="font-weight:500">${r.full_name || r.member_id}</td>
+        <td style="color:var(--slate)">${r.plan_name || '—'}</td>
+        <td>${r.plan_type || '—'}</td>
+        <td>${r.effective_date || '—'}</td>
+        <td style="color:${r.term_date ? 'var(--status-error)' : 'var(--slate)'}">${r.term_date || '—'}</td>
+        <td style="color:var(--slate)">${r.last_seen_date || '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  function showTab(name) {
+    activeTab = name;
+    ['new','updated','missing'].forEach(t => {
+      document.getElementById(`tab-${t}`).classList.toggle('active', t === name);
+      document.getElementById(`tab-content-${t}`).style.display = t === name ? 'block' : 'none';
+    });
+  }
+
+  function closeModal() {
+    document.getElementById('batch-modal').style.display = 'none';
+  }
+  document.getElementById('batch-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('batch-modal')) closeModal();
   });
 </script>
 {% endblock %}

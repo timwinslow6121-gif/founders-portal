@@ -352,6 +352,87 @@ def process_upload():
     return redirect(url_for("upload.upload_page"))
 
 
+@upload_bp.route("/upload/batch/<int:batch_id>/delete", methods=["POST"])
+@login_required
+def delete_batch(batch_id):
+    """Delete an import batch record. Only pending/error batches can be deleted.
+    Agents can only delete their own; admins can delete any."""
+    batch = ImportBatch.query.filter_by(
+        id=batch_id, agency_id=current_user.agency_id).first_or_404()
+    if not current_user.is_admin and batch.uploaded_by_id != current_user.id:
+        return jsonify({"error": "Forbidden"}), 403
+    if batch.status == "success":
+        return jsonify({"error": "Cannot delete a successful import — it has already modified policy records."}), 400
+    db.session.delete(batch)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@upload_bp.route("/upload/batch/<int:batch_id>/detail")
+@login_required
+def batch_detail(batch_id):
+    """Return detail for a single import batch — new, updated, and missing policies."""
+    batch = ImportBatch.query.filter_by(
+        id=batch_id, agency_id=current_user.agency_id).first_or_404()
+    if not current_user.is_admin and batch.uploaded_by_id != current_user.id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    # New policies: added in this batch
+    new_policies = Policy.query.filter_by(
+        import_batch_id=batch_id, agency_id=current_user.agency_id
+    ).filter(Policy.created_at >= batch.upload_date).all()
+
+    # All policies seen in this batch
+    seen_in_batch = Policy.query.filter_by(
+        import_batch_id=batch_id, agency_id=current_user.agency_id).all()
+    seen_ids = {p.id for p in seen_in_batch}
+
+    # Updated: seen in this batch but existed before it (not new)
+    new_ids = {p.id for p in new_policies}
+    updated = [p for p in seen_in_batch if p.id not in new_ids]
+
+    # Missing (lost): same carrier + agent, last seen in a PREVIOUS batch
+    missing = []
+    if batch.status == "success":
+        agent_id_filter = batch.uploaded_by_id if not current_user.is_admin else None
+        q = Policy.query.filter(
+            Policy.agency_id == current_user.agency_id,
+            Policy.carrier == batch.carrier,
+            Policy.import_batch_id != batch_id,
+            Policy.import_batch_id.isnot(None),
+        )
+        if agent_id_filter:
+            q = q.filter(Policy.agent_id == agent_id_filter)
+        missing = q.all()
+
+    def _pol(p):
+        return {
+            "member_id": p.member_id,
+            "full_name": p.full_name or f"{p.first_name} {p.last_name}".strip(),
+            "plan_name": p.plan_name or "",
+            "plan_type": p.plan_type or "",
+            "effective_date": str(p.effective_date) if p.effective_date else "",
+            "term_date": str(p.term_date) if p.term_date else "",
+            "last_seen_date": str(p.last_seen_date) if p.last_seen_date else "",
+        }
+
+    return jsonify({
+        "batch": {
+            "id": batch.id,
+            "carrier": batch.carrier,
+            "filename": batch.filename,
+            "upload_date": batch.upload_date.strftime("%b %d, %Y %I:%M %p") if batch.upload_date else "",
+            "record_count": batch.record_count,
+            "new_count": batch.new_count,
+            "updated_count": batch.updated_count,
+            "status": batch.status,
+        },
+        "new": [_pol(p) for p in new_policies],
+        "updated": [_pol(p) for p in updated],
+        "missing": [_pol(p) for p in missing],
+    })
+
+
 @upload_bp.route("/upload/history")
 @login_required
 def import_history():
@@ -381,30 +462,19 @@ def import_history():
 
 
 def _detect_carrier(filepath: str, filename: str) -> str:
-    import pandas as pd
+    """
+    Fingerprint a BOB file by its column headers to determine the carrier.
+    All 7 carriers now send XLSX. Each has a unique combination of header strings.
+    """
+    import openpyxl
     ext = os.path.splitext(filename)[1].lower()
+
+    if ext not in ('.xlsx', '.xls', '.csv'):
+        raise ValueError(f"Unsupported file type: {ext}")
+
     try:
-        if ext in ('.xlsx', '.xls'):
-            try:
-                df = pd.read_excel(filepath, header=2, nrows=0, dtype=str)
-                df.columns = df.columns.str.strip()
-                if 'mbiNumber' in df.columns and 'memberFirstName' in df.columns:
-                    return 'UHC'
-            except Exception:
-                pass
-            try:
-                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                    chunk = f.read(4096)
-                if '<table' in chunk.lower() or '<html' in chunk.lower():
-                    from io import StringIO
-                    tables = pd.read_html(StringIO(chunk))
-                    if tables:
-                        cols = set(str(c).strip() for c in tables[0].columns)
-                        if 'Medicare Number' in cols:
-                            return 'Healthspring'
-            except Exception:
-                pass
-        else:
+        if ext == '.csv':
+            import pandas as pd
             df = pd.read_csv(filepath, nrows=0, dtype=str)
             cols = set(df.columns.str.strip())
             if 'mbiNumber' in cols:
@@ -419,8 +489,43 @@ def _detect_carrier(filepath: str, filename: str) -> str:
                 return 'Devoted'
             if 'Medicare Number' in cols and 'First Name' in cols:
                 return 'Healthspring'
+            raise ValueError("Could not identify carrier from CSV headers.")
+
+        # XLSX/XLS — read row 1 with openpyxl
+        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+        ws = wb.active
+        headers = [str(c or "").strip() for c in next(ws.iter_rows(min_row=1, max_row=1, values_only=True), [])]
+        wb.close()
+        header_set = set(h.lower() for h in headers)
+        header_str = " ".join(headers).lower()
+
+        # UHC BOB: "Commission Action" + "Writing Agent Name"
+        if "commission action" in header_str and "writing agent name" in header_str:
+            return "UHC"
+        # Humana BOB: "CommRunDt" + "WaName" + "PaidAmount"
+        if "commrundt" in header_set and "waname" in header_set:
+            return "Humana"
+        # BCBS BOB: "Agent #" + "Agent Name" + "ORIGEFFDATE"
+        if "agent #" in header_set and "origeffdate" in header_set:
+            return "BCBS"
+        # Devoted BOB: "Agent NPN" + "Member HICN"
+        if "agent npn" in header_set and "member hicn" in header_set:
+            return "Devoted"
+        # Aetna BOB: "Medicare Number" + "Sales Event" + "Writing Agent Name"
+        if "medicare number" in header_set and "sales event" in header_set:
+            return "Aetna"
+        # Healthspring BOB: "Payment Type" + "Writing Broker NPN"
+        if "payment type" in header_set and "writing broker npn" in header_set:
+            return "Healthspring"
+        # Wellable BOB: "Distributor Number" + "Writing Agent Number"
+        if "distributor number" in header_set and "writing agent number" in header_set:
+            return "Wellable"
+
+    except ValueError:
+        raise
     except Exception as e:
         raise ValueError(f"Could not read file: {e}")
+
     raise ValueError("Could not identify carrier from file headers.")
 
 

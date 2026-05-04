@@ -93,6 +93,12 @@ class Policy(db.Model):
     renewal_date = db.Column(db.Date)
     status = db.Column(db.String(32), default="active")
 
+    # Termination context — set manually by agent when reason is known
+    # Values: None=unknown, 'agent_initiated', 'death', 'plan_cancelled', 'involuntary'
+    term_reason   = db.Column(db.String(32))
+    new_carrier   = db.Column(db.String(64))   # carrier they're moving to (if we moved them)
+    new_plan_name = db.Column(db.String(256))  # new plan name (if known)
+
     # Agency linkage (multi-tenant)
     agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
 

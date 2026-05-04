@@ -2,61 +2,89 @@
 {% block title %}Upcoming Terminations{% endblock %}
 {% block styles %}
 .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
-.filter-tabs { display: flex; gap: 2px; flex-wrap: wrap; }
+.filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .filter-tab {
   padding: 7px 14px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
-  text-decoration: none; border: 1px solid var(--border); color: var(--gold-muted);
-  display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+  text-decoration: none; border: 1px solid var(--border); color: var(--slate);
+  display: flex; align-items: center; gap: 6px; transition: all 0.2s; border-radius: var(--radius);
 }
-.filter-tab:hover { border-color: color-mix(in srgb, var(--gold) 35%, transparent); color: var(--gold); }
-.filter-tab.active { background: var(--surface-high); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
-.filter-tab.tab-critical.active { color: var(--status-error); border-color: color-mix(in srgb, var(--status-error-text) 35%, transparent); }
-.filter-tab.tab-warning.active  { color: var(--status-progress); border-color: color-mix(in srgb, var(--status-progress) 35%, transparent); }
-.filter-tab.tab-watch.active    { color: var(--status-waiting); border-color: color-mix(in srgb, var(--status-waiting) 35%, transparent); }
-.filter-tab .count {
-  font-size: 13px; padding: 1px 5px; background: color-mix(in srgb, var(--gold) 10%, transparent); color: var(--gold);
-}
-.toolbar-right { display: flex; align-items: center; gap: 8px; }
+.filter-tab:hover { border-color: color-mix(in srgb, var(--gold) 40%, transparent); color: var(--gold); }
+.filter-tab.active { background: color-mix(in srgb, var(--gold) 10%, transparent); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
+.filter-tab.tab-high.active  { color: var(--status-error); background: color-mix(in srgb, var(--status-error) 8%, transparent); border-color: color-mix(in srgb, var(--status-error) 30%, transparent); }
+.filter-tab.tab-low.active   { color: var(--status-resolved); background: color-mix(in srgb, var(--status-resolved) 8%, transparent); border-color: color-mix(in srgb, var(--status-resolved) 25%, transparent); }
+.filter-tab.tab-death.active { color: var(--slate); background: color-mix(in srgb, var(--slate) 8%, transparent); border-color: color-mix(in srgb, var(--slate) 25%, transparent); }
+.filter-tab .count { font-size: 13px; padding: 1px 5px; background: color-mix(in srgb, currentColor 12%, transparent); border-radius: 3px; }
+
 .carrier-select {
-  padding: 7px 10px; background: var(--surface-mid); border: 1px solid var(--border);
-  color: var(--ivory); font-family: var(--font-sans); font-size: 13px; cursor: pointer;
+  padding: 7px 10px; background: var(--surface); border: 1px solid var(--border);
+  color: var(--ink); font-family: var(--font-sans); font-size: 13px; cursor: pointer; border-radius: var(--radius);
 }
-.btn-export {
-  font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--gold-muted); text-decoration: none; padding: 7px 12px; border: 1px solid var(--border);
-  display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;
-}
-.btn-export:hover { border-color: color-mix(in srgb, var(--gold) 35%, transparent); color: var(--gold); }
 
-/* Row urgency tints — Lux style */
-.row-red td    { background: color-mix(in srgb, var(--status-error-text) 6%, transparent); }
-.row-amber td  { background: color-mix(in srgb, var(--status-progress) 6%, transparent); }
-.row-yellow td { background: color-mix(in srgb, var(--status-waiting) 4%, transparent); }
-.row-red:hover td    { background: rgba(255,180,171,0.10); }
-.row-amber:hover td  { background: rgba(201,168,76,0.10); }
-.row-yellow:hover td { background: rgba(157,141,241,0.07); }
-
-.empty-state { padding: 48px 20px; text-align: center; color: var(--slate); font-size: 12px; }
-
-.summary-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; margin-bottom: 24px; }
-.summary-card { background: var(--surface-low); padding: 16px 18px; }
-.summary-card.critical { border-top: 2px solid var(--status-error); }
-.summary-card.warning  { border-top: 2px solid var(--status-progress); }
-.summary-card.watch    { border-top: 2px solid var(--status-waiting); }
-.summary-label { font-size: 13px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
-.summary-card.critical .summary-label { color: var(--status-error); }
-.summary-card.warning  .summary-label { color: var(--status-progress); }
-.summary-card.watch    .summary-label { color: var(--status-waiting); }
-.summary-value { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300; color: var(--ivory-bright); line-height: 1; }
+.summary-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+.summary-card.s-high   { border-top: 3px solid var(--status-error); }
+.summary-card.s-low    { border-top: 3px solid var(--status-resolved); }
+.summary-card.s-death  { border-top: 3px solid var(--slate); }
+.summary-label { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
+.summary-card.s-high  .summary-label { color: var(--status-error); }
+.summary-card.s-low   .summary-label { color: var(--status-resolved); }
+.summary-value { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 300; color: var(--ink); line-height: 1; }
 .summary-sub { font-size: 12px; color: var(--slate); margin-top: 6px; }
 
+/* Priority row accents */
+.row-high td  { background: color-mix(in srgb, var(--status-error) 5%, transparent); }
+.row-low td   { background: color-mix(in srgb, var(--status-resolved) 4%, transparent); }
+.row-death td { background: color-mix(in srgb, var(--slate) 5%, transparent); }
+tr.row-high:hover td  { background: color-mix(in srgb, var(--status-error) 9%, transparent); }
+tr.row-low:hover td   { background: color-mix(in srgb, var(--status-resolved) 7%, transparent); }
+tr.row-death:hover td { background: color-mix(in srgb, var(--slate) 9%, transparent); }
+
+/* Inline reason form */
+.reason-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.reason-select {
+  padding: 4px 6px; font-size: 12px; background: var(--surface); border: 1px solid var(--border);
+  color: var(--ink); border-radius: 3px; cursor: pointer; max-width: 160px;
+}
+.new-plan-input {
+  padding: 4px 6px; font-size: 12px; background: var(--surface); border: 1px solid var(--border);
+  color: var(--ink); border-radius: 3px; width: 130px;
+}
+.new-plan-group { display: none; align-items: center; gap: 4px; }
+.new-plan-group.visible { display: flex; }
+.save-reason-btn {
+  padding: 4px 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  background: color-mix(in srgb, var(--gold) 12%, transparent); color: var(--gold);
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent); border-radius: 3px; cursor: pointer;
+  display: none;
+}
+.save-reason-btn.visible { display: inline-block; }
+.saved-indicator { font-size: 11px; color: var(--status-resolved); display: none; }
+.saved-indicator.flash { display: inline; }
+
+/* Priority badges */
+.badge-high  { background: color-mix(in srgb, var(--status-error) 14%, transparent); color: var(--status-error); }
+.badge-low   { background: color-mix(in srgb, var(--status-resolved) 14%, transparent); color: var(--status-resolved); }
+.badge-death { background: color-mix(in srgb, var(--slate) 14%, transparent); color: var(--slate); }
+
+/* Condolences nudge */
+.condolence-nudge {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 3px; letter-spacing: 0.06em;
+  background: color-mix(in srgb, var(--slate) 10%, transparent);
+  color: var(--slate); border: 1px solid color-mix(in srgb, var(--slate) 20%, transparent);
+}
+
+.member-link { color: var(--ink); text-decoration: none; font-weight: 600; }
+.member-link:hover { color: var(--gold); text-decoration: underline; }
+.member-no-link { font-weight: 600; color: var(--ink); }
+
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.table-scroll .data-table { min-width: 640px; }
+.empty-state { padding: 48px 20px; text-align: center; color: var(--slate); font-size: 13px; }
 
 @media (max-width: 768px) {
   .summary-bar { grid-template-columns: 1fr 1fr; }
   .toolbar { flex-direction: column; align-items: flex-start; }
-  .filter-tabs { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .filter-tabs { width: 100%; overflow-x: auto; }
 }
 {% endblock %}
 {% block content %}
@@ -64,65 +92,63 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Upcoming Terminations</h1>
-    <p class="page-sub">Active policies with term dates in the next 90 days</p>
+    <p class="page-sub">Policies changing in the next 30 days — sorted by priority</p>
   </div>
 </div>
 
 {# Summary cards #}
 <div class="summary-bar">
-  <div class="summary-card all">
-    <div class="summary-label">All upcoming terms</div>
+  <div class="summary-card">
+    <div class="summary-label">All</div>
     <div class="summary-value">{{ counts.all }}</div>
-    <div class="summary-sub">Next 90 days</div>
+    <div class="summary-sub">Next 30 days</div>
   </div>
-  <div class="summary-card critical">
-    <div class="summary-label">Critical — under 30 days</div>
-    <div class="summary-value">{{ counts.critical }}</div>
-    <div class="summary-sub">Act now</div>
+  <div class="summary-card s-high">
+    <div class="summary-label">High priority</div>
+    <div class="summary-value">{{ counts.high }}</div>
+    <div class="summary-sub">Action needed</div>
   </div>
-  <div class="summary-card warning">
-    <div class="summary-label">Warning — 30–60 days</div>
-    <div class="summary-value">{{ counts.warning }}</div>
-    <div class="summary-sub">Schedule soon</div>
+  <div class="summary-card s-low">
+    <div class="summary-label">We initiated</div>
+    <div class="summary-value">{{ counts.low }}</div>
+    <div class="summary-sub">Confirm new plan</div>
   </div>
-  <div class="summary-card watch">
-    <div class="summary-label">Watch — 60–90 days</div>
-    <div class="summary-value">{{ counts.watch }}</div>
-    <div class="summary-sub">On your radar</div>
+  <div class="summary-card s-death">
+    <div class="summary-label">Deceased</div>
+    <div class="summary-value">{{ counts.death }}</div>
+    <div class="summary-sub">Send card</div>
   </div>
 </div>
 
 {# Toolbar #}
 <div class="toolbar">
   <div class="filter-tabs">
-    <a href="{{ url_for('main.terminations', urgency='all', carrier=carrier_filter) }}"
-       class="filter-tab {% if urgency_filter=='all' %}active{% endif %}">
+    <a href="{{ url_for('main.terminations', priority='all', carrier=carrier_filter) }}"
+       class="filter-tab {% if priority_filter=='all' %}active{% endif %}">
       All <span class="count">{{ counts.all }}</span>
     </a>
-    <a href="{{ url_for('main.terminations', urgency='critical', carrier=carrier_filter) }}"
-       class="filter-tab tab-critical {% if urgency_filter=='critical' %}active{% endif %}">
-      🔴 Critical <span class="count">{{ counts.critical }}</span>
+    <a href="{{ url_for('main.terminations', priority='high', carrier=carrier_filter) }}"
+       class="filter-tab tab-high {% if priority_filter=='high' %}active{% endif %}">
+      🔴 High priority <span class="count">{{ counts.high }}</span>
     </a>
-    <a href="{{ url_for('main.terminations', urgency='warning', carrier=carrier_filter) }}"
-       class="filter-tab tab-warning {% if urgency_filter=='warning' %}active{% endif %}">
-      🟠 Warning <span class="count">{{ counts.warning }}</span>
+    <a href="{{ url_for('main.terminations', priority='low', carrier=carrier_filter) }}"
+       class="filter-tab tab-low {% if priority_filter=='low' %}active{% endif %}">
+      ✅ We initiated <span class="count">{{ counts.low }}</span>
     </a>
-    <a href="{{ url_for('main.terminations', urgency='watch', carrier=carrier_filter) }}"
-       class="filter-tab tab-watch {% if urgency_filter=='watch' %}active{% endif %}">
-      🟡 Watch <span class="count">{{ counts.watch }}</span>
+    <a href="{{ url_for('main.terminations', priority='death', carrier=carrier_filter) }}"
+       class="filter-tab tab-death {% if priority_filter=='death' %}active{% endif %}">
+      ⬜ Deceased <span class="count">{{ counts.death }}</span>
     </a>
   </div>
-  <div class="toolbar-right">
+  <div>
     <select class="carrier-select" onchange="window.location=this.value">
-      <option value="{{ url_for('main.terminations', urgency=urgency_filter, carrier='all') }}"
+      <option value="{{ url_for('main.terminations', priority=priority_filter, carrier='all') }}"
               {% if carrier_filter=='all' %}selected{% endif %}>All carriers</option>
       {% for c in carriers %}
-      <option value="{{ url_for('main.terminations', urgency=urgency_filter, carrier=c) }}"
+      <option value="{{ url_for('main.terminations', priority=priority_filter, carrier=c) }}"
               {% if carrier_filter==c %}selected{% endif %}>{{ c }}</option>
       {% endfor %}
     </select>
-    <a href="{{ url_for('main.terminations_export', urgency=urgency_filter, carrier=carrier_filter) }}"
-       class="btn-export">↓ Export CSV</a>
   </div>
 </div>
 
@@ -132,41 +158,84 @@
   <div class="table-scroll">
   <table class="data-table">
     <colgroup>
-      <col style="width:18%"><col style="width:9%"><col style="width:11%">
-      <col style="width:10%"><col style="width:18%"><col style="width:9%">
-      <col style="width:9%"><col style="width:8%"><col style="width:8%">
+      <col style="width:16%"><col style="width:10%"><col style="width:9%">
+      <col style="width:12%"><col style="width:10%"><col style="width:10%">
+      <col style="width:33%">
     </colgroup>
     <thead>
       <tr>
         <th>Member</th>
-        <th>DOB</th>
-        <th>Phone</th>
-        <th>Carrier</th>
-        <th>Plan</th>
-        <th>Eff date</th>
         <th>Term date</th>
         <th>Days</th>
-        <th>Urgency</th>
+        <th>Carrier</th>
+        <th>Plan</th>
+        <th>Priority</th>
+        <th>Reason &amp; next plan</th>
       </tr>
     </thead>
     <tbody>
       {% for t in terms %}
-      <tr class="row-{{ t.urgency_class }}">
-        <td class="fw-medium">{{ t.full_name or ((t.first_name or '') + ' ' + (t.last_name or '')) }}</td>
-        <td>{{ t.dob.strftime('%m/%d/%Y') if t.dob else '—' }}</td>
-        <td>{{ t.phone or '—' }}</td>
-        <td>{{ t.carrier }}</td>
-        <td>{{ t.plan_name or '—' }}</td>
-        <td>{{ t.effective_date.strftime('%m/%d/%Y') if t.effective_date else '—' }}</td>
+      <tr class="row-{{ t.priority }}" data-policy-id="{{ t.id }}">
+
+        {# Member — linked to profile if we have a customer record #}
+        <td>
+          {% if t.customer_id %}
+            <a class="member-link" href="{{ url_for('customers.customer_profile', customer_id=t.customer_id) }}">
+              {{ t.full_name or ((t.first_name or '') + ' ' + (t.last_name or '')) }}
+            </a>
+          {% else %}
+            <span class="member-no-link">{{ t.full_name or ((t.first_name or '') + ' ' + (t.last_name or '')) }}</span>
+          {% endif %}
+        </td>
+
         <td style="font-weight:500">{{ t.term_date.strftime('%m/%d/%Y') if t.term_date else '—' }}</td>
+
         <td>
-          <span class="badge badge-{{ t.urgency_class }}">{{ t.days_until_term }}d</span>
+          <span class="badge badge-{{ t.priority }}">{{ t.days_until_term }}d</span>
         </td>
+
+        <td>{{ t.carrier }}</td>
+        <td style="font-size:12px">{{ t.plan_name or '—' }}</td>
+
+        {# Priority label #}
         <td>
-          {% if t.urgency_class == 'red' %}<span class="badge badge-red">Critical</span>
-          {% elif t.urgency_class == 'amber' %}<span class="badge badge-amber">Warning</span>
-          {% else %}<span class="badge badge-yellow">Watch</span>{% endif %}
+          {% if t.priority == 'high' %}
+            <span class="badge badge-high">Action needed</span>
+          {% elif t.priority == 'low' %}
+            <span class="badge badge-low">We initiated</span>
+          {% else %}
+            <span class="condolence-nudge">Send condolences card</span>
+          {% endif %}
         </td>
+
+        {# Reason + new plan — inline editable #}
+        <td>
+          <div class="reason-cell" id="rc-{{ t.id }}">
+            <select class="reason-select" data-policy="{{ t.id }}"
+                    onchange="onReasonChange(this)">
+              <option value=""   {% if not t.term_reason %}selected{% endif %}>Unknown</option>
+              <option value="agent_initiated" {% if t.term_reason=='agent_initiated' %}selected{% endif %}>Agent initiated</option>
+              <option value="involuntary"     {% if t.term_reason=='involuntary' %}selected{% endif %}>Involuntary</option>
+              <option value="plan_cancelled"  {% if t.term_reason=='plan_cancelled' %}selected{% endif %}>Plan cancelled</option>
+              <option value="death"           {% if t.term_reason=='death' %}selected{% endif %}>Death</option>
+            </select>
+
+            <div class="new-plan-group {% if t.term_reason=='agent_initiated' %}visible{% endif %}"
+                 id="npg-{{ t.id }}">
+              <input class="new-plan-input" type="text" placeholder="New carrier"
+                     value="{{ t.new_carrier or '' }}" data-field="new_carrier" data-policy="{{ t.id }}"
+                     oninput="markDirty({{ t.id }})">
+              <input class="new-plan-input" type="text" placeholder="New plan name"
+                     value="{{ t.new_plan_name or '' }}" data-field="new_plan_name" data-policy="{{ t.id }}"
+                     oninput="markDirty({{ t.id }})">
+            </div>
+
+            <button class="save-reason-btn {% if t.term_reason or t.new_carrier or t.new_plan_name %}visible{% endif %}"
+                    id="sbtn-{{ t.id }}" onclick="saveReason({{ t.id }})">Save</button>
+            <span class="saved-indicator" id="saved-{{ t.id }}">✓ Saved</span>
+          </div>
+        </td>
+
       </tr>
       {% endfor %}
     </tbody>
@@ -175,11 +244,51 @@
   {% else %}
   <div class="empty-state">
     {% if counts.all == 0 %}
-      No upcoming terminations in the next 90 days. 🎉
+      No upcoming terminations in the next 30 days.
     {% else %}
       No terminations match the current filter.
     {% endif %}
   </div>
   {% endif %}
 </div>
+
+<script>
+function onReasonChange(select) {
+  const id  = select.dataset.policy;
+  const npg = document.getElementById('npg-' + id);
+  if (select.value === 'agent_initiated') {
+    npg.classList.add('visible');
+  } else {
+    npg.classList.remove('visible');
+  }
+  markDirty(id);
+}
+
+function markDirty(id) {
+  const btn = document.getElementById('sbtn-' + id);
+  if (btn) btn.classList.add('visible');
+}
+
+function saveReason(id) {
+  const rc       = document.getElementById('rc-' + id);
+  const select   = rc.querySelector('.reason-select');
+  const inputs   = rc.querySelectorAll('.new-plan-input');
+  const btn      = document.getElementById('sbtn-' + id);
+  const saved    = document.getElementById('saved-' + id);
+
+  const data = new FormData();
+  data.append('policy_id',    id);
+  data.append('term_reason',  select.value);
+  inputs.forEach(inp => data.append(inp.dataset.field, inp.value));
+
+  fetch('{{ url_for("main.terminations_set_reason") }}', { method: 'POST', body: data })
+    .then(r => {
+      if (r.ok) {
+        btn.classList.remove('visible');
+        saved.classList.add('flash');
+        setTimeout(() => saved.classList.remove('flash'), 2000);
+      }
+    });
+}
+</script>
 {% endblock %}

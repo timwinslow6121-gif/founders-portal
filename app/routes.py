@@ -239,15 +239,25 @@ def admin_overview():
     )
 
 
+def _term_priority(term_reason):
+    """Return priority tier for a termination reason.
+    high   = unknown / involuntary / plan cancelled — needs agent action
+    low    = agent_initiated — we moved them, just confirm new plan
+    death  = deceased — send condolences, low action priority
+    """
+    if term_reason == 'death':          return 'death'
+    if term_reason == 'agent_initiated': return 'low'
+    return 'high'  # None / 'involuntary' / 'plan_cancelled' / anything else
+
+
 @main.route('/terminations')
 @login_required
 def terminations():
-    today       = date.today()
-    ninety_days = today + timedelta(days=90)
+    today      = date.today()
+    thirty_days = today + timedelta(days=30)
 
-    # Filters from query string
-    urgency_filter = request.args.get('urgency', 'all')
     carrier_filter = request.args.get('carrier', 'all')
+    priority_filter = request.args.get('priority', 'all')
 
     base = Policy.query.filter(
         Policy.agent_id == current_user.id,
@@ -255,106 +265,78 @@ def terminations():
         Policy.status == 'active',
         Policy.term_date.isnot(None),
         Policy.term_date >= today,
-        Policy.term_date <= ninety_days,
+        Policy.term_date <= thirty_days,
     )
-
     if carrier_filter != 'all':
         base = base.filter(Policy.carrier == carrier_filter)
 
     raw = base.order_by(Policy.term_date.asc()).all()
 
-    # Wrap with urgency
+    # Resolve customer_id via MBI for profile links
+    mbis = [p.mbi for p in raw if p.mbi]
+    mbi_to_customer = {}
+    if mbis:
+        rows = (Customer.query
+                .filter(Customer.mbi.in_(mbis), Customer.agency_id == current_user.agency_id)
+                .with_entities(Customer.mbi, Customer.id).all())
+        mbi_to_customer = {r.mbi: r.id for r in rows}
+
     all_terms = []
     for p in raw:
-        urgency, days = _urgency(p.term_date, today)
-        from types import SimpleNamespace
-        w = SimpleNamespace(
+        _, days = _urgency(p.term_date, today)
+        priority = _term_priority(p.term_reason)
+        all_terms.append(SimpleNamespace(
             **{col.name: getattr(p, col.name) for col in p.__table__.columns},
-            urgency_class=urgency,
             days_until_term=days,
-        )
-        all_terms.append(w)
+            priority=priority,
+            customer_id=mbi_to_customer.get(p.mbi),
+        ))
 
-    # Apply urgency filter after wrapping
-    if urgency_filter == 'critical':
-        terms = [t for t in all_terms if t.days_until_term <= 30]
-    elif urgency_filter == 'warning':
-        terms = [t for t in all_terms if 30 < t.days_until_term <= 60]
-    elif urgency_filter == 'watch':
-        terms = [t for t in all_terms if 60 < t.days_until_term <= 90]
+    # Apply priority filter
+    if priority_filter == 'high':
+        terms = [t for t in all_terms if t.priority == 'high']
+    elif priority_filter == 'low':
+        terms = [t for t in all_terms if t.priority == 'low']
+    elif priority_filter == 'death':
+        terms = [t for t in all_terms if t.priority == 'death']
     else:
         terms = all_terms
 
-    # Counts for filter tabs
     counts = {
-        'all':      len(all_terms),
-        'critical': sum(1 for t in all_terms if t.days_until_term <= 30),
-        'warning':  sum(1 for t in all_terms if 30 < t.days_until_term <= 60),
-        'watch':    sum(1 for t in all_terms if 60 < t.days_until_term <= 90),
+        'all':   len(all_terms),
+        'high':  sum(1 for t in all_terms if t.priority == 'high'),
+        'low':   sum(1 for t in all_terms if t.priority == 'low'),
+        'death': sum(1 for t in all_terms if t.priority == 'death'),
     }
-
-    # Carrier list for dropdown
     carriers = sorted(set(t.carrier for t in all_terms))
 
     return render_template('terminations.html',
         terms=terms,
         counts=counts,
         carriers=carriers,
-        urgency_filter=urgency_filter,
+        priority_filter=priority_filter,
         carrier_filter=carrier_filter,
         today=today,
     )
 
 
-@main.route('/terminations/export')
+@main.route('/terminations/set-reason', methods=['POST'])
 @login_required
-def terminations_export():
-    import csv, io
-    today       = date.today()
-    ninety_days = today + timedelta(days=90)
+def terminations_set_reason():
+    """Inline AJAX — agent sets term_reason + new carrier/plan on a policy."""
+    policy_id    = request.form.get('policy_id', type=int)
+    term_reason  = request.form.get('term_reason', '').strip() or None
+    new_carrier  = request.form.get('new_carrier', '').strip() or None
+    new_plan_name = request.form.get('new_plan_name', '').strip() or None
 
-    urgency_filter = request.args.get('urgency', 'all')
-    carrier_filter = request.args.get('carrier', 'all')
+    policy = Policy.query.filter_by(
+        id=policy_id,
+        agent_id=current_user.id,
+        agency_id=current_user.agency_id,
+    ).first_or_404()
 
-    base = Policy.query.filter(
-        Policy.agent_id == current_user.id,
-        Policy.agency_id == current_user.agency_id,
-        Policy.status == 'active',
-        Policy.term_date.isnot(None),
-        Policy.term_date >= today,
-        Policy.term_date <= ninety_days,
-    )
-    if carrier_filter != 'all':
-        base = base.filter(Policy.carrier == carrier_filter)
-
-    raw = base.order_by(Policy.term_date.asc()).all()
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['Member Name', 'DOB', 'Phone', 'Carrier', 'Plan',
-                     'Effective Date', 'Term Date', 'Days Remaining', 'Urgency'])
-
-    for p in raw:
-        urgency, days = _urgency(p.term_date, today)
-        if urgency_filter == 'critical' and days > 30: continue
-        if urgency_filter == 'warning' and not (30 < days <= 60): continue
-        if urgency_filter == 'watch' and not (60 < days <= 90): continue
-
-        writer.writerow([
-            p.full_name or f"{p.first_name} {p.last_name}",
-            p.dob.strftime('%m/%d/%Y') if p.dob else '',
-            p.phone or '',
-            p.carrier,
-            p.plan_name or '',
-            p.effective_date.strftime('%m/%d/%Y') if p.effective_date else '',
-            p.term_date.strftime('%m/%d/%Y') if p.term_date else '',
-            days,
-            urgency.upper(),
-        ])
-
-    from flask import Response
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': f'attachment; filename="terminations_{today}.csv"'}
-    )
+    policy.term_reason   = term_reason
+    policy.new_carrier   = new_carrier
+    policy.new_plan_name = new_plan_name
+    db.session.commit()
+    return '', 204

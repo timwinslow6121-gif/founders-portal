@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if plan else 'Add' }} Plan{% endblock %}
+{% block styles %}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+.form-card h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--slate); margin: 0 0 16px; }
+
+.form-row { margin-bottom: 14px; }
+.form-row label { display: block; font-size: 12px; font-weight: 600; color: var(--slate);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 8px 10px; background: var(--surface); border: 1px solid var(--border);
+  color: var(--ink); font-family: var(--font-sans); font-size: 13px; border-radius: var(--radius);
+  box-sizing: border-box;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none; border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+}
+.form-textarea { min-height: 80px; resize: vertical; }
+.form-hint { font-size: 11px; color: var(--slate); margin-top: 3px; }
+
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 13px; }
+.checkbox-row input[type=checkbox] { accent-color: var(--gold); width: 15px; height: 15px; }
+
+.form-actions { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+
+@media (max-width: 768px) {
+  .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+}
+{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:20px">
+  <a href="{{ url_for('carriers.plan_list') }}" style="color:var(--slate);font-size:12px;text-decoration:none">
+    ← Carriers &amp; Plans
+  </a>
+</div>
+
+<h1 class="page-title" style="margin-bottom:20px">
+  {{ 'Edit' if plan else 'Add new' }} plan
+</h1>
+
+<form method="POST">
+
+  {# Section 1: Identity #}
+  <div class="form-card" style="margin-bottom:16px">
+    <h3>Plan identity</h3>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Carrier *</label>
+        <select class="form-select" name="carrier" required>
+          {% for c in carriers %}
+          <option value="{{ c }}" {% if plan and plan.carrier == c %}selected{% elif not plan and c == 'Humana' %}{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Plan year *</label>
+        <input class="form-input" type="number" name="year" min="2020" max="2030"
+               value="{{ plan.year if plan else 2026 }}" required>
+      </div>
+      <div class="form-row" style="grid-column:1/-1">
+        <label>Plan name *</label>
+        <input class="form-input" type="text" name="plan_name"
+               value="{{ plan.plan_name if plan else '' }}" required
+               placeholder="e.g. Humana Gold Plus H1036-335">
+      </div>
+      <div class="form-row">
+        <label>Plan type *</label>
+        <select class="form-select" name="plan_type" required onchange="onTypeChange(this.value)">
+          {% for val, label in plan_types %}
+          <option value="{{ val }}" {% if plan and plan.plan_type == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row" id="subtype-row">
+        <label>Subtype (MAPD only)</label>
+        <select class="form-select" name="plan_subtype">
+          {% for val, label in plan_subtypes %}
+          <option value="{{ val }}" {% if plan and plan.plan_subtype == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-grid-3">
+      <div class="form-row">
+        <label>CMS Plan ID</label>
+        <input class="form-input" type="text" name="cms_plan_id"
+               value="{{ plan.cms_plan_id if plan else '' }}"
+               placeholder="e.g. H1036-335">
+        <div class="form-hint">H-number for MAPD/PDP. Leave blank for Medigap/DVH/GTL.</div>
+      </div>
+      <div class="form-row" id="plan-letter-row">
+        <label>Plan letter (Medigap)</label>
+        <select class="form-select" name="plan_letter">
+          <option value="">N/A</option>
+          {% for l in plan_letters %}
+          <option value="{{ l }}" {% if plan and plan.plan_letter == l %}selected{% endif %}>Plan {{ l }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>External / BOB ID</label>
+        <input class="form-input" type="text" name="external_id"
+               value="{{ plan.external_id if plan else '' }}"
+               placeholder="e.g. MEDSUP G 2019 or G02">
+        <div class="form-hint">Raw ID string from carrier BOB file for matching.</div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>BOB plan name aliases</label>
+      <input class="form-input" type="text" name="plan_name_aliases"
+             value="{{ plan.plan_name_aliases if plan else '' }}"
+             placeholder="Comma-separated list of alternate names from BOB imports">
+      <div class="form-hint">Used to match policies imported from BOB files to this plan record.</div>
+    </div>
+
+    <div class="form-row">
+      <label>Service area</label>
+      <input class="form-input" type="text" name="service_area"
+             value="{{ plan.service_area if plan else '' }}"
+             placeholder="e.g. Western NC — Catawba, Burke, Caldwell, Lincoln">
+    </div>
+  </div>
+
+  {# Section 2: Status & classification #}
+  <div class="form-card" style="margin-bottom:16px">
+    <h3>Status &amp; classification</h3>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>Plan status *</label>
+        <select class="form-select" name="status" required>
+          {% for val, label in statuses %}
+          <option value="{{ val }}" {% if plan and plan.status == val %}selected{% elif not plan and val == 'current' %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Star rating</label>
+        <input class="form-input" type="number" name="star_rating" min="1" max="5" step="0.5"
+               value="{{ plan.star_rating if plan and plan.star_rating else '' }}"
+               placeholder="e.g. 4.5">
+      </div>
+      <div class="form-row">
+        <label>Successor plan</label>
+        <select class="form-select" name="successor_plan_id">
+          <option value="">None</option>
+          {% for ep in existing_plans %}
+          <option value="{{ ep.id }}"
+                  {% if plan and plan.successor_plan_id == ep.id %}selected{% endif %}>
+            {{ ep.carrier }} — {{ ep.plan_name }} ({{ ep.year }})
+          </option>
+          {% endfor %}
+        </select>
+        <div class="form-hint">The plan that replaced this one.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <label class="checkbox-row">
+        <input type="checkbox" name="is_dsnp" {% if plan and plan.is_dsnp %}checked{% endif %}>
+        D-SNP (Dual Special Needs Plan)
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="is_csnp" {% if plan and plan.is_csnp %}checked{% endif %}>
+        C-SNP (Chronic Condition SNP)
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="is_5star" {% if plan and plan.is_5star %}checked{% endif %}>
+        5-Star plan (year-round enrollment)
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="auto_transitioned" {% if plan and plan.auto_transitioned %}checked{% endif %}>
+        Members auto-transitioned from predecessor
+      </label>
+    </div>
+  </div>
+
+  {# Section 3: Benefits #}
+  <div class="form-card" style="margin-bottom:16px">
+    <h3>Benefits snapshot</h3>
+    <div class="form-grid-3">
+      <div class="form-row">
+        <label>Monthly premium ($)</label>
+        <input class="form-input" type="number" name="monthly_premium" min="0" step="0.01"
+               value="{{ plan.monthly_premium if plan and plan.monthly_premium is not none else '' }}"
+               placeholder="0.00">
+      </div>
+      <div class="form-row">
+        <label>Annual OOP max ($)</label>
+        <input class="form-input" type="number" name="annual_oopm" min="0" step="1"
+               value="{{ plan.annual_oopm if plan and plan.annual_oopm else '' }}"
+               placeholder="e.g. 6700">
+      </div>
+      <div class="form-row">
+        <label>PCP copay</label>
+        <input class="form-input" type="text" name="pcp_copay"
+               value="{{ plan.pcp_copay if plan else '' }}" placeholder="e.g. $0">
+      </div>
+      <div class="form-row">
+        <label>Specialist copay</label>
+        <input class="form-input" type="text" name="specialist_copay"
+               value="{{ plan.specialist_copay if plan else '' }}" placeholder="e.g. $35">
+      </div>
+      <div class="form-row">
+        <label>ER copay</label>
+        <input class="form-input" type="text" name="er_copay"
+               value="{{ plan.er_copay if plan else '' }}" placeholder="e.g. $90">
+      </div>
+      <div class="form-row">
+        <label>Drug Tier 1</label>
+        <input class="form-input" type="text" name="drug_tier1"
+               value="{{ plan.drug_tier1 if plan else '' }}" placeholder="e.g. $0">
+      </div>
+      <div class="form-row">
+        <label>Drug Tier 2</label>
+        <input class="form-input" type="text" name="drug_tier2"
+               value="{{ plan.drug_tier2 if plan else '' }}" placeholder="e.g. $10">
+      </div>
+      <div class="form-row">
+        <label>Drug Tier 3</label>
+        <input class="form-input" type="text" name="drug_tier3"
+               value="{{ plan.drug_tier3 if plan else '' }}" placeholder="e.g. $47">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Additional details (freeform / JSON)</label>
+      <textarea class="form-textarea" name="details_json"
+                placeholder='e.g. {"dental_allowance": 1500, "otc_quarterly": 100}'>{{ plan.details_json if plan else '' }}</textarea>
+    </div>
+  </div>
+
+  {# Section 4: Commissions #}
+  <div class="form-card" style="margin-bottom:16px">
+    <h3>Commission rates</h3>
+    <label class="checkbox-row" style="margin-bottom:14px">
+      <input type="checkbox" name="is_commissionable"
+             {% if not plan or plan.is_commissionable %}checked{% endif %}
+             onchange="document.getElementById('comm-fields').style.opacity=this.checked?'1':'0.4'">
+      Plan is commissionable
+    </label>
+    <div id="comm-fields" style="opacity:{{ '1' if not plan or plan.is_commissionable else '0.4' }}">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Commission type</label>
+          <select class="form-select" name="comm_type">
+            {% for val, label in comm_types %}
+            <option value="{{ val }}" {% if plan and plan.comm_type == val %}selected{% elif not plan and val == 'pmpm' %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-grid-3">
+        <div class="form-row">
+          <label>Initial rate</label>
+          <input class="form-input" type="number" name="comm_initial" min="0" step="0.01"
+                 value="{{ plan.comm_initial if plan and plan.comm_initial else '' }}"
+                 placeholder="e.g. 22.00">
+          <div class="form-hint">$ per member per month (PMPM) or % of premium</div>
+        </div>
+        <div class="form-row">
+          <label>Renewal rate</label>
+          <input class="form-input" type="number" name="comm_renewal" min="0" step="0.01"
+                 value="{{ plan.comm_renewal if plan and plan.comm_renewal else '' }}"
+                 placeholder="e.g. 15.00">
+        </div>
+        <div class="form-row">
+          <label>True-up rate</label>
+          <input class="form-input" type="number" name="comm_trueup" min="0" step="0.01"
+                 value="{{ plan.comm_trueup if plan and plan.comm_trueup else '' }}"
+                 placeholder="If applicable">
+        </div>
+        <div class="form-row">
+          <label>HRA bonus ($)</label>
+          <input class="form-input" type="number" name="hra_bonus" min="0" step="1"
+                 value="{{ plan.hra_bonus if plan and plan.hra_bonus else '' }}"
+                 placeholder="e.g. 150">
+          <div class="form-hint">Flat bonus per completed Health Risk Assessment</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Commission notes</label>
+        <textarea class="form-textarea" name="comm_notes"
+                  placeholder="Holdback periods, payment timing quirks, carrier-specific rules...">{{ plan.comm_notes if plan else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn-primary">{{ 'Save changes' if plan else 'Add plan' }}</button>
+    <a href="{{ url_for('carriers.plan_list') }}" class="btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<script>
+function onTypeChange(type) {
+  const subtype = document.getElementById('subtype-row');
+  const letter  = document.getElementById('plan-letter-row');
+  subtype.style.opacity = (type === 'mapd' || type === 'pdp') ? '1' : '0.4';
+  letter.style.opacity  = type === 'medigap' ? '1' : '0.4';
+}
+// Init on load
+onTypeChange(document.querySelector('[name=plan_type]').value);
+</script>
+{% endblock %}

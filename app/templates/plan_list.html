@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Carriers & Plans{% endblock %}
+{% block styles %}
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.filter-select {
+  padding: 7px 10px; background: var(--surface); border: 1px solid var(--border);
+  color: var(--ink); font-family: var(--font-sans); font-size: 13px;
+  border-radius: var(--radius); cursor: pointer;
+}
+.plan-type-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px;
+}
+.tag-mapd    { background: color-mix(in srgb, #4A90D9 14%, transparent); color: #4A90D9; }
+.tag-pdp     { background: color-mix(in srgb, #7B68EE 14%, transparent); color: #7B68EE; }
+.tag-medigap { background: color-mix(in srgb, var(--gold) 14%, transparent); color: var(--gold); }
+.tag-dvh     { background: color-mix(in srgb, var(--status-resolved) 14%, transparent); color: var(--status-resolved); }
+.tag-gtl     { background: color-mix(in srgb, var(--slate) 18%, transparent); color: var(--slate); }
+.tag-other   { background: color-mix(in srgb, var(--slate) 12%, transparent); color: var(--slate); }
+
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.dot-current      { background: var(--status-resolved); }
+.dot-legacy       { background: var(--status-progress); }
+.dot-sunset       { background: var(--status-error); }
+.dot-discontinued { background: var(--slate); }
+
+.special-flags { display: flex; gap: 4px; flex-wrap: wrap; }
+.flag { font-size: 10px; font-weight: 700; padding: 2px 5px; border-radius: 3px;
+  background: color-mix(in srgb, var(--gold) 12%, transparent); color: var(--gold); }
+
+.comm-cell { font-variant-numeric: tabular-nums; font-size: 12px; }
+.no-comm { color: var(--slate); font-size: 11px; }
+
+.plan-link { color: var(--ink); text-decoration: none; font-weight: 600; }
+.plan-link:hover { color: var(--gold); }
+
+.empty-state { padding: 48px 20px; text-align: center; color: var(--slate); font-size: 13px; }
+.table-scroll { overflow-x: auto; }
+{% endblock %}
+{% block content %}
+
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <div>
+    <h1 class="page-title">Carriers &amp; Plans</h1>
+    <p class="page-sub">Plan database — lifecycle, benefits, and commission rates</p>
+  </div>
+  {% if current_user.is_admin %}
+  <a href="{{ url_for('carriers.plan_new') }}" class="btn-primary">+ Add plan</a>
+  {% endif %}
+</div>
+
+{# Filters #}
+<div class="toolbar">
+  <select class="filter-select" onchange="applyFilters()">
+    {% for y in years %}
+    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <select class="filter-select" id="f-carrier" onchange="applyFilters()">
+    <option value="all" {% if selected_carrier=='all' %}selected{% endif %}>All carriers</option>
+    {% for c in carriers %}
+    <option value="{{ c }}" {% if c == selected_carrier %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+  <select class="filter-select" id="f-type" onchange="applyFilters()">
+    <option value="all" {% if selected_plan_type=='all' %}selected{% endif %}>All types</option>
+    {% for val, label in plan_types %}
+    <option value="{{ val }}" {% if val == selected_plan_type %}selected{% endif %}>{{ label.split('—')[0].strip() }}</option>
+    {% endfor %}
+  </select>
+  <select class="filter-select" id="f-status" onchange="applyFilters()">
+    <option value="all" {% if selected_status=='all' %}selected{% endif %}>All statuses</option>
+    {% for val, label in statuses %}
+    <option value="{{ val }}" {% if val == selected_status %}selected{% endif %}>{{ label.split('—')[0].strip() }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="card">
+  {% if plans %}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:20%">Plan name</th>
+        <th style="width:8%">Type</th>
+        <th style="width:9%">Plan ID</th>
+        <th style="width:6%">Year</th>
+        <th style="width:9%">Status</th>
+        <th style="width:10%">Flags</th>
+        <th style="width:8%">Premium</th>
+        <th style="width:9%">Initial comm</th>
+        <th style="width:9%">Renewal comm</th>
+        <th style="width:7%">HRA bonus</th>
+        {% if current_user.is_admin %}<th style="width:5%"></th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% set current_carrier = namespace(val=None) %}
+      {% for p in plans %}
+
+      {# Carrier group header #}
+      {% if p.carrier != current_carrier.val %}
+      {% set current_carrier.val = p.carrier %}
+      <tr>
+        <td colspan="{{ 11 if current_user.is_admin else 10 }}"
+            style="background:color-mix(in srgb,var(--gold) 6%,transparent);
+                   font-size:11px;font-weight:700;letter-spacing:0.16em;
+                   text-transform:uppercase;color:var(--gold);padding:8px 14px;">
+          {{ p.carrier }}
+        </td>
+      </tr>
+      {% endif %}
+
+      <tr>
+        <td>
+          <a class="plan-link" href="{{ url_for('carriers.plan_detail', plan_id=p.id) }}">
+            {{ p.plan_name }}
+          </a>
+        </td>
+        <td>
+          <span class="plan-type-tag tag-{{ p.plan_type }}">
+            {{ p.plan_type.upper() }}
+          </span>
+        </td>
+        <td style="font-size:12px;font-family:monospace">{{ p.display_id }}</td>
+        <td>{{ p.year }}</td>
+        <td>
+          <span class="status-dot dot-{{ p.status }}"></span>
+          {{ p.status_label }}
+        </td>
+        <td>
+          <div class="special-flags">
+            {% if p.is_dsnp %}<span class="flag">D-SNP</span>{% endif %}
+            {% if p.is_csnp %}<span class="flag">C-SNP</span>{% endif %}
+            {% if p.is_5star %}<span class="flag">5★</span>{% endif %}
+            {% if p.plan_subtype %}<span class="flag">{{ p.plan_subtype.upper() }}</span>{% endif %}
+            {% if not p.is_commissionable %}<span class="flag" style="background:color-mix(in srgb,var(--status-error) 12%,transparent);color:var(--status-error)">No comm</span>{% endif %}
+          </div>
+        </td>
+        <td class="comm-cell">
+          {% if p.monthly_premium is not none %}${{ "%.2f"|format(p.monthly_premium) }}{% else %}—{% endif %}
+        </td>
+        <td class="comm-cell">
+          {% if p.comm_initial %}
+            {% if p.comm_type == 'pmpm' %}${{ "%.2f"|format(p.comm_initial) }}/mo
+            {% elif p.comm_type == 'percent_premium' %}{{ "%.1f"|format(p.comm_initial * 100) }}%
+            {% else %}${{ "%.2f"|format(p.comm_initial) }}{% endif %}
+          {% elif not p.is_commissionable %}<span class="no-comm">Non-comm</span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="comm-cell">
+          {% if p.comm_renewal %}
+            {% if p.comm_type == 'pmpm' %}${{ "%.2f"|format(p.comm_renewal) }}/mo
+            {% elif p.comm_type == 'percent_premium' %}{{ "%.1f"|format(p.comm_renewal * 100) }}%
+            {% else %}${{ "%.2f"|format(p.comm_renewal) }}{% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td class="comm-cell">
+          {% if p.hra_bonus %}${{ "%.0f"|format(p.hra_bonus) }}{% else %}—{% endif %}
+        </td>
+        {% if current_user.is_admin %}
+        <td>
+          <a href="{{ url_for('carriers.plan_edit', plan_id=p.id) }}"
+             class="btn-secondary" style="padding:4px 10px;font-size:11px;">Edit</a>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    No plans found for the selected filters.
+    {% if current_user.is_admin %}
+    <br><a href="{{ url_for('carriers.plan_new') }}" style="color:var(--gold)">Add the first plan →</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function applyFilters() {
+  const year    = document.querySelectorAll('.filter-select')[0].value;
+  const carrier = document.getElementById('f-carrier').value;
+  const type    = document.getElementById('f-type').value;
+  const status  = document.getElementById('f-status').value;
+  window.location = `{{ url_for('carriers.plan_list') }}?year=${year}&carrier=${carrier}&plan_type=${type}&status=${status}`;
+}
+</script>
+{% endblock %}

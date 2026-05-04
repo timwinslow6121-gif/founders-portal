@@ -638,6 +638,9 @@
         <a href="/admin/pharmacies" class="nav-item {% if '/admin/pharmacies' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>Pharmacies
         </a>
+        <a href="{{ url_for('carriers.plan_list') }}" class="nav-item {% if '/carriers' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Carriers &amp; Plans
+        </a>
         <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>SMS Templates
         </a>
@@ -673,6 +676,9 @@
         </a>
         <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
           <span class="nav-dot"></span>Upload BOB Files
+        </a>
+        <a href="{{ url_for('carriers.plan_list') }}" class="nav-item {% if '/carriers' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Carriers &amp; Plans
         </a>
         <a href="{{ url_for('comms.sms_templates_list') }}" class="nav-item {% if '/comms/sms-templates' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>SMS Templates

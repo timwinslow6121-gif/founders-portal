@@ -22,6 +22,7 @@ def create_app():
     from app.commission import commission_bp
     from app.customers import customers_bp
     from app.pharmacies import pharmacies_bp
+    from app.carriers import carriers_bp
     from app.comms import comms_bp
     app.register_blueprint(main)
     app.register_blueprint(auth)
@@ -31,6 +32,7 @@ def create_app():
     app.register_blueprint(commission_bp)
     app.register_blueprint(customers_bp)
     app.register_blueprint(pharmacies_bp)
+    app.register_blueprint(carriers_bp)
     app.register_blueprint(comms_bp)
 
     with app.app_context():

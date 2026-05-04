@@ -284,6 +284,100 @@ class Pharmacy(db.Model):
         return f"<Pharmacy {self.name}>"
 
 
+class Plan(db.Model):
+    """
+    Carrier plan database. One row per plan per year.
+    Tracks plan lifecycle (current/legacy/sunset), benefit snapshot,
+    and commission rates. Plans are managed by admins only.
+    """
+    __tablename__ = "plans"
+
+    id              = db.Column(db.Integer, primary_key=True)
+    agency_id       = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+
+    # Identity
+    carrier         = db.Column(db.String(64), nullable=False, index=True)
+    plan_name       = db.Column(db.String(256), nullable=False)
+    year            = db.Column(db.Integer, nullable=False, index=True)
+
+    # Plan type / classification
+    # plan_type: mapd, pdp, medigap, dvh, gtl, other
+    plan_type       = db.Column(db.String(32), nullable=False)
+    # plan_subtype: hmo, ppo, pffs, hmo_pos (MAPD only)
+    plan_subtype    = db.Column(db.String(32))
+    is_dsnp         = db.Column(db.Boolean, default=False)
+    is_csnp         = db.Column(db.Boolean, default=False)
+    is_5star        = db.Column(db.Boolean, default=False)
+    star_rating     = db.Column(db.Float)                       # e.g. 4.5
+
+    # CMS / carrier plan ID
+    # MAPD/PDP: H-number format e.g. "H1036-335"
+    # Medigap: null (use plan_letter + external_id instead)
+    cms_plan_id     = db.Column(db.String(32), index=True)
+    plan_letter     = db.Column(db.String(4))                   # Medigap: G, N, F, etc.
+    external_id     = db.Column(db.String(128))                 # raw carrier ID string for BOB matching
+
+    # Lifecycle
+    # status: current, legacy, sunset, discontinued
+    status          = db.Column(db.String(32), default="current", nullable=False, index=True)
+    is_commissionable = db.Column(db.Boolean, default=True, nullable=False)
+    auto_transitioned = db.Column(db.Boolean, default=False)    # carrier moved members automatically
+    successor_plan_id = db.Column(db.Integer, db.ForeignKey("plans.id"), nullable=True)
+    successor        = db.relationship("Plan", remote_side="Plan.id", foreign_keys=[successor_plan_id])
+
+    # Service area
+    service_area    = db.Column(db.String(256))                 # e.g. "Western NC — Catawba, Burke, Caldwell"
+
+    # Benefits snapshot
+    monthly_premium = db.Column(db.Float)
+    annual_oopm     = db.Column(db.Float)
+    pcp_copay       = db.Column(db.String(32))                  # stored as string — e.g. "$0", "$5-$15"
+    specialist_copay = db.Column(db.String(32))
+    er_copay        = db.Column(db.String(32))
+    drug_tier1      = db.Column(db.String(32))
+    drug_tier2      = db.Column(db.String(32))
+    drug_tier3      = db.Column(db.String(32))
+    details_json    = db.Column(db.Text)                        # JSON overflow for extra benefit fields
+
+    # Commission rates (per member per month for MAPD/PDP; % of premium for others)
+    # comm_type: pmpm, percent_premium, flat_annual
+    comm_type       = db.Column(db.String(32), default="pmpm")
+    comm_initial    = db.Column(db.Float)                       # new enrollment rate
+    comm_renewal    = db.Column(db.Float)                       # renewal/persistency rate
+    comm_trueup     = db.Column(db.Float)                       # mid-year true-up if applicable
+    hra_bonus       = db.Column(db.Float)                       # HRA completion bonus (flat $)
+    comm_notes      = db.Column(db.Text)                        # edge cases, holdback periods, etc.
+
+    # Aliases for matching against raw BOB plan_name strings
+    # Comma-separated list of strings that map to this plan
+    plan_name_aliases = db.Column(db.Text)
+
+    # Audit
+    created_by_id   = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at      = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at      = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint("agency_id", "carrier", "cms_plan_id", "year", name="uq_plan_carrier_year"),
+    )
+
+    def __repr__(self):
+        return f"<Plan {self.carrier} {self.cms_plan_id or self.plan_name} {self.year}>"
+
+    @property
+    def display_id(self):
+        if self.cms_plan_id:
+            return self.cms_plan_id
+        if self.plan_letter:
+            return f"Plan {self.plan_letter}"
+        return self.external_id or "—"
+
+    @property
+    def status_label(self):
+        return {"current": "Current", "legacy": "Legacy", "sunset": "Sunset",
+                "discontinued": "Discontinued"}.get(self.status, self.status.title())
+
+
 class Customer(db.Model):
     """
     Master customer record, keyed on MBI (Medicare Beneficiary Identifier).

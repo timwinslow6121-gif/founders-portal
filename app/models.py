@@ -245,6 +245,14 @@ class CommissionStatement(db.Model):
         return f"<CommissionStatement {self.carrier} {self.period_label} agent={self.agent_id}>"
 
 
+# Many-to-many: agents assigned to work at a pharmacy location
+pharmacy_agents = db.Table(
+    "pharmacy_agents",
+    db.Column("pharmacy_id", db.Integer, db.ForeignKey("pharmacies.id"), primary_key=True),
+    db.Column("user_id",     db.Integer, db.ForeignKey("users.id"),      primary_key=True),
+)
+
+
 class Pharmacy(db.Model):
     """
     Partner pharmacy that refers customers to Founders agents.
@@ -270,6 +278,7 @@ class Pharmacy(db.Model):
     created_at     = db.Column(db.DateTime, server_default=db.func.now())
 
     customers      = db.relationship("Customer", back_populates="pharmacy", lazy="dynamic")
+    agents         = db.relationship("User", secondary=pharmacy_agents, lazy="subquery")
 
     def __repr__(self):
         return f"<Pharmacy {self.name}>"

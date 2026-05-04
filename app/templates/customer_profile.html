@@ -67,7 +67,7 @@
   transition: border-color 0.2s;
 }
 .note-input::placeholder { color: var(--slate); }
-.note-input:focus { border-color: rgba(218,196,149,0.4); }
+.note-input:focus { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
 .note-controls { display: flex; gap: 8px; margin-top: 8px; align-items: center; flex-wrap: wrap; }
 .note-controls select {
   padding: 6px 10px; background: var(--surface-mid); border: 1px solid var(--border);
@@ -99,7 +99,7 @@
   color: var(--ivory); font-family: var(--font-sans); font-size: 12px; width: 100%;
   outline: none;
 }
-.inline-form input:focus, .inline-form select:focus { border-color: rgba(218,196,149,0.4); }
+.inline-form input:focus, .inline-form select:focus { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
 
 .section-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); }
 
@@ -109,7 +109,7 @@
   outline: none; transition: border-color 0.2s;
 }
 .form-control::placeholder { color: var(--slate); }
-.form-control:focus { border-color: rgba(218,196,149,0.4); }
+.form-control:focus { border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

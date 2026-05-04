@@ -11,8 +11,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    background: rgba(218,196,149,0.06);
-    border-left: 2px solid rgba(218,196,149,0.3);
+    background: color-mix(in srgb, var(--gold) 6%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--gold) 30%, transparent);
     padding: 10px 16px;
     margin-bottom: 24px;
     font-size: 11px;
@@ -115,10 +115,10 @@
   .metric-card:nth-child(3) { animation-delay: 0.16s; }
   .metric-card:nth-child(4) { animation-delay: 0.20s; }
 
-  .metric-card.c-ember  { border-left-color: rgba(255,180,171,0.5); }
-  .metric-card.c-amber  { border-left-color: rgba(201,168,76,0.5); }
+  .metric-card.c-ember  { border-left-color: color-mix(in srgb, var(--status-error-text) 50%, transparent); }
+  .metric-card.c-amber  { border-left-color: color-mix(in srgb, var(--status-progress) 50%, transparent); }
   .metric-card.c-sage   { border-left-color: rgba(138,154,91,0.5); }
-  .metric-card.c-gold   { border-left-color: rgba(218,196,149,0.4); }
+  .metric-card.c-gold   { border-left-color: color-mix(in srgb, var(--gold) 40%, transparent); }
 
   .m-label {
     font-size: 9px;
@@ -293,9 +293,9 @@
     margin-right: 5px;
     text-transform: uppercase;
   }
-  .tl-tag.urgent  { background: rgba(255,180,171,0.12); color: var(--status-error); }
-  .tl-tag.info    { background: rgba(157,141,241,0.12); color: var(--status-waiting); }
-  .tl-tag.success { background: rgba(138,154,91,0.12);  color: var(--status-resolved); }
+  .tl-tag.urgent  { background: color-mix(in srgb, var(--status-error-text) 12%, transparent); color: var(--status-error); }
+  .tl-tag.info    { background: color-mix(in srgb, var(--status-waiting) 12%, transparent); color: var(--status-waiting); }
+  .tl-tag.success { background: color-mix(in srgb, var(--status-resolved) 12%, transparent);  color: var(--status-resolved); }
 
   /* ── TASK ITEMS ── */
   .task-item {

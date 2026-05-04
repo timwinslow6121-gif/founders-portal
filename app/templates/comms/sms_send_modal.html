@@ -22,7 +22,7 @@
   <div class="card-body">
 
     {% if not has_phone %}
-      <p style="font-size:13px;color:#888888;">No phone number on file — cannot send SMS.</p>
+      <p style="font-size:13px;color:var(--slate);">No phone number on file — cannot send SMS.</p>
 
     {% elif not has_consent %}
       <p style="font-size:13px;color:#854F0B;background:#FAEEDA;border-radius:8px;padding:10px 12px;margin:0 0 12px;">
@@ -50,7 +50,7 @@
       </form>
 
     {% else %}
-      <p style="font-size:13px;color:#888888;">
+      <p style="font-size:13px;color:var(--slate);">
         No approved SMS templates available.
         <a href="{{ url_for('comms.sms_templates_list') }}" style="color:var(--gold);">Suggest a template</a> for admin review.
       </p>

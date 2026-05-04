@@ -8,13 +8,13 @@
   text-decoration: none; border: 1px solid var(--border); color: var(--gold-muted);
   display: flex; align-items: center; gap: 6px; transition: all 0.2s;
 }
-.filter-tab:hover { border-color: rgba(218,196,149,0.35); color: var(--gold); }
-.filter-tab.active { background: var(--surface-high); color: var(--gold); border-color: rgba(218,196,149,0.3); }
-.filter-tab.tab-critical.active { color: var(--status-error); border-color: rgba(255,180,171,0.35); }
-.filter-tab.tab-warning.active  { color: var(--status-progress); border-color: rgba(201,168,76,0.35); }
-.filter-tab.tab-watch.active    { color: var(--status-waiting); border-color: rgba(157,141,241,0.35); }
+.filter-tab:hover { border-color: color-mix(in srgb, var(--gold) 35%, transparent); color: var(--gold); }
+.filter-tab.active { background: var(--surface-high); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
+.filter-tab.tab-critical.active { color: var(--status-error); border-color: color-mix(in srgb, var(--status-error-text) 35%, transparent); }
+.filter-tab.tab-warning.active  { color: var(--status-progress); border-color: color-mix(in srgb, var(--status-progress) 35%, transparent); }
+.filter-tab.tab-watch.active    { color: var(--status-waiting); border-color: color-mix(in srgb, var(--status-waiting) 35%, transparent); }
 .filter-tab .count {
-  font-size: 9px; padding: 1px 5px; background: rgba(218,196,149,0.1); color: var(--gold);
+  font-size: 9px; padding: 1px 5px; background: color-mix(in srgb, var(--gold) 10%, transparent); color: var(--gold);
 }
 .toolbar-right { display: flex; align-items: center; gap: 8px; }
 .carrier-select {
@@ -26,12 +26,12 @@
   color: var(--gold-muted); text-decoration: none; padding: 7px 12px; border: 1px solid var(--border);
   display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;
 }
-.btn-export:hover { border-color: rgba(218,196,149,0.35); color: var(--gold); }
+.btn-export:hover { border-color: color-mix(in srgb, var(--gold) 35%, transparent); color: var(--gold); }
 
 /* Row urgency tints — Lux style */
-.row-red td    { background: rgba(255,180,171,0.06); }
-.row-amber td  { background: rgba(201,168,76,0.06); }
-.row-yellow td { background: rgba(157,141,241,0.04); }
+.row-red td    { background: color-mix(in srgb, var(--status-error-text) 6%, transparent); }
+.row-amber td  { background: color-mix(in srgb, var(--status-progress) 6%, transparent); }
+.row-yellow td { background: color-mix(in srgb, var(--status-waiting) 4%, transparent); }
 .row-red:hover td    { background: rgba(255,180,171,0.10); }
 .row-amber:hover td  { background: rgba(201,168,76,0.10); }
 .row-yellow:hover td { background: rgba(157,141,241,0.07); }

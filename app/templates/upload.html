@@ -46,7 +46,7 @@
       <div style="margin-top:20px; display:flex; align-items:center; gap:12px;">
         <button type="button" class="btn-primary" id="upload-btn" disabled>Upload and import</button>
         <button type="button" class="btn-secondary" id="clear-all-btn" style="display:none;">Clear all</button>
-        <span id="upload-hint" style="font-size:12px; color:#888888;">Select files to continue</span>
+        <span id="upload-hint" style="font-size:12px; color:var(--slate);">Select files to continue</span>
       </div>
 
     </div>
@@ -87,7 +87,7 @@
 </div>
 
 <!-- Batch detail modal -->
-<div id="batch-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(10,10,9,0.85);overflow-y:auto;">
+<div id="batch-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);overflow-y:auto;">
   <div style="max-width:860px;margin:40px auto;background:var(--surface);padding:0;position:relative;">
     <div style="background:var(--surface-high);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
       <div>
@@ -123,7 +123,7 @@
   }
 
   .drop-zone {
-    border: 1px dashed rgba(76,70,61,0.4);
+    border: 1px dashed var(--border);
     background: var(--surface-mid);
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
@@ -181,11 +181,11 @@
     display: inline-block; background: var(--surface-high);
     color: var(--slate); font-size: 9px; padding: 1px 5px; margin-left: 5px;
   }
-  .modal-tab.active .modal-cnt { background: rgba(218,196,149,0.12); color: var(--gold); }
+  .modal-tab.active .modal-cnt { background: color-mix(in srgb, var(--gold) 12%, transparent); color: var(--gold); }
 
   /* Missing tab warning */
   .missing-notice {
-    background: rgba(255,180,171,0.06); border-left: 3px solid var(--status-error);
+    background: color-mix(in srgb, var(--status-error-text) 6%, transparent); border-left: 3px solid var(--status-error);
     padding: 10px 16px; font-size: 11px; color: var(--ivory); margin: 0;
   }
 

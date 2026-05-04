@@ -10,7 +10,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── MASTER LUX TOKENS ── */
+    /* ── DESIGN TOKENS — always dark for login (brand moment) ── */
     :root {
       --ink:          #0A0A09;
       --surface:      #131312;
@@ -27,6 +27,18 @@
       --outline:      #989084;
       --outline-var:  #4C463D;
       --error:        #FFB4AB;
+    }
+    /* Light mode: soften but keep the dark brand feel */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --ink:          #1A1917;
+        --surface:      #2A2A28;
+        --surface-low:  #232321;
+        --surface-mid:  #2E2E2C;
+        --ivory:        #E5E2DF;
+        --ivory-bright: #F6F4EF;
+        --error:        #E57373;
+      }
     }
 
     html, body {

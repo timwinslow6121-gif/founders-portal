@@ -4,8 +4,8 @@
 /* ── Viewing banner ── */
 .viewing-banner {
   display: flex; align-items: center; gap: 16px;
-  background: rgba(218,196,149,0.06);
-  border-left: 2px solid rgba(218,196,149,0.3);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--gold) 30%, transparent);
   padding: 10px 16px; margin-bottom: 24px;
   font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
 }
@@ -41,23 +41,23 @@
 .carrier-card.verified       { border-top: 2px solid var(--status-resolved); }
 .carrier-card.discrepancy    { border-top: 2px solid var(--status-error); }
 .carrier-card.pending        { border-top: 2px solid var(--status-progress); }
-.carrier-card.pending_review { border-top: 2px solid #9D8DF1; }
+.carrier-card.pending_review { border-top: 2px solid var(--status-waiting); }
 .carrier-card.accepted       { border-top: 2px solid var(--status-resolved); }
-.carrier-card.disputed       { border-top: 2px solid #E8A838; }
+.carrier-card.disputed       { border-top: 2px solid var(--status-progress); }
 
 /* ── Override workflow ── */
-.override-panel { background: rgba(157,141,241,0.06); border-left: 3px solid #9D8DF1; padding: 14px 18px; margin: 0 0 0 0; }
-.override-panel.admin-note { background: rgba(201,168,76,0.06); border-left: 3px solid rgba(201,168,76,0.5); }
+.override-panel { background: color-mix(in srgb, var(--status-waiting) 6%, transparent); border-left: 3px solid var(--status-waiting); padding: 14px 18px; margin: 0 0 0 0; }
+.override-panel.admin-note { background: color-mix(in srgb, var(--status-progress) 6%, transparent); border-left: 3px solid color-mix(in srgb, var(--status-progress) 50%, transparent); }
 .override-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
 .override-note-text { font-size: 12px; color: var(--ivory); line-height: 1.6; margin-bottom: 12px; }
 .override-textarea { background: var(--surface-mid); border: 1px solid var(--border); color: var(--ivory); font-family: var(--font-sans); font-size: 12px; padding: 10px 12px; width: 100%; resize: vertical; min-height: 80px; box-sizing: border-box; margin-bottom: 10px; }
 .override-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.btn-accept { background: rgba(138,154,91,0.15); color: var(--status-resolved); border: 1px solid rgba(138,154,91,0.4); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
-.btn-accept:hover { background: rgba(138,154,91,0.25); }
-.btn-dispute { background: rgba(255,180,171,0.08); color: var(--status-error); border: 1px solid rgba(255,180,171,0.3); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
-.btn-dispute:hover { background: rgba(255,180,171,0.15); }
-.btn-send-review { background: rgba(157,141,241,0.12); color: #9D8DF1; border: 1px solid rgba(157,141,241,0.3); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
-.btn-send-review:hover { background: rgba(157,141,241,0.22); }
+.btn-accept { background: color-mix(in srgb, var(--status-resolved) 15%, transparent); color: var(--status-resolved); border: 1px solid color-mix(in srgb, var(--status-resolved) 40%, transparent); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-accept:hover { background: color-mix(in srgb, var(--status-resolved) 25%, transparent); }
+.btn-dispute { background: color-mix(in srgb, var(--status-error-text) 8%, transparent); color: var(--status-error); border: 1px solid color-mix(in srgb, var(--status-error-text) 30%, transparent); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-dispute:hover { background: color-mix(in srgb, var(--status-error-text) 15%, transparent); }
+.btn-send-review { background: color-mix(in srgb, var(--status-waiting) 12%, transparent); color: var(--status-waiting); border: 1px solid color-mix(in srgb, var(--status-waiting) 30%, transparent); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-send-review:hover { background: color-mix(in srgb, var(--status-waiting) 22%, transparent); }
 
 /* ── Detail card ── */
 .detail-card { background: var(--surface-low); overflow: hidden; margin-bottom: 2px; }
@@ -84,8 +84,8 @@
 .stmt-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ── Badge overrides (Lux) ── */
-.badge-gold   { background: rgba(201,168,76,0.12); color: var(--status-progress); }
-.badge-orange { background: rgba(201,168,76,0.18); color: #E8A838; border: 1px solid rgba(232,168,56,0.3); }
+.badge-gold   { background: color-mix(in srgb, var(--status-progress) 12%, transparent); color: var(--status-progress); }
+.badge-orange { background: color-mix(in srgb, var(--status-progress) 18%, transparent); color: var(--status-progress); border: 1px solid rgba(232,168,56,0.3); }
 
 /* ── Admin layout ── */
 .admin-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 2px; align-items: start; }
@@ -212,8 +212,8 @@
             <span class="badge badge-red">⚠ Discrepancy</span>
             <span class="carrier-card-diff bad">${{ "{:,.2f}".format(s.difference|abs) }}</span>
           {% elif s.status == 'pending_review' %}
-            <span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">⏳ Review</span>
-            <span class="carrier-card-diff" style="color:#9D8DF1;">${{ "{:,.2f}".format(s.difference|abs) }}</span>
+            <span class="badge" style="background:color-mix(in srgb, var(--status-waiting) 12%, transparent);color:var(--status-waiting);">⏳ Review</span>
+            <span class="carrier-card-diff" style="color:var(--status-waiting);">${{ "{:,.2f}".format(s.difference|abs) }}</span>
           {% elif s.status == 'disputed' %}
             <span class="badge badge-orange">⚠ Disputed</span>
             <span class="carrier-card-diff bad">${{ "{:,.2f}".format(s.difference|abs) }}</span>
@@ -235,7 +235,7 @@
           {% if s.status == 'verified' %}<span class="badge badge-green">✓ Verified</span>
           {% elif s.status == 'accepted' %}<span class="badge badge-green">✓ Accepted</span>
           {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠ Discrepancy</span>
-          {% elif s.status == 'pending_review' %}<span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">⏳ Awaiting Your Review</span>
+          {% elif s.status == 'pending_review' %}<span class="badge" style="background:color-mix(in srgb, var(--status-waiting) 12%, transparent);color:var(--status-waiting);">⏳ Awaiting Your Review</span>
           {% elif s.status == 'disputed' %}<span class="badge badge-orange">⚠ Disputed</span>
           {% else %}<span class="badge badge-gold">Pending</span>{% endif %}
         </div>
@@ -271,7 +271,7 @@
       {% endif %}
 
       {% if s.carrier == 'Wellable' %}
-      <div style="background:rgba(201,168,76,0.1);border-left:3px solid var(--status-progress);padding:10px 14px;font-size:0.8rem;color:var(--ivory);">
+      <div style="background:color-mix(in srgb, var(--status-progress) 10%, transparent);border-left:3px solid var(--status-progress);padding:10px 14px;font-size:0.8rem;color:var(--ivory);">
         <strong style="color:var(--status-progress);">Advance Commission</strong> — These are 1st-year advance payments against future renewals.
         If a policy lapses within the advance period, Wellable will issue a chargeback.
         Verify all policies are still active before reconciling.
@@ -349,7 +349,7 @@
   <div class="detail-card">
     <div class="empty-state">
       No commission statements on file yet.<br>
-      <span style="font-size:12px;color:#aaa;margin-top:4px;display:block;">
+      <span style="font-size:12px;color:var(--slate);margin-top:4px;display:block;">
         {% if not is_admin %}Ask AJ to upload your carrier statements to the portal.{% endif %}
       </span>
     </div>
@@ -431,7 +431,7 @@
               {% if s.status == 'verified' %}<span class="badge badge-green">✓</span>
               {% elif s.status == 'accepted' %}<span class="badge badge-green">Accepted</span>
               {% elif s.status == 'discrepancy' %}<span class="badge badge-red">⚠</span>
-              {% elif s.status == 'pending_review' %}<span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">Review</span>
+              {% elif s.status == 'pending_review' %}<span class="badge" style="background:color-mix(in srgb, var(--status-waiting) 12%, transparent);color:var(--status-waiting);">Review</span>
               {% elif s.status == 'disputed' %}<span class="badge badge-orange">Disputed</span>
               {% else %}<span class="badge badge-gold">—</span>{% endif %}
             </td>
@@ -494,7 +494,7 @@
                 {% elif s.status == 'discrepancy' %}
                   <span class="badge badge-red" style="cursor:pointer" onclick="document.getElementById('override-form-{{ s.id }}').style.display='block'" title="Click to send for agent review">⚠ Override?</span>
                 {% elif s.status == 'pending_review' %}
-                  <span class="badge" style="background:rgba(157,141,241,0.12);color:#9D8DF1;">⏳ Sent</span>
+                  <span class="badge" style="background:color-mix(in srgb, var(--status-waiting) 12%, transparent);color:var(--status-waiting);">⏳ Sent</span>
                 {% elif s.status == 'disputed' %}
                   <span class="badge badge-orange" style="cursor:pointer" onclick="document.getElementById('close-dispute-{{ s.id }}').style.display='block'" title="Click to close dispute">⚠ Disputed</span>
                 {% else %}
@@ -537,7 +537,7 @@
           </form>
         </div>
         {% elif s.status == 'pending_review' %}
-        <div style="padding:8px 18px;background:rgba(157,141,241,0.04);border-bottom:1px solid var(--border);font-size:11px;color:#9D8DF1;">
+        <div style="padding:8px 18px;background:color-mix(in srgb, var(--status-waiting) 4%, transparent);border-bottom:1px solid var(--border);font-size:11px;color:var(--status-waiting);">
           {{ s.carrier }} {{ s.period_label }} — sent to {{ summary.agent.display_name }} for review.
           {% if s.override_note_admin %}<span style="color:var(--slate);"> "{{ s.override_note_admin[:80] }}{% if s.override_note_admin|length > 80 %}…{% endif %}"</span>{% endif %}
         </div>
@@ -548,7 +548,7 @@
     {% else %}
     <div class="empty-state">
       No statements uploaded yet.<br>
-      <span style="font-size:12px;color:#aaa;margin-top:4px;display:block;">Upload a carrier file to get started.</span>
+      <span style="font-size:12px;color:var(--slate);margin-top:4px;display:block;">Upload a carrier file to get started.</span>
     </div>
     {% endif %}
   </div>

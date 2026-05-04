@@ -28,7 +28,7 @@ def _admin_required(f):
 @login_required
 @_admin_required
 def pharmacy_list():
-    pharmacies = Pharmacy.query.order_by(Pharmacy.name).all()
+    pharmacies = Pharmacy.query.filter_by(agency_id=current_user.agency_id).order_by(Pharmacy.name).all()
     return render_template("pharmacies.html", pharmacies=pharmacies)
 
 
@@ -43,6 +43,7 @@ def pharmacy_new():
             return redirect(url_for("pharmacies.pharmacy_new"))
 
         pharmacy = Pharmacy(
+            agency_id=current_user.agency_id,
             name=name,
             address1=request.form.get("address1", "").strip() or None,
             city=request.form.get("city", "").strip() or None,

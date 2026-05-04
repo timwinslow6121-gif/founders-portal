@@ -99,48 +99,34 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Phase 2 ✅** — Customer master: Pharmacy, Customer, CustomerContact, CustomerNote, CustomerAorHistory models; customers_bp + pharmacies_bp blueprints; all 7 templates
 - **Phase 2.5 ✅** — PostgreSQL 16 on VPS; Agency multi-tenant model; 2GB swap; Gunicorn gthread; 5,589 rows migrated; UAT passed 7/7; login page redesigned (dark glassmorphic, Inter font)
 - **Phase 3 ✅ DEPLOYED (2026-04-13)** — Plans 01-07 complete and live on VPS. OAuth login fixed (https force + scope relaxation). Plan 06 still blocked on external provisioning (HealthSherpa + Google Meet Pub/Sub).
-- **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Dashboard rebuilt to original spec (activity-first: Unified Timeline, Tasks, Alerts, NC Enrollment Windows). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
 - **Commission Audit ✅ (2026-04-13)** — All 7 carriers now supported: UHC, Aetna, BCBS, Humana, Devoted, Healthspring, Wellable. Real March 2026 files uploaded and parsing correctly. See Commission Parser Notes below.
 - **Commission override workflow ✅ (2026-04-13)** — Discrepancy → AJ submits explanation → agent accepts/disputes → AJ closes. stated_rate detection flags when AJ's formula rate contradicts contract rate.
 - **BOB upload fixes ✅ (2026-04-29)** — Bulk upload now uses real form submit (flash messages work). Fixed agency_id/agent_id scoping in bulk_upload(). Fixed all PostgreSQL sequence drifts. Import history table: clickable rows open 3-tab detail modal (New / Updated / Not in this import = term report). Pending/error batches deletable with × button. _detect_carrier() now handles all 7 carriers as XLSX BOB files.
+- **System-aware theme ✅ (2026-05-04)** — Replaced Lux dark-only theme with dual-palette system using `prefers-color-scheme`. Light mode default (#F5F4F2 bg, #FFFFFF surface, #B8975A gold); dark mode preserves Lux palette. All templates swept — hardcoded rgba() replaced with `color-mix(in srgb, var(--token) N%, transparent)`. Border-radius 6px, larger card padding, base font 14px. labels.html untouched (print utility).
+- **Readability pass ✅ (2026-05-04)** — Font sizes bumped (9px→11px, 10px→12px, 11px→13px across all templates). All card-like containers (metric cards, panels, carrier cards, commission cards, drop zones) now have border + border-radius + real gap (12–16px, was 2px). Fixed duplicate Unmatched Calls nav item.
+- **Dashboard fixes ✅ (2026-05-04)** — Removed duplicate period-banner (same data as metric cards). Termination items in timeline, tasks, and alerts panels now link to customer profile (MBI→customer_id resolved in route). NC Enrollment Windows → SEP Quick Reference with accurate May 2026 status.
+- **Customers page enhancements ✅ (2026-05-04)** — Sortable columns (name, stage, pharmacy) via sort=/dir= URL params, server-side order_by. Column visibility picker dropdown (MBI, Phone, Agent, Stage, Pharmacy); prefs in localStorage. Agent column hidden by default for non-admins. Pager carries sort params.
 
-## Next Session Work Items (2026-05-04)
-Discussed but NOT yet implemented — build in next session:
-
-### Theme overhaul (HIGH PRIORITY)
-Replace Lux dark theme with system-aware light/dark. See UX Design System section above for full spec. Touch base.html first (CSS vars), then all templates.
-
-### Dashboard fixes
-- Two metric bars are duplicated — merge into one bar
-- Termination items and tasks in timeline must be clickable → customer profile
-- Replace NC Enrollment Windows card with SEP info card (static, manually edited by admin)
-
-### Customers page
-- Sortable columns: name, stage, pharmacy
-- Resizable columns: name, MBI, phone (CSS drag handles or click-to-resize)
-- Column visibility picker: agent view hides Primary Agent; admin view shows it
-  - Available columns: Name, MBI, DOB, Phone, Email, Address, Stage, Pharmacy, Carrier(s), Last Contact, Primary Agent (admin only)
-- Duplicate detection: customers with same MBI or name+DOB should be flagged, one row per customer even with multiple policies
-- CSV/Excel import for customer data (agents already have customer lists in spreadsheets)
-
+## Next Session Work Items
 ### Upcoming Terminations page
 - Simplify to next 30 days only (Medicare terms always hit on the 1st of the month)
 - Remove 60/90 day tiers — not relevant outside AEP
 - AEP gets its own dedicated page (future)
+
+### Customers page (remaining)
+- Duplicate detection: flag customers with same MBI or name+DOB
+- CSV/Excel import for customer data (agents have existing spreadsheets)
 
 ### Carriers & Plans database (new)
 - New `Plan` model: carrier, plan_name, plan_type, year, service_area, premium, details_json
 - New `carriers` blueprint with plan list + plan detail pages
 - Plan detail shows: carrier, year, basic coverage info + "customers on this plan" list
 - Customer profile links to their plan → plan detail page
-- **Medicare.gov API** — investigate Plan Finder API (`data.medicare.gov`) for automated plan data
+- **Medicare.gov API** — Plan Finder API (`data.cms.gov`) publicly accessible, no auth key required
   - Applicable zip codes for Founders: western NC service area
   - Carriers in scope: UHC, Aetna, Healthspring/Cigna, BCBS-NC, Devoted, Wellable, GTL (supplemental)
   - GTL is life/supplemental (not Medicare Advantage) — handle separately
-
-### Commission parser correction (CLAUDE.md note fix)
-- Aetna col9 is Writing Agent Name (index 9, not 8) — already fixed in code, CLAUDE.md still says col8. Fix note.
-- Aetna split_rate in DB is 0.55 (corrected from 0.525 — AJ's file was wrong). CLAUDE.md Commission Parser Notes still says 52.5% — fix that note too.
+  - Build annual refresh script to pull plans by zip during AEP prep
 
 ## Agent Nav — what's in the sidebar (as of 2026-04-03)
 My Book: Dashboard, Customers, Upcoming Terms

@@ -7,35 +7,37 @@
   background: color-mix(in srgb, var(--gold) 6%, transparent);
   border-left: 2px solid color-mix(in srgb, var(--gold) 30%, transparent);
   padding: 10px 16px; margin-bottom: 24px;
-  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
 }
 .viewing-back { color: var(--gold); text-decoration: none; font-weight: 500; white-space: nowrap; }
 
 /* ── Hero total bar ── */
 .hero {
   background: var(--surface-low);
-  padding: 24px 28px; margin-bottom: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 28px; margin-bottom: 20px;
   display: flex; align-items: stretch; gap: 0;
   overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
 .hero-item { flex: 1; padding: 0 24px; border-right: 1px solid var(--border); min-width: 130px; }
 .hero-item:first-child { padding-left: 0; }
 .hero-item:last-child { border-right: none; padding-right: 0; }
-.hero-label { font-size: 9px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
+.hero-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
 .hero-value { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300; color: var(--ivory-bright); line-height: 1; }
-.hero-sub { font-size: 10px; color: var(--slate); margin-top: 6px; }
+.hero-sub { font-size: 12px; color: var(--slate); margin-top: 6px; }
 
 /* ── Carrier status cards ── */
-.carrier-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px; margin-bottom: 24px; }
-.carrier-card { background: var(--surface-low); overflow: hidden; cursor: pointer; transition: background 0.15s; }
+.carrier-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.carrier-card { background: var(--surface-low); overflow: hidden; cursor: pointer; transition: background 0.15s; border: 1px solid var(--border); border-radius: var(--radius); }
 .carrier-card:hover { background: var(--surface-mid); }
 .carrier-card-top { padding: 14px 16px 10px; }
 .carrier-card-name { font-size: 12px; font-weight: 500; color: var(--ivory); margin-bottom: 2px; }
-.carrier-card-period { font-size: 10px; color: var(--slate); letter-spacing: 0.05em; }
+.carrier-card-period { font-size: 12px; color: var(--slate); letter-spacing: 0.05em; }
 .carrier-card-amount { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 300; color: var(--ivory-bright); margin: 10px 0 4px; line-height: 1; }
-.carrier-card-sub { font-size: 10px; color: var(--slate); }
+.carrier-card-sub { font-size: 12px; color: var(--slate); }
 .carrier-card-footer { padding: 8px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.carrier-card-diff { font-size: 11px; font-weight: 500; }
+.carrier-card-diff { font-size: 13px; font-weight: 500; }
 .carrier-card-diff.ok { color: var(--status-resolved); }
 .carrier-card-diff.bad { color: var(--status-error); }
 .carrier-card.verified       { border-top: 2px solid var(--status-resolved); }
@@ -48,36 +50,36 @@
 /* ── Override workflow ── */
 .override-panel { background: color-mix(in srgb, var(--status-waiting) 6%, transparent); border-left: 3px solid var(--status-waiting); padding: 14px 18px; margin: 0 0 0 0; }
 .override-panel.admin-note { background: color-mix(in srgb, var(--status-progress) 6%, transparent); border-left: 3px solid color-mix(in srgb, var(--status-progress) 50%, transparent); }
-.override-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.override-label { font-size: 13px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
 .override-note-text { font-size: 12px; color: var(--ivory); line-height: 1.6; margin-bottom: 12px; }
 .override-textarea { background: var(--surface-mid); border: 1px solid var(--border); color: var(--ivory); font-family: var(--font-sans); font-size: 12px; padding: 10px 12px; width: 100%; resize: vertical; min-height: 80px; box-sizing: border-box; margin-bottom: 10px; }
 .override-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.btn-accept { background: color-mix(in srgb, var(--status-resolved) 15%, transparent); color: var(--status-resolved); border: 1px solid color-mix(in srgb, var(--status-resolved) 40%, transparent); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-accept { background: color-mix(in srgb, var(--status-resolved) 15%, transparent); color: var(--status-resolved); border: 1px solid color-mix(in srgb, var(--status-resolved) 40%, transparent); padding: 8px 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 .btn-accept:hover { background: color-mix(in srgb, var(--status-resolved) 25%, transparent); }
-.btn-dispute { background: color-mix(in srgb, var(--status-error-text) 8%, transparent); color: var(--status-error); border: 1px solid color-mix(in srgb, var(--status-error-text) 30%, transparent); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-dispute { background: color-mix(in srgb, var(--status-error-text) 8%, transparent); color: var(--status-error); border: 1px solid color-mix(in srgb, var(--status-error-text) 30%, transparent); padding: 8px 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 .btn-dispute:hover { background: color-mix(in srgb, var(--status-error-text) 15%, transparent); }
-.btn-send-review { background: color-mix(in srgb, var(--status-waiting) 12%, transparent); color: var(--status-waiting); border: 1px solid color-mix(in srgb, var(--status-waiting) 30%, transparent); padding: 8px 16px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.btn-send-review { background: color-mix(in srgb, var(--status-waiting) 12%, transparent); color: var(--status-waiting); border: 1px solid color-mix(in srgb, var(--status-waiting) 30%, transparent); padding: 8px 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
 .btn-send-review:hover { background: color-mix(in srgb, var(--status-waiting) 22%, transparent); }
 
 /* ── Detail card ── */
-.detail-card { background: var(--surface-low); overflow: hidden; margin-bottom: 2px; }
+.detail-card { background: var(--surface-low); overflow: hidden; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
 .detail-header { padding: 12px 18px; background: var(--surface-high); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .detail-title { font-family: var(--font-serif); font-size: 14px; font-weight: 400; color: var(--ivory-bright); }
-.detail-meta { font-size: 10px; color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase; }
+.detail-meta { font-size: 12px; color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ── Math strip ── */
 .math-strip { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .math-cell { flex: 1; padding: 14px 18px; border-right: 1px solid var(--border); min-width: 110px; }
 .math-cell:last-child { border-right: none; }
-.math-label { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.math-label { font-size: 13px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
 .math-value { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 300; color: var(--ivory-bright); }
-.math-sub { font-size: 10px; color: var(--slate); margin-top: 4px; }
+.math-sub { font-size: 12px; color: var(--slate); margin-top: 4px; }
 .math-value.ok  { color: var(--status-resolved); }
 .math-value.bad { color: var(--status-error); }
 
 /* ── Tables ── */
 .stmt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.stmt-table th { font-size: 9px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); text-align: left; padding: 10px 16px; background: var(--surface-high); white-space: nowrap; }
+.stmt-table th { font-size: 13px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); text-align: left; padding: 10px 16px; background: var(--surface-high); white-space: nowrap; }
 .stmt-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--ivory); vertical-align: middle; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stmt-table tr:last-child td { border-bottom: none; }
 .stmt-table tr:hover td { background: var(--surface-mid); }
@@ -88,20 +90,20 @@
 .badge-orange { background: color-mix(in srgb, var(--status-progress) 18%, transparent); color: var(--status-progress); border: 1px solid rgba(232,168,56,0.3); }
 
 /* ── Admin layout ── */
-.admin-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 2px; align-items: start; }
-.upload-card { background: var(--surface-low); overflow: hidden; margin-bottom: 2px; }
-.upload-header { background: var(--surface-high); color: var(--gold); padding: 11px 18px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; }
+.admin-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+.upload-card { background: var(--surface-low); overflow: hidden; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.upload-header { background: var(--surface-high); color: var(--gold); padding: 13px 18px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; }
 .upload-body { padding: 18px; }
 .upload-body input[type=file] { background: var(--surface-mid); border: 1px solid var(--border); color: var(--ivory); font-size: 12px; padding: 8px 10px; width: 100%; margin-bottom: 12px; }
-.btn-upload { background: var(--gold); color: var(--on-gold); border: none; padding: 10px 16px; font-family: var(--font-sans); font-size: 10px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; width: 100%; }
+.btn-upload { background: var(--gold); color: var(--on-gold); border: none; padding: 10px 16px; font-family: var(--font-sans); font-size: 12px; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; width: 100%; }
 .btn-upload:hover { opacity: 0.85; }
-.upload-hint { font-size: 10px; color: var(--slate); margin-top: 10px; line-height: 1.7; letter-spacing: 0.04em; }
+.upload-hint { font-size: 12px; color: var(--slate); margin-top: 10px; line-height: 1.7; letter-spacing: 0.04em; }
 
 /* ── Agent summary ── */
-.agent-summary-card { background: var(--surface-low); overflow: hidden; }
-.section-banner { background: var(--surface-high); color: var(--gold); padding: 11px 18px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.2em; }
+.agent-summary-card { background: var(--surface-low); overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius); }
+.section-banner { background: var(--surface-high); color: var(--gold); padding: 13px 18px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; }
 .empty-state { padding: 40px 20px; text-align: center; color: var(--slate); font-size: 12px; }
-.agent-avatar-sm { width: 24px; height: 24px; background: var(--surface-top); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-size: 9px; font-style: italic; color: var(--gold); flex-shrink: 0; vertical-align: middle; margin-right: 6px; }
+.agent-avatar-sm { width: 24px; height: 24px; background: var(--surface-top); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-size: 13px; font-style: italic; color: var(--gold); flex-shrink: 0; vertical-align: middle; margin-right: 6px; }
 .amount-pos { color: var(--status-resolved); font-weight: 500; }
 .amount-neg { color: var(--status-error); font-weight: 500; }
 

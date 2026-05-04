@@ -6,18 +6,20 @@
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 .metric {
   background: var(--surface-low);
-  padding: 22px 18px;
-  border-left: 2px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  padding: 22px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--gold);
 }
 .metric-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--slate);
   margin-bottom: 10px;
@@ -30,7 +32,7 @@
   line-height: 1;
 }
 .metric-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--slate);
   margin-top: 7px;
   letter-spacing: 0.04em;
@@ -46,7 +48,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-serif);
-  font-size: 10px;
+  font-size: 12px;
   font-style: italic;
   color: var(--gold);
   flex-shrink: 0;
@@ -69,7 +71,7 @@
 
 /* ── Carrier tags ── */
 .carrier-tag {
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.06em;
   background: color-mix(in srgb, var(--gold) 10%, transparent);
@@ -85,18 +87,20 @@
 .carrier-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-  padding: 2px;
+  gap: 10px;
+  padding: 16px;
 }
 .carrier-card {
   background: var(--surface-mid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   padding: 16px 14px;
   text-align: center;
 }
 .carrier-card-name {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--slate);
   margin-bottom: 8px;
@@ -109,7 +113,7 @@
   line-height: 1;
 }
 .carrier-card-pct {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--slate);
   margin-top: 4px;
 }
@@ -123,9 +127,9 @@
   min-width: 720px;
 }
 .agent-table th {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--slate);
   text-align: left;
@@ -151,7 +155,7 @@
   .carrier-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 768px) {
-  .metrics { grid-template-columns: 1fr 1fr; gap: 2px; }
+  .metrics { grid-template-columns: 1fr 1fr; gap: 12px; }
   .metric { padding: 16px 14px; }
   .metric-value { font-size: 1.6rem; }
   .carrier-grid { grid-template-columns: repeat(2, 1fr); }
@@ -189,10 +193,10 @@
   </div>
 </div>
 
-<div class="card" style="margin-bottom:2px;">
+<div class="card" style="margin-bottom:16px;">
   <div class="card-header">
     <span class="card-title">Carrier Breakdown</span>
-    <span class="text-muted" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">{{ total_policies }} total</span>
+    <span class="text-muted" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{{ total_policies }} total</span>
   </div>
   <div class="carrier-grid">
     {% for row in agency_carrier_rows %}
@@ -205,10 +209,10 @@
   </div>
 </div>
 
-<div class="card" style="margin-top:2px;">
+<div class="card">
   <div class="card-header">
     <span class="card-title">Agent Breakdown</span>
-    <span class="text-muted" style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">{{ agent_rows|length }} agents</span>
+    <span class="text-muted" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{{ agent_rows|length }} agents</span>
   </div>
   <div class="agent-table-scroll">
     <table class="agent-table">
@@ -234,7 +238,7 @@
           </td>
           <td class="fw-medium">{{ "{:,}".format(row.count) }}</td>
           <td>
-            <div style="font-size:10px;color:var(--slate);margin-bottom:4px;">{{ row.pct_of_agency }}%</div>
+            <div style="font-size:12px;color:var(--slate);margin-bottom:4px;">{{ row.pct_of_agency }}%</div>
             <div class="bar-wrap"><div class="bar-fill" style="width:{{ row.pct_of_agency }}%"></div></div>
           </td>
           <td>

@@ -24,8 +24,9 @@
   .period-banner {
     background: var(--surface-low);
     border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 20px 24px;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     display: flex;
     flex-direction: row;
     align-items: stretch;
@@ -57,9 +58,9 @@
   .period-item:last-child  { border-right: none; padding-right: 0; }
 
   .period-label {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--slate);
     margin-bottom: 5px;
@@ -84,7 +85,7 @@
   }
 
   .period-sub {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--slate);
     font-weight: 300;
     white-space: nowrap;
@@ -97,14 +98,16 @@
   .metrics-row {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 2px;
-    margin-bottom: 20px;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .metric-card {
     background: var(--surface-low);
-    padding: 16px 18px;
-    border-left: 2px solid transparent;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    border-left: 3px solid transparent;
     animation: fadeSlideIn 0.5s ease both;
     transition: background 0.15s;
     cursor: default;
@@ -121,9 +124,9 @@
   .metric-card.c-gold   { border-left-color: color-mix(in srgb, var(--gold) 40%, transparent); }
 
   .m-label {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--slate);
     margin-bottom: 8px;
@@ -148,7 +151,7 @@
   }
 
   .m-detail {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--slate);
     font-weight: 300;
   }
@@ -157,36 +160,40 @@
   .dash-grid {
     display: grid;
     grid-template-columns: 1fr 340px;
-    gap: 2px;
+    gap: 16px;
     align-items: start;
   }
 
   /* ── PANEL ── */
   .dash-panel {
     background: var(--surface-low);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
     animation: fadeSlideIn 0.5s ease 0.25s both;
   }
-  .dash-panel + .dash-panel { margin-top: 2px; }
+  .dash-panel + .dash-panel { margin-top: 12px; }
 
   .panel-hd {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 13px 20px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--border);
+    background: var(--surface-high);
     flex-shrink: 0;
   }
 
   .panel-hd-title {
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--gold);
   }
 
   .panel-hd-meta {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--slate);
   }
 
@@ -196,12 +203,12 @@
   }
 
   .flt-btn {
-    padding: 3px 10px;
+    padding: 4px 10px;
     border: none;
     background: transparent;
     color: var(--slate);
     font-family: var(--font-sans);
-    font-size: 10px;
+    font-size: 12px;
     cursor: pointer;
     transition: color 0.15s;
     letter-spacing: 0.04em;
@@ -270,14 +277,14 @@
   }
 
   .tl-time {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--slate);
     flex-shrink: 0;
     white-space: nowrap;
   }
 
   .tl-desc {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--slate);
     white-space: nowrap;
     overflow: hidden;
@@ -286,10 +293,11 @@
 
   .tl-tag {
     display: inline-block;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.1em;
-    padding: 1px 5px;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 3px;
     margin-right: 5px;
     text-transform: uppercase;
   }
@@ -336,15 +344,15 @@
   .task-body { flex: 1; min-width: 0; }
 
   .task-text {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ivory);
-    font-weight: 300;
+    font-weight: 400;
     line-height: 1.4;
   }
   .task-text.done-text { text-decoration: line-through; color: var(--slate); }
 
   .task-meta {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--slate);
     margin-top: 2px;
   }
@@ -383,7 +391,7 @@
   .alert-body { flex: 1; min-width: 0; }
 
   .alert-title {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--ivory);
     font-weight: 400;
     margin-bottom: 2px;
@@ -393,13 +401,13 @@
   }
 
   .alert-detail {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--slate);
     font-weight: 300;
   }
 
   .alert-cta {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--gold-dim);
     white-space: nowrap;
     letter-spacing: 0.04em;
@@ -422,16 +430,16 @@
   .sep-cell:hover { background: var(--surface-mid); }
 
   .sep-type {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--slate);
     margin-bottom: 3px;
   }
 
   .sep-status {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 400;
     margin-bottom: 1px;
   }
@@ -440,7 +448,7 @@
   .sep-status.limited { color: var(--status-progress); }
 
   .sep-note {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--slate);
   }
 
@@ -448,7 +456,7 @@
   .right-col {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 12px;
   }
 
   /* ── ANIMATIONS ── */

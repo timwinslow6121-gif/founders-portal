@@ -20,80 +20,6 @@
     text-transform: uppercase;
   }
 
-  /* ── ENROLLMENT PERIOD BANNER ── */
-  .period-banner {
-    background: var(--surface-low);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    position: relative;
-    overflow: hidden;
-    animation: fadeSlideIn 0.5s ease both;
-    min-height: 80px;
-  }
-
-  .period-banner::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
-    opacity: 0.4;
-  }
-
-  .period-item {
-    flex: 1;
-    padding: 0 20px;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-width: 0;
-  }
-  .period-item:first-child { padding-left: 0; }
-  .period-item:last-child  { border-right: none; padding-right: 0; }
-
-  .period-label {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--slate);
-    margin-bottom: 5px;
-    white-space: nowrap;
-  }
-
-  .period-value {
-    font-family: var(--font-serif);
-    font-weight: 300;
-    font-size: 26px;
-    color: var(--ivory-bright);
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .period-value.urgent { color: var(--status-error); }
-  .period-value.good   { color: var(--status-resolved); }
-  .period-value .unit  {
-    font-size: 13px;
-    font-weight: 300;
-    color: var(--slate);
-    margin-left: 3px;
-  }
-
-  .period-sub {
-    font-size: 12px;
-    color: var(--slate);
-    font-weight: 300;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .period-sub .hl { color: var(--gold); }
-
   /* ── METRIC CARDS ROW ── */
   .metrics-row {
     display: grid;
@@ -475,10 +401,6 @@
 
   @media (max-width: 768px) {
     .main          { padding: 16px 16px 40px; }
-    .period-banner { flex-wrap: wrap; }
-    .period-item   { min-width: 50%; padding: 10px 12px; border-right: none; border-bottom: 1px solid var(--border); }
-    .period-item:nth-child(odd) { border-right: 1px solid var(--border); }
-    .period-item:last-child, .period-item:nth-last-child(2) { border-bottom: none; }
     .metrics-row   { grid-template-columns: 1fr 1fr; }
     .m-number      { font-size: 1.7rem; }
     .right-col     { flex-direction: column; }
@@ -494,33 +416,6 @@
   <span style="color:var(--slate);">Viewing: <strong style="color:var(--ivory);font-weight:400;">{{ viewing_agent.display_name }}</strong> · {{ viewing_agent.email }}</span>
 </div>
 {% endif %}
-
-<!-- ── ENROLLMENT PERIOD BANNER ── -->
-<div class="period-banner">
-  <div class="period-item">
-    <div class="period-label">MA OEP Status</div>
-    <div class="period-value urgent" id="js-oep-val">—</div>
-    <div class="period-sub">Ends <span class="hl">March 31, 2026</span></div>
-  </div>
-  <div class="period-item">
-    <div class="period-label">Until AEP Opens</div>
-    <div class="period-value" id="js-aep-val">—</div>
-    <div class="period-sub">Oct 15 – Dec 7, 2026</div>
-  </div>
-  <div class="period-item">
-    <div class="period-label">Active BOB</div>
-    <div class="period-value good">{{ policy_count }}</div>
-    <div class="period-sub">across {{ carrier_count }} carriers{% if viewing_agent %} · {{ viewing_agent.display_name }}{% endif %}</div>
-  </div>
-  <div class="period-item">
-    <div class="period-label">Pending Terminations</div>
-    <div class="period-value {% if terms_30 > 0 %}urgent{% endif %}">{{ terms_90 }}</div>
-    <div class="period-sub">
-      {% if terms_30 > 0 %}<span class="hl">{{ terms_30 }} under 30 days</span>
-      {% else %}in next 90 days{% endif %}
-    </div>
-  </div>
-</div>
 
 <!-- ── METRIC CARDS ── -->
 <div class="metrics-row">
@@ -566,7 +461,11 @@
 
         {% if upcoming_terms %}
           {% for p in upcoming_terms[:3] %}
+          {% if p.customer_id %}
+          <a class="tl-entry" data-type="alert" href="{{ url_for('customers.customer_profile', customer_id=p.customer_id) }}" style="text-decoration:none;">
+          {% else %}
           <div class="tl-entry" data-type="alert">
+          {% endif %}
             <div class="tl-icon missed">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><line x1="8" y1="5" x2="8" y2="8"/><circle cx="8" cy="11" r="0.5" fill="currentColor"/></svg>
             </div>
@@ -577,7 +476,7 @@
               </div>
               <div class="tl-desc"><span class="tl-tag urgent">term</span>{{ p.carrier }} — {{ p.days_until_term }} days · {{ p.plan_name or 'Unknown plan' }}</div>
             </div>
-          </div>
+          {% if p.customer_id %}</a>{% else %}</div>{% endif %}
           {% endfor %}
         {% endif %}
 
@@ -649,8 +548,9 @@
       <div class="panel-body">
         {% if upcoming_terms %}
           {% for p in upcoming_terms[:5] %}
-          <div class="task-item">
-            <div class="task-check {% if p.urgency_class == 'red' %}{% endif %}"></div>
+          {% set href = url_for('customers.customer_profile', customer_id=p.customer_id) if p.customer_id else None %}
+          {% if href %}<a class="task-item" href="{{ href }}" style="text-decoration:none;">{% else %}<div class="task-item">{% endif %}
+            <div class="task-check"></div>
             <div class="task-body">
               <div class="task-text">Contact {{ p.full_name }} — {{ p.carrier }} term</div>
               <div class="task-meta">
@@ -659,10 +559,10 @@
               </div>
             </div>
             <div class="task-dot" style="background:{% if p.urgency_class == 'red' %}var(--status-error){% elif p.urgency_class == 'amber' %}var(--status-progress){% else %}var(--status-waiting){% endif %};"></div>
-          </div>
+          {% if href %}</a>{% else %}</div>{% endif %}
           {% endfor %}
         {% else %}
-          <div style="padding:20px;font-size:11px;color:var(--slate);">No urgent tasks. Full task management coming in Phase 3.</div>
+          <div style="padding:20px;font-size:13px;color:var(--slate);">No urgent tasks. Full task management coming in Phase 3.</div>
         {% endif %}
       </div>
     </div>
@@ -675,37 +575,38 @@
       <div class="panel-body">
         {% if upcoming_terms %}
           {% for p in upcoming_terms[:4] %}
-          <div class="alert-item">
+          {% set href = url_for('customers.customer_profile', customer_id=p.customer_id) if p.customer_id else None %}
+          {% if href %}<a class="alert-item" href="{{ href }}" style="text-decoration:none;">{% else %}<div class="alert-item">{% endif %}
             <div class="alert-bar {% if p.urgency_class == 'red' %}critical{% elif p.urgency_class == 'amber' %}warning{% else %}info{% endif %}"></div>
             <div class="alert-body">
               <div class="alert-title">{{ p.full_name }} — {{ p.carrier }}</div>
               <div class="alert-detail">Term {{ p.term_date.strftime('%m/%d/%Y') if p.term_date else '—' }} · {{ p.days_until_term }}d · {{ p.plan_name or '—' }}</div>
             </div>
             <div class="alert-cta">View →</div>
-          </div>
+          {% if href %}</a>{% else %}</div>{% endif %}
           {% endfor %}
         {% else %}
-          <div style="padding:16px 20px;font-size:11px;color:var(--slate);">No critical alerts.</div>
+          <div style="padding:16px 20px;font-size:13px;color:var(--slate);">No critical alerts.</div>
         {% endif %}
       </div>
     </div>
 
-    <!-- NC Enrollment Windows -->
+    <!-- SEP Quick Reference -->
     <div class="dash-panel">
       <div class="panel-hd">
-        <span class="panel-hd-title">NC Enrollment Windows</span>
-        <span class="panel-hd-meta" id="js-today-date"></span>
+        <span class="panel-hd-title">SEP Quick Reference</span>
+        <span class="panel-hd-meta">May 2026</span>
       </div>
       <div class="sep-grid">
         <div class="sep-cell">
           <div class="sep-type">MA OEP</div>
-          <div class="sep-status limited" id="js-oep-status">—</div>
-          <div class="sep-note">Jan 1 – Mar 31</div>
+          <div class="sep-status closed">Closed</div>
+          <div class="sep-note">Jan 1 – Mar 31 · ended</div>
         </div>
         <div class="sep-cell">
           <div class="sep-type">AEP</div>
           <div class="sep-status closed">Closed</div>
-          <div class="sep-note">Oct 15 – Dec 7</div>
+          <div class="sep-note">Opens Oct 15, 2026</div>
         </div>
         <div class="sep-cell">
           <div class="sep-type">IEP / Turning 65</div>
@@ -718,9 +619,9 @@
           <div class="sep-note">Birthday rule — annual</div>
         </div>
         <div class="sep-cell">
-          <div class="sep-type">CSNP / DSNP</div>
-          <div class="sep-status open">Quarterly</div>
-          <div class="sep-note">Dual/chronic — continuous</div>
+          <div class="sep-type">DSNP / CSNP</div>
+          <div class="sep-status open">Continuous</div>
+          <div class="sep-note">Dual/chronic — monthly</div>
         </div>
         <div class="sep-cell">
           <div class="sep-type">5-Star SEP</div>
@@ -751,52 +652,6 @@
 {% block scripts %}
 <script>
 (function() {
-  const now = new Date();
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const monthsShort = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  // Today label
-  const todayEl = document.getElementById('js-today-date');
-  if (todayEl) todayEl.textContent = monthsShort[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
-
-  // OEP — ends March 31 of current year
-  const oepEnd   = new Date(now.getFullYear(), 2, 31, 23, 59, 59);
-  const oepDiff  = Math.ceil((oepEnd - now) / 86400000);
-  const oepVal   = document.getElementById('js-oep-val');
-  const oepStat  = document.getElementById('js-oep-status');
-
-  if (oepVal) {
-    if (oepDiff < 0) {
-      oepVal.textContent = 'Closed';
-      oepVal.classList.remove('urgent');
-      oepVal.style.color = 'var(--slate)';
-      if (oepStat) { oepStat.textContent = 'Closed'; oepStat.className = 'sep-status closed'; }
-    } else if (oepDiff === 0) {
-      oepVal.textContent = 'Closes Today';
-      if (oepStat) { oepStat.textContent = 'Closes Today'; oepStat.className = 'sep-status limited'; }
-    } else if (oepDiff === 1) {
-      oepVal.textContent = 'Tomorrow';
-      if (oepStat) { oepStat.textContent = 'Closes Tomorrow'; oepStat.className = 'sep-status limited'; }
-    } else {
-      oepVal.innerHTML = oepDiff + '<span class="unit">days</span>';
-      if (oepStat) { oepStat.textContent = oepDiff + ' days left'; oepStat.className = 'sep-status limited'; }
-    }
-  }
-
-  // AEP — starts Oct 15 of current year
-  const aepStart = new Date(now.getFullYear(), 9, 15);
-  const aepDiff  = Math.ceil((aepStart - now) / 86400000);
-  const aepVal   = document.getElementById('js-aep-val');
-  if (aepVal) {
-    if (aepDiff <= 0) {
-      aepVal.innerHTML = 'Open Now';
-      aepVal.classList.remove('urgent');
-      aepVal.style.color = 'var(--status-resolved)';
-    } else {
-      aepVal.innerHTML = aepDiff + '<span class="unit">days</span>';
-    }
-  }
-
   // Timeline filter
   document.querySelectorAll('.flt-btn').forEach(btn => {
     btn.addEventListener('click', function() {

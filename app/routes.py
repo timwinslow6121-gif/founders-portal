@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, abort, request,
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
-from app.models import CustomerNote, Policy, ImportBatch, User
+from app.models import Customer, CustomerNote, Policy, ImportBatch, User
 
 main = Blueprint('main', __name__)
 
@@ -43,6 +43,15 @@ def _build_dashboard_context(agent_id, today, agency_id):
         .order_by(Policy.term_date.asc()).all()
     )
 
+    # Build MBI→customer_id lookup for clickable term links
+    mbis = [p.mbi for p in raw_terms if p.mbi]
+    mbi_to_customer = {}
+    if mbis:
+        rows = (Customer.query
+                .filter(Customer.mbi.in_(mbis), Customer.agency_id == agency_id)
+                .with_entities(Customer.mbi, Customer.id).all())
+        mbi_to_customer = {r.mbi: r.id for r in rows}
+
     upcoming_terms = []
     for p in raw_terms:
         urgency, days = _urgency(p.term_date, today)
@@ -50,6 +59,7 @@ def _build_dashboard_context(agent_id, today, agency_id):
             **{col.name: getattr(p, col.name) for col in p.__table__.columns},
             urgency_class=urgency,
             days_until_term=days,
+            customer_id=mbi_to_customer.get(p.mbi),
         )
         upcoming_terms.append(wrapped)
 

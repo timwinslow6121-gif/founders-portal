@@ -82,7 +82,9 @@ def _customer_query():
 @login_required
 def customers_list():
     page = request.args.get("page", 1, type=int)
-    q = request.args.get("q", "").strip()
+    q    = request.args.get("q", "").strip()
+    sort = request.args.get("sort", "name")
+    dir_ = request.args.get("dir", "asc")
 
     query = _customer_query()
     if q:
@@ -95,10 +97,20 @@ def customers_list():
             )
         )
 
-    customers = query.order_by(Customer.last_name, Customer.first_name).paginate(
+    _sort_cols = {
+        "name":     [Customer.last_name, Customer.first_name],
+        "stage":    [Customer.deal_stage, Customer.last_name],
+        "pharmacy": [Customer.pharmacy_id, Customer.last_name],
+    }
+    order_cols = _sort_cols.get(sort, _sort_cols["name"])
+    if dir_ == "desc":
+        order_cols = [c.desc() for c in order_cols]
+
+    customers = query.order_by(*order_cols).paginate(
         page=page, per_page=50, error_out=False
     )
-    return render_template("customers_list.html", customers=customers, q=q)
+    return render_template("customers_list.html",
+                           customers=customers, q=q, sort=sort, dir=dir_)
 
 
 @customers_bp.route("/customers/search")

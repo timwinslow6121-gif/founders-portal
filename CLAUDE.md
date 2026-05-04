@@ -62,26 +62,37 @@ app.register_blueprint(customers_bp)
 
 **PostgreSQL sequence drift:** After bulk inserts or manual SQL, sequences can fall behind max(id). Fix with: `SELECT setval('tablename_id_seq', (SELECT MAX(id) FROM tablename));` — has affected `commission_statements` and `agent_carrier_contracts` in production.
 
-## UX Design System — The Private Gallery (Lux Theme)
-- **Palette:** Ink `#0A0A09` bg, Surface `#131312`, Surface-Low `#1C1C1A`, Gold `#DAC495`, Ivory `#E5E2DF`
-- **No borders** — depth via tonal background shifts only. Ghost border fallback: `rgba(76,70,61,0.15)`
-- **No border-radius** — all elements 0px (sharp, architectural)
-- **Fonts:** Noto Serif (headlines/serif moments) + Inter (UI labels/body). Both loaded via Google Fonts in base.html.
-- **Typography pattern:** labels `9-10px, uppercase, letter-spacing: 0.15-0.2em`. Serif numbers for metrics.
-- **220px sidebar** (`var(--surface-low)`), uppercase nav items, thin 1px vertical rule dots
-- CSS lives in `{% block styles %}` per template — no separate CSS files. CSS vars defined in base.html `:root`.
-- Templates must NOT redefine `.page-title`, `.alert-*`, `.badge`, `.btn-primary`, `.btn-secondary`, `.card`, `.data-table` — these are owned by base.html. Override only if genuinely necessary.
-- Class names: `.card`, `.data-table`, `.btn-primary`, `.btn-secondary`, `.badge`, `.nav-item` — same names, Lux styling
-- **Mobile:** Sidebar is off-canvas drawer on ≤768px — `sidebar.open` class + `sidebar-overlay` backdrop. Hamburger + `mobile-topbar` in base.html. JS: `openSidebar()` / `closeSidebar()`.
-- **Tables on mobile:** Wrap in `<div class="table-scroll">` — applies `overflow-x: auto` and sets `min-width` on the table. Already in base.html styles.
-- **Mobile cards:** Customer list and search results render as `.cust-card` stacked list on ≤768px instead of table. Pattern reusable for other list views.
-- **`--border` token:** `rgba(76,70,61,0.18)` — use this instead of raw rgba for consistent tonal borders. Defined in base.html `:root`.
-- **`labels.html` exception:** Birthday labels template uses light-mode colors intentionally — white background/dark ink for print output. Do not Lux-theme it.
-- **Google button stays white:** `login.html` Google OAuth button must remain `#fff` per Google brand guidelines regardless of Lux theme.
-- **Stitch reference files:** `Founder_Portal_Lux_Design/*.html` — HTML mockups for each major view. `founders-portal-responsive.html` has the full mobile pattern reference.
-- Status badges use muted jewel tones: error=`#FFB4AB`, progress=`#C9A84C`, resolved=`#8A9A5B`, waiting=`#9D8DF1`
-- **Login page** extends its own split-screen layout (no base.html). Left: serif hero on `#131312`. Right: Google button on `#0A0A09`.
-- Design reference: `stitch_founders_portal_lux.zip` — The Private Gallery spec
+## UX Design System — NEW THEME (replacing Lux dark theme, 2026-05-04)
+
+**Decision: Replace dark mode entirely with system-aware light/dark theme.**
+Use CSS `prefers-color-scheme` media query so the OS setting drives the palette automatically — no toggle needed, no DB preference stored.
+
+### Light mode palette (default / `prefers-color-scheme: light`)
+- Background: `#F5F4F2`, Surface: `#FFFFFF`, Surface-Low: `#EEEDEB`
+- Text: `#1A1917` (ink), Secondary: `#6B6760` (slate)
+- Gold accent: `#B8975A` (darker for contrast on light bg)
+- Border: `rgba(26,25,23,0.10)`
+- Status: error=`#C0392B`, progress=`#B8860B`, resolved=`#2E7D32`, waiting=`#5C4DB1`
+
+### Dark mode palette (`prefers-color-scheme: dark`)
+- Keep existing Lux palette: Ink `#0A0A09`, Surface `#131312`, Surface-Low `#1C1C1A`, Gold `#DAC495`, Ivory `#E5E2DF`
+- Border: `rgba(76,70,61,0.18)`
+
+### Shared design tokens
+- **Fonts:** Noto Serif (headlines/metrics) + Inter (UI/body) — unchanged
+- **Border-radius:** 6px (replacing 0px — softer, more approachable)
+- **Padding:** cards get `20px 24px` (was `14px 16px`) — more breathing room
+- **220px sidebar**, uppercase nav items — unchanged
+- CSS vars defined in `base.html :root` with `@media (prefers-color-scheme: dark)` override block
+
+### Implementation rules
+- All color values must use CSS vars (`var(--bg)`, `var(--surface)`, etc.) — no hardcoded hex in templates
+- `{% block styles %}` per-template CSS must also use vars only
+- **`labels.html` exception:** Keep light-mode print colors hardcoded — do not use vars
+- **Google button stays `#fff`** regardless of theme (Google brand guidelines)
+- **`login.html`** — update to use vars; left panel uses `var(--surface)`, right uses `var(--bg)`
+- Class names unchanged: `.card`, `.data-table`, `.btn-primary`, `.btn-secondary`, `.badge`, `.nav-item`
+- Status badges keep muted jewel tone concept but adapt per palette
 
 ## Build Status
 - **Phase 1 ✅** — BOB parsers (6 carriers), commission audit, agent dashboard, admin overview, birthday labels
@@ -90,6 +101,46 @@ app.register_blueprint(customers_bp)
 - **Phase 3 ✅ DEPLOYED (2026-04-13)** — Plans 01-07 complete and live on VPS. OAuth login fixed (https force + scope relaxation). Plan 06 still blocked on external provisioning (HealthSherpa + Google Meet Pub/Sub).
 - **Lux Theme ✅** — All templates rethemed to The Private Gallery design system (2026-04-02). Dashboard rebuilt to original spec (activity-first: Unified Timeline, Tasks, Alerts, NC Enrollment Windows). Mobile-responsive with off-canvas sidebar drawer. labels.html intentionally kept in light-mode (print utility).
 - **Commission Audit ✅ (2026-04-13)** — All 7 carriers now supported: UHC, Aetna, BCBS, Humana, Devoted, Healthspring, Wellable. Real March 2026 files uploaded and parsing correctly. See Commission Parser Notes below.
+- **Commission override workflow ✅ (2026-04-13)** — Discrepancy → AJ submits explanation → agent accepts/disputes → AJ closes. stated_rate detection flags when AJ's formula rate contradicts contract rate.
+- **BOB upload fixes ✅ (2026-04-29)** — Bulk upload now uses real form submit (flash messages work). Fixed agency_id/agent_id scoping in bulk_upload(). Fixed all PostgreSQL sequence drifts. Import history table: clickable rows open 3-tab detail modal (New / Updated / Not in this import = term report). Pending/error batches deletable with × button. _detect_carrier() now handles all 7 carriers as XLSX BOB files.
+
+## Next Session Work Items (2026-05-04)
+Discussed but NOT yet implemented — build in next session:
+
+### Theme overhaul (HIGH PRIORITY)
+Replace Lux dark theme with system-aware light/dark. See UX Design System section above for full spec. Touch base.html first (CSS vars), then all templates.
+
+### Dashboard fixes
+- Two metric bars are duplicated — merge into one bar
+- Termination items and tasks in timeline must be clickable → customer profile
+- Replace NC Enrollment Windows card with SEP info card (static, manually edited by admin)
+
+### Customers page
+- Sortable columns: name, stage, pharmacy
+- Resizable columns: name, MBI, phone (CSS drag handles or click-to-resize)
+- Column visibility picker: agent view hides Primary Agent; admin view shows it
+  - Available columns: Name, MBI, DOB, Phone, Email, Address, Stage, Pharmacy, Carrier(s), Last Contact, Primary Agent (admin only)
+- Duplicate detection: customers with same MBI or name+DOB should be flagged, one row per customer even with multiple policies
+- CSV/Excel import for customer data (agents already have customer lists in spreadsheets)
+
+### Upcoming Terminations page
+- Simplify to next 30 days only (Medicare terms always hit on the 1st of the month)
+- Remove 60/90 day tiers — not relevant outside AEP
+- AEP gets its own dedicated page (future)
+
+### Carriers & Plans database (new)
+- New `Plan` model: carrier, plan_name, plan_type, year, service_area, premium, details_json
+- New `carriers` blueprint with plan list + plan detail pages
+- Plan detail shows: carrier, year, basic coverage info + "customers on this plan" list
+- Customer profile links to their plan → plan detail page
+- **Medicare.gov API** — investigate Plan Finder API (`data.medicare.gov`) for automated plan data
+  - Applicable zip codes for Founders: western NC service area
+  - Carriers in scope: UHC, Aetna, Healthspring/Cigna, BCBS-NC, Devoted, Wellable, GTL (supplemental)
+  - GTL is life/supplemental (not Medicare Advantage) — handle separately
+
+### Commission parser correction (CLAUDE.md note fix)
+- Aetna col9 is Writing Agent Name (index 9, not 8) — already fixed in code, CLAUDE.md still says col8. Fix note.
+- Aetna split_rate in DB is 0.55 (corrected from 0.525 — AJ's file was wrong). CLAUDE.md Commission Parser Notes still says 52.5% — fix that note too.
 
 ## Agent Nav — what's in the sidebar (as of 2026-04-03)
 My Book: Dashboard, Customers, Upcoming Terms
@@ -141,7 +192,7 @@ Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprint
 
 **Column indices per carrier (verified against March 2026 files):**
 - UHC: agent=col1, action=col4, commission=col5. Gross summary row: `'$N x.55'` in col4 (skip). Paid row: `'$N + $N'` pattern in col4, paid value in col5.
-- Aetna: agent=col9, amount=col10. Summary row: `'N x.525'` in col9, paid in col10. **Split rate = 52.5%** (not 55%).
+- Aetna: agent=col9 (Writing Agent Name, index 9), amount=col10 (Payee Amount). Summary row scanned by `_scan_summary()`. **Split rate = 0.55 (55%)** — AJ's March file used 0.525 by mistake; contract rate is 55%.
 - Humana: agent=col2, amount=col8 (PaidAmount). No separate paid row — Humana pays Tim directly, `paid = gross`. **Split rate = 1.0** in `agent_carrier_contracts` for Tim.
 - BCBS: agent=col1, commission=col13. Summary row: `'$N x .55'` in col9, paid in col10.
 - Devoted: agent=col2, amount=col11 (Base Amount). Summary row: `'N x .55'` in col8, paid in col9. Statement date is string `MM/DD/YYYY` in col0.
@@ -149,7 +200,7 @@ Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprint
 - Wellable: agent=col3, advance_amount=col16. Summary row: `'$N x .55'` in col16, paid in col17. All line items flagged `is_advance=True` — clawback risk badge shown in UI.
 
 **Split rates in agent_carrier_contracts (Tim, agent_id=1):**
-- Aetna: 0.525 (52.5%)
+- Aetna: 0.55 (55%) — corrected from 0.525; AJ's March file was wrong
 - Humana: 1.0 (direct pay — no agency redistribution)
 - All others: 0.55 (55%)
 

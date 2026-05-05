@@ -15,43 +15,59 @@
 .pharm-detail { display: none; background: var(--surface-low); }
 .pharm-detail.open { display: table-row; }
 .pharm-detail > td { padding: 0 !important; border-top: none !important; }
-.detail-inner { padding: 16px 24px 20px 36px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.detail-inner { padding: 20px 24px 24px 36px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 
-.detail-section { }
-.detail-section h4 { font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--slate); margin: 0 0 10px; }
+.detail-section h4 {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--slate); margin: 0 0 12px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
 
+/* Breakdown table shared style */
 .breakdown-table { width: 100%; border-collapse: collapse; }
-.breakdown-table td { font-size: 12px; padding: 3px 0; border: none; background: transparent !important; }
-.breakdown-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-.breakdown-table tr:hover td { background: transparent !important; }
-.agent-sub { font-size: 11px; color: var(--slate); padding-left: 12px !important; }
+.breakdown-table th {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--slate); padding: 4px 8px 6px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.breakdown-table th:last-child { text-align: right; }
+.breakdown-table td {
+  font-size: 12px; color: var(--ivory); padding: 5px 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  background: transparent !important;
+}
+.breakdown-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.breakdown-table tr:last-child td { border-bottom: none; }
+.breakdown-table tr:hover td { background: color-mix(in srgb, var(--gold) 4%, transparent) !important; }
+.breakdown-table .total-row td { font-weight: 700; border-top: 1px solid var(--border); padding-top: 7px; color: var(--ivory); }
+.breakdown-table .agent-header td {
+  font-size: 11px; font-weight: 700; color: var(--gold); padding-top: 10px; padding-bottom: 2px;
+  border-bottom: none; letter-spacing: 0.06em;
+}
+.breakdown-table .carrier-sub td { font-size: 12px; color: var(--slate); padding-left: 20px; }
 
-/* Agent assignment form */
-.agent-assign-form { }
-.agent-checkboxes { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.agent-checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.agent-checkbox-row input[type=checkbox] { accent-color: var(--gold); width: 14px; height: 14px; }
-.btn-save-agents { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  padding: 5px 12px; background: color-mix(in srgb, var(--gold) 12%, transparent);
-  color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
-  border-radius: var(--radius); cursor: pointer; }
-.btn-save-agents:hover { background: color-mix(in srgb, var(--gold) 20%, transparent); }
+/* Agent list in expand */
+.agent-list { display: flex; flex-direction: column; gap: 4px; }
+.agent-list-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ivory); padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
+.agent-list-item:last-child { border-bottom: none; }
+.agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+.agent-primary-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 3px; margin-left: auto;
+  background: color-mix(in srgb, var(--gold) 12%, transparent); color: var(--gold); }
 
-/* Agent pill badges on main row */
-.agent-pills { display: flex; flex-wrap: wrap; gap: 4px; }
-.agent-pill { font-size: 11px; padding: 2px 7px; border-radius: 10px;
-  background: color-mix(in srgb, var(--gold) 12%, transparent);
-  color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 25%, transparent); }
+/* Main row agent count chip */
+.agent-count-chip { font-size: 12px; color: var(--slate); }
+.agent-count-chip strong { color: var(--ivory); }
 
-.total-badge { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400; }
+.total-badge { font-family: var(--font-serif); font-size: 1.1rem; font-weight: 400; color: var(--ivory); }
+
+.empty-note { font-size: 12px; color: var(--slate); font-style: italic; }
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
     <h1 class="page-title">Partner Pharmacies</h1>
-    <p class="page-sub">Click a row to see customer breakdown by agent and carrier</p>
+    <p class="page-sub">Click a row to see customer and policy breakdown by agent and carrier</p>
   </div>
   <a href="{{ url_for('pharmacies.pharmacy_new') }}" class="btn-primary">+ Add pharmacy</a>
 </div>
@@ -66,32 +82,32 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th style="width:22%">Name</th>
+        <th style="width:24%">Name</th>
         <th style="width:14%">Location</th>
-        <th style="width:18%">Agents</th>
+        <th style="width:12%">Agents</th>
         <th style="width:9%">Customers</th>
-        <th style="width:13%">Contact</th>
+        <th style="width:14%">Contact</th>
         <th style="width:10%">Rent</th>
         <th style="width:7%">Partner</th>
-        <th style="width:7%"></th>
+        <th style="width:10%"></th>
       </tr>
     </thead>
     <tbody>
       {% for p in pharmacies %}
       {% set s = stats[p.id] %}
+      {% set agent_count = p.agents | length %}
 
-      {# Main row — clickable to expand #}
+      {# Main row #}
       <tr class="pharm-row" onclick="togglePharm({{ p.id }})">
         <td class="fw-medium">
           <span class="expand-icon" id="icon-{{ p.id }}">▶</span>{{ p.name }}
         </td>
         <td>{{ [p.city, p.state] | select | join(', ') or '—' }}</td>
         <td>
-          {% if p.agents %}
-          <div class="agent-pills">
-            {% for a in p.agents %}<span class="agent-pill">{{ a.display_name }}</span>{% endfor %}
-          </div>
-          {% else %}<span style="color:var(--slate);font-size:12px">None assigned</span>{% endif %}
+          <span class="agent-count-chip">
+            {% if agent_count %}<strong>{{ agent_count }}</strong> agent{{ 's' if agent_count != 1 }}
+            {% else %}<span style="color:var(--slate)">None</span>{% endif %}
+          </span>
         </td>
         <td><span class="total-badge">{{ s.total }}</span></td>
         <td>{{ p.contact_name or '—' }}</td>
@@ -103,7 +119,7 @@
           {% if p.is_partner %}<span class="badge badge-green">Yes</span>
           {% else %}<span class="badge badge-gray">No</span>{% endif %}
         </td>
-        <td onclick="event.stopPropagation()">
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
           <a href="{{ url_for('pharmacies.pharmacy_edit', pharmacy_id=p.id) }}"
              class="btn-secondary" style="padding:4px 10px;font-size:11px;">Edit</a>
         </td>
@@ -114,81 +130,114 @@
         <td colspan="8">
           <div class="detail-inner">
 
-            {# Col 1: Per-agent customer counts #}
+            {# Left: Agents at this location + customers by agent #}
             <div class="detail-section">
-              <h4>Customers by agent</h4>
+              <h4>Agents &amp; customers</h4>
+              {% if p.agents %}
+              <div class="agent-list" style="margin-bottom:16px">
+                {% for a in p.agents %}
+                <div class="agent-list-item">
+                  <span class="agent-dot"></span>
+                  {{ a.display_name }}
+                  {% if a.primary_pharmacy_id == p.id %}
+                  <span class="agent-primary-tag">Primary</span>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              {% else %}
+              <p class="empty-note" style="margin-bottom:16px">No agents assigned. Set primary pharmacy in Agent Settings.</p>
+              {% endif %}
+
               {% if s.agents %}
               <table class="breakdown-table">
-                {% for row in s.agents %}
-                <tr>
-                  <td>{{ row.name or 'Unknown' }}</td>
-                  <td><strong>{{ row.count }}</strong></td>
-                </tr>
-                {% endfor %}
-                <tr style="border-top:1px solid var(--border); margin-top:4px">
-                  <td style="font-weight:600;padding-top:6px">Total</td>
-                  <td style="font-weight:600;padding-top:6px">{{ s.total }}</td>
-                </tr>
-              </table>
-              {% else %}
-              <p style="font-size:12px;color:var(--slate)">No customers linked yet.</p>
-              {% endif %}
-            </div>
-
-            {# Col 2: Per-carrier active policy breakdown #}
-            <div class="detail-section">
-              <h4>Active policies by carrier</h4>
-              {% if s.carriers %}
-              <table class="breakdown-table">
-                {% for row in s.carriers %}
-                <tr>
-                  <td>{{ row.carrier }}</td>
-                  <td><strong>{{ row.count }}</strong></td>
-                </tr>
-                {% endfor %}
-              </table>
-
-              {% if s.agent_carriers %}
-              <h4 style="margin-top:14px">By agent &amp; carrier</h4>
-              <table class="breakdown-table">
-                {% set ns = namespace(last_agent=None) %}
-                {% for row in s.agent_carriers %}
-                  {% if row.agent_name != ns.last_agent %}
+                <thead>
+                  <tr><th>Agent</th><th>Customers</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in s.agents %}
                   <tr>
-                    <td style="font-weight:600;padding-top:6px" colspan="2">{{ row.agent_name }}</td>
-                  </tr>
-                  {% set ns.last_agent = row.agent_name %}
-                  {% endif %}
-                  <tr>
-                    <td class="agent-sub">{{ row.carrier }}</td>
+                    <td>{{ row.name or 'Unknown' }}</td>
                     <td>{{ row.count }}</td>
                   </tr>
-                {% endfor %}
+                  {% endfor %}
+                  <tr class="total-row">
+                    <td>Total</td>
+                    <td>{{ s.total }}</td>
+                  </tr>
+                </tbody>
               </table>
-              {% endif %}
-
               {% else %}
-              <p style="font-size:12px;color:var(--slate)">No active policies matched.</p>
+              <p class="empty-note">No customers linked to this pharmacy yet.</p>
               {% endif %}
             </div>
 
-            {# Col 3: Assign agents form #}
+            {# Right: Active policies by carrier, with per-agent sub-rows #}
             <div class="detail-section">
-              <h4>Assign agents to this location</h4>
-              <form class="agent-assign-form" method="POST"
-                    action="{{ url_for('pharmacies.pharmacy_set_agents', pharmacy_id=p.id) }}">
-                <div class="agent-checkboxes">
-                  {% set assigned_ids = p.agents | map(attribute='id') | list %}
-                  {% for agent in all_agents %}
-                  <label class="agent-checkbox-row">
-                    <input type="checkbox" name="agent_ids" value="{{ agent.id }}"
-                           {% if agent.id in assigned_ids %}checked{% endif %}>
-                    {{ agent.display_name }}
-                  </label>
+              <h4>Active policies by carrier &amp; agent</h4>
+              {% if s.agent_carriers %}
+              <table class="breakdown-table">
+                <thead>
+                  <tr><th>Agent / Carrier</th><th>Policies</th></tr>
+                </thead>
+                <tbody>
+                  {# Group by agent, show carrier sub-rows #}
+                  {% set ns = namespace(last_agent=None, agent_total=0) %}
+                  {% for row in s.agent_carriers %}
+
+                    {# New agent group — print previous total first #}
+                    {% if row.agent_name != ns.last_agent %}
+                      {% if ns.last_agent is not none %}
+                      <tr class="total-row">
+                        <td style="padding-left:20px;font-size:11px">Subtotal</td>
+                        <td>{{ ns.agent_total }}</td>
+                      </tr>
+                      {% endif %}
+                      <tr class="agent-header">
+                        <td colspan="2">{{ row.agent_name }}</td>
+                      </tr>
+                      {% set ns.last_agent = row.agent_name %}
+                      {% set ns.agent_total = 0 %}
+                    {% endif %}
+
+                    <tr class="carrier-sub">
+                      <td>{{ row.carrier }}</td>
+                      <td>{{ row.count }}</td>
+                    </tr>
+                    {% set ns.agent_total = ns.agent_total + row.count %}
+
                   {% endfor %}
-                </div>
-                <button type="submit" class="btn-save-agents">Save assignments</button>
-              </form>
+                  {# Print last agent's subtotal #}
+                  {% if ns.last_agent is not none %}
+                  <tr class="total-row">
+                    <td style="padding-left:20px;font-size:11px">Subtotal</td>
+                    <td>{{ ns.agent_total }}</td>
+                  </tr>
+                  {% endif %}
+                  {# Grand total by carrier #}
+                  {% if s.carriers %}
+                  <tr><td colspan="2" style="padding-top:12px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--slate)">All carriers</td></tr>
+                  {% for row in s.carriers %}
+                  <tr>
+                    <td>{{ row.carrier }}</td>
+                    <td>{{ row.count }}</td>
+                  </tr>
+                  {% endfor %}
+                  {% endif %}
+                </tbody>
+              </table>
+              {% elif s.carriers %}
+              <table class="breakdown-table">
+                <thead><tr><th>Carrier</th><th>Policies</th></tr></thead>
+                <tbody>
+                  {% for row in s.carriers %}
+                  <tr><td>{{ row.carrier }}</td><td>{{ row.count }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <p class="empty-note">No active policies matched to customers at this pharmacy.</p>
+              {% endif %}
             </div>
 
           </div>
@@ -204,10 +253,10 @@
 
 <script>
 function togglePharm(id) {
-  const row    = document.getElementById('detail-' + id);
-  const icon   = document.getElementById('icon-' + id);
-  const toggle = row.classList.toggle('open');
-  icon.closest('tr').classList.toggle('open', toggle);
+  const row  = document.getElementById('detail-' + id);
+  const icon = document.getElementById('icon-' + id);
+  const open = row.classList.toggle('open');
+  icon.closest('tr').classList.toggle('open', open);
 }
 </script>
 {% endblock %}

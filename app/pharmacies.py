@@ -92,13 +92,22 @@ def _pharmacy_stats(pharmacy_id, agency_id):
 def pharmacy_list():
     agency_id  = current_user.agency_id
     pharmacies = Pharmacy.query.filter_by(agency_id=agency_id).order_by(Pharmacy.name).all()
-    all_agents = User.query.filter_by(agency_id=agency_id, is_admin=False).order_by(User.name).all()
+
+    # Auto-sync pharmacy_agents from primary_pharmacy_id so agents who set
+    # their primary pharmacy here show up without a separate manual assignment
+    agents_by_primary = User.query.filter_by(
+        agency_id=agency_id, is_admin=False
+    ).filter(User.primary_pharmacy_id.isnot(None)).all()
+    for agent in agents_by_primary:
+        pharm = next((p for p in pharmacies if p.id == agent.primary_pharmacy_id), None)
+        if pharm and agent not in pharm.agents:
+            pharm.agents.append(agent)
+    db.session.commit()
 
     stats = {p.id: _pharmacy_stats(p.id, agency_id) for p in pharmacies}
 
     return render_template("pharmacies.html",
                            pharmacies=pharmacies,
-                           all_agents=all_agents,
                            stats=stats)
 
 

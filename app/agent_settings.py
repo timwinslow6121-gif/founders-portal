@@ -6,7 +6,7 @@ commission splits, and agent IDs.
 from flask import Blueprint, flash, redirect, render_template, request, url_for, abort
 from flask_login import current_user, login_required
 from app.extensions import db
-from app.models import User, AgentCarrierContract
+from app.models import User, AgentCarrierContract, Pharmacy
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -44,10 +44,13 @@ def settings_index():
                 )
         agent_data.append({"agent": agent, "contracts": contracts})
 
+    pharmacies = Pharmacy.query.filter_by(agency_id=agency_id).order_by(Pharmacy.name).all()
+
     return render_template("agent_settings.html",
         agent_data=agent_data,
         carriers=CARRIERS,
         id_types=ID_TYPES,
+        pharmacies=pharmacies,
     )
 
 
@@ -61,6 +64,10 @@ def settings_agent(agent_id):
 
     if request.method == "POST":
         split_rate = float(request.form.get("split_rate", 55)) / 100.0
+
+        # Primary pharmacy assignment
+        primary_pharmacy_id = request.form.get("primary_pharmacy_id", type=int) or None
+        agent.primary_pharmacy_id = primary_pharmacy_id
 
         for carrier in CARRIERS:
             is_active = request.form.get(f"active_{carrier}") == "on"
@@ -107,10 +114,15 @@ def settings_agent(agent_id):
     # Get split rate from first contract (same for all carriers per agent)
     split_pct = round(list(contracts.values())[0].split_rate * 100, 1)
 
+    pharmacies = Pharmacy.query.filter_by(
+        agency_id=current_user.agency_id
+    ).order_by(Pharmacy.name).all()
+
     return render_template("agent_settings_detail.html",
         agent=agent,
         contracts=contracts,
         carriers=CARRIERS,
         id_types=ID_TYPES,
         split_pct=split_pct,
+        pharmacies=pharmacies,
     )

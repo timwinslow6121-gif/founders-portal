@@ -195,6 +195,23 @@ input:checked + .slider:before {
 <form method="POST">
   <div class="settings-card">
     <div class="settings-header">
+      <span>Primary Pharmacy Location</span>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="font-size:12px;color:var(--slate);margin-bottom:8px">The pharmacy location this agent primarily works out of. Used for pharmacy analytics.</div>
+      <select name="primary_pharmacy_id" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--ivory);font-family:var(--font-sans);font-size:13px;border-radius:var(--radius);min-width:260px;">
+        <option value="">— Not assigned —</option>
+        {% for ph in pharmacies %}
+        <option value="{{ ph.id }}" {% if agent.primary_pharmacy_id == ph.id %}selected{% endif %}>
+          {{ ph.name }}{% if ph.city %} — {{ ph.city }}{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="settings-card">
+    <div class="settings-header">
       <span>Commission Split Rate</span>
     </div>
     <div class="split-section">

@@ -40,6 +40,8 @@ class User(UserMixin, db.Model):
     quo_user_id = db.Column(db.String(64))
     # Quo userId (pattern "US...") — maps webhook data.object.userId to portal User
     # Set by admin in agent settings; NULL for unmapped agents
+    primary_pharmacy_id = db.Column(db.Integer, db.ForeignKey("pharmacies.id"), nullable=True)
+    primary_pharmacy    = db.relationship("Pharmacy", foreign_keys=[primary_pharmacy_id])
 
     policies = db.relationship("Policy", back_populates="agent", lazy="dynamic")
 

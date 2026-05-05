@@ -195,18 +195,23 @@ input:checked + .slider:before {
 <form method="POST">
   <div class="settings-card">
     <div class="settings-header">
-      <span>Primary Pharmacy Location</span>
+      <span>Pharmacy Locations</span>
     </div>
     <div style="padding:14px 16px">
-      <div style="font-size:12px;color:var(--slate);margin-bottom:8px">The pharmacy location this agent primarily works out of. Used for pharmacy analytics.</div>
-      <select name="primary_pharmacy_id" style="padding:8px 10px;background:var(--surface);border:1px solid var(--border);color:var(--ivory);font-family:var(--font-sans);font-size:13px;border-radius:var(--radius);min-width:260px;">
-        <option value="">— Not assigned —</option>
+      <div style="font-size:12px;color:var(--slate);margin-bottom:12px">Select all locations this agent works at. Used for pharmacy analytics and reporting.</div>
+      {% set agent_pharmacy_ids = agent.pharmacies | map(attribute='id') | list %}
+      <div style="display:flex;flex-direction:column;gap:8px">
         {% for ph in pharmacies %}
-        <option value="{{ ph.id }}" {% if agent.primary_pharmacy_id == ph.id %}selected{% endif %}>
-          {{ ph.name }}{% if ph.city %} — {{ ph.city }}{% endif %}
-        </option>
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ivory);cursor:pointer">
+          <input type="checkbox" name="pharmacy_ids" value="{{ ph.id }}"
+                 {% if ph.id in agent_pharmacy_ids %}checked{% endif %}
+                 style="accent-color:var(--gold);width:15px;height:15px">
+          <span>{{ ph.name }}{% if ph.city %}<span style="color:var(--slate)"> — {{ ph.city }}{% if ph.state %}, {{ ph.state }}{% endif %}</span>{% endif %}</span>
+        </label>
+        {% else %}
+        <span style="font-size:12px;color:var(--slate)">No pharmacies added yet.</span>
         {% endfor %}
-      </select>
+      </div>
     </div>
   </div>
 

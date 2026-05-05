@@ -50,9 +50,6 @@
 .agent-list-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ivory); padding: 4px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent); }
 .agent-list-item:last-child { border-bottom: none; }
 .agent-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
-.agent-primary-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 1px 5px; border-radius: 3px; margin-left: auto;
-  background: color-mix(in srgb, var(--gold) 12%, transparent); color: var(--gold); }
 
 /* Main row agent count chip */
 .agent-count-chip { font-size: 12px; color: var(--slate); }
@@ -139,14 +136,11 @@
                 <div class="agent-list-item">
                   <span class="agent-dot"></span>
                   {{ a.display_name }}
-                  {% if a.primary_pharmacy_id == p.id %}
-                  <span class="agent-primary-tag">Primary</span>
-                  {% endif %}
                 </div>
                 {% endfor %}
               </div>
               {% else %}
-              <p class="empty-note" style="margin-bottom:16px">No agents assigned. Set primary pharmacy in Agent Settings.</p>
+              <p class="empty-note" style="margin-bottom:16px">No agents assigned. Set pharmacy locations in Agent Settings.</p>
               {% endif %}
 
               {% if s.agents %}

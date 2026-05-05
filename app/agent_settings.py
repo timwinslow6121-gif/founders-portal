@@ -65,9 +65,19 @@ def settings_agent(agent_id):
     if request.method == "POST":
         split_rate = float(request.form.get("split_rate", 55)) / 100.0
 
-        # Primary pharmacy assignment
-        primary_pharmacy_id = request.form.get("primary_pharmacy_id", type=int) or None
-        agent.primary_pharmacy_id = primary_pharmacy_id
+        # Pharmacy location assignments (many-to-many via pharmacy_agents)
+        pharmacy_ids = request.form.getlist("pharmacy_ids", type=int)
+        assigned_pharmacies = Pharmacy.query.filter(
+            Pharmacy.id.in_(pharmacy_ids),
+            Pharmacy.agency_id == current_user.agency_id,
+        ).all() if pharmacy_ids else []
+        # Update pharmacy.agents lists — add agent where checked, remove where unchecked
+        all_pharmacies = Pharmacy.query.filter_by(agency_id=current_user.agency_id).all()
+        for pharm in all_pharmacies:
+            if pharm in assigned_pharmacies and agent not in pharm.agents:
+                pharm.agents.append(agent)
+            elif pharm not in assigned_pharmacies and agent in pharm.agents:
+                pharm.agents.remove(agent)
 
         for carrier in CARRIERS:
             is_active = request.form.get(f"active_{carrier}") == "on"

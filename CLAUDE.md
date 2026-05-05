@@ -35,7 +35,8 @@ app.register_blueprint(customers_bp)
 - `agent_settings.py` — carrier contracts, splits (admin-only)
 - `commission/` — audit (admin + agent views)
 - `customers.py` — customer list, profile, notes, contacts, merge (`customers_bp`)
-- `pharmacies.py` — partner pharmacy CRUD, admin-only (`pharmacies_bp`)
+- `pharmacies.py` — partner pharmacy CRUD + analytics (`pharmacies_bp`); admin-only add/edit
+- `carriers.py` — plan database, plan detail, admin add/edit (`carriers_bp`)
 - `comms/` — Quo/Twilio/Calendly webhooks, SMS, unmatched call resolution (`comms_bp`)
 
 ## Database Rules — READ BEFORE TOUCHING models.py OR upload.py
@@ -106,33 +107,29 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Readability pass ✅ (2026-05-04)** — Font sizes bumped (9px→11px, 10px→12px, 11px→13px across all templates). All card-like containers (metric cards, panels, carrier cards, commission cards, drop zones) now have border + border-radius + real gap (12–16px, was 2px). Fixed duplicate Unmatched Calls nav item.
 - **Dashboard fixes ✅ (2026-05-04)** — Removed duplicate period-banner (same data as metric cards). Termination items in timeline, tasks, and alerts panels now link to customer profile (MBI→customer_id resolved in route). NC Enrollment Windows → SEP Quick Reference with accurate May 2026 status.
 - **Customers page enhancements ✅ (2026-05-04)** — Sortable columns (name, stage, pharmacy) via sort=/dir= URL params, server-side order_by. Column visibility picker dropdown (MBI, Phone, Agent, Stage, Pharmacy); prefs in localStorage. Agent column hidden by default for non-admins. Pager carries sort params.
+- **Terminations redesign ✅ (2026-05-04)** — Rebuilt around priority (high/low/death) not urgency tiers. 30-day window only. New Policy columns: term_reason, new_carrier, new_plan_name (migration 007). Inline AJAX reason editor per row. Member names link to customer profile via MBI→customer_id lookup. Death rows show condolences nudge.
+- **Pharmacy enhancements ✅ (2026-05-04)** — Fixed agency_id NOT NULL bug on pharmacy insert (500 error). Added pharmacy_agents many-to-many join table (migration 008). Pharmacy list now shows assigned agent pills, total customer count, expandable detail panel (per-agent counts, carrier breakdown, agent×carrier matrix, agent assignment form).
+- **Carriers & Plans database ✅ (2026-05-05)** — New Plan model (migration 009): per-plan-per-year records with CMS plan ID, plan letter (Medigap), lifecycle status (current/legacy/sunset/discontinued), self-referential successor chain, D-SNP/C-SNP/5-star flags, benefits snapshot, commission rates (initial/renewal/true-up/HRA bonus), BOB alias matching. carriers_bp registered. Plan list (filtered by year/carrier/type/status, carrier group headers), plan detail (chain visualization, member count, commission highlights, matched active policies), admin add/edit form. 34 plans seeded from BOB/commission data across 6 carriers. Humana chain 137→291→335 linked. Color fix: --ink→--ivory for readable text in light mode.
 
-## Next Session Work Items
-### Upcoming Terminations page
-- Simplify to next 30 days only (Medicare terms always hit on the 1st of the month)
-- Remove 60/90 day tiers — not relevant outside AEP
-- AEP gets its own dedicated page (future)
+## Next Steps / To-Do
+### Near term
+- **Customers page** — duplicate detection (same MBI or name+DOB), CSV/Excel import for agent spreadsheets
+- **Plan commission rates** — update seeded plans with real 2026 CMS rates per carrier (placeholders: $22 initial / $15 renewal MAPD, 20% Medigap, $3 PDP)
+- **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
 
-### Customers page (remaining)
-- Duplicate detection: flag customers with same MBI or name+DOB
-- CSV/Excel import for customer data (agents have existing spreadsheets)
+### Future / backlog
+- **Termination outcome tracker** — log of every termed policy since Jan 1, outcome (saved/converted/moved/deceased/fraud), contact history, ties to customer profile
+- **Advanced reporting engine** — filter by any dimension (agent/carrier/plan/pharmacy/stage/date), export CSV/PDF, saved presets. Phase 4.
+- **AEP page** — dedicated AEP enrollment window tracker (separate from upcoming terminations)
+- **Carriers & Plans** — customer profile → plan detail page link (match by carrier+plan_name)
 
-### Carriers & Plans database (new)
-- New `Plan` model: carrier, plan_name, plan_type, year, service_area, premium, details_json
-- New `carriers` blueprint with plan list + plan detail pages
-- Plan detail shows: carrier, year, basic coverage info + "customers on this plan" list
-- Customer profile links to their plan → plan detail page
-- **Medicare.gov API** — Plan Finder API (`data.cms.gov`) publicly accessible, no auth key required
-  - Applicable zip codes for Founders: western NC service area
-  - Carriers in scope: UHC, Aetna, Healthspring/Cigna, BCBS-NC, Devoted, Wellable, GTL (supplemental)
-  - GTL is life/supplemental (not Medicare Advantage) — handle separately
-  - Build annual refresh script to pull plans by zip during AEP prep
-
-## Agent Nav — what's in the sidebar (as of 2026-04-03)
+## Agent Nav — what's in the sidebar (as of 2026-05-05)
 My Book: Dashboard, Customers, Upcoming Terms
 Commissions: Commission Audit
-Tools: Birthday Labels, Upload BOB Files, SMS Templates
+Tools: Birthday Labels, Upload BOB Files, Carriers & Plans, SMS Templates
 Alerts: Unmatched Calls
+
+Admin nav additionally shows: Agency Overview, Agent Settings, Partner Pharmacies
 **/forecast is NOT implemented** — do not add it to nav until the route exists.
 
 ## Phase 3.06 External Blockers (as of 2026-04-02)
@@ -201,7 +198,16 @@ Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprint
 - `app/upload.py` — BOB import logic + `_upsert_customer_from_policy()`
 - `.env` — secrets (not in git): GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, SECRET_KEY, SENDGRID_API_KEY
 
+## Color Token Reference (IMPORTANT — avoid light mode invisible text bugs)
+In the dual-palette theme, token meanings flip between modes:
+- `--ink` = **background** color (light grey in light, near-black in dark) — DO NOT use for text
+- `--ivory` = **readable body text** (dark in light mode, light in dark mode) — use for text
+- `--slate` = secondary/muted text (same role in both modes)
+- `--gold` = accent color (darker in light, lighter in dark)
+- `--surface` = card/panel background
+- `--surface-low` = slightly recessed surface
+- **Rule:** Any `color:` property for text must use `var(--ivory)` or `var(--slate)`, never `var(--ink)`.
+
 ## Session Protocol
-At the end of every session, update the Build Status section of this file 
-to reflect what was completed. Commit before closing. Do not leave decisions 
-undocumented.
+At the end of every session (or after any push), update CLAUDE.md to reflect
+what was completed. Commit the update. Do not leave decisions undocumented.

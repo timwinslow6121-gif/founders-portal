@@ -434,11 +434,11 @@ def seed():
         plan = Plan(
             agency_id        = AGENCY_ID,
             created_by_id    = CREATED_BY,
-            is_dsnp          = False,
-            is_csnp          = False,
-            is_5star         = False,
-            auto_transitioned= False,
-            is_commissionable= True,
+            is_dsnp          = p.pop("is_dsnp", False),
+            is_csnp          = p.pop("is_csnp", False),
+            is_5star         = p.pop("is_5star", False),
+            auto_transitioned= p.pop("auto_transitioned", False),
+            is_commissionable= p.pop("is_commissionable", True),
             **p,
         )
         db.session.add(plan)

@@ -121,6 +121,8 @@ def _build_dashboard_context(agent_id, today, agency_id):
 
 @main.route('/')
 def index():
+    if current_user.is_authenticated and current_user.is_admin:
+        return redirect(url_for('main.admin_overview'))
     return redirect(url_for('main.dashboard'))
 
 

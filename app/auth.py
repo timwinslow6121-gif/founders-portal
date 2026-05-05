@@ -112,6 +112,8 @@ def callback():
     db.session.commit()
     login_user(user, remember=True)
 
+    if user.is_admin:
+        return redirect(url_for('main.admin_overview'))
     return redirect(url_for('main.dashboard'))
 
 @auth.route('/logout')

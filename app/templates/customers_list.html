@@ -151,9 +151,22 @@
 <div class="page-header">
   <div>
     <h1 class="page-title">Customers</h1>
-    <p class="page-sub">{{ customers.total }} total members</p>
+    <p class="page-sub">
+      {{ customers.total }} total members
+      {% if not current_user.is_admin and include_former %}
+        <span style="color:var(--status-progress);font-size:11px;margin-left:8px;">· including former customers</span>
+      {% endif %}
+    </p>
   </div>
-  <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add Customer</a>
+  <div style="display:flex;gap:10px;align-items:center;">
+    {% if not current_user.is_admin %}
+    <a href="{{ url_for('customers.customers_list', include_former='0' if include_former else '1', q=q, sort=sort, dir=dir) }}"
+       class="btn-secondary" style="font-size:12px;">
+      {% if include_former %}Hide former customers{% else %}Show former customers{% endif %}
+    </a>
+    {% endif %}
+    <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add Customer</a>
+  </div>
 </div>
 
 <div class="cust-toolbar">
@@ -223,18 +236,30 @@
         </thead>
         <tbody>
           {% for c in customers.items %}
-          <tr style="cursor:pointer" onclick="window.location='{{ url_for('customers.customer_profile', customer_id=c.id) }}'">
-            <td class="fw-medium">{{ c.display_name }}</td>
+          <tr style="cursor:pointer{% if c.is_former %};opacity:0.7{% endif %}"
+              onclick="window.location='{{ url_for('customers.customer_profile', customer_id=c.id) }}'">
+            <td class="fw-medium">
+              {{ c.display_name }}
+              {% if c.is_former %}
+                <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-left:6px;">Former</span>
+              {% endif %}
+            </td>
             <td class="mono col-mbi">{{ c.mbi or '—' }}</td>
             <td class="col-phone">{{ c.phone_primary or '—' }}</td>
-            <td class="col-agent" {% if not current_user.is_admin %}style="display:none"{% endif %}>{{ c.primary_agent.display_name if c.primary_agent else '—' }}</td>
+            <td class="col-agent" {% if not current_user.is_admin %}style="display:none"{% endif %}>
+              {{ c.primary_agent.display_name if c.primary_agent else '—' }}
+            </td>
             <td class="col-stage">
-              {% set stage = c.deal_stage or 'Active' %}
-              {% if stage == 'Active' %}<span class="badge badge-green">{{ stage }}</span>
-              {% elif stage == 'Termed' %}<span class="badge badge-gray">{{ stage }}</span>
-              {% elif stage == 'Enrolled' %}<span class="badge badge-blue">{{ stage }}</span>
-              {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
-              {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
+              {% if c.is_former %}
+                <span class="badge badge-gray">Former</span>
+              {% else %}
+                {% set stage = c.deal_stage or 'Active' %}
+                {% if stage == 'Active' %}<span class="badge badge-green">{{ stage }}</span>
+                {% elif stage == 'Termed' %}<span class="badge badge-gray">{{ stage }}</span>
+                {% elif stage == 'Enrolled' %}<span class="badge badge-blue">{{ stage }}</span>
+                {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
+                {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
+              {% endif %}
             </td>
             <td class="col-pharmacy text-muted">{{ c.pharmacy.name if c.pharmacy else '—' }}</td>
           </tr>

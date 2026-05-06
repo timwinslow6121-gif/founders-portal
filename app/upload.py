@@ -91,7 +91,17 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
             customer.zip_code = rec.get("zip_code") or customer.zip_code
             customer.county = rec.get("county") or customer.county
 
-        # Update agent ownership to most recent import
+        # Update agent ownership to most recent import.
+        # If ownership is transferring, close the previous agent's open AOR row.
+        if customer.primary_agent_id and customer.primary_agent_id != agent_id:
+            open_aor = CustomerAorHistory.query.filter_by(
+                customer_id=customer.id,
+                agent_id=customer.primary_agent_id,
+                carrier=carrier,
+                end_date=None,
+            ).first()
+            if open_aor:
+                open_aor.end_date = now.date()
         customer.primary_agent_id = agent_id
     else:
         # New customer — create from policy data

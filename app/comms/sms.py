@@ -110,7 +110,7 @@ def sms_send():
     agency_id = getattr(current_user, "agency_id", None)
 
     if agency_id:
-        customer = Customer.query.filter_by(id=customer_id).first_or_404()
+        customer = Customer.query.filter_by(id=customer_id, agency_id=agency_id).first_or_404()
         template = SmsTemplate.query.filter_by(
             id=template_id, agency_id=agency_id, status="approved"
         ).first_or_404()
@@ -119,6 +119,11 @@ def sms_send():
         template = SmsTemplate.query.filter_by(
             id=template_id, status="approved"
         ).first_or_404()
+
+    # Block SMS to customers where the sender is not the current AOR
+    if not current_user.is_admin and customer.primary_agent_id != current_user.id:
+        flash("You can only send SMS to your own current customers.", "error")
+        return redirect(url_for("customers.customer_profile", customer_id=customer_id))
 
     try:
         send_sms_template(customer, template, current_user)

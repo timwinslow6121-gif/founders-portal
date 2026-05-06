@@ -127,6 +127,22 @@
   {% endfor %}
 {% endwith %}
 
+{% if not is_current_aor %}
+<div class="alert alert-warning" style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+  <span style="font-size:18px;">👁</span>
+  <div>
+    <strong>Former customer — read-only view.</strong>
+    {% if former_end_date %}
+      Your AOR ended {{ former_end_date.strftime('%B %d, %Y') }}.
+    {% endif %}
+    {% if customer.primary_agent %}
+      Current AOR: <strong>{{ customer.primary_agent.display_name }}</strong>.
+    {% endif %}
+    You can view all history but cannot edit, add notes, or send messages.
+  </div>
+</div>
+{% endif %}
+
 <!-- Profile Header -->
 <div class="profile-header">
   <div class="profile-avatar">
@@ -268,6 +284,7 @@
         </div>
         <!-- SMS consent toggle -->
         <div style="padding:10px 0 4px;">
+          {% if is_current_aor %}
           <form method="POST" action="{{ url_for('customers.customer_toggle_sms_consent', customer_id=customer.id) }}" style="display:flex;align-items:center;gap:10px;">
             {% if customer.sms_consent_at %}
               <button type="submit" class="btn-secondary" style="padding:5px 12px;font-size:12px;">Revoke SMS Consent</button>
@@ -277,6 +294,9 @@
               <span style="font-size:10px;color:var(--slate);">Customer verbally consented to SMS communications.</span>
             {% endif %}
           </form>
+          {% else %}
+          <span style="font-size:12px;color:var(--slate);font-style:italic;">SMS consent — read only</span>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -294,7 +314,8 @@
       </div>
       <div class="card-body">
 
-        <!-- Add note form -->
+        <!-- Add note form — current AOR only -->
+        {% if is_current_aor %}
         <div class="add-note-form">
           <form method="POST" action="{{ url_for('customers.customer_add_note', customer_id=customer.id) }}">
             <textarea name="note_text" class="note-input" placeholder="Add a note…"></textarea>
@@ -318,6 +339,7 @@
             </div>
           </form>
         </div>
+        {% endif %}
 
         <!-- Notes list -->
         {% if notes %}
@@ -366,7 +388,8 @@
         </div>
         {% endfor %}
 
-        <!-- Add contact toggle -->
+        <!-- Add contact toggle — current AOR only -->
+        {% if is_current_aor %}
         <span class="add-contact-toggle" onclick="document.getElementById('add-contact-form').classList.toggle('open')">+ Add contact</span>
         <div id="add-contact-form" class="inline-form">
           <form method="POST" action="{{ url_for('customers.customer_add_contact', customer_id=customer.id) }}">
@@ -391,6 +414,7 @@
             </div>
           </form>
         </div>
+        {% endif %}
       </div>
     </div>
 
@@ -400,6 +424,7 @@
         <span class="card-title">Partner Pharmacy</span>
       </div>
       <div class="card-body">
+        {% if is_current_aor %}
         <form method="POST" action="{{ url_for('customers.customer_link_pharmacy', customer_id=customer.id) }}" style="display:flex;gap:8px;align-items:center;">
           <select name="pharmacy_id" style="flex:1;padding:7px 10px;background:var(--surface-mid);border:1px solid var(--border);color:var(--ivory);font-family:var(--font-sans);font-size:13px;">
             <option value="">— No pharmacy —</option>
@@ -409,14 +434,19 @@
           </select>
           <button type="submit" class="btn-secondary" style="padding:7px 14px;font-size:12px;">Update</button>
         </form>
+        {% else %}
+        <span style="font-size:13px;color:var(--ivory);">{{ customer.pharmacy.name if customer.pharmacy else '—' }}</span>
+        {% endif %}
         {% if current_user.is_admin %}
           <div style="margin-top:8px;"><a href="{{ url_for('pharmacies.pharmacy_list') }}" style="font-size:11px;color:var(--gold);">Manage pharmacies</a></div>
         {% endif %}
       </div>
     </div>
 
-    <!-- SMS send -->
+    <!-- SMS send — current AOR only -->
+    {% if is_current_aor %}
     {% include "comms/sms_send_modal.html" %}
+    {% endif %}
 
   </div>
 </div>

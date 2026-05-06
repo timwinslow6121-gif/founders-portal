@@ -66,12 +66,41 @@ def get_customer_policies(customer):
     return policies
 
 
-def _customer_query():
-    """Base query scoped by agency (multi-tenant) and by agent for non-admins."""
+def _customer_query(include_former=False):
+    """
+    Base query scoped by agency and agent visibility rules.
+
+    Admin: sees all customers.
+    Agent (default): only customers where primary_agent_id = me (current AOR).
+    Agent (include_former=True): also customers where agent appears in
+      AOR history but is no longer primary — read-only in the UI.
+    """
     q = Customer.query.filter_by(agency_id=current_user.agency_id)
     if not current_user.is_admin:
-        q = q.filter_by(primary_agent_id=current_user.id)
+        if include_former:
+            # Current AOR OR ever appeared in AOR history for this agency
+            former_ids = (
+                db.session.query(CustomerAorHistory.customer_id)
+                .filter_by(agent_id=current_user.id, agency_id=current_user.agency_id)
+                .distinct()
+                .subquery()
+            )
+            q = q.filter(
+                db.or_(
+                    Customer.primary_agent_id == current_user.id,
+                    Customer.id.in_(former_ids),
+                )
+            )
+        else:
+            q = q.filter_by(primary_agent_id=current_user.id)
     return q
+
+
+def _is_current_aor(customer):
+    """True if the logged-in user is the current AOR for this customer, or is admin."""
+    if current_user.is_admin:
+        return True
+    return customer.primary_agent_id == current_user.id
 
 
 # ---------------------------------------------------------------------------
@@ -81,12 +110,13 @@ def _customer_query():
 @customers_bp.route("/customers")
 @login_required
 def customers_list():
-    page = request.args.get("page", 1, type=int)
-    q    = request.args.get("q", "").strip()
-    sort = request.args.get("sort", "name")
-    dir_ = request.args.get("dir", "asc")
+    page           = request.args.get("page", 1, type=int)
+    q              = request.args.get("q", "").strip()
+    sort           = request.args.get("sort", "name")
+    dir_           = request.args.get("dir", "asc")
+    include_former = request.args.get("include_former") == "1"
 
-    query = _customer_query()
+    query = _customer_query(include_former=include_former)
     if q:
         like = f"%{q}%"
         query = query.filter(
@@ -106,11 +136,21 @@ def customers_list():
     if dir_ == "desc":
         order_cols = [c.desc() for c in order_cols]
 
-    customers = query.order_by(*order_cols).paginate(
+    customer_page = query.order_by(*order_cols).paginate(
         page=page, per_page=50, error_out=False
     )
+
+    # Mark which customers are former (not current AOR) for the template
+    if not current_user.is_admin and include_former:
+        for c in customer_page.items:
+            c.is_former = (c.primary_agent_id != current_user.id)
+    else:
+        for c in customer_page.items:
+            c.is_former = False
+
     return render_template("customers_list.html",
-                           customers=customers, q=q, sort=sort, dir=dir_)
+                           customers=customer_page, q=q, sort=sort, dir=dir_,
+                           include_former=include_former)
 
 
 @customers_bp.route("/customers/search")
@@ -194,23 +234,31 @@ def customer_new():
 @customers_bp.route("/customers/<int:customer_id>")
 @login_required
 def customer_profile(customer_id):
-    customer = _customer_query().filter_by(id=customer_id).first_or_404()
-    policies = get_customer_policies(customer)
-    notes = customer.notes.limit(50).all()
-    contacts = customer.contacts.all()
-    aor_history = customer.aor_history.limit(20).all()
-    agents = User.query.order_by(User.name).all()
+    # Allow access if current AOR OR former AOR (include_former=True scope)
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    is_current = _is_current_aor(customer)
 
-    # SMS: pass approved templates for the send modal
-    agency_id = getattr(current_user, 'agency_id', None)
-    if agency_id:
-        approved_templates = SmsTemplate.query.filter_by(
-            agency_id=agency_id, status="approved"
-        ).order_by(SmsTemplate.name).all()
-    else:
-        approved_templates = SmsTemplate.query.filter_by(
-            status="approved"
-        ).order_by(SmsTemplate.name).all()
+    policies    = get_customer_policies(customer)
+    notes       = customer.notes.limit(50).all()
+    contacts    = customer.contacts.all()
+    aor_history = customer.aor_history.limit(20).all()
+    agents      = User.query.order_by(User.name).all()
+
+    # Find when this agent's AOR ended (for former-AOR banner)
+    former_end_date = None
+    if not is_current and not current_user.is_admin:
+        last_aor = (CustomerAorHistory.query
+                    .filter_by(customer_id=customer.id, agent_id=current_user.id)
+                    .filter(CustomerAorHistory.end_date.isnot(None))
+                    .order_by(CustomerAorHistory.end_date.desc())
+                    .first())
+        if last_aor:
+            former_end_date = last_aor.end_date
+
+    agency_id = current_user.agency_id
+    approved_templates = SmsTemplate.query.filter_by(
+        agency_id=agency_id, status="approved"
+    ).order_by(SmsTemplate.name).all() if agency_id else []
 
     return render_template(
         "customer_profile.html",
@@ -222,6 +270,8 @@ def customer_profile(customer_id):
         agents=agents,
         pharmacies=Pharmacy.query.order_by(Pharmacy.name).all(),
         approved_templates=approved_templates,
+        is_current_aor=is_current,
+        former_end_date=former_end_date,
     )
 
 
@@ -232,7 +282,10 @@ def customer_profile(customer_id):
 @customers_bp.route("/customers/<int:customer_id>/notes", methods=["POST"])
 @login_required
 def customer_add_note(customer_id):
-    customer = _customer_query().filter_by(id=customer_id).first_or_404()
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not _is_current_aor(customer):
+        flash("You are no longer AOR for this customer and cannot add notes.", "error")
+        return redirect(url_for("customers.customer_profile", customer_id=customer_id))
     note_text = request.form.get("note_text", "").strip()
     if not note_text:
         flash("Note cannot be empty.", "error")
@@ -258,7 +311,10 @@ def customer_add_note(customer_id):
 @customers_bp.route("/customers/<int:customer_id>/contacts", methods=["POST"])
 @login_required
 def customer_add_contact(customer_id):
-    customer = _customer_query().filter_by(id=customer_id).first_or_404()
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not _is_current_aor(customer):
+        flash("You are no longer AOR for this customer.", "error")
+        return redirect(url_for("customers.customer_profile", customer_id=customer_id))
     contact_name = request.form.get("contact_name", "").strip()
     if not contact_name:
         flash("Contact name is required.", "error")
@@ -286,7 +342,10 @@ def customer_add_contact(customer_id):
 @customers_bp.route("/customers/<int:customer_id>/pharmacy", methods=["POST"])
 @login_required
 def customer_link_pharmacy(customer_id):
-    customer = _customer_query().filter_by(id=customer_id).first_or_404()
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not _is_current_aor(customer):
+        flash("You are no longer AOR for this customer.", "error")
+        return redirect(url_for("customers.customer_profile", customer_id=customer_id))
     pharmacy_id = request.form.get("pharmacy_id", type=int)
     customer.pharmacy_id = pharmacy_id or None
     customer.manually_edited = True
@@ -303,7 +362,10 @@ def customer_toggle_sms_consent(customer_id):
     Granting consent records the current UTC timestamp.
     Revoking consent sets sms_consent_at back to NULL.
     """
-    customer = _customer_query().filter_by(id=customer_id).first_or_404()
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not _is_current_aor(customer):
+        flash("You are no longer AOR for this customer.", "error")
+        return redirect(url_for("customers.customer_profile", customer_id=customer_id))
     if customer.sms_consent_at is None:
         customer.sms_consent_at = datetime.utcnow()
         customer.manually_edited = True

@@ -309,10 +309,11 @@
       <table class="stmt-table">
         <thead>
           <tr>
-            <th style="width:35%">Member</th>
-            <th style="width:20%">Action</th>
-            <th style="width:20%">Period / Eff Date</th>
-            <th style="width:15%;text-align:right">Amount</th>
+            <th style="width:32%">Member</th>
+            <th style="width:18%">Action</th>
+            <th style="width:16%">Period / Eff Date</th>
+            <th style="width:12%">Comm Type</th>
+            <th style="width:12%;text-align:right">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -329,6 +330,15 @@
               {% else %}<span class="badge badge-gray">{{ action[:12] if action else '—' }}</span>{% endif %}
             </td>
             <td style="color:var(--slate)">{{ item.get('eff_date') or item.get('period') or item.get('month') or '—' }}</td>
+            <td>
+              {% if item.get('commission_type') == 'initial' %}
+                <span class="badge badge-green" title="First-ever MA enrollment — initial rate applies">Initial</span>
+              {% elif item.get('commission_type') == 'renewal' %}
+                <span class="badge badge-blue" title="Renewal rate applies">Renewal</span>
+              {% else %}
+                <span style="color:var(--slate);font-size:11px;">—</span>
+              {% endif %}
+            </td>
             <td style="text-align:right" class="{{ 'amount-neg' if item.get('amount') and item.get('amount') < 0 else '' }}">
               {% if item.get('amount') is none %}—
               {% elif item.get('amount') < 0 %}-${{ "{:,.2f}".format(item.get('amount')|abs) }}
@@ -337,7 +347,7 @@
           </tr>
           {% endfor %}
           {% if s.line_items_parsed|length > 30 %}
-          <tr><td colspan="4" style="text-align:center;color:var(--slate);font-size:11px;padding:10px;">
+          <tr><td colspan="5" style="text-align:center;color:var(--slate);font-size:11px;padding:10px;">
             + {{ s.line_items_parsed|length - 30 }} more line items not shown
           </td></tr>
           {% endif %}

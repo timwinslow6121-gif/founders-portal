@@ -9,7 +9,7 @@ from flask import (abort, flash, redirect, render_template,
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import CommissionStatement, User, AgentCarrierContract
+from app.models import CommissionStatement, User, AgentCarrierContract, Policy
 from app.commission import commission_bp
 
 SPLIT_RATE = 0.55
@@ -443,6 +443,31 @@ PARSERS = {
 }
 
 
+def _enrich_line_items_with_commission_type(statements, agency_id):
+    """
+    For each statement's line items, look up commission_type from Policy by MBI.
+    Mutates items in place, adding 'commission_type' key where a match exists.
+    """
+    all_mbis = set()
+    for s in statements:
+        for item in s.line_items_parsed:
+            mbi = item.get('mbi', '').strip()
+            if mbi:
+                all_mbis.add(mbi)
+    if not all_mbis:
+        return
+    rows = (Policy.query
+            .filter(Policy.mbi.in_(all_mbis), Policy.agency_id == agency_id)
+            .with_entities(Policy.mbi, Policy.commission_type)
+            .all())
+    mbi_to_type = {r.mbi: r.commission_type for r in rows if r.commission_type}
+    for s in statements:
+        for item in s.line_items_parsed:
+            mbi = item.get('mbi', '').strip()
+            if mbi and mbi in mbi_to_type:
+                item['commission_type'] = mbi_to_type[mbi]
+
+
 @commission_bp.route("/commissions")
 @login_required
 def commission_index():
@@ -452,6 +477,7 @@ def commission_index():
                   .all())
     for s in statements:
         s.line_items_parsed = json.loads(s.line_items) if s.line_items else []
+    _enrich_line_items_with_commission_type(statements, current_user.agency_id)
     return render_template("commission.html",
         statements=statements, is_admin=False, viewing_agent=None)
 
@@ -593,6 +619,7 @@ def commission_agent_detail(agent_id):
                   .all())
     for s in statements:
         s.line_items_parsed = json.loads(s.line_items) if s.line_items else []
+    _enrich_line_items_with_commission_type(statements, current_user.agency_id)
     return render_template("commission.html",
         statements=statements, is_admin=True, viewing_agent=agent)
 

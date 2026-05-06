@@ -342,3 +342,22 @@ def terminations_set_reason():
     policy.new_plan_name = new_plan_name
     db.session.commit()
     return '', 204
+
+
+@main.route('/policy/set-commission-type', methods=['POST'])
+@login_required
+def policy_set_commission_type():
+    """Inline AJAX — agent flags a policy as initial or renewal commission."""
+    policy_id       = request.form.get('policy_id', type=int)
+    commission_type = request.form.get('commission_type', '').strip() or None
+    if commission_type not in (None, 'initial', 'renewal'):
+        return '', 400
+
+    policy = Policy.query.filter_by(
+        id=policy_id,
+        agency_id=current_user.agency_id,
+    ).first_or_404()
+
+    policy.commission_type = commission_type
+    db.session.commit()
+    return '', 204

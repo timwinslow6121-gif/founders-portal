@@ -175,10 +175,11 @@
         <thead>
           <tr>
             <th style="width:18%">Carrier</th>
-            <th style="width:34%">Plan</th>
-            <th style="width:12%">Type</th>
-            <th style="width:18%">Effective</th>
-            <th style="width:18%">Term / Renew</th>
+            <th style="width:30%">Plan</th>
+            <th style="width:10%">Type</th>
+            <th style="width:16%">Effective</th>
+            <th style="width:14%">Term / Renew</th>
+            <th style="width:12%">Commission</th>
           </tr>
         </thead>
         <tbody>
@@ -195,9 +196,17 @@
                 {{ p.term_date.strftime('%m/%d/%Y') }}
               {% else %}—{% endif %}
             </td>
+            <td>
+              <select class="comm-type-select" data-policy-id="{{ p.id }}"
+                      style="font-size:11px;padding:2px 4px;background:var(--surface-low);color:var(--ivory);border:1px solid var(--border);border-radius:4px;width:100%;">
+                <option value="" {% if not p.commission_type %}selected{% endif %}>Unknown</option>
+                <option value="initial" {% if p.commission_type == 'initial' %}selected{% endif %}>Initial</option>
+                <option value="renewal" {% if p.commission_type == 'renewal' %}selected{% endif %}>Renewal</option>
+              </select>
+            </td>
           </tr>
           {% else %}
-          <tr><td colspan="5" class="empty-cell">No policies found across carriers.</td></tr>
+          <tr><td colspan="6" class="empty-cell">No policies found across carriers.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -411,4 +420,24 @@
 
   </div>
 </div>
+
+<script>
+document.querySelectorAll('.comm-type-select').forEach(function(sel) {
+  sel.addEventListener('change', function() {
+    var policyId = this.dataset.policyId;
+    var value    = this.value;
+    var el       = this;
+    var fd = new FormData();
+    fd.append('policy_id', policyId);
+    fd.append('commission_type', value);
+    fetch('{{ url_for("main.policy_set_commission_type") }}', {method:'POST', body:fd})
+      .then(function(r) {
+        if (r.ok) {
+          el.style.outline = '2px solid var(--gold)';
+          setTimeout(function(){ el.style.outline = ''; }, 1200);
+        }
+      });
+  });
+});
+</script>
 {% endblock %}

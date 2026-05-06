@@ -92,6 +92,10 @@ class Policy(db.Model):
     renewal_date = db.Column(db.Date)
     status = db.Column(db.String(32), default="active")
 
+    # Commission type — set manually by agent; drives expected commission calculation
+    # Values: None=unknown, 'initial'=first-ever MA enrollment, 'renewal'=all other MA enrollments
+    commission_type = db.Column(db.String(16))
+
     # Termination context — set manually by agent when reason is known
     # Values: None=unknown, 'agent_initiated', 'death', 'plan_cancelled', 'involuntary'
     term_reason   = db.Column(db.String(32))

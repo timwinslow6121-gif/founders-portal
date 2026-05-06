@@ -9,8 +9,9 @@ from flask import (abort, flash, redirect, render_template,
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import CommissionStatement, User, AgentCarrierContract, Policy
+from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment
 from app.commission import commission_bp
+from app.commission.payments import build_payments
 
 SPLIT_RATE = 0.55
 
@@ -518,7 +519,8 @@ def commission_upload():
         return redirect(url_for("commission.commission_admin"))
 
     try:
-        wb = openpyxl.load_workbook(io.BytesIO(file.read()), data_only=True)
+        file_bytes = file.read()
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
         ws = wb.active
     except Exception as e:
         flash(f"Could not read file: {e}", "error")
@@ -596,6 +598,13 @@ def commission_upload():
     stmt.line_items      = json.dumps(line_items)
     stmt.filename        = file.filename
     stmt.uploaded_by_id  = current_user.id
+    db.session.flush()   # get stmt.id before building payments
+
+    # Re-parse worksheet for payment ledger (ws cursor is already at start of data)
+    wb2  = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+    ws2  = wb2.active
+    n_payments = build_payments(stmt, carrier, agent_id,
+                                current_user.agency_id, ws2)
     db.session.commit()
 
     split_pct = round(agent_split * 100, 2)
@@ -622,6 +631,152 @@ def commission_agent_detail(agent_id):
     _enrich_line_items_with_commission_type(statements, current_user.agency_id)
     return render_template("commission.html",
         statements=statements, is_admin=True, viewing_agent=agent)
+
+
+# ── Payment ledger ────────────────────────────────────────────────────────────
+
+@commission_bp.route("/commissions/ledger")
+@login_required
+def commission_ledger():
+    """Per-member payment ledger — agent view."""
+    from sqlalchemy import func as sqlfunc
+
+    agency_id = current_user.agency_id
+    agent_id  = current_user.id
+
+    # Available periods for this agent
+    periods = (db.session.query(PolicyPayment.period_label, PolicyPayment.statement_date)
+               .filter_by(agent_id=agent_id, agency_id=agency_id)
+               .distinct()
+               .order_by(PolicyPayment.statement_date.desc())
+               .all())
+
+    selected_period = request.args.get("period") or (periods[0].period_label if periods else None)
+    carrier_filter  = request.args.get("carrier", "all")
+    action_filter   = request.args.get("action",  "all")
+
+    payments = []
+    carriers = []
+    summary  = {}
+
+    if selected_period:
+        q = (PolicyPayment.query
+             .filter_by(agent_id=agent_id, agency_id=agency_id,
+                        period_label=selected_period))
+        if carrier_filter != "all":
+            q = q.filter_by(carrier=carrier_filter)
+        if action_filter != "all":
+            q = q.filter_by(commission_action=action_filter)
+
+        payments = q.order_by(PolicyPayment.carrier, PolicyPayment.member_name).all()
+
+        # Summary stats for selected period (all carriers, unfiltered)
+        all_period = (PolicyPayment.query
+                      .filter_by(agent_id=agent_id, agency_id=agency_id,
+                                 period_label=selected_period)
+                      .all())
+        total_paid      = sum(p.paid_amount for p in all_period)
+        total_members   = len([p for p in all_period if not p.is_chargeback])
+        total_chargebacks = sum(p.paid_amount for p in all_period if p.is_chargeback)
+        unmatched_count = sum(1 for p in all_period if p.match_confidence == "unmatched")
+        carriers = sorted(set(p.carrier for p in all_period))
+
+        summary = {
+            "total_paid":        total_paid,
+            "total_members":     total_members,
+            "total_chargebacks": total_chargebacks,
+            "unmatched_count":   unmatched_count,
+            "net_paid":          total_paid + total_chargebacks,
+        }
+
+    return render_template("commission_ledger.html",
+        periods=periods,
+        selected_period=selected_period,
+        carrier_filter=carrier_filter,
+        action_filter=action_filter,
+        payments=payments,
+        carriers=carriers,
+        summary=summary,
+        is_admin=False,
+        viewing_agent=None,
+    )
+
+
+@commission_bp.route("/admin/commissions/ledger")
+@login_required
+def commission_ledger_admin():
+    """Per-member payment ledger — admin view, all agents."""
+    if not current_user.is_admin:
+        abort(403)
+
+    agency_id    = current_user.agency_id
+    agent_id_arg = request.args.get("agent_id", type=int)
+
+    agents = (User.query
+              .filter(User.email != "admin@foundersinsuranceagency.com",
+                      User.agency_id == agency_id)
+              .order_by(User.name).all())
+
+    selected_agent_id = agent_id_arg or (agents[0].id if agents else None)
+
+    periods = []
+    if selected_agent_id:
+        periods = (db.session.query(PolicyPayment.period_label, PolicyPayment.statement_date)
+                   .filter_by(agent_id=selected_agent_id, agency_id=agency_id)
+                   .distinct()
+                   .order_by(PolicyPayment.statement_date.desc())
+                   .all())
+
+    selected_period = request.args.get("period") or (periods[0].period_label if periods else None)
+    carrier_filter  = request.args.get("carrier", "all")
+    action_filter   = request.args.get("action",  "all")
+
+    payments = []
+    carriers = []
+    summary  = {}
+
+    if selected_period and selected_agent_id:
+        q = (PolicyPayment.query
+             .filter_by(agent_id=selected_agent_id, agency_id=agency_id,
+                        period_label=selected_period))
+        if carrier_filter != "all":
+            q = q.filter_by(carrier=carrier_filter)
+        if action_filter != "all":
+            q = q.filter_by(commission_action=action_filter)
+
+        payments = q.order_by(PolicyPayment.carrier, PolicyPayment.member_name).all()
+
+        all_period = (PolicyPayment.query
+                      .filter_by(agent_id=selected_agent_id, agency_id=agency_id,
+                                 period_label=selected_period)
+                      .all())
+        total_paid        = sum(p.paid_amount for p in all_period)
+        total_members     = len([p for p in all_period if not p.is_chargeback])
+        total_chargebacks = sum(p.paid_amount for p in all_period if p.is_chargeback)
+        unmatched_count   = sum(1 for p in all_period if p.match_confidence == "unmatched")
+        carriers = sorted(set(p.carrier for p in all_period))
+
+        summary = {
+            "total_paid":        total_paid,
+            "total_members":     total_members,
+            "total_chargebacks": total_chargebacks,
+            "unmatched_count":   unmatched_count,
+            "net_paid":          total_paid + total_chargebacks,
+        }
+
+    return render_template("commission_ledger.html",
+        periods=periods,
+        selected_period=selected_period,
+        carrier_filter=carrier_filter,
+        action_filter=action_filter,
+        payments=payments,
+        carriers=carriers,
+        summary=summary,
+        is_admin=True,
+        viewing_agent=User.query.get(selected_agent_id) if selected_agent_id else None,
+        agents=agents,
+        selected_agent_id=selected_agent_id,
+    )
 
 
 # ── Override workflow ──────────────────────────────────────────────────────────

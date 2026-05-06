@@ -628,8 +628,12 @@
         </a>
         <div class="nav-section-label">Commissions</div>
         <a href="{{ url_for('commission.commission_admin') }}"
-           class="nav-item {% if 'commissions' in request.path %}active{% endif %}">
+           class="nav-item {% if request.path == '/admin/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit
+        </a>
+        <a href="{{ url_for('commission.commission_ledger_admin') }}"
+           class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Payment Ledger
         </a>
         <div class="nav-section-label">Tools</div>
         <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
@@ -669,6 +673,10 @@
         <a href="{{ url_for('commission.commission_index') }}"
            class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit
+        </a>
+        <a href="{{ url_for('commission.commission_ledger') }}"
+           class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Payment Ledger
         </a>
         <div class="nav-section-label">Tools</div>
         <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">

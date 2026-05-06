@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Commission Ledger — Founders Portal{% endblock %}
+
+{% block styles %}
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
+.filter-row  { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.filter-row select { font-size: 12px; padding: 5px 8px; background: var(--surface); color: var(--ivory); border: 1px solid var(--border); border-radius: 4px; }
+.filter-row label  { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); }
+
+/* Summary cards */
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+.summary-card .sc-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.summary-card .sc-value { font-family: var(--font-serif); font-size: 1.3rem; color: var(--ivory); }
+.summary-card .sc-value.negative { color: var(--status-error); }
+.summary-card .sc-value.warning  { color: var(--status-progress); }
+
+/* Table */
+.conf-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; flex-shrink: 0; }
+.conf-exact_mbi        { background: var(--status-resolved); }
+.conf-exact_carrier_id { background: var(--status-resolved); }
+.conf-fuzzy_name       { background: var(--status-progress); }
+.conf-unmatched        { background: var(--status-error); }
+
+.action-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; }
+.ab-renewal   { background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold); }
+.ab-initial   { background: color-mix(in srgb, var(--status-resolved) 15%, transparent); color: var(--status-resolved); }
+.ab-hra_bonus { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
+.ab-chargeback{ background: color-mix(in srgb, var(--status-error) 15%, transparent); color: var(--status-error); }
+.ab-advance   { background: color-mix(in srgb, var(--status-progress) 15%, transparent); color: var(--status-progress); }
+.ab-other     { background: color-mix(in srgb, var(--slate) 15%, transparent); color: var(--slate); }
+
+.amount-pos { color: var(--ivory); font-variant-numeric: tabular-nums; }
+.amount-neg { color: var(--status-error); font-variant-numeric: tabular-nums; }
+
+.match-pill { font-size: 10px; color: var(--slate); white-space: nowrap; }
+
+/* Agent selector (admin) */
+.agent-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.agent-tab  { font-size: 12px; padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border);
+               background: var(--surface); color: var(--slate); cursor: pointer; text-decoration: none; }
+.agent-tab.active { background: var(--gold); color: var(--ink); border-color: var(--gold); font-weight: 700; }
+
+.empty-ledger { text-align: center; padding: 48px 24px; color: var(--slate); font-size: 13px; }
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Commission Ledger</h1>
+    <p class="page-sub">Per-member payment breakdown · matched against your active book of business</p>
+  </div>
+  {% if is_admin %}
+  <a href="{{ url_for('commission.commission_admin') }}" class="btn-secondary" style="font-size:12px;">← Commission Audit</a>
+  {% else %}
+  <a href="{{ url_for('commission.commission_index') }}" class="btn-secondary" style="font-size:12px;">← Commission Audit</a>
+  {% endif %}
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+{# Admin: agent selector tabs #}
+{% if is_admin and agents %}
+<div class="agent-tabs">
+  {% for a in agents %}
+  <a href="{{ url_for('commission.commission_ledger_admin', agent_id=a.id, period=selected_period) }}"
+     class="agent-tab {% if a.id == selected_agent_id %}active{% endif %}">
+    {{ a.display_name }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not periods %}
+<div class="card">
+  <div class="empty-ledger">
+    <p style="font-size:15px;color:var(--ivory);margin-bottom:8px;">No commission data yet</p>
+    <p>Upload a commission statement file to populate the ledger.</p>
+    {% if is_admin %}
+    <a href="{{ url_for('commission.commission_admin') }}" class="btn-primary" style="margin-top:16px;display:inline-block;">Upload Statement</a>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+
+{# Period + filter bar #}
+<div class="filter-row">
+  <label>Period</label>
+  <select onchange="applyFilters()" id="f-period">
+    {% for p in periods %}
+    <option value="{{ p.period_label }}" {% if p.period_label == selected_period %}selected{% endif %}>
+      {{ p.period_label }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <label>Carrier</label>
+  <select onchange="applyFilters()" id="f-carrier">
+    <option value="all" {% if carrier_filter == 'all' %}selected{% endif %}>All carriers</option>
+    {% for c in carriers %}
+    <option value="{{ c }}" {% if carrier_filter == c %}selected{% endif %}>{{ c }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Type</label>
+  <select onchange="applyFilters()" id="f-action">
+    <option value="all"       {% if action_filter == 'all' %}selected{% endif %}>All types</option>
+    <option value="renewal"   {% if action_filter == 'renewal' %}selected{% endif %}>Renewal</option>
+    <option value="initial"   {% if action_filter == 'initial' %}selected{% endif %}>Initial</option>
+    <option value="hra_bonus" {% if action_filter == 'hra_bonus' %}selected{% endif %}>HRA Bonus</option>
+    <option value="chargeback"{% if action_filter == 'chargeback' %}selected{% endif %}>Chargeback</option>
+    <option value="advance"   {% if action_filter == 'advance' %}selected{% endif %}>Advance</option>
+  </select>
+</div>
+
+{# Summary cards #}
+{% if summary %}
+<div class="summary-grid">
+  <div class="summary-card">
+    <div class="sc-label">Members paid</div>
+    <div class="sc-value">{{ summary.total_members }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="sc-label">Total received</div>
+    <div class="sc-value">${{ "{:,.2f}".format(summary.total_paid) }}</div>
+  </div>
+  {% if summary.total_chargebacks < 0 %}
+  <div class="summary-card">
+    <div class="sc-label">Chargebacks</div>
+    <div class="sc-value negative">-${{ "{:,.2f}".format(summary.total_chargebacks|abs) }}</div>
+  </div>
+  <div class="summary-card">
+    <div class="sc-label">Net</div>
+    <div class="sc-value">${{ "{:,.2f}".format(summary.net_paid) }}</div>
+  </div>
+  {% endif %}
+  {% if summary.unmatched_count > 0 %}
+  <div class="summary-card">
+    <div class="sc-label">Unmatched members</div>
+    <div class="sc-value warning">{{ summary.unmatched_count }}</div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# Ledger table #}
+<div class="card">
+  {% if payments %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:18%">Carrier</th>
+        <th style="width:26%">Member</th>
+        <th style="width:12%">Type</th>
+        <th style="width:14%">Effective</th>
+        <th style="width:16%">Match</th>
+        <th style="width:14%;text-align:right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set ns = namespace(last_carrier=None) %}
+      {% for p in payments %}
+
+        {# Carrier group header #}
+        {% if p.carrier != ns.last_carrier %}
+          {% set ns.last_carrier = p.carrier %}
+          <tr style="background:color-mix(in srgb, var(--gold) 6%, transparent);">
+            <td colspan="6" style="font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);padding:8px 12px;">
+              {{ p.carrier }}
+            </td>
+          </tr>
+        {% endif %}
+
+        <tr>
+          <td></td>
+          <td style="font-weight:500">
+            {% if p.policy and p.policy.mbi %}
+              {# Link to customer profile if we can find them #}
+              {{ p.member_name }}
+            {% else %}
+              {{ p.member_name }}
+            {% endif %}
+            {% if p.term_date %}
+              <div style="font-size:11px;color:var(--status-error);margin-top:2px;">
+                Termed {{ p.term_date.strftime('%m/%d/%Y') }}{% if p.term_reason %} · {{ p.term_reason }}{% endif %}
+              </div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="action-badge ab-{{ p.commission_action }}">
+              {% if p.commission_action == 'hra_bonus' %}HRA
+              {% elif p.commission_action == 'chargeback' %}Chargeback
+              {% else %}{{ p.commission_action | title }}{% endif %}
+            </span>
+          </td>
+          <td style="color:var(--slate);font-size:12px;">
+            {{ p.effective_date.strftime('%m/%d/%Y') if p.effective_date else '—' }}
+            {% if p.period_month %}<div style="font-size:11px;">{{ p.period_month }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="conf-dot conf-{{ p.match_confidence }}"></span>
+            <span class="match-pill">
+              {% if p.match_confidence == 'exact_mbi' %}MBI match
+              {% elif p.match_confidence == 'exact_carrier_id' %}ID match
+              {% elif p.match_confidence == 'fuzzy_name' %}Name match
+              {% else %}<span style="color:var(--status-error);">Unmatched</span>{% endif %}
+            </span>
+          </td>
+          <td style="text-align:right" class="{{ 'amount-neg' if p.paid_amount < 0 else 'amount-pos' }}">
+            {% if p.paid_amount < 0 %}-${{ "{:,.2f}".format(p.paid_amount|abs) }}
+            {% else %}${{ "{:,.2f}".format(p.paid_amount) }}{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-ledger">No payments match the selected filters.</div>
+  {% endif %}
+</div>
+
+<div style="margin-top:10px;font-size:11px;color:var(--slate);">
+  <span class="conf-dot conf-exact_mbi"></span> MBI match &nbsp;
+  <span class="conf-dot conf-fuzzy_name"></span> Name match (verify) &nbsp;
+  <span class="conf-dot conf-unmatched"></span> Unmatched (not in your BOB)
+</div>
+
+{% endif %}
+
+<script>
+function applyFilters() {
+  var period  = document.getElementById('f-period').value;
+  var carrier = document.getElementById('f-carrier').value;
+  var action  = document.getElementById('f-action').value;
+  {% if is_admin %}
+  var agentId = {{ selected_agent_id or 'null' }};
+  var base    = '{{ url_for("commission.commission_ledger_admin") }}';
+  var url     = base + '?agent_id=' + agentId + '&period=' + encodeURIComponent(period)
+              + '&carrier=' + carrier + '&action=' + action;
+  {% else %}
+  var base = '{{ url_for("commission.commission_ledger") }}';
+  var url  = base + '?period=' + encodeURIComponent(period)
+           + '&carrier=' + carrier + '&action=' + action;
+  {% endif %}
+  window.location.href = url;
+}
+</script>
+{% endblock %}

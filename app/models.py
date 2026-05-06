@@ -600,6 +600,68 @@ class AgentCarrierContract(db.Model):
         return f"<AgentCarrierContract {self.agent_id} {self.carrier} active={self.is_active}>"
 
 
+class PolicyPayment(db.Model):
+    """
+    One row per member per commission statement period.
+    Created/replaced each time AJ uploads a statement file.
+    Enables per-member payment reconciliation against the active BOB.
+
+    match_confidence values:
+      'exact_mbi'        — matched Policy by full MBI from carrier file
+      'exact_carrier_id' — matched by carrier's own member/policy ID
+      'fuzzy_name'       — matched by normalized last+first name
+      'unmatched'        — no Policy record found; needs manual review
+    """
+    __tablename__ = "policy_payments"
+
+    id                 = db.Column(db.Integer, primary_key=True)
+    agency_id          = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agent_id           = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    agent              = db.relationship("User", foreign_keys=[agent_id])
+    statement_id       = db.Column(db.Integer, db.ForeignKey("commission_statements.id",
+                                   ondelete="CASCADE"), nullable=False, index=True)
+    statement          = db.relationship("CommissionStatement", foreign_keys=[statement_id])
+
+    # Statement context
+    carrier            = db.Column(db.String(64), nullable=False, index=True)
+    period_label       = db.Column(db.String(32), nullable=False, index=True)  # "March 2026"
+    statement_date     = db.Column(db.Date)
+
+    # Member identifiers — raw from carrier file
+    member_name        = db.Column(db.String(256), nullable=False)
+    member_name_normalized = db.Column(db.String(256), index=True)  # lowercased "first last"
+    mbi                = db.Column(db.String(20), index=True)        # full MBI where carrier provides
+    carrier_member_id  = db.Column(db.String(128))                   # carrier's own member/policy ID
+
+    # Policy linkage — populated by matching logic
+    policy_id          = db.Column(db.Integer, db.ForeignKey("policies.id"), nullable=True)
+    policy             = db.relationship("Policy", foreign_keys=[policy_id])
+    match_confidence   = db.Column(db.String(32), default="unmatched")
+
+    # Payment details
+    # commission_action: 'renewal' / 'initial' / 'hra_bonus' / 'chargeback' / 'advance' / 'other'
+    commission_action  = db.Column(db.String(32), nullable=False, index=True)
+    paid_amount        = db.Column(db.Float, nullable=False)         # positive or negative (chargeback)
+    is_chargeback      = db.Column(db.Boolean, default=False, nullable=False)
+
+    # Additional context from file
+    effective_date     = db.Column(db.Date)
+    term_date          = db.Column(db.Date)
+    term_reason        = db.Column(db.String(128))
+    period_month       = db.Column(db.String(16))                    # "Jan", "Feb" where carrier states it
+    plan_name          = db.Column(db.String(256))
+
+    created_at         = db.Column(db.DateTime, server_default=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint("statement_id", "member_name_normalized", "commission_action",
+                            name="uq_payment_statement_member_action"),
+    )
+
+    def __repr__(self):
+        return f"<PolicyPayment {self.carrier} {self.period_label} {self.member_name} ${self.paid_amount}>"
+
+
 class UnmatchedCall(db.Model):
     """
     Stores inbound calls/voicemails from phone numbers that could not be matched

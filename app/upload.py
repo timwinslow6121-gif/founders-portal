@@ -64,6 +64,21 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
                     )
                     .first()
                 )
+    else:
+        # Carriers with no MBI in their export (UHC, Healthspring commission format):
+        # try name-only match so we update existing customers rather than creating shells.
+        fn = (rec.get("first_name") or "").strip().lower()
+        ln = (rec.get("last_name") or "").strip().lower()
+        if fn and ln:
+            customer = (
+                Customer.query
+                .filter(
+                    Customer.agency_id == agency_id,
+                    db.func.lower(Customer.first_name) == fn,
+                    db.func.lower(Customer.last_name) == ln,
+                )
+                .first()
+            )
 
     full_name = rec.get("full_name") or f"{rec.get('first_name', '')} {rec.get('last_name', '')}".strip()
     address_parts = [rec.get("address1"), rec.get("city"), rec.get("state"), rec.get("zip_code")]

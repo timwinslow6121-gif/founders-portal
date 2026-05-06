@@ -1,125 +1,107 @@
 """
-Healthspring (Cigna) BOB parser.
+Healthspring (Cigna) BOB / commission payment parser.
 
-Format: .xls extension BUT the file is actually HTML — NOT a real Excel binary.
-        Must parse as HTML, not with openpyxl/xlrd.
-Unique ID: Medicare Number (MBI)
-Active filter: Status == "Enrolled"
-Name fields: First Name / Last Name
+AJ downloads a file with columns:
+  0 Payment Type, 1 Payment Description, 2 Writing Broker NPN,
+  3 Writing Broker Name, 4 Earner NPN, 5 Earner Name,
+  6 Pay Period, 7 Payment Amount, 8 Member ID, 9 MBI
+
+No name, DOB, or address — MBI and Member ID are the identifiers.
+We produce one record per unique MBI (skipping summary/negative rows).
 """
+import re
+import openpyxl
+from datetime import date, datetime
 
-import pandas as pd
-from io import StringIO
-
-
-REQUIRED_COLUMNS = {"First Name", "Last Name", "Medicare Number"}
+SKIP_ACTIONS = {"payment type"}  # header row guard
 
 
 def parse(filepath: str) -> list[dict]:
-    """
-    Parse a Healthspring .xls export (which is actually HTML) and return
-    a list of normalized policy dicts. Filters to Status == 'Enrolled'.
-
-    IMPORTANT: This file has an .xls extension but is HTML internally.
-    We read the raw bytes to detect this and route to the correct parser.
-    """
-    # Detect whether file is HTML or true XLS/XLSX
-    with open(filepath, "rb") as f:
-        header = f.read(6)
-
-    is_html = header[:5] in (b"<html", b"<HTML", b"<!DOC", b"<?xml") or header[:3] == b"\xef\xbb\xbf"
-
-    if is_html or _sniff_html(filepath):
-        df = _parse_as_html(filepath)
-    else:
-        # Attempt genuine Excel parse as a fallback
-        try:
-            df = pd.read_excel(filepath, dtype=str)
-        except Exception as e:
-            raise ValueError(f"Healthspring file could not be parsed as Excel or HTML: {e}")
-
-    df.columns = df.columns.str.strip()
-
-    missing = REQUIRED_COLUMNS - set(df.columns)
-    if missing:
-        raise ValueError(f"Healthspring file missing required columns: {missing}")
-
-    # Filter to enrolled members only
-    status_col = next((c for c in df.columns if c.lower() in ("status", "member status", "enrollment status")), None)
-    if status_col:
-        df = df[df[status_col].str.strip().str.lower() == "enrolled"]
-
-    df = df[df["Medicare Number"].notna() & (df["Medicare Number"].str.strip() != "")]
-    df = df.copy()
-
-    records = []
-    for _, row in df.iterrows():
-        mbi = _str(row, "Medicare Number").upper()
-        first = _str(row, "First Name")
-        last = _str(row, "Last Name")
-
-        records.append({
-            "carrier": "Healthspring",
-            "member_id": mbi,
-            "mbi": mbi,
-            "first_name": first,
-            "last_name": last,
-            "full_name": f"{first} {last}".strip(),
-            "plan_name": _str(row, "Plan Name") or _str(row, "PlanName"),
-            "plan_type": _str(row, "Plan Type") or _str(row, "PlanType"),
-            "effective_date": _parse_date(row, "Effective Date") or _parse_date(row, "EffectiveDate"),
-            "term_date": _parse_date(row, "Term Date") or _parse_date(row, "TermDate"),
-            "dob": _parse_date(row, "Date of Birth") or _parse_date(row, "DOB"),
-            "phone": _str(row, "Phone") or _str(row, "Phone Number"),
-            "county": _str(row, "County"),
-            "agent_id": _str(row, "Agent ID") or _str(row, "AgentID"),
-            "status": "active",
-        })
-
-    return records
-
-
-def _sniff_html(filepath: str) -> bool:
-    """Read first 512 bytes as text to detect HTML markers."""
     try:
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-            chunk = f.read(512).lower()
-        return "<html" in chunk or "<table" in chunk or "<!doctype" in chunk
-    except Exception:
-        return False
-
-
-def _parse_as_html(filepath: str) -> pd.DataFrame:
-    """Parse an HTML file as a pandas DataFrame using the first table found."""
-    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-        content = f.read()
-
-    try:
-        tables = pd.read_html(StringIO(content), header=0)
+        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
     except Exception as e:
-        raise ValueError(f"Healthspring: failed to parse HTML table: {e}")
+        raise ValueError(f"Could not read Healthspring file: {e}")
 
-    if not tables:
-        raise ValueError("Healthspring: no tables found in HTML file")
+    ws = wb.active
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    wb.close()
 
-    # Pick the table with the most columns — likely the data table
-    df = max(tables, key=lambda t: len(t.columns))
-    return df.astype(str)
+    seen = {}  # mbi → record
+
+    for row in rows:
+        if not any(row):
+            continue
+        if len(row) < 10:
+            continue
+
+        payment_type = str(row[0] or "").strip()
+        # Skip summary rows (they have no MBI) and header guard
+        if not payment_type or payment_type.lower() in SKIP_ACTIONS:
+            continue
+        # Skip summary formula rows (col 6 contains "N x.55")
+        if re.search(r'[\d,]+\s*x\.?\s*\.?\d+', str(row[6] or "")):
+            continue
+
+        amount = row[7]
+        if not isinstance(amount, (int, float)):
+            continue
+
+        mbi       = str(row[9] or "").strip()
+        member_id = str(row[8] or "").strip()
+
+        if not mbi and not member_id:
+            continue
+
+        # Determine active vs termed from payment type
+        payment_lower = payment_type.lower()
+        if "disenroll" in payment_lower or "rapid" in payment_lower:
+            status = "termed"
+        else:
+            status = "active"
+
+        effective_date = _parse_date(row[6])
+
+        key = mbi or member_id
+        rec = {
+            "carrier":        "Healthspring",
+            "member_id":      member_id or mbi,
+            "mbi":            mbi or None,
+            "first_name":     "",
+            "last_name":      "",
+            "full_name":      "",
+            "plan_name":      "",
+            "plan_type":      "MAPD",
+            "effective_date": effective_date,
+            "term_date":      None,
+            "renewal_date":   None,
+            "dob":            None,
+            "phone":          "",
+            "county":         "",
+            "address1":       "",
+            "city":           "",
+            "state":          "",
+            "zip_code":       "",
+            "agent_id":       str(row[2] or "").strip(),
+            "status":         status,
+        }
+
+        if key not in seen:
+            seen[key] = rec
+
+    return list(seen.values())
 
 
-def _str(row, col: str) -> str:
-    val = row.get(col, "")
-    if val is None or (isinstance(val, float) and pd.isna(val)):
-        return ""
+def _parse_date(val):
+    if val is None:
+        return None
+    if isinstance(val, (date, datetime)):
+        return val.date() if isinstance(val, datetime) else val
     s = str(val).strip()
-    return "" if s.lower() in ("nan", "none", "nat") else s
-
-
-def _parse_date(row, col: str):
-    val = row.get(col, "")
-    if not val or (isinstance(val, float) and pd.isna(val)) or str(val).strip() in ("", "nan", "None", "NaT"):
+    if not s:
         return None
-    try:
-        return pd.to_datetime(val).date()
-    except Exception:
-        return None
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%m/%d/%y"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            pass
+    return None

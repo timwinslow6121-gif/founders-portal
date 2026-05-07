@@ -1,6 +1,6 @@
 # Founders Insurance Agency — Agent Portal
 
-Flask CRM/portal for a Medicare insurance agency. 8 agents, ~5,500 policies across 6 carriers.
+Flask CRM/portal for a Medicare insurance agency. 8 agents, 524 real policies across 5 carriers (UHC 287, Humana 196, BCBS 28, Aetna 11, Healthspring 2). 535 customers. All seeded/fake data deleted 2026-05-07.
 
 ## Stack
 - Python 3.10, Flask 3.0, Flask-SQLAlchemy, Flask-Migrate (Alembic)
@@ -17,8 +17,28 @@ git add <files> && git commit -m "message" && git push origin main
 ```
 VPS deployment after pull:
 ```
-git pull && pip install -r requirements.txt && flask db upgrade && systemctl restart founders-portal
+cd /var/www/founders-portal && git pull && ./venv/bin/pip install -r requirements.txt && flask db upgrade && systemctl restart founders-portal
 ```
+- VPS Python scripts: `./venv/bin/python3 scripts/myscript.py` (never plain `python3`)
+- SSH: `ssh -i /home/timothywinslowlinux/.ssh/id_ed25519 root@23.187.248.100`
+
+## BOB Parser Architecture (app/parsers/)
+
+One file per carrier. Called via `parse_carrier_file(carrier, filepath)` from `app/parsers/__init__.py`.
+
+**Detection** (`_detect_carrier()` in upload.py): scans up to 15 rows to find the real header row (carriers have preamble rows before headers). Checks first 2 bytes for `<` to detect HTML-disguised-as-XLS.
+
+**Per-carrier format notes (portal BOB downloads, not commission files):**
+- UHC: XLSX, 2-row preamble, header=2. Columns: mbiNumber, memberFirstName, memberLastName, memberAddress1, memberCity, memberZip, memberState, dateOfBirth, memberPhone, product, planName, memberCounty, policyEffectiveDate, policyTermDate (sentinel: 2300-01-01), agentId. Fingerprint: `mbinumber` + `memberfirstname`.
+- Healthspring: TWO formats from same portal — (1) XLSX: 12-row preamble, header=12. (2) XLS: HTML-disguised, header=0, parse with read_html(). Both have identical columns: First Name, Last Name, Medicare Number, Member ID, Effective Date, Disenroll Effective Date, Date of Birth, Phone Number, Residential Address/City/State/Zip, Status, Product. Fingerprint: `medicare number` + `first name` + `disenroll effective date`.
+- Humana: MBI not provided in BOB — matched by humana_id. `mbi` stored as empty string `""`. 196 Humana policies currently have mbi="" (not NULL) — do not add unique constraint on mbi without handling this first.
+- Devoted: member_id is the Devoted member ID (not a UUID). Old seeded data used UUIDs — deleted 2026-05-07.
+
+**Policy dedup logic (bulk_upload in upload.py):**
+1. Match by carrier + member_id
+2. Fallback: match by carrier + mbi (handles format changes where member_id differs between exports). On MBI match, adopt the new member_id as authoritative.
+
+**One-time backfill scripts** live in `scripts/`. Run with `./venv/bin/python3 scripts/name.py` on VPS.
 
 ## Blueprint Registration Pattern
 All blueprints registered in `app/__init__.py` with this exact 3-line pattern:
@@ -112,18 +132,43 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Carriers & Plans database ✅ (2026-05-05)** — New Plan model (migration 009): per-plan-per-year records with CMS plan ID, plan letter (Medigap), lifecycle status (current/legacy/sunset/discontinued), self-referential successor chain, D-SNP/C-SNP/5-star flags, benefits snapshot, commission rates (initial/renewal/true-up/HRA bonus), BOB alias matching. carriers_bp registered. Plan list (filtered by year/carrier/type/status, carrier group headers), plan detail (chain visualization, member count, commission highlights, matched active policies), admin add/edit form. 34 plans seeded from BOB/commission data across 6 carriers. Humana chain 137→291→335 linked. Commission rates updated to real 2025/2026 CMS max broker rates (NC = "all other states"): MAPD 2026 $57.83/$28.92 PMPM, MAPD 2025 $52.17/$26.08, PDP 2026 $9.50/$4.75. Legacy/sunset plans (Humana 137, 291) left at placeholder rates — historical data to be added later.
 - **Policy commission_type ✅ (2026-05-06)** — Migration 012 adds `commission_type` VARCHAR(16) nullable to policies. Values: NULL=unknown, 'initial'=first-ever MA enrollment, 'renewal'=all else. Customer profile: inline dropdown per policy row, saves via AJAX to POST /policy/set-commission-type. Commission audit: line items enriched via MBI→Policy lookup; Comm Type column shows Initial/Renewal badge in detail table.
 - **Payment Ledger ✅ (2026-05-06)** — Migration 013: `policy_payments` table — one row per member per statement. `app/commission/payments.py`: per-carrier extractors for all 7 carriers + 3-tier match logic (exact MBI → carrier ID → fuzzy name). Populated on every commission statement upload. Routes: `/commissions/ledger` (agent) + `/admin/commissions/ledger` (admin with agent selector tabs). UI: period/carrier/type filters, summary cards (members paid, total, chargebacks, net, unmatched count), match confidence dots (green=MBI/ID, amber=name, red=unmatched), carrier group headers, chargeback rows in red.
+- **Agent AOR Visibility ✅ (2026-05-06)** — Agents see only current AOR customers by default. Toggle to show former customers (read-only). Former-AOR banner on profile. All write operations (notes, contacts, SMS, pharmacy) blocked for non-current-AOR agents. BOB upload closes previous agent's open AOR history row on ownership transfer. `_customer_query(include_former)` + `_is_current_aor()` helpers in customers.py.
+- **AOR history backfill ✅ (2026-05-06)** — `scripts/backfill_aor_end_dates.py` closes stale open AOR rows where stored agent ≠ customer.primary_agent_id. Found 0 stale rows on first run (data was clean).
+- **BOB parser fixes ✅ (2026-05-07)** — UHC and Healthspring parsers rewritten for actual portal download formats. _detect_carrier() now scans up to 15 rows (was 1) and handles HTML-XLS files. Policy dedup falls back to MBI match when member_id differs between import formats.
+- **Data cleanup ✅ (2026-05-07)** — Deleted 4,941 seeded policies and 26 Devoted UUID policies. Real dataset: 524 policies (all with MBI or humana_id), 535 customers.
 
 ## Next Steps / To-Do
-### Near term
-- **Customers page** — duplicate detection (same MBI or name+DOB), CSV/Excel import for agent spreadsheets
-- **Plan commission rates** — update seeded plans with real 2026 CMS rates per carrier (placeholders: $22 initial / $15 renewal MAPD, 20% Medigap, $3 PDP)
-- **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
+
+### Phase 4 — Data Integrity + Reconciliation (NEXT — start fresh session)
+
+**4A — Data integrity (do first):**
+- Fix Humana mbi="" → NULL (196 policies + affected customers) before adding any unique constraint
+- Add DB unique constraint on `customers.mbi` (migration) — prevents duplicate customers at DB level forever
+- Quarantine BOB records with no resolvable MBI instead of creating shell customers
+- Delete 29 shell customers with no MBI and no humana_id (verify no notes/contacts first)
+- Backfill Humana MBI from PolicyPayment records where name match is confident
+
+**4B — BOB ↔ Commission reconciliation:**
+- Per-carrier, per-period report: members in BOB but not paid + members paid but not in BOB
+- Surface as reconciliation tab on commission audit page
+- PolicyPayment table already exists — needs the query + UI layer
+
+**4C — Reporting:**
+- Filterable by agent / carrier / plan / pharmacy / stage / date
+- Export CSV
+- No new models needed — data is all there
+
+**4D — Customer dedup prevention:**
+- MBI unique constraint (from 4A) is the primary guard
+- Upload-time check: if MBI already exists on a different customer, flag conflict instead of creating duplicate
+- Admin merge tool for any duplicates that slip through
 
 ### Future / backlog
 - **Termination outcome tracker** — log of every termed policy since Jan 1, outcome (saved/converted/moved/deceased/fraud), contact history, ties to customer profile
-- **Advanced reporting engine** — filter by any dimension (agent/carrier/plan/pharmacy/stage/date), export CSV/PDF, saved presets. Phase 4.
 - **AEP page** — dedicated AEP enrollment window tracker (separate from upcoming terminations)
 - **Carriers & Plans** — customer profile → plan detail page link (match by carrier+plan_name)
+- **Plan commission rates** — update seeded plans with real 2026 CMS rates per carrier (placeholders: $22 initial / $15 renewal MAPD, 20% Medigap, $3 PDP)
+- **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
 
 ## Agent Nav — what's in the sidebar (as of 2026-05-05)
 My Book: Dashboard, Customers, Upcoming Terms

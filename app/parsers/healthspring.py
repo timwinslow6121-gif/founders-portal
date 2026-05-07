@@ -1,24 +1,29 @@
 """
 Healthspring (Cigna) BOB parser.
 
-File format: XLSX downloaded from Healthspring/Cigna agent portal.
-Rows 0-11: preamble (title, filters, blank rows). Row 12: column headers. Row 13+: data.
-Last row is a "Total / Count" summary row — filtered out by MBI check.
+Supports two export formats from the Healthspring agent portal:
 
-Key columns (by name via pandas):
+  XLSX format: 12-row preamble before headers (title, filters, blanks).
+               Parsed with pandas read_excel(header=12).
+
+  XLS format:  HTML disguised as .xls — no preamble, headers on row 0.
+               Parsed with pandas read_html().
+
+Both formats share identical column names. Key columns:
   First Name, Last Name, Medicare Number (MBI), Member ID,
   Effective Date, Disenroll Effective Date, Date of Birth,
-  Phone Number, Residential Address, Residential City,
-  Residential State, Residential Zip Code, Status, Product, Agent NPN
+  Phone Number, Residential Address/City/State/Zip, Status, Product, Agent NPN
 """
 import pandas as pd
+from io import StringIO
 
 REQUIRED_COLUMNS = {"First Name", "Last Name", "Medicare Number"}
+ACTIVE_STATUSES = {"enrolled", "pending-future"}
 
 
 def parse(filepath: str) -> list[dict]:
     try:
-        df = pd.read_excel(filepath, header=12, dtype=str)
+        df = _read_file(filepath)
     except Exception as e:
         raise ValueError(f"Could not read Healthspring file: {e}")
 
@@ -27,22 +32,18 @@ def parse(filepath: str) -> list[dict]:
     if missing:
         raise ValueError(f"Healthspring file missing required columns: {missing}")
 
-    # Filter to rows with a real MBI (drops totals row and blanks)
-    df = df[df["Medicare Number"].notna() & (df["Medicare Number"].str.strip() != "")].copy()
-
-    # Active = Enrolled or Pending-Future; termed = Disenrolled
-    status_col = "Status"
-    active_statuses = {"enrolled", "pending-future"}
+    df = df[df["Medicare Number"].notna() & (df["Medicare Number"].str.strip().str.upper() != "NAN")].copy()
+    df = df[df["Medicare Number"].str.strip() != ""].copy()
 
     records = []
     for _, row in df.iterrows():
-        mbi    = _str(row, "Medicare Number").upper()
-        first  = _str(row, "First Name").title()
-        last   = _str(row, "Last Name").title()
-        status_raw = _str(row, status_col).lower()
-        is_active  = status_raw in active_statuses
-
-        term_date = _parse_date(row, "Disenroll Effective Date")
+        mbi       = _str(row, "Medicare Number").upper()
+        if not mbi:
+            continue
+        first     = _str(row, "First Name").title()
+        last      = _str(row, "Last Name").title()
+        status_raw = _str(row, "Status").lower()
+        term_date  = _parse_date(row, "Disenroll Effective Date")
 
         records.append({
             "carrier":        "Healthspring",
@@ -64,9 +65,27 @@ def parse(filepath: str) -> list[dict]:
             "state":          _str(row, "Residential State").upper(),
             "zip_code":       _str(row, "Residential Zip Code"),
             "agent_id":       _str(row, "Agent NPN") if "Agent NPN" in df.columns else "",
-            "status":         "active" if is_active else "termed",
+            "status":         "active" if status_raw in ACTIVE_STATUSES else "termed",
         })
     return records
+
+
+def _read_file(filepath: str) -> pd.DataFrame:
+    """Auto-detect XLSX-with-preamble vs HTML-disguised-as-XLS."""
+    with open(filepath, "rb") as f:
+        header_bytes = f.read(6)
+
+    is_html = b"<" in header_bytes[:2]
+
+    if is_html:
+        with open(filepath, "r", encoding="ISO-8859-1", errors="replace") as f:
+            content = f.read()
+        tables = pd.read_html(StringIO(content), header=0)
+        if not tables:
+            raise ValueError("No tables found in Healthspring HTML export")
+        return tables[0].astype(str)
+    else:
+        return pd.read_excel(filepath, header=12, dtype=str)
 
 
 def _str(row, col: str) -> str:

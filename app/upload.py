@@ -518,18 +518,30 @@ def _detect_carrier(filepath: str, filename: str) -> str:
 
         # XLSX/XLS — scan first 15 rows to find the real header row
         # (some carriers include multi-row preambles before the column headers)
-        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
-        ws = wb.active
-        headers = []
-        for row in ws.iter_rows(min_row=1, max_row=15, values_only=True):
-            candidate = [str(c or "").strip() for c in row]
-            named = [c for c in candidate if c]
-            if len(named) >= 3:
-                headers = candidate
-                break
-        wb.close()
+        # Some .xls files are actually HTML — detect and handle separately
+        with open(filepath, "rb") as _f:
+            _magic = _f.read(2)
+        if _magic[:1] == b"<":
+            # HTML-disguised-as-XLS (e.g. Healthspring XLS export)
+            import pandas as _pd
+            from io import StringIO as _StringIO
+            with open(filepath, "r", encoding="ISO-8859-1", errors="replace") as _f:
+                _content = _f.read()
+            _tables = _pd.read_html(_StringIO(_content), header=0)
+            headers = list(_tables[0].columns) if _tables else []
+        else:
+            wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+            ws = wb.active
+            headers = []
+            for row in ws.iter_rows(min_row=1, max_row=15, values_only=True):
+                candidate = [str(c or "").strip() for c in row]
+                named = [c for c in candidate if c]
+                if len(named) >= 3:
+                    headers = candidate
+                    break
+            wb.close()
         header_set = set(h.lower() for h in headers)
-        header_str = " ".join(headers).lower()
+        header_str = " ".join(str(h) for h in headers).lower()
 
         # UHC BOB portal download: "mbiNumber" + "memberFirstName" + "agentId"
         if "mbinumber" in header_set and "memberfirstname" in header_set:

@@ -634,10 +634,20 @@ def bulk_upload():
 
         new_count = updated_count = 0
         for rec in records:
+            # Primary match: carrier + member_id
             existing = Policy.query.filter_by(
                 carrier=rec["carrier"], member_id=rec["member_id"],
                 agency_id=bulk_agency_id,
             ).first()
+            # Fallback: match by MBI when member_id changed between import formats
+            if not existing and rec.get("mbi"):
+                existing = Policy.query.filter_by(
+                    carrier=rec["carrier"], mbi=rec["mbi"],
+                    agency_id=bulk_agency_id,
+                ).first()
+                if existing:
+                    # Adopt the new member_id as authoritative
+                    existing.member_id = rec["member_id"]
             if existing:
                 existing.mbi = rec["mbi"] or existing.mbi
                 existing.first_name = rec["first_name"]

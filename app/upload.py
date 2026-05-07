@@ -516,16 +516,23 @@ def _detect_carrier(filepath: str, filename: str) -> str:
                 return 'Healthspring'
             raise ValueError("Could not identify carrier from CSV headers.")
 
-        # XLSX/XLS — read row 1 with openpyxl
+        # XLSX/XLS — scan first 5 rows to find the real header row
+        # (some carriers include preamble rows before the column headers)
         wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
         ws = wb.active
-        headers = [str(c or "").strip() for c in next(ws.iter_rows(min_row=1, max_row=1, values_only=True), [])]
+        headers = []
+        for row in ws.iter_rows(min_row=1, max_row=5, values_only=True):
+            candidate = [str(c or "").strip() for c in row]
+            named = [c for c in candidate if c]
+            if len(named) >= 3:
+                headers = candidate
+                break
         wb.close()
         header_set = set(h.lower() for h in headers)
         header_str = " ".join(headers).lower()
 
-        # UHC BOB: "Commission Action" + "Writing Agent Name"
-        if "commission action" in header_str and "writing agent name" in header_str:
+        # UHC BOB portal download: "mbiNumber" + "memberFirstName" + "agentId"
+        if "mbinumber" in header_set and "memberfirstname" in header_set:
             return "UHC"
         # Humana BOB: "CommRunDt" + "WaName" + "PaidAmount"
         if "commrundt" in header_set and "waname" in header_set:

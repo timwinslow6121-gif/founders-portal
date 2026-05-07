@@ -1,107 +1,87 @@
 """
-Healthspring (Cigna) BOB / commission payment parser.
+Healthspring (Cigna) BOB parser.
 
-AJ downloads a file with columns:
-  0 Payment Type, 1 Payment Description, 2 Writing Broker NPN,
-  3 Writing Broker Name, 4 Earner NPN, 5 Earner Name,
-  6 Pay Period, 7 Payment Amount, 8 Member ID, 9 MBI
+File format: XLSX downloaded from Healthspring/Cigna agent portal.
+Rows 0-11: preamble (title, filters, blank rows). Row 12: column headers. Row 13+: data.
+Last row is a "Total / Count" summary row — filtered out by MBI check.
 
-No name, DOB, or address — MBI and Member ID are the identifiers.
-We produce one record per unique MBI (skipping summary/negative rows).
+Key columns (by name via pandas):
+  First Name, Last Name, Medicare Number (MBI), Member ID,
+  Effective Date, Disenroll Effective Date, Date of Birth,
+  Phone Number, Residential Address, Residential City,
+  Residential State, Residential Zip Code, Status, Product, Agent NPN
 """
-import re
-import openpyxl
-from datetime import date, datetime
+import pandas as pd
 
-SKIP_ACTIONS = {"payment type"}  # header row guard
+REQUIRED_COLUMNS = {"First Name", "Last Name", "Medicare Number"}
 
 
 def parse(filepath: str) -> list[dict]:
     try:
-        wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
+        df = pd.read_excel(filepath, header=12, dtype=str)
     except Exception as e:
         raise ValueError(f"Could not read Healthspring file: {e}")
 
-    ws = wb.active
-    rows = list(ws.iter_rows(min_row=2, values_only=True))
-    wb.close()
+    df.columns = df.columns.str.strip()
+    missing = REQUIRED_COLUMNS - set(df.columns)
+    if missing:
+        raise ValueError(f"Healthspring file missing required columns: {missing}")
 
-    seen = {}  # mbi → record
+    # Filter to rows with a real MBI (drops totals row and blanks)
+    df = df[df["Medicare Number"].notna() & (df["Medicare Number"].str.strip() != "")].copy()
 
-    for row in rows:
-        if not any(row):
-            continue
-        if len(row) < 10:
-            continue
+    # Active = Enrolled or Pending-Future; termed = Disenrolled
+    status_col = "Status"
+    active_statuses = {"enrolled", "pending-future"}
 
-        payment_type = str(row[0] or "").strip()
-        # Skip summary rows (they have no MBI) and header guard
-        if not payment_type or payment_type.lower() in SKIP_ACTIONS:
-            continue
-        # Skip summary formula rows (col 6 contains "N x.55")
-        if re.search(r'[\d,]+\s*x\.?\s*\.?\d+', str(row[6] or "")):
-            continue
+    records = []
+    for _, row in df.iterrows():
+        mbi    = _str(row, "Medicare Number").upper()
+        first  = _str(row, "First Name").title()
+        last   = _str(row, "Last Name").title()
+        status_raw = _str(row, status_col).lower()
+        is_active  = status_raw in active_statuses
 
-        amount = row[7]
-        if not isinstance(amount, (int, float)):
-            continue
+        term_date = _parse_date(row, "Disenroll Effective Date")
 
-        mbi       = str(row[9] or "").strip()
-        member_id = str(row[8] or "").strip()
-
-        if not mbi and not member_id:
-            continue
-
-        # Determine active vs termed from payment type
-        payment_lower = payment_type.lower()
-        if "disenroll" in payment_lower or "rapid" in payment_lower:
-            status = "termed"
-        else:
-            status = "active"
-
-        effective_date = _parse_date(row[6])
-
-        key = mbi or member_id
-        rec = {
+        records.append({
             "carrier":        "Healthspring",
-            "member_id":      member_id or mbi,
-            "mbi":            mbi or None,
-            "first_name":     "",
-            "last_name":      "",
-            "full_name":      "",
-            "plan_name":      "",
-            "plan_type":      "MAPD",
-            "effective_date": effective_date,
-            "term_date":      None,
+            "member_id":      _str(row, "Member ID") or mbi,
+            "mbi":            mbi,
+            "first_name":     first,
+            "last_name":      last,
+            "full_name":      f"{first} {last}".strip(),
+            "plan_name":      _str(row, "Product"),
+            "plan_type":      _str(row, "Product Type") if "Product Type" in df.columns else "MAPD",
+            "effective_date": _parse_date(row, "Effective Date"),
+            "term_date":      term_date,
             "renewal_date":   None,
-            "dob":            None,
-            "phone":          "",
+            "dob":            _parse_date(row, "Date of Birth"),
+            "phone":          _str(row, "Phone Number"),
             "county":         "",
-            "address1":       "",
-            "city":           "",
-            "state":          "",
-            "zip_code":       "",
-            "agent_id":       str(row[2] or "").strip(),
-            "status":         status,
-        }
-
-        if key not in seen:
-            seen[key] = rec
-
-    return list(seen.values())
+            "address1":       _str(row, "Residential Address").title(),
+            "city":           _str(row, "Residential City").title(),
+            "state":          _str(row, "Residential State").upper(),
+            "zip_code":       _str(row, "Residential Zip Code"),
+            "agent_id":       _str(row, "Agent NPN") if "Agent NPN" in df.columns else "",
+            "status":         "active" if is_active else "termed",
+        })
+    return records
 
 
-def _parse_date(val):
-    if val is None:
-        return None
-    if isinstance(val, (date, datetime)):
-        return val.date() if isinstance(val, datetime) else val
+def _str(row, col: str) -> str:
+    val = row.get(col, "")
+    if pd.isna(val):
+        return ""
     s = str(val).strip()
-    if not s:
+    return "" if s.lower() in ("nan", "none", "nat") else s
+
+
+def _parse_date(row, col: str):
+    val = row.get(col, "")
+    if not val or pd.isna(val) or str(val).strip() in ("", "nan", "None", "NaT"):
         return None
-    for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%m/%d/%y"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except ValueError:
-            pass
-    return None
+    try:
+        return pd.to_datetime(val).date()
+    except Exception:
+        return None

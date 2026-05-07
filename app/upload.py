@@ -516,12 +516,12 @@ def _detect_carrier(filepath: str, filename: str) -> str:
                 return 'Healthspring'
             raise ValueError("Could not identify carrier from CSV headers.")
 
-        # XLSX/XLS — scan first 5 rows to find the real header row
-        # (some carriers include preamble rows before the column headers)
+        # XLSX/XLS — scan first 15 rows to find the real header row
+        # (some carriers include multi-row preambles before the column headers)
         wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
         ws = wb.active
         headers = []
-        for row in ws.iter_rows(min_row=1, max_row=5, values_only=True):
+        for row in ws.iter_rows(min_row=1, max_row=15, values_only=True):
             candidate = [str(c or "").strip() for c in row]
             named = [c for c in candidate if c]
             if len(named) >= 3:
@@ -546,8 +546,8 @@ def _detect_carrier(filepath: str, filename: str) -> str:
         # Aetna BOB: "Medicare Number" + "Sales Event" + "Writing Agent Name"
         if "medicare number" in header_set and "sales event" in header_set:
             return "Aetna"
-        # Healthspring BOB: "Payment Type" + "Writing Broker NPN"
-        if "payment type" in header_set and "writing broker npn" in header_set:
+        # Healthspring BOB portal: "Medicare Number" + "First Name" + "Disenroll Effective Date"
+        if "medicare number" in header_set and "first name" in header_set and "disenroll effective date" in header_str:
             return "Healthspring"
         # Wellable BOB: "Distributor Number" + "Writing Agent Number"
         if "distributor number" in header_set and "writing agent number" in header_set:

@@ -106,6 +106,78 @@
 .sort-arrow { margin-left: 4px; opacity: 0.4; font-style: normal; }
 .sort-arrow.active { opacity: 1; color: var(--gold); }
 
+/* ── Filter bar ── */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.filter-select {
+  background: var(--surface-low);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--ivory);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 140px;
+}
+.filter-select:focus { border-color: var(--gold); }
+.filter-active { border-color: var(--gold) !important; }
+.filter-clear {
+  font-size: 12px;
+  color: var(--slate);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+.filter-clear:hover { color: var(--gold); }
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--slate);
+  white-space: nowrap;
+}
+.stat-chip strong {
+  color: var(--ivory);
+  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 14px;
+}
+
+/* ── Resizable columns ── */
+.data-table th { position: relative; }
+.col-resize-handle {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 10;
+}
+.col-resize-handle:hover { background: var(--gold); opacity: 0.4; }
+
 /* ── Table ── */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table-scroll .data-table { min-width: 560px; }
@@ -165,6 +237,10 @@
       {% if include_former %}Hide former customers{% else %}Show former customers{% endif %}
     </a>
     {% endif %}
+    <a href="{{ url_for('customers.customers_export', q=q, carrier=f_carrier, plan_type=f_plan_type, agent_id=f_agent_id, medicaid=f_medicaid) }}"
+       class="btn-secondary" style="font-size:12px;" title="Export current view to CSV">
+      ↓ Export CSV
+    </a>
     <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add Customer</a>
   </div>
 </div>
@@ -200,6 +276,66 @@
   </div>
 </div>
 
+{# Stats strip #}
+<div class="stats-strip">
+  <div class="stat-chip"><strong>{{ stats.total }}</strong> shown</div>
+  <div class="stat-chip"><strong>{{ stats.active }}</strong> active</div>
+  <div class="stat-chip"><strong>{{ stats.termed }}</strong> termed</div>
+  <div class="stat-chip"><strong>{{ stats.medicaid }}</strong> on medicaid</div>
+</div>
+
+{# Filter bar #}
+<div class="filter-bar">
+  <form method="get" action="{{ url_for('customers.customers_list') }}" id="filter-form" style="display:contents">
+    <input type="hidden" name="q" value="{{ q }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="dir" value="{{ dir }}">
+
+    <select name="carrier" class="filter-select {% if f_carrier %}filter-active{% endif %}"
+            onchange="this.form.submit()">
+      <option value="">All Carriers</option>
+      {% for c in carriers %}
+        <option value="{{ c }}" {% if f_carrier == c %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="plan_type" class="filter-select {% if f_plan_type %}filter-active{% endif %}"
+            onchange="this.form.submit()">
+      <option value="">All Plan Types</option>
+      {% for pt in plan_types %}
+        <option value="{{ pt }}" {% if f_plan_type == pt %}selected{% endif %}>{{ pt }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="medicaid" class="filter-select {% if f_medicaid %}filter-active{% endif %}"
+            onchange="this.form.submit()">
+      <option value="">All Medicaid Levels</option>
+      <option value="Full" {% if f_medicaid == 'Full' %}selected{% endif %}>Full Dual</option>
+      <option value="QMB" {% if f_medicaid == 'QMB' %}selected{% endif %}>QMB</option>
+      <option value="SLMB" {% if f_medicaid == 'SLMB' %}selected{% endif %}>SLMB</option>
+      <option value="QI" {% if f_medicaid == 'QI' %}selected{% endif %}>QI</option>
+      <option value="none" {% if f_medicaid == 'none' %}selected{% endif %}>None / Unknown</option>
+    </select>
+
+    {% if current_user.is_admin %}
+    <select name="agent_id" class="filter-select {% if f_agent_id %}filter-active{% endif %}"
+            onchange="this.form.submit()">
+      <option value="">All Agents</option>
+      {% for a in agents %}
+        <option value="{{ a.id }}" {% if f_agent_id == a.id|string %}selected{% endif %}>
+          {{ a.display_name }}
+        </option>
+      {% endfor %}
+    </select>
+    {% endif %}
+
+    {% if f_carrier or f_plan_type or f_medicaid or f_agent_id %}
+    <a href="{{ url_for('customers.customers_list', q=q, sort=sort, dir=dir) }}"
+       class="filter-clear">✕ Clear filters</a>
+    {% endif %}
+  </form>
+</div>
+
 <div id="search-results"></div>
 
 <div id="full-list">
@@ -210,11 +346,11 @@
       </span>
       <div class="pager">
         {% if customers.has_prev %}
-          <a href="{{ url_for('customers.customers_list', page=customers.prev_num, q=q, sort=sort, dir=dir) }}">← Prev</a>
+          <a href="{{ url_for('customers.customers_list', page=customers.prev_num, q=q, sort=sort, dir=dir, carrier=f_carrier, plan_type=f_plan_type, medicaid=f_medicaid, agent_id=f_agent_id) }}">← Prev</a>
         {% endif %}
         <span>{{ customers.page }} of {{ customers.pages }}</span>
         {% if customers.has_next %}
-          <a href="{{ url_for('customers.customers_list', page=customers.next_num, q=q, sort=sort, dir=dir) }}">Next →</a>
+          <a href="{{ url_for('customers.customers_list', page=customers.next_num, q=q, sort=sort, dir=dir, carrier=f_carrier, plan_type=f_plan_type, medicaid=f_medicaid, agent_id=f_agent_id) }}">Next →</a>
         {% endif %}
       </div>
     </div>
@@ -227,7 +363,7 @@
             {% macro sort_th(label, key, cls='', width='') %}
               {% set next_dir = 'desc' if (sort == key and dir == 'asc') else 'asc' %}
               <th class="sortable {{ cls }}" style="{% if width %}width:{{ width }};{% endif %}"
-                  onclick="window.location='{{ url_for('customers.customers_list', q=q, sort=key, dir=next_dir) }}'">
+                  onclick="window.location='{{ url_for('customers.customers_list', q=q, sort=key, dir=next_dir, carrier=f_carrier, plan_type=f_plan_type, medicaid=f_medicaid, agent_id=f_agent_id) }}'">
                 {{ label }}
                 <i class="sort-arrow {% if sort == key %}active{% endif %}">
                   {{ '↓' if (sort == key and dir == 'desc') else '↑' }}

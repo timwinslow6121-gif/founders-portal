@@ -167,6 +167,7 @@ class ImportBatch(db.Model):
     updated_count = db.Column(db.Integer, default=0)
     error_message = db.Column(db.Text)
     status = db.Column(db.String(32), default="pending")  # pending / success / error
+    unresolvable_json = db.Column(db.Text, nullable=True)  # JSON list of quarantined rows (added migration 014)
 
     policies = db.relationship("Policy", back_populates="import_batch", lazy="dynamic")
 

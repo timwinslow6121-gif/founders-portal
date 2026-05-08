@@ -6,6 +6,7 @@ Agents upload their own BOB and see only their own import history.
 Admins see all import history across all agents.
 """
 
+import json
 import os
 import uuid
 from datetime import date
@@ -633,7 +634,20 @@ def bulk_upload():
             if os.path.exists(filepath): os.remove(filepath)
 
         new_count = updated_count = 0
+        unresolvable = []
         for rec in records:
+            # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
+            is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
+            if is_unresolvable:
+                unresolvable.append({
+                    "carrier": rec.get("carrier"),
+                    "member_id": rec.get("member_id"),
+                    "full_name": rec.get("full_name"),
+                    "dob": str(rec.get("dob")) if rec.get("dob") else None,
+                    "plan_name": rec.get("plan_name"),
+                    "effective_date": str(rec.get("effective_date")) if rec.get("effective_date") else None,
+                })
+
             # Primary match: carrier + member_id
             existing = Policy.query.filter_by(
                 carrier=rec["carrier"], member_id=rec["member_id"],
@@ -689,12 +703,18 @@ def bulk_upload():
                 ))
                 new_count += 1
 
-            # Upsert the customer master record from this policy row
+            # Upsert the customer master record from this policy row.
+            # Skip customer upsert for unresolvable rows — no MBI means no reliable customer match.
             effective_agent_id = bulk_agent_id or (existing.agent_id if existing else None)
-            try:
-                _upsert_customer_from_policy(rec, effective_agent_id, batch.id, bulk_agency_id)
-            except Exception as e:
-                current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
+            if not is_unresolvable:
+                try:
+                    _upsert_customer_from_policy(rec, effective_agent_id, batch.id, bulk_agency_id)
+                except Exception as e:
+                    current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
+
+        # Persist quarantined rows onto the batch for inline resolution via the modal
+        if unresolvable:
+            batch.unresolvable_json = json.dumps(unresolvable)
 
         batch.record_count = len(records)
         batch.new_count = new_count

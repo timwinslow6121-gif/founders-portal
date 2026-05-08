@@ -7,8 +7,9 @@ Agents see only their own customers; admins see all.
 
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from app.extensions import db
 from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, User, Pharmacy, SmsTemplate
 
@@ -474,3 +475,116 @@ def customer_merge():
     db.session.commit()
     flash(f"Merged into {primary.display_name}.", "success")
     return redirect(url_for("customers.customer_profile", customer_id=primary.id))
+
+
+# ---------------------------------------------------------------------------
+# MBI-based duplicate detection + merge (agent-facing, D-07 / D-08 / D-22)
+# ---------------------------------------------------------------------------
+
+def get_duplicate_mbi_count(agency_id, agent_id=None, is_admin=False):
+    """Return number of MBI groups with duplicates visible to this user."""
+    dupe_mbis = (db.session.query(Customer.mbi)
+                 .filter(Customer.agency_id == agency_id, Customer.mbi.isnot(None))
+                 .group_by(Customer.mbi)
+                 .having(func.count(Customer.id) > 1)
+                 .all())
+    if is_admin:
+        return len(dupe_mbis)
+    if agent_id is None:
+        return 0
+    count = 0
+    for row in dupe_mbis:
+        rows = Customer.query.filter_by(agency_id=agency_id, mbi=row.mbi).all()
+        if any(r.primary_agent_id == agent_id for r in rows):
+            count += 1
+    return count
+
+
+@customers_bp.route('/customers/duplicates')
+@login_required
+def duplicates_list():
+    agency_id = current_user.agency_id
+
+    # Find MBIs that appear on >1 customer (within agency)
+    dupe_mbis = (db.session.query(Customer.mbi)
+                 .filter(Customer.agency_id == agency_id, Customer.mbi.isnot(None))
+                 .group_by(Customer.mbi)
+                 .having(func.count(Customer.id) > 1)
+                 .all())
+    mbi_list = [row.mbi for row in dupe_mbis]
+
+    # Build groups: list of (mbi, [Customer, Customer, ...])
+    groups = []
+    for mbi in mbi_list:
+        rows = Customer.query.filter_by(agency_id=agency_id, mbi=mbi).all()
+        # For agents (non-admin): only show groups where at least one row is theirs
+        if not current_user.is_admin:
+            if not any(r.primary_agent_id == current_user.id for r in rows):
+                continue
+        groups.append((mbi, rows))
+
+    return render_template('customer_duplicates.html', groups=groups)
+
+
+@customers_bp.route('/customers/merge/<int:a_id>/<int:b_id>')
+@login_required
+def merge_view(a_id, b_id):
+    agency_id = current_user.agency_id
+    a = Customer.query.filter_by(id=a_id, agency_id=agency_id).first_or_404()
+    b = Customer.query.filter_by(id=b_id, agency_id=agency_id).first_or_404()
+
+    if a.mbi != b.mbi or a.mbi is None:
+        flash("Customers do not share an MBI; cannot merge.", "error")
+        return redirect(url_for('customers.duplicates_list'))
+
+    # Authorization: agent must own at least one of the two records
+    if not current_user.is_admin:
+        if a.primary_agent_id != current_user.id and b.primary_agent_id != current_user.id:
+            abort(403)
+
+    return render_template('customer_merge.html', a=a, b=b)
+
+
+@customers_bp.route('/customers/merge/<int:a_id>/<int:b_id>', methods=['POST'])
+@login_required
+def execute_merge(a_id, b_id):
+    agency_id = current_user.agency_id
+    canonical_id = request.form.get('canonical_id', type=int)
+    if canonical_id not in (a_id, b_id):
+        flash("Invalid canonical selection.", "error")
+        return redirect(url_for('customers.merge_view', a_id=a_id, b_id=b_id))
+
+    discarded_id = a_id if canonical_id == b_id else b_id
+
+    canonical = Customer.query.filter_by(id=canonical_id, agency_id=agency_id).first_or_404()
+    discarded = Customer.query.filter_by(id=discarded_id, agency_id=agency_id).first_or_404()
+
+    if canonical.mbi != discarded.mbi or canonical.mbi is None:
+        flash("Cannot merge customers with different MBIs.", "error")
+        return redirect(url_for('customers.duplicates_list'))
+
+    # Authorization: agent must own at least one of the two records
+    if not current_user.is_admin:
+        if canonical.primary_agent_id != current_user.id and discarded.primary_agent_id != current_user.id:
+            abort(403)
+
+    # Handle AOR unique constraint collision (customer_id, carrier, effective_date)
+    existing_aor_keys = {(a.carrier, a.effective_date) for a in canonical.aor_history}
+    for aor in list(discarded.aor_history):
+        if (aor.carrier, aor.effective_date) in existing_aor_keys:
+            db.session.delete(aor)
+        else:
+            aor.customer_id = canonical.id
+
+    # Migrate notes and contacts (no unique constraints to worry about)
+    CustomerNote.query.filter_by(customer_id=discarded.id).update({'customer_id': canonical.id})
+    CustomerContact.query.filter_by(customer_id=discarded.id).update({'customer_id': canonical.id})
+
+    discarded_label = f"{discarded.first_name} {discarded.last_name}".strip() or f"id={discarded.id}"
+    canonical_label = f"{canonical.first_name} {canonical.last_name}".strip() or f"id={canonical.id}"
+
+    db.session.delete(discarded)
+    db.session.commit()
+
+    flash(f"Merged {discarded_label} into {canonical_label}.", "success")
+    return redirect(url_for('customers.customer_profile', customer_id=canonical.id))

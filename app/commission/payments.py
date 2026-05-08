@@ -180,17 +180,18 @@ def extract_aetna(rows):
             action_raw = "initial"
 
         items.append({
-            "member_name":       str(row[4] or ""),
-            "mbi":               str(row[1] or "").strip() or None,
-            "carrier_member_id": str(row[2] or "").strip() or None,
-            "action_raw":        action_raw,
-            "commission_action": _norm_action(action_raw, amount),
-            "paid_amount":       float(amount),
-            "effective_date":    _parse_date(row[12]),
-            "term_date":         None,
-            "term_reason":       None,
-            "period_month":      None,
-            "plan_name":         str(row[9] or "") or None,
+            "member_name":        str(row[4] or ""),
+            "mbi":                str(row[1] or "").strip() or None,
+            "carrier_member_id":  str(row[2] or "").strip() or None,
+            "action_raw":         action_raw,
+            "commission_action":  _norm_action(action_raw, amount),
+            "paid_amount":        float(amount),
+            "effective_date":     _parse_date(row[12]),
+            "term_date":          None,
+            "term_reason":        None,
+            "period_month":       None,
+            "plan_name":          str(row[9] or "") or None,
+            "writing_agent_name": str(row[16] or "").strip() or None,
         })
     return items
 
@@ -460,6 +461,38 @@ def build_payments(statement, carrier, agent_id, agency_id, ws):
     mbi_map        = {p.mbi: p.id for p in all_policies if p.mbi}
     carrier_id_map = {(p.carrier, p.member_id): p.id
                       for p in all_policies if p.member_id}
+
+    # Agent name→id cache for multi-agent files (e.g. Aetna).
+    # Resolves "Last, First" or "LAST, FIRST" to a portal user id.
+    # Falls back to the statement-level agent_id (None for agency-level) if unmatched.
+    from app.models import User as _User
+    _all_users = _User.query.all()
+    _agent_name_cache = {}
+    def _resolve_agent_id(raw_name):
+        if not raw_name:
+            return agent_id
+        if raw_name in _agent_name_cache:
+            return _agent_name_cache[raw_name]
+        norm = _norm(raw_name)
+        matched = None
+        # Exact match after normalisation
+        for u in _all_users:
+            if _norm(u.name) == norm:
+                matched = u.id
+                break
+        if matched is None:
+            # Fuzzy: match on last name + first 3 chars of first name
+            # handles "Christopher Foster" → "Chris Foster"
+            np = norm.split()
+            for u in _all_users:
+                up = _norm(u.name).split()
+                if len(np) >= 2 and len(up) >= 2 and np[-1] == up[-1]:
+                    if np[0][:3] == up[0][:3]:
+                        matched = u.id
+                        break
+        _agent_name_cache[raw_name] = matched
+        return matched if matched is not None else agent_id
+
     name_map       = {}
     for p in all_policies:
         norm = _norm(p.full_name)
@@ -501,7 +534,7 @@ def build_payments(statement, carrier, agent_id, agency_id, ws):
 
         payment = PolicyPayment(
             agency_id              = agency_id,
-            agent_id               = agent_id,
+            agent_id               = _resolve_agent_id(item.get("writing_agent_name")),
             statement_id           = statement.id,
             carrier                = carrier,
             period_label           = statement.period_label,

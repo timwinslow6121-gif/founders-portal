@@ -663,9 +663,15 @@
         <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
           <span class="nav-dot"></span>Dashboard
         </a>
-        <a href="/customers" class="nav-item {% if '/customers' in request.path %}active{% endif %}">
+        <a href="/customers" class="nav-item {% if '/customers' in request.path and 'duplicate' not in request.path and 'merge' not in request.path %}active{% endif %}">
           <span class="nav-dot"></span>Customers
         </a>
+        {% if duplicate_mbi_count and duplicate_mbi_count > 0 %}
+        <a href="{{ url_for('customers.duplicates_list') }}" class="nav-item {% if 'duplicate' in request.path or 'merge' in request.path %}active{% endif %}">
+          <span class="nav-dot"></span>Duplicates
+          <span class="nav-badge">{{ duplicate_mbi_count }}</span>
+        </a>
+        {% endif %}
         <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
           <span class="nav-dot"></span>Upcoming Terms
         </a>

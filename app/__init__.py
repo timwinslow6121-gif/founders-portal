@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from app.extensions import db, login_manager
 from config import Config
@@ -34,6 +34,21 @@ def create_app():
     app.register_blueprint(pharmacies_bp)
     app.register_blueprint(carriers_bp)
     app.register_blueprint(comms_bp)
+
+    @app.context_processor
+    def inject_duplicate_count():
+        if not current_user.is_authenticated:
+            return {}
+        from app.customers import get_duplicate_mbi_count
+        try:
+            count = get_duplicate_mbi_count(
+                current_user.agency_id,
+                agent_id=current_user.id,
+                is_admin=current_user.is_admin,
+            )
+        except Exception:
+            count = 0
+        return {'duplicate_mbi_count': count}
 
     with app.app_context():
         pass

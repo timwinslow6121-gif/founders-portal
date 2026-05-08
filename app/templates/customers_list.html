@@ -169,6 +169,14 @@
   </div>
 </div>
 
+{% if duplicate_mbi_count and duplicate_mbi_count > 0 %}
+<div style="margin-bottom: 12px;">
+  <a href="{{ url_for('customers.duplicates_list') }}" style="color: var(--status-error); font-size: 13px; text-decoration: none; font-weight: 500;">
+    &#9888; {{ duplicate_mbi_count }} duplicate MBI{{ 's' if duplicate_mbi_count != 1 else '' }} detected — click to review
+  </a>
+</div>
+{% endif %}
+
 <div class="cust-toolbar">
   <div class="cust-search-wrap">
     <input type="text" id="search-input" placeholder="Search by name, MBI, or phone…" value="{{ q }}" autocomplete="off">

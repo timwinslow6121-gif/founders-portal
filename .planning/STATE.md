@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Plan 04-01 complete and deployed — Wave 2 (04-02 through 04-05) ready to execute in parallel
-last_updated: "2026-05-07T00:00:00.000Z"
+stopped_at: "Checkpoint reached: Task 2 (VPS deploy + run shell deletion script) — awaiting human verify"
+last_updated: "2026-05-08T03:14:39.731Z"
 last_activity: 2026-05-07 -- Plan 04-01 deployed (Humana MBI cleanup + partial unique index)
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 17
-  completed_plans: 13
-  percent: 22
+  completed_plans: 14
+  percent: 20
 ---
 
 # Project State
@@ -88,6 +88,7 @@ Recent decisions affecting current work:
 - [Phase 03-communications-hub]: send_sms_template raises ValueError not HTTP error — keeps business logic testable without Flask request context
 - [Phase 03-04]: verify_calendly_webhook imported at module level in webhooks.py so tests patch app.comms.webhooks.verify_calendly_webhook (consistent with Quo pattern)
 - [Phase 03-04]: _agency_id() helper defers User.agency_id FK scoping to Plan 07 with DEFAULT_AGENCY_ID fallback
+- [Phase 04-compliance-reference]: Policy table excluded from shell customer dependent check — Policy has no customer_id FK; joins by MBI, and shell customers (mbi=NULL) have no linked policies
 
 ### Pending Todos
 
@@ -103,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-07T00:00:00.000Z
-Stopped at: Plan 04-01 complete and deployed — Wave 2 (04-02 through 04-05) ready to execute in parallel
-Resume file: .planning/phases/04-compliance-reference/04-02-PLAN.md
+Last session: 2026-05-08T03:14:33.841Z
+Stopped at: Checkpoint reached: Task 2 (VPS deploy + run shell deletion script) — awaiting human verify
+Resume file: None

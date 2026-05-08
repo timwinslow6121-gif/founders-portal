@@ -140,7 +140,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Humana mbi='' → NULL backfill, partial unique index on customers.mbi, parser + upload.py hardening (deployed 2026-05-07)
-- [ ] 04-02-PLAN.md — Upload-time MBI conflict detection + admin merge tool for duplicate customers
+- [x] 04-02-PLAN.md — Upload-time MBI conflict detection + admin merge tool for duplicate customers
 - [ ] 04-03-PLAN.md — Shell customer cleanup (29 customers with no MBI and no humana_id)
 - [ ] 04-04-PLAN.md — Quarantine BOB records with no resolvable MBI (use unresolvable_json column)
 - [ ] 04-05-PLAN.md — Humana MBI backfill from PolicyPayment records (name-match confidence)
@@ -212,7 +212,7 @@ Phases execute in numeric order: 2.5 → 3 → 4 → 5 → 6 → 7
 | 2. Customer Master | - | Complete | 2026-03-20 |
 | 2.5. PostgreSQL Migration | 0/TBD | Not started | - |
 | 3. Communications Hub | 5/7 | In Progress|  |
-| 4. Compliance Reference | 1/5 | In Progress | - |
+| 4. Compliance Reference | 2/5 | In Progress|  |
 | 5. Operations | 0/TBD | Not started | - |
 | 6. Analytics | 0/TBD | Not started | - |
 | 7. White Label / Multi-Tenant | 0/TBD | Not started | - |

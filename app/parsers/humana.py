@@ -35,7 +35,7 @@ def parse(filepath: str) -> list[dict]:
         records.append({
             "carrier":        "Humana",
             "member_id":      humana_id,
-            "mbi":            "" if raw_mbi.startswith("XXXXX") else raw_mbi.upper(),
+            "mbi":            None if raw_mbi.startswith("XXXXX") else (raw_mbi.upper() or None),
             "first_name":     first,
             "last_name":      last,
             "full_name":      f"{first} {last}".strip(),

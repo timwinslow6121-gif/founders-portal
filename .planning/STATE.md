@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: "Checkpoint reached: Task 2 (VPS deploy + run shell deletion script) — awaiting human verify"
-last_updated: "2026-05-08T03:14:39.731Z"
-last_activity: 2026-05-07 -- Plan 04-01 deployed (Humana MBI cleanup + partial unique index)
+stopped_at: "Completed 04-03-PLAN.md — checkpoint:human-verify (Task 5 deploy + smoke test)"
+last_updated: "2026-05-08T03:17:15.883Z"
+last_activity: 2026-05-08
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 17
   percent: 20
 ---
 
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 ## Current Position
 
 Phase: 04 (compliance-reference) — EXECUTING
-Plan: 1 of 5 — COMPLETE (deployed 2026-05-07)
-Status: Wave 2 (04-02 through 04-05) ready to execute in parallel
-Last activity: 2026-05-07 -- Plan 04-01 deployed (Humana MBI cleanup + partial unique index)
+Plan: 3 of 5 — COMPLETE (deployed 2026-05-07)
+Status: Ready to execute
+Last activity: 2026-05-08
 
 Progress: [██░░░░░░░░] 20% (phases 1–2 complete, 5 phases remaining)
 
@@ -60,6 +60,8 @@ Progress: [██░░░░░░░░] 20% (phases 1–2 complete, 5 phases 
 | Phase 03-communications-hub P03 | 5 | 2 tasks | 3 files |
 | Phase 03-communications-hub P05 | 4 | 2 tasks | 9 files |
 | Phase 03-communications-hub P04 | 6 | 2 tasks | 8 files |
+| Phase 04-compliance-reference P03 | 3 | 4 tasks | 6 files |
+| Phase 04-compliance-reference P04 | 18 | 4 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +91,11 @@ Recent decisions affecting current work:
 - [Phase 03-04]: verify_calendly_webhook imported at module level in webhooks.py so tests patch app.comms.webhooks.verify_calendly_webhook (consistent with Quo pattern)
 - [Phase 03-04]: _agency_id() helper defers User.agency_id FK scoping to Plan 07 with DEFAULT_AGENCY_ID fallback
 - [Phase 04-compliance-reference]: Policy table excluded from shell customer dependent check — Policy has no customer_id FK; joins by MBI, and shell customers (mbi=NULL) have no linked policies
+- [Phase 04-03]: Agent-facing duplicate merge UI (not admin-only): D-07 satisfied; agents see only their own duplicate groups, admins see all
+- [Phase 04-03]: AOR collision guard: build existing_aor_keys set before loop, delete collisions not migrate — prevents unique constraint violation on (customer_id, carrier, effective_date)
+- [Phase 04-03]: Context processor pattern for duplicate count badge: inject_duplicate_count() in app/__init__.py wraps in try/except, returns empty dict if not authenticated
+- [Phase 04-compliance-reference]: 04-04: Policy row inserted even for unresolvable (carrier record preserved); only _upsert_customer_from_policy is skipped to prevent shell customers
+- [Phase 04-compliance-reference]: 04-04: assign_existing uses customer ID (not search typeahead) in v1 — search modal deferred
 
 ### Pending Todos
 
@@ -104,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-08T03:14:33.841Z
-Stopped at: Checkpoint reached: Task 2 (VPS deploy + run shell deletion script) — awaiting human verify
+Last session: 2026-05-08T03:16:54.690Z
+Stopped at: Completed 04-03-PLAN.md — checkpoint:human-verify (Task 5 deploy + smoke test)
 Resume file: None

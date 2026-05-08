@@ -5,11 +5,15 @@ Blueprint for customer master records — search, profile view, notes, contacts,
 Agents see only their own customers; admins see all.
 """
 
+import csv
+import io
+import json
 from datetime import datetime
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response
 from flask_login import login_required, current_user
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView
 
@@ -104,6 +108,39 @@ def _is_current_aor(customer):
     return customer.primary_agent_id == current_user.id
 
 
+def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid):
+    """Apply the standard customer list filters to a query. Used by both list and export routes."""
+    if q_str:
+        like = f"%{q_str}%"
+        query = query.filter(
+            db.or_(
+                Customer.full_name.ilike(like),
+                Customer.phone_primary.ilike(like),
+                Customer.mbi.ilike(like),
+            )
+        )
+    if f_carrier or f_plan_type:
+        policy_q = db.session.query(Policy.mbi).filter(
+            Policy.agency_id == current_user.agency_id,
+            Policy.mbi.isnot(None),
+        )
+        if f_carrier:
+            policy_q = policy_q.filter(Policy.carrier == f_carrier)
+        if f_plan_type:
+            policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
+        query = query.filter(Customer.mbi.in_(policy_q.distinct()))
+    if f_agent_id and current_user.is_admin:
+        query = query.filter(Customer.primary_agent_id == f_agent_id)
+    if f_medicaid:
+        if f_medicaid == "none":
+            query = query.filter(
+                db.or_(Customer.medicaid_level.is_(None), Customer.medicaid_level == "")
+            )
+        else:
+            query = query.filter(Customer.medicaid_level == f_medicaid)
+    return query
+
+
 # ---------------------------------------------------------------------------
 # List + Search
 # ---------------------------------------------------------------------------
@@ -125,41 +162,7 @@ def customers_list():
 
     query = _customer_query(include_former=include_former)
 
-    if q:
-        like = f"%{q}%"
-        query = query.filter(
-            db.or_(
-                Customer.full_name.ilike(like),
-                Customer.phone_primary.ilike(like),
-                Customer.mbi.ilike(like),
-            )
-        )
-
-    # Carrier / plan_type filters — join through Policy via MBI
-    if f_carrier or f_plan_type:
-        policy_q = db.session.query(Policy.mbi).filter(
-            Policy.agency_id == current_user.agency_id,
-            Policy.mbi.isnot(None),
-        )
-        if f_carrier:
-            policy_q = policy_q.filter(Policy.carrier == f_carrier)
-        if f_plan_type:
-            policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
-        mbi_subq = policy_q.distinct()
-        query = query.filter(Customer.mbi.in_(mbi_subq))
-
-    # Agent filter (admin only)
-    if f_agent_id and current_user.is_admin:
-        query = query.filter(Customer.primary_agent_id == f_agent_id)
-
-    # Medicaid level filter
-    if f_medicaid:
-        if f_medicaid == "none":
-            query = query.filter(
-                db.or_(Customer.medicaid_level.is_(None), Customer.medicaid_level == "")
-            )
-        else:
-            query = query.filter(Customer.medicaid_level == f_medicaid)
+    query = _apply_customer_filters(query, q, f_carrier, f_plan_type, f_agent_id, f_medicaid)
 
     _sort_cols = {
         "name":     [Customer.last_name, Customer.first_name],
@@ -223,46 +226,21 @@ def customers_list():
 @customers_bp.route("/customers/export")
 @login_required
 def customers_export():
-    import csv, io
-    q_str       = request.args.get("q", "").strip()
-    f_carrier   = request.args.get("carrier", "").strip()
-    f_plan_type = request.args.get("plan_type", "").strip()
-    f_agent_id  = request.args.get("agent_id", type=int)
-    f_medicaid  = request.args.get("medicaid", "").strip()
+    q_str          = request.args.get("q", "").strip()
+    f_carrier      = request.args.get("carrier", "").strip()
+    f_plan_type    = request.args.get("plan_type", "").strip()
+    f_agent_id     = request.args.get("agent_id", type=int)
+    f_medicaid     = request.args.get("medicaid", "").strip()
+    include_former = request.args.get("include_former") == "1"
 
-    query = _customer_query()
+    query = _customer_query(include_former=include_former)
 
-    if q_str:
-        like = f"%{q_str}%"
-        query = query.filter(
-            db.or_(
-                Customer.full_name.ilike(like),
-                Customer.phone_primary.ilike(like),
-                Customer.mbi.ilike(like),
-            )
-        )
-    if f_carrier or f_plan_type:
-        policy_q = db.session.query(Policy.mbi).filter(
-            Policy.agency_id == current_user.agency_id,
-            Policy.mbi.isnot(None),
-        )
-        if f_carrier:
-            policy_q = policy_q.filter(Policy.carrier == f_carrier)
-        if f_plan_type:
-            policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
-        mbi_subq = policy_q.distinct()
-        query = query.filter(Customer.mbi.in_(mbi_subq))
-    if f_agent_id and current_user.is_admin:
-        query = query.filter(Customer.primary_agent_id == f_agent_id)
-    if f_medicaid:
-        if f_medicaid == "none":
-            query = query.filter(
-                db.or_(Customer.medicaid_level.is_(None), Customer.medicaid_level == "")
-            )
-        else:
-            query = query.filter(Customer.medicaid_level == f_medicaid)
+    query = _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid)
 
-    rows = query.order_by(Customer.last_name, Customer.first_name).all()
+    rows = query.options(
+        joinedload(Customer.primary_agent),
+        joinedload(Customer.pharmacy),
+    ).order_by(Customer.last_name, Customer.first_name).all()
 
     buf = io.StringIO()
     writer = csv.writer(buf)
@@ -285,25 +263,26 @@ def customers_export():
             c.pharmacy.name if c.pharmacy else "",
         ])
 
-    from flask import Response
     output = buf.getvalue()
+    filename = f"customers_export_{datetime.today().strftime('%Y%m%d')}.csv"
     return Response(
         output,
         mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=customers_export.csv"},
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
 @customers_bp.route("/customers/saved-views", methods=["POST"])
 @login_required
 def save_customer_view():
-    import json
     data      = request.get_json(force=True)
     name      = (data.get("name") or "").strip()
     state     = data.get("state")
     is_shared = bool(data.get("is_shared")) and current_user.is_admin
     if not name or not state:
         return jsonify({"error": "name and state required"}), 400
+    if len(name) > 128:
+        return jsonify({"error": "name too long (max 128 chars)"}), 400
     view = CustomerSavedView(
         agency_id  = current_user.agency_id,
         created_by = current_user.id,

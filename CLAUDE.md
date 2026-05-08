@@ -138,6 +138,7 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Data cleanup ✅ (2026-05-07)** — Deleted 4,941 seeded policies and 26 Devoted UUID policies. Real dataset: 524 policies (all with MBI or humana_id), 535 customers.
 - **Phase 4 — Data Integrity + Reconciliation ✅ DEPLOYED (2026-05-08)** — Migration 014: Humana mbi=''→NULL backfill (196 policies + 2 BCBS outliers), partial unique index `WHERE mbi IS NOT NULL` on customers.mbi, `unresolvable_json` column on import_batches. 25 shell customers (no MBI/humana_id/dependents) hard-deleted — 510 customers remain. MBI duplicate detection + side-by-side merge UI with single-transaction AOR-safe migration. Unresolvable BOB quarantine tab (4th tab in import modal with inline assign/MBI/create resolution). BOB↔Commission reconciliation page (members in BOB not paid + payments not in BOB, per carrier+period). Per-customer Payment History section on customer profile.
 - **UI Polish ✅ (2026-05-07)** — Enhanced base.html with subtle CSS micro-animations, glassmorphism on sidebars (backdrop-filter), and depth effects via hover states for cards, buttons, and nav items without changing the core layout.
+- **Commission parser fixes ✅ (2026-05-08)** — UHC and Aetna parsers corrected for April 2026 file formats. UHC: 29-col layout, agent=col5, mbi=col8, action=col19, commission=col23. Aetna: agency-level multi-agent file, agent_id=NULL on statement, per-row agent resolution via col16. PolicyPayment.agent_id made nullable (migration 015). Nickname matching (michael↔mike, christopher↔chris, etc.) added to both _detect_agent_id() and _resolve_agent_id(). paid=0 (no summary row) defaults to expected amount. extract_aetna and extract_uhc in payments.py updated to match new layouts with MBI now included.
 
 ## Next Steps / To-Do
 
@@ -205,27 +206,56 @@ Admin nav additionally shows: Agency Overview, Agent Settings, Partner Pharmacie
 - [ ] Google Meet: enable recording + transcription in Workspace admin, create Pub/Sub topic/subscription, add service account credentials to VPS, add GOOGLE_MEET_PUBSUB_SUBSCRIPTION to .env
 - [ ] Distribute HealthSherpa captive join code to LOA agents once provisioned
 
-## Commission Parser Notes (app/commission/routes.py)
+## Commission Parser Notes (app/commission/routes.py + app/commission/payments.py)
 
-Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprints column headers. Agent matching via `_detect_agent_id()` + `_normalize_name()`.
+Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprints column headers. Agent matching via `_detect_agent_id()` (routes.py, gates upload) + `_resolve_agent_id()` (payments.py, per-row attribution).
 
-**Column indices per carrier (verified against March 2026 files):**
-- UHC: agent=col1, action=col4, commission=col5. Gross summary row: `'$N x.55'` in col4 (skip). Paid row: `'$N + $N'` pattern in col4, paid value in col5.
-- Aetna: **CSV format** — col0: Payment Date, col1: Medicare Number (MBI), col4: Member Name, col6: Sales Event (action), col9: Plan ID, col12: Coverage Period, col16: Writing Agent Name, col20: Payee Amount. Summary row scanned by `_scan_summary()`. **Split rate = 0.55 (55%)** — AJ's March file used 0.525 by mistake; contract rate is 55%.
+**Column indices per carrier (verified against April 2026 files):**
+- UHC: **29-col format** — agent=col5 (Writing Agent Name), mbi=col8 (MedicareID), action=col19, commission=col23, eff_date=col11, term_date=col28, term_reason=col24, stmt_date=col3, comp_type=col26 (I=initial/R=renewal-year), plan_type=col12, prior_plan=col27. No summary row in direct UHC downloads — paid defaults to expected.
+- Aetna: **Agency-level multi-agent XLSX** — Payee=Founders (not an individual agent). agent_id=NULL on CommissionStatement. Per-row agent attribution via col16 (Writing Agent Name). mbi=col1, member=col4, action=col6, eff_date=col12, amount=col20. `AGENCY_LEVEL_CARRIERS = {"Aetna"}` in commission_upload(). Split rate read from any active Aetna contract.
 - Humana: agent=col2, amount=col8 (PaidAmount). No separate paid row — Humana pays Tim directly, `paid = gross`. **Split rate = 1.0** in `agent_carrier_contracts` for Tim.
 - BCBS: agent=col1, commission=col13. Summary row: `'$N x .55'` in col9, paid in col10.
 - Devoted: agent=col2, amount=col11 (Base Amount). Summary row: `'N x .55'` in col8, paid in col9. Statement date is string `MM/DD/YYYY` in col0.
-- Healthspring: agent=col3, amount=col7. Summary row: `'N x.55'` in col6, paid in col7.
+- Healthspring: agent=col3, amount=col7. Summary row: `'N x.55'` in col6, paid in col7. Also combines overrides + agent payments (same as UHC) — not yet handled.
 - Wellable: agent=col3, advance_amount=col16. Summary row: `'$N x .55'` in col16, paid in col17. All line items flagged `is_advance=True` — clawback risk badge shown in UI.
 
-**Split rates in agent_carrier_contracts (Tim, agent_id=1):**
-- Aetna: 0.55 (55%) — corrected from 0.525; AJ's March file was wrong
-- Humana: 1.0 (direct pay — no agency redistribution)
-- All others: 0.55 (55%)
+**Agent name matching (both _detect_agent_id and _resolve_agent_id):**
+- Files use "LAST, FIRST" or "LAST, FIRST MIDDLE" format; portal stores "First Last"
+- `_normalize_name()` handles comma-separated format → "first last"
+- Nickname dict covers michael↔mike, christopher↔chris, timothy↔tim, william↔bill, robert↔bob, richard↔rick, james↔jim, thomas↔tom
+- Fuzzy fallback: same last name + first 3 chars match (catches Christopher→Chris)
+- Falls back to None (agency-level) for unrecognised names (e.g. external LOA agents not in portal)
+
+**paid=0 handling:** When `_scan_summary()` finds no summary row (carrier sends clean data files with no AJ annotation), `paid` returns 0. In `commission_upload()`, paid=0 is treated as "no summary present" and defaults to expected amount, marking statement verified. AJ corrects manually if actual payment differs.
+
+**Split rates in agent_carrier_contracts:**
+- Tim Winslow: all carriers 0.55 except Humana 1.0 (direct pay)
+- Mike Lauzurique: all carriers 0.525
+- Betty Marlowe: 0.525 (stored; was incorrectly 0.55 in docs — actual is 52.5%)
+- Aetna: 0.55 (55%) — AJ's March file used 0.525 by mistake; contract rate is 55%
 
 **Known UHC behavior:** UHC sometimes pays gross×55% + separate HA bonus in a single disbursement. This shows as a discrepancy of the HA bonus amount — this is expected and should be reviewed, not auto-resolved.
 
+**UHC override structure (LOA agents — PARTIALLY PLANNED, NOT YET IMPLEMENTED):**
+UHC bundles agent commission + Founders override in one payment per member row. Applies to Mike Lauzurique, Rebekah Long, Betty Marlowe (LOA agents). NOT applicable to Aetna, Humana, BCBS, Devoted.
+- Renewal rows: agent_base = Plan.comm_renewal PMPM ($347/12 = $28.9166). Override = total − agent_base. Net = agent_base × split_rate.
+- New enrollment comp_type=R: agent_base = renewal_pmpm × months_remaining. Override = override_renewal_annual/12 × months_remaining ($55/yr for MAPD). months_remaining = 13 − effective_month.
+- New enrollment comp_type=I ($517.50, $433.75): **PENDING AJ confirmation** — may be partial payment/true-up or plan-specific rate below CMS max. Do NOT implement split for comp_type=I until resolved.
+- Implementation plan at `.claude/plans/we-need-to-discuss-buzzing-honey.md`.
+
 **Wellable advance commissions:** 1st-year advances are clawback-eligible if policy lapses within advance period. Flagged with orange "Advance" badge and warning banner in commission detail view. Do not treat as verified income.
+
+## Commission Statement → Customer/Policy Sync (PLANNED, NOT YET IMPLEMENTED)
+
+On commission upload, the portal should enrich Customer/Policy records — not just store payment rows. Approved plan at `.claude/plans/we-need-to-discuss-buzzing-honey.md`.
+
+**What gets updated on matched Policy (by MBI):** plan_type, plan_name (Contract+PBP formatted as "H5253-184"), effective_date (only if earlier), term_date+status='termed' (if present), term_reason, commission_type (I→'initial', R→'renewal'). Never overwrite PII (name, DOB, phone, address). Never overwrite if customer.manually_edited=True.
+
+**Unmatched MBIs:** Auto-create stub Customer (stub=True, source='commission_import') + stub Policy. Agent fills in DOB/phone directly in portal to promote stub to full record — no BOB upload required. When BOB later includes the member, _upsert_customer_from_policy() fills remaining gaps.
+
+**AOR discrepancies:** Commission file writing agent ≠ stored primary_agent_id → flag only, don't auto-update. Stored in CommissionStatement.aor_flags_json, surfaced as 5th tab in import modal.
+
+**Pending migrations:** 016 — Customer.stub (Boolean), Customer.source (String), CommissionStatement.aor_flags_json (Text).
 
 ## Key Files
 - `FOUNDERS_PORTAL_CONTEXT.md` — full project context, agent roster, carrier details, roadmap

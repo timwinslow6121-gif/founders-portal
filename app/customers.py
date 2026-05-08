@@ -120,7 +120,7 @@ def customers_list():
     # New filter params
     f_carrier   = request.args.get("carrier", "").strip()
     f_plan_type = request.args.get("plan_type", "").strip()
-    f_agent_id  = request.args.get("agent_id", "", type=str).strip()
+    f_agent_id  = request.args.get("agent_id", type=int)
     f_medicaid  = request.args.get("medicaid", "").strip()
 
     query = _customer_query(include_former=include_former)
@@ -145,12 +145,12 @@ def customers_list():
             policy_q = policy_q.filter(Policy.carrier == f_carrier)
         if f_plan_type:
             policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
-        mbi_subq = policy_q.distinct().subquery()
-        query = query.filter(Customer.mbi.in_(db.select(mbi_subq)))
+        mbi_subq = policy_q.distinct()
+        query = query.filter(Customer.mbi.in_(mbi_subq))
 
     # Agent filter (admin only)
     if f_agent_id and current_user.is_admin:
-        query = query.filter(Customer.primary_agent_id == int(f_agent_id))
+        query = query.filter(Customer.primary_agent_id == f_agent_id)
 
     # Medicaid level filter
     if f_medicaid:
@@ -191,6 +191,7 @@ def customers_list():
         .distinct().order_by(Policy.plan_type).all() if r[0]]
 
     agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.is_admin == False)
               .order_by(User.name).all()) if current_user.is_admin else []
 
     # Shared saved views visible to this user
@@ -211,7 +212,7 @@ def customers_list():
         customers=customer_page,
         q=q, sort=sort, dir=dir_, include_former=include_former,
         f_carrier=f_carrier, f_plan_type=f_plan_type,
-        f_agent_id=f_agent_id, f_medicaid=f_medicaid,
+        f_agent_id=f_agent_id or "", f_medicaid=f_medicaid,
         stats={"total": total_count, "active": active_count,
                "termed": termed_count, "medicaid": medicaid_count},
         carriers=carriers, plan_types=plan_types, agents=agents,

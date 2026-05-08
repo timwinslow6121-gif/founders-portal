@@ -731,3 +731,19 @@ class SmsTemplate(db.Model):
 
     def __repr__(self):
         return f"<SmsTemplate {self.name!r} status={self.status}>"
+
+
+class CustomerSavedView(db.Model):
+    """Named filter+column preset for the customer list. Personal or shared agency-wide."""
+    __tablename__ = "customer_saved_views"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    agency_id  = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    name       = db.Column(db.String(128), nullable=False)
+    # JSON: {"filters": {"carrier":..., "plan_type":..., ...}, "columns": {"col-mbi": true, ...}}
+    state_json = db.Column(db.Text, nullable=False)
+    is_shared  = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    creator = db.relationship("User", foreign_keys=[created_by])

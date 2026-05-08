@@ -151,39 +151,46 @@ def extract_uhc(rows):
 
 def extract_aetna(rows):
     """
-    Aetna columns:
-      0 Medicare Number (MBI!), 1 Member ID, 3 Member Name,
-      5 Sales Event, 6 Product, 7 Effective Date,
-      9 Writing Agent Name, 10 Payee Amount, 11 CMS New
+    Aetna April 2026 column layout (0-indexed):
+      0  Payment Date       1  Medicare Number (MBI)   2  Member ID
+      4  Member Name        6  Sales Event             7  Product
+      9  Plan ID            12 Effective Date          14 Writing Agent NPN
+      16 Writing Agent Name 20 Payee Amount            21 CMS New
     """
     items = []
     for row in rows:
         if not any(row):
             continue
-        if re.search(r'[\d,]+\.?\d*\s*x', str(row[9] or "")):
+        # Skip footer rows ("Total Payee Amount: ...")
+        if str(row[0] or "").strip().lower().startswith("total"):
             continue
 
-        amount = row[10]
+        amount = row[20]
+        if isinstance(amount, str):
+            try:
+                amount = float(amount.replace(",", "").replace("$", "").strip())
+            except ValueError:
+                continue
         if not isinstance(amount, (int, float)):
             continue
 
-        cms_new    = str(row[11] or "").strip().upper()
-        action_raw = str(row[5] or "").strip()
+        cms_new    = str(row[21] or "").strip().upper()
+        action_raw = str(row[6] or "").strip()
         if cms_new == "Y":
             action_raw = "initial"
 
         items.append({
-            "member_name":       str(row[3] or ""),
-            "mbi":               str(row[0] or "").strip() or None,
-            "carrier_member_id": str(row[1] or "").strip() or None,
+            "member_name":       str(row[4] or ""),
+            "mbi":               str(row[1] or "").strip() or None,
+            "carrier_member_id": str(row[2] or "").strip() or None,
             "action_raw":        action_raw,
             "commission_action": _norm_action(action_raw, amount),
             "paid_amount":       float(amount),
-            "effective_date":    _parse_date(row[7]),
+            "effective_date":    _parse_date(row[12]),
             "term_date":         None,
             "term_reason":       None,
             "period_month":      None,
-            "plan_name":         str(row[6] or "") or None,
+            "plan_name":         str(row[9] or "") or None,
         })
     return items
 

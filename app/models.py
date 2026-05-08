@@ -618,7 +618,7 @@ class PolicyPayment(db.Model):
 
     id                 = db.Column(db.Integer, primary_key=True)
     agency_id          = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
-    agent_id           = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    agent_id           = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     agent              = db.relationship("User", foreign_keys=[agent_id])
     statement_id       = db.Column(db.Integer, db.ForeignKey("commission_statements.id",
                                    ondelete="CASCADE"), nullable=False, index=True)

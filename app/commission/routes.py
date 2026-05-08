@@ -1,3 +1,4 @@
+import csv
 import io
 import json
 import re
@@ -133,6 +134,12 @@ def _parse_uhc(ws):
 
 
 def _parse_aetna(ws):
+    # April 2026 Aetna CSV column layout (0-indexed):
+    #  col0:  Payment Date       col1:  Medicare Number (MBI)
+    #  col4:  Member Name        col6:  Sales Event (action)
+    #  col9:  Plan ID            col12: Coverage Period
+    #  col14: Writing Agent NPN  col16: Writing Agent Name
+    #  col20: Payee Amount
     paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
@@ -142,21 +149,44 @@ def _parse_aetna(ws):
     for row in rows:
         if not any(row):
             continue
+        # Skip footer rows (e.g. "Total Payee Amount: $1461.97" in col0)
+        col0 = str(row[0] or "").strip()
+        if col0.lower().startswith("total"):
+            continue
         # Skip summary rows
         if re.search(r'[\d,]+\.?\d*\s*x', str(row[9] or "")):
             continue
 
-        amount = row[10]  # Payee Amount
-        if stmt_date is None and row[7] and isinstance(row[7], datetime):
-            stmt_date = row[7].date()
+        amount = row[20] if len(row) > 20 else None   # Payee Amount
+        mbi    = str(row[1] or "").strip()             # Medicare Number
 
-        if amount and isinstance(amount, (int, float)):
+        # Parse stmt_date from Payment Date (col0) — may be string "YYYY-MM-DD"
+        if stmt_date is None and row[0]:
+            if isinstance(row[0], datetime):
+                stmt_date = row[0].date()
+            elif isinstance(row[0], date):
+                stmt_date = row[0]
+            else:
+                try:
+                    stmt_date = datetime.strptime(str(row[0]).strip(), "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+
+        # Convert string amounts (CSV comes in as strings)
+        if isinstance(amount, str):
+            try:
+                amount = float(amount.replace(",", "").replace("$", "").strip())
+            except ValueError:
+                amount = None
+
+        if amount and isinstance(amount, (int, float)) and float(amount) != 0:
             gross += float(amount)
             line_items.append({
-                "member":   str(row[3] or ""),
-                "plan":     str(row[6] or ""),
-                "eff_date": str(row[7].date() if isinstance(row[7], datetime) else row[7] or ""),
-                "action":   str(row[5] or ""),
+                "mbi":      mbi,
+                "member":   str(row[4] or ""),
+                "plan":     str(row[9] or ""),
+                "eff_date": str(row[12] or ""),
+                "action":   str(row[6] or ""),
                 "amount":   float(amount),
             })
 
@@ -341,6 +371,19 @@ def _parse_wellable(ws):
     return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
+def _csv_bytes_to_workbook(file_bytes):
+    """Convert a CSV file (bytes) into an openpyxl Workbook so the rest of
+    the commission pipeline can treat it identically to an XLSX file.
+    Values are stored as strings; _parse_aetna handles string-to-float conversion."""
+    text = file_bytes.decode("utf-8-sig", errors="replace")
+    reader = csv.reader(io.StringIO(text))
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for row in reader:
+        ws.append(row)
+    return wb
+
+
 def _detect_carrier(ws):
     headers = [str(c.value or "").lower() for c in ws[1]]
     header_str = " ".join(headers)
@@ -396,7 +439,7 @@ def _detect_agent_id(ws, carrier):
     """Extract agent name from file and match to a User in the database."""
     agent_col_map = {
         "UHC":          1,   # Writing Agent Name (col B, index 1)
-        "Aetna":        9,   # Writing Agent Name (col J, index 9)
+        "Aetna":       16,   # Writing Agent Name (col Q, index 16)
         "Humana":       2,   # WaName (col C, index 2)
         "BCBS":         1,   # Agent Name (col B, index 1)
         "Devoted":      2,   # Agent Name (col C, index 2)
@@ -522,7 +565,11 @@ def commission_upload():
 
     try:
         file_bytes = file.read()
-        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+        filename_lower = (file.filename or "").lower()
+        if filename_lower.endswith(".csv"):
+            wb = _csv_bytes_to_workbook(file_bytes)
+        else:
+            wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
         ws = wb.active
     except Exception as e:
         flash(f"Could not read file: {e}", "error")
@@ -543,23 +590,34 @@ def commission_upload():
     if not stmt_date:
         stmt_date = date.today()
 
-    # Auto-detect agent from file
-    agent_id = _detect_agent_id(ws, carrier)
-    if not agent_id:
-        flash("Could not match agent name in file to a portal user. Check the Writing Agent Name column.", "error")
-        return redirect(url_for("commission.commission_admin"))
+    # Aetna pays the agency directly across multiple LOA agents \u2014 no single portal user owns it.
+    # Use agent_id=None (agency-level statement) and look up split from any active Aetna contract.
+    AGENCY_LEVEL_CARRIERS = {"Aetna"}
 
-    # Validate agent has active contract with this carrier
-    contract = AgentCarrierContract.query.filter_by(
-        agent_id=agent_id, carrier=carrier, is_active=True
-    ).first()
-    if not contract:
-        agent_name = User.query.get(agent_id).display_name
-        flash(f"\u26a0 {agent_name} does not have an active {carrier} contract. Upload rejected.", "error")
-        return redirect(url_for("commission.commission_admin"))
+    if carrier in AGENCY_LEVEL_CARRIERS:
+        agent_id = None
+        contract = AgentCarrierContract.query.filter_by(
+            carrier=carrier, is_active=True
+        ).first()
+        agent_split = contract.split_rate if contract else 0.55
+    else:
+        # Auto-detect agent from file
+        agent_id = _detect_agent_id(ws, carrier)
+        if not agent_id:
+            flash("Could not match agent name in file to a portal user. Check the Writing Agent Name column.", "error")
+            return redirect(url_for("commission.commission_admin"))
 
-    # Use agent's actual split rate
-    agent_split  = contract.split_rate
+        # Validate agent has active contract with this carrier
+        contract = AgentCarrierContract.query.filter_by(
+            agent_id=agent_id, carrier=carrier, is_active=True
+        ).first()
+        if not contract:
+            agent_name = User.query.get(agent_id).display_name
+            flash(f"\u26a0 {agent_name} does not have an active {carrier} contract. Upload rejected.", "error")
+            return redirect(url_for("commission.commission_admin"))
+
+        # Use agent's actual split rate
+        agent_split = contract.split_rate
     period_label = stmt_date.strftime("%B %Y")
     expected     = round((gross + bonus) * agent_split, 2)
     difference   = round(expected - paid, 2)

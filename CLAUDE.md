@@ -211,7 +211,7 @@ Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprint
 
 **Column indices per carrier (verified against March 2026 files):**
 - UHC: agent=col1, action=col4, commission=col5. Gross summary row: `'$N x.55'` in col4 (skip). Paid row: `'$N + $N'` pattern in col4, paid value in col5.
-- Aetna: agent=col9 (Writing Agent Name, index 9), amount=col10 (Payee Amount). Summary row scanned by `_scan_summary()`. **Split rate = 0.55 (55%)** — AJ's March file used 0.525 by mistake; contract rate is 55%.
+- Aetna: **CSV format** — col0: Payment Date, col1: Medicare Number (MBI), col4: Member Name, col6: Sales Event (action), col9: Plan ID, col12: Coverage Period, col16: Writing Agent Name, col20: Payee Amount. Summary row scanned by `_scan_summary()`. **Split rate = 0.55 (55%)** — AJ's March file used 0.525 by mistake; contract rate is 55%.
 - Humana: agent=col2, amount=col8 (PaidAmount). No separate paid row — Humana pays Tim directly, `paid = gross`. **Split rate = 1.0** in `agent_carrier_contracts` for Tim.
 - BCBS: agent=col1, commission=col13. Summary row: `'$N x .55'` in col9, paid in col10.
 - Devoted: agent=col2, amount=col11 (Base Amount). Summary row: `'N x .55'` in col8, paid in col9. Statement date is string `MM/DD/YYYY` in col0.

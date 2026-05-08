@@ -220,6 +220,128 @@ def customers_list():
     )
 
 
+@customers_bp.route("/customers/export")
+@login_required
+def customers_export():
+    import csv, io
+    q_str       = request.args.get("q", "").strip()
+    f_carrier   = request.args.get("carrier", "").strip()
+    f_plan_type = request.args.get("plan_type", "").strip()
+    f_agent_id  = request.args.get("agent_id", type=int)
+    f_medicaid  = request.args.get("medicaid", "").strip()
+
+    query = _customer_query()
+
+    if q_str:
+        like = f"%{q_str}%"
+        query = query.filter(
+            db.or_(
+                Customer.full_name.ilike(like),
+                Customer.phone_primary.ilike(like),
+                Customer.mbi.ilike(like),
+            )
+        )
+    if f_carrier or f_plan_type:
+        policy_q = db.session.query(Policy.mbi).filter(
+            Policy.agency_id == current_user.agency_id,
+            Policy.mbi.isnot(None),
+        )
+        if f_carrier:
+            policy_q = policy_q.filter(Policy.carrier == f_carrier)
+        if f_plan_type:
+            policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
+        mbi_subq = policy_q.distinct()
+        query = query.filter(Customer.mbi.in_(mbi_subq))
+    if f_agent_id and current_user.is_admin:
+        query = query.filter(Customer.primary_agent_id == f_agent_id)
+    if f_medicaid:
+        if f_medicaid == "none":
+            query = query.filter(
+                db.or_(Customer.medicaid_level.is_(None), Customer.medicaid_level == "")
+            )
+        else:
+            query = query.filter(Customer.medicaid_level == f_medicaid)
+
+    rows = query.order_by(Customer.last_name, Customer.first_name).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Name", "MBI", "Phone", "Email", "DOB", "Address", "City", "State", "Zip",
+                     "Medicaid Level", "Stage", "Agent", "Pharmacy"])
+    for c in rows:
+        writer.writerow([
+            c.display_name,
+            c.mbi or "",
+            c.phone_primary or "",
+            c.email or "",
+            c.dob.strftime("%m/%d/%Y") if c.dob else "",
+            c.address1 or "",
+            c.city or "",
+            c.state or "",
+            c.zip_code or "",
+            c.medicaid_level or "",
+            c.deal_stage or "Active",
+            c.primary_agent.display_name if c.primary_agent else "",
+            c.pharmacy.name if c.pharmacy else "",
+        ])
+
+    from flask import Response
+    output = buf.getvalue()
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=customers_export.csv"},
+    )
+
+
+@customers_bp.route("/customers/saved-views", methods=["POST"])
+@login_required
+def save_customer_view():
+    import json
+    data      = request.get_json(force=True)
+    name      = (data.get("name") or "").strip()
+    state     = data.get("state")
+    is_shared = bool(data.get("is_shared")) and current_user.is_admin
+    if not name or not state:
+        return jsonify({"error": "name and state required"}), 400
+    view = CustomerSavedView(
+        agency_id  = current_user.agency_id,
+        created_by = current_user.id,
+        name       = name,
+        state_json = json.dumps(state),
+        is_shared  = is_shared,
+    )
+    db.session.add(view)
+    db.session.commit()
+    return jsonify({"id": view.id, "name": view.name, "is_shared": view.is_shared})
+
+
+@customers_bp.route("/customers/saved-views/<int:view_id>", methods=["DELETE"])
+@login_required
+def delete_customer_view(view_id):
+    view = CustomerSavedView.query.filter_by(
+        id=view_id, agency_id=current_user.agency_id
+    ).first_or_404()
+    if view.created_by != current_user.id and not current_user.is_admin:
+        abort(403)
+    db.session.delete(view)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
+@customers_bp.route("/customers/saved-views/<int:view_id>/toggle-shared", methods=["POST"])
+@login_required
+def toggle_shared_view(view_id):
+    if not current_user.is_admin:
+        abort(403)
+    view = CustomerSavedView.query.filter_by(
+        id=view_id, agency_id=current_user.agency_id
+    ).first_or_404()
+    view.is_shared = not view.is_shared
+    db.session.commit()
+    return jsonify({"is_shared": view.is_shared})
+
+
 @customers_bp.route("/customers/search")
 @login_required
 def customers_search():

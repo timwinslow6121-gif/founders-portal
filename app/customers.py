@@ -10,7 +10,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
-from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, User, Pharmacy, SmsTemplate
+from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -260,6 +260,16 @@ def customer_profile(customer_id):
         agency_id=agency_id, status="approved"
     ).order_by(SmsTemplate.name).all() if agency_id else []
 
+    # Payment history for this customer's policies
+    policy_ids = [p.id for p in policies] if policies else []
+    payments = []
+    if policy_ids:
+        payments = (PolicyPayment.query
+                    .filter(PolicyPayment.policy_id.in_(policy_ids),
+                            PolicyPayment.agency_id == agency_id)
+                    .order_by(PolicyPayment.statement_date.desc())
+                    .all())
+
     return render_template(
         "customer_profile.html",
         customer=customer,
@@ -272,6 +282,7 @@ def customer_profile(customer_id):
         approved_templates=approved_templates,
         is_current_aor=is_current,
         former_end_date=former_end_date,
+        payments=payments,
     )
 
 

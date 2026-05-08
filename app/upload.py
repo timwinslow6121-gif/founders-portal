@@ -318,7 +318,7 @@ def process_upload():
                 agent_id=upload_agent_id,
                 carrier=rec["carrier"],
                 member_id=rec["member_id"],
-                mbi=rec["mbi"],
+                mbi=rec["mbi"] or None,
                 first_name=rec["first_name"],
                 last_name=rec["last_name"],
                 full_name=rec["full_name"],
@@ -676,7 +676,7 @@ def bulk_upload():
                 db.session.add(Policy(
                     agency_id=bulk_agency_id,
                     agent_id=bulk_agent_id,
-                    carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"],
+                    carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"] or None,
                     first_name=rec["first_name"], last_name=rec["last_name"],
                     full_name=rec["full_name"], plan_name=rec["plan_name"],
                     plan_type=rec["plan_type"], effective_date=rec["effective_date"],

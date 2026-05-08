@@ -472,17 +472,33 @@ def _detect_agent_id(ws, carrier):
 
     normalized = _normalize_name(agent_name_raw)
 
-    # Match against all users
+    _NICKNAMES = {
+        "michael": "mike", "mike": "michael",
+        "christopher": "chris", "chris": "christopher",
+        "timothy": "tim", "tim": "timothy",
+        "william": "bill", "bill": "william",
+        "robert": "bob", "bob": "robert",
+        "richard": "rick", "rick": "richard",
+        "james": "jim", "jim": "james",
+        "thomas": "tom", "tom": "thomas",
+    }
+
+    def _first_matches(a, b):
+        return a == b or _NICKNAMES.get(a) == b or _NICKNAMES.get(b) == a
+
     users = User.query.all()
+    # Exact match after normalisation
     for user in users:
         if _normalize_name(user.name) == normalized:
             return user.id
 
-    # Fuzzy fallback — check if normalized name is contained in user name
+    # Fuzzy: same last name + first name matches via nickname or prefix
+    np = normalized.split()
     for user in users:
-        user_norm = _normalize_name(user.name)
-        if normalized in user_norm or user_norm in normalized:
-            return user.id
+        up = _normalize_name(user.name).split()
+        if len(np) >= 2 and len(up) >= 2 and np[-1] == up[-1]:
+            if _first_matches(np[0], up[0]) or np[0][:3] == up[0][:3]:
+                return user.id
 
     return None
 

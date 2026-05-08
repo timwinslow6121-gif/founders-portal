@@ -244,7 +244,7 @@ def _parse_bcbs(ws):
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
     gross = 0.0
-    stmt_date = date.today()
+    stmt_date = None  # will be set from file content or filename fallback
 
     for row in rows:
         if not any(row):
@@ -337,8 +337,6 @@ def _parse_healthspring(ws):
                 "amount":      float(amount),
             })
 
-    if stmt_date is None:
-        stmt_date = date.today()
     return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
@@ -375,8 +373,6 @@ def _parse_wellable(ws):
                 "is_advance":     True,
             })
 
-    if stmt_date is None:
-        stmt_date = date.today()
     return gross, 0.0, paid or 0.0, stmt_date, line_items, stated_rate
 
 
@@ -391,6 +387,62 @@ def _csv_bytes_to_workbook(file_bytes):
     for row in reader:
         ws.append(row)
     return wb
+
+
+_MONTH_NAMES = {
+    "january": 1, "february": 2, "march": 3, "april": 4,
+    "may": 5, "june": 6, "july": 7, "august": 8,
+    "september": 9, "october": 10, "november": 11, "december": 12,
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4,
+    "jun": 6, "jul": 7, "aug": 8,
+    "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+
+def _parse_date_from_filename(filename):
+    """
+    Extract a statement month/year from a filename as a last-resort fallback.
+    Handles patterns like:
+      UHC_March_2026.xlsx
+      BCBS April 2026 Commission.xlsx
+      Humana-2026-03.xlsx
+      statement_2026_04.csv
+    Returns date(year, month, 1) or None if no match.
+    """
+    if not filename:
+        return None
+    name = filename.lower()
+
+    # Pattern 1: named month + 4-digit year  e.g. "march_2026", "april 2026"
+    m = re.search(
+        r'(' + '|'.join(_MONTH_NAMES.keys()) + r')[_\-\s]+(\d{4})',
+        name
+    )
+    if m:
+        month = _MONTH_NAMES[m.group(1)]
+        year = int(m.group(2))
+        if 2020 <= year <= 2099:
+            return date(year, month, 1)
+
+    # Pattern 2: 4-digit year + named month  e.g. "2026_march"
+    m = re.search(
+        r'(\d{4})[_\-\s]+(' + '|'.join(_MONTH_NAMES.keys()) + r')',
+        name
+    )
+    if m:
+        year = int(m.group(1))
+        month = _MONTH_NAMES[m.group(2)]
+        if 2020 <= year <= 2099:
+            return date(year, month, 1)
+
+    # Pattern 3: YYYY-MM or YYYY_MM  e.g. "2026-03", "2026_04"
+    m = re.search(r'(\d{4})[_\-](\d{2})', name)
+    if m:
+        year, month = int(m.group(1)), int(m.group(2))
+        if 2020 <= year <= 2099 and 1 <= month <= 12:
+            return date(year, month, 1)
+
+    return None
 
 
 def _detect_carrier(ws):
@@ -612,8 +664,29 @@ def commission_upload():
         flash(f"Parse error for {carrier}: {e}", "error")
         return redirect(url_for("commission.commission_admin"))
 
+    # 1. Try to get statement month from admin's manual override in the form
+    form_month = request.form.get("statement_month", "").strip()  # format: "YYYY-MM"
+    if form_month:
+        try:
+            stmt_date = datetime.strptime(form_month, "%Y-%m").date()
+        except ValueError:
+            pass
+
+    # 2. Fall back to date parsed from file content
+    # (already set by parser if it found a date in the file)
+
+    # 3. Try to extract from filename
+    if not stmt_date:
+        stmt_date = _parse_date_from_filename(file.filename)
+
+    # 4. Last resort: today (admin will see the period_label and can re-upload with override)
     if not stmt_date:
         stmt_date = date.today()
+        flash(
+            "Could not detect statement period from file content or filename. "
+            "Defaulted to today's month. Use the 'Statement Month' field to correct this.",
+            "warning"
+        )
 
     # Aetna pays the agency directly across multiple LOA agents \u2014 no single portal user owns it.
     # Use agent_id=None (agency-level statement) and look up split from any active Aetna contract.
@@ -670,6 +743,13 @@ def commission_upload():
     existing = CommissionStatement.query.filter_by(
         carrier=carrier, agent_id=agent_id, period_label=period_label,
         agency_id=current_user.agency_id).first()
+    _was_update = existing is not None
+    if _was_update:
+        flash(
+            f"{carrier} {period_label} was already uploaded. "
+            "Re-uploading will overwrite the existing statement and payment ledger rows.",
+            "warning"
+        )
     stmt = existing or CommissionStatement(
         carrier=carrier, agent_id=agent_id, agency_id=current_user.agency_id)
     if not existing:
@@ -689,6 +769,13 @@ def commission_upload():
     stmt.uploaded_by_id  = current_user.id
     db.session.flush()   # get stmt.id before building payments
 
+    # If re-uploading, clear stale payment ledger rows for this statement
+    if _was_update:
+        PolicyPayment.query.filter_by(
+            statement_id=stmt.id, agency_id=current_user.agency_id
+        ).delete(synchronize_session=False)
+        db.session.flush()
+
     # Re-parse worksheet for payment ledger (ws cursor is already at start of data)
     wb2  = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
     ws2  = wb2.active
@@ -702,6 +789,24 @@ def commission_upload():
     else:
         flash(f"⚠ {carrier} {period_label} — discrepancy of ${abs(difference):,.2f}. Expected ${expected:,.2f} ({split_pct}%), paid ${paid:,.2f}.", "warning")
 
+    return redirect(url_for("commission.commission_admin"))
+
+
+@commission_bp.route("/admin/commissions/<int:stmt_id>/delete", methods=["POST"])
+@login_required
+def commission_delete(stmt_id):
+    """Admin deletes a commission statement and all its payment ledger rows."""
+    if not current_user.is_admin:
+        abort(403)
+    stmt = CommissionStatement.query.filter_by(
+        id=stmt_id, agency_id=current_user.agency_id).first_or_404()
+    label = f"{stmt.carrier} {stmt.period_label}"
+    PolicyPayment.query.filter_by(
+        statement_id=stmt.id, agency_id=current_user.agency_id
+    ).delete(synchronize_session=False)
+    db.session.delete(stmt)
+    db.session.commit()
+    flash(f"{label} statement deleted.", "success")
     return redirect(url_for("commission.commission_admin"))
 
 

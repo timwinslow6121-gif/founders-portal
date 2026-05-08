@@ -442,6 +442,13 @@ def batch_detail(batch_id):
             "last_seen_date": str(p.last_seen_date) if p.last_seen_date else "",
         }
 
+    unresolvable = []
+    if batch.unresolvable_json:
+        try:
+            unresolvable = json.loads(batch.unresolvable_json)
+        except (json.JSONDecodeError, TypeError):
+            unresolvable = []
+
     return jsonify({
         "batch": {
             "id": batch.id,
@@ -456,6 +463,7 @@ def batch_detail(batch_id):
         "new": [_pol(p) for p in new_policies],
         "updated": [_pol(p) for p in updated],
         "missing": [_pol(p) for p in missing],
+        "unresolvable": unresolvable,
     })
 
 

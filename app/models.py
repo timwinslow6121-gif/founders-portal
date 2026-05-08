@@ -394,7 +394,8 @@ class Customer(db.Model):
     agency_id         = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
 
     # Primary identifier — NULL allowed for Humana-only customers until MBI is resolved
-    mbi               = db.Column(db.String(20), unique=True, index=True)
+    # Uniqueness enforced by partial index ix_customers_mbi (WHERE mbi IS NOT NULL) — see migration 014
+    mbi               = db.Column(db.String(20), index=True)
     # Humana fallback — Humana masks MBI, so we store their member_id here
     humana_id         = db.Column(db.String(64), index=True)
 

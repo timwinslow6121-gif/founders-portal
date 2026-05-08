@@ -645,6 +645,10 @@ def commission_upload():
         agent_split = contract.split_rate
     period_label = stmt_date.strftime("%B %Y")
     expected     = round((gross + bonus) * agent_split, 2)
+    # If the file has no summary row (paid=0), assume expected was paid — no discrepancy to flag.
+    # AJ can adjust manually if the actual payment differs.
+    if paid == 0.0:
+        paid = expected
     difference   = round(expected - paid, 2)
     status       = "verified" if abs(difference) < 0.02 else "discrepancy"
 

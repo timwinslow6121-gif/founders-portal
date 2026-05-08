@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Commission Reconciliation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Commission Reconciliation</h1>
+  <p class="muted">Compare BOB policies against payment records, per carrier and period.</p>
+</div>
+
+<form method="GET" class="filter-bar">
+  {% if is_admin %}
+    <label>Agent
+      <select name="agent_id" onchange="this.form.submit()">
+        {% for a in agents %}
+          <option value="{{ a.id }}" {% if a.id == selected_agent_id %}selected{% endif %}>{{ a.email }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endif %}
+  <label>Carrier
+    <select name="carrier">
+      <option value="">— select —</option>
+      {% set carriers = available | map(attribute=0) | unique | list %}
+      {% for c in carriers %}
+        <option value="{{ c }}" {% if c == selected_carrier %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>Period
+    <select name="period">
+      <option value="">— select —</option>
+      {% set periods = available | map(attribute=1) | unique | list %}
+      {% for p in periods %}
+        <option value="{{ p }}" {% if p == selected_period %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="submit" class="btn-primary">Reconcile</button>
+</form>
+
+{% if not selected_carrier or not selected_period %}
+  <div class="card empty-state">
+    <p>Select a carrier and period to run reconciliation.</p>
+    {% if not available %}
+      <p class="muted">No commission statements uploaded for this agent yet — nothing to reconcile against.</p>
+    {% endif %}
+  </div>
+{% elif results %}
+  <div class="summary-cards">
+    <div class="metric-card">
+      <div class="metric-label">In BOB, not paid</div>
+      <div class="metric-value">{{ results.unpaid_policies | length }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Paid, not in BOB</div>
+      <div class="metric-value">{{ results.unmatched_payments | length }}</div>
+    </div>
+  </div>
+
+  <h2>In BOB, not paid</h2>
+  {% if results.unpaid_policies %}
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>MBI</th>
+            <th>Plan</th>
+            <th>Effective</th>
+            <th>Term</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in results.unpaid_policies %}
+            <tr>
+              <td>{{ p.full_name or '-' }}</td>
+              <td><code>{{ p.mbi or '(no MBI)' }}</code></td>
+              <td>{{ p.plan_name or '-' }}</td>
+              <td>{{ p.effective_date or '-' }}</td>
+              <td>{{ p.term_date or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if selected_carrier == 'Humana' %}
+      <p class="muted small-note">Humana payment matching is fuzzy (no MBI in commission file). Some "unpaid" entries may actually be paid under a different name match.</p>
+    {% endif %}
+  {% else %}
+    <div class="card empty-state"><p>All BOB policies for {{ selected_carrier }} {{ selected_period }} have a matching payment.</p></div>
+  {% endif %}
+
+  <h2>Paid, not in BOB</h2>
+  {% if results.unmatched_payments %}
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Member name (from statement)</th>
+            <th>Carrier ID</th>
+            <th>Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pp in results.unmatched_payments %}
+            <tr>
+              <td>{{ pp.member_name_normalized or '-' }}</td>
+              <td>{{ pp.carrier_member_id or '-' }}</td>
+              <td>${{ '{:,.2f}'.format(pp.paid_amount or 0) }}</td>
+              <td>{{ pp.commission_action or '-' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card empty-state"><p>All payments for {{ selected_carrier }} {{ selected_period }} matched a BOB policy.</p></div>
+  {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block styles %}
+<style>
+.filter-bar { display: flex; gap: 12px; align-items: end; margin: 16px 0; flex-wrap: wrap; }
+.filter-bar label { display: flex; flex-direction: column; gap: 4px; color: var(--slate); font-size: 12px; }
+.filter-bar select {
+  background: var(--surface);
+  color: var(--ivory);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  padding: 6px 8px;
+  min-width: 160px;
+}
+.empty-state { padding: 20px 24px; color: var(--slate); }
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 16px 0; }
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  padding: 20px 24px;
+}
+.metric-label { color: var(--slate); font-size: 12px; text-transform: uppercase; }
+.metric-value { color: var(--ivory); font-family: 'Noto Serif', serif; font-size: 28px; margin-top: 8px; }
+h2 { color: var(--ivory); margin: 24px 0 12px; }
+.muted { color: var(--slate); }
+.small-note { color: var(--slate); font-size: 12px; margin-top: 8px; }
+</style>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Merge Customers — Founders Portal{% endblock %}
+
+{% block styles %}
+.merge-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+}
+.merge-col h3 {
+  margin: 12px 0;
+  color: var(--ivory);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+}
+.merge-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--ivory);
+  font-size: 13px;
+}
+.merge-radio input[type="radio"] {
+  accent-color: var(--gold);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+.merge-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+.data-table.compact th {
+  width: 35%;
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 500;
+}
+.data-table.compact td {
+  color: var(--ivory);
+  font-size: 13px;
+}
+@media (max-width: 800px) {
+  .merge-grid { grid-template-columns: 1fr; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Merge Duplicate Customers</h1>
+  <p class="muted">MBI: <code style="color: var(--slate);">{{ a.mbi }}</code></p>
+  <p class="muted">Pick which record to keep. The other will be deleted; its notes, contacts, and AOR history will migrate to the kept record.</p>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+  {% endfor %}
+{% endwith %}
+
+<form method="POST" action="{{ url_for('customers.execute_merge', a_id=a.id, b_id=b.id) }}">
+  <div class="merge-grid">
+    {% for c in [a, b] %}
+      <div class="card merge-col" style="padding: 20px 24px;">
+        <label class="merge-radio">
+          <input type="radio" name="canonical_id" value="{{ c.id }}" required>
+          <span>Keep this record</span>
+        </label>
+        <h3>{{ c.first_name }} {{ c.last_name }}</h3>
+        <table class="data-table compact">
+          <tr><th>ID</th><td>{{ c.id }}</td></tr>
+          <tr><th>DOB</th><td>{{ c.dob or '-' }}</td></tr>
+          <tr><th>Phone</th><td>{{ c.phone_primary or '-' }}</td></tr>
+          <tr><th>Email</th><td>{{ c.email or '-' }}</td></tr>
+          <tr><th>Address</th><td>{{ c.address1 or '-' }}{% if c.city %}, {{ c.city }}{% endif %}{% if c.state %} {{ c.state }}{% endif %}{% if c.zip_code %} {{ c.zip_code }}{% endif %}</td></tr>
+          <tr><th>Agent</th><td>{{ c.primary_agent.email if c.primary_agent else '-' }}</td></tr>
+          <tr><th>Stage</th><td>{{ c.deal_stage or '-' }}</td></tr>
+          <tr><th>Notes</th><td>{{ c.notes.count() }}</td></tr>
+          <tr><th>Contacts</th><td>{{ c.contacts.count() }}</td></tr>
+          <tr><th>AOR rows</th><td>{{ c.aor_history.count() }}</td></tr>
+          <tr><th>Manually edited?</th><td>{{ 'Yes' if c.manually_edited else 'No' }}</td></tr>
+        </table>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="merge-actions">
+    <a href="{{ url_for('customers.duplicates_list') }}" class="btn-secondary">Cancel</a>
+    <button type="submit" class="btn-primary" onclick="return confirm('Merge these records? The discarded customer will be permanently deleted.')">Merge Selected</button>
+  </div>
+</form>
+{% endblock %}

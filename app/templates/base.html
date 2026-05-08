@@ -655,6 +655,10 @@
         <a href="/admin" class="nav-item {% if request.path == '/admin' %}active{% endif %}">
           <span class="nav-dot"></span>Overview
         </a>
+        <a href="{{ url_for('customers.customers_list') }}"
+           class="nav-item {% if request.endpoint == 'customers.customers_list' %}active{% endif %}">
+          <span class="nav-dot"></span>All Customers
+        </a>
         <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>Agent Settings
         </a>

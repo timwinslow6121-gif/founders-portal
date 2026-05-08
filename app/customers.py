@@ -11,7 +11,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
-from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate
+from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -117,7 +117,14 @@ def customers_list():
     dir_           = request.args.get("dir", "asc")
     include_former = request.args.get("include_former") == "1"
 
+    # New filter params
+    f_carrier   = request.args.get("carrier", "").strip()
+    f_plan_type = request.args.get("plan_type", "").strip()
+    f_agent_id  = request.args.get("agent_id", "", type=str).strip()
+    f_medicaid  = request.args.get("medicaid", "").strip()
+
     query = _customer_query(include_former=include_former)
+
     if q:
         like = f"%{q}%"
         query = query.filter(
@@ -127,6 +134,32 @@ def customers_list():
                 Customer.mbi.ilike(like),
             )
         )
+
+    # Carrier / plan_type filters — join through Policy via MBI
+    if f_carrier or f_plan_type:
+        policy_q = db.session.query(Policy.mbi).filter(
+            Policy.agency_id == current_user.agency_id,
+            Policy.mbi.isnot(None),
+        )
+        if f_carrier:
+            policy_q = policy_q.filter(Policy.carrier == f_carrier)
+        if f_plan_type:
+            policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
+        mbi_subq = policy_q.distinct().subquery()
+        query = query.filter(Customer.mbi.in_(db.select(mbi_subq)))
+
+    # Agent filter (admin only)
+    if f_agent_id and current_user.is_admin:
+        query = query.filter(Customer.primary_agent_id == int(f_agent_id))
+
+    # Medicaid level filter
+    if f_medicaid:
+        if f_medicaid == "none":
+            query = query.filter(
+                db.or_(Customer.medicaid_level.is_(None), Customer.medicaid_level == "")
+            )
+        else:
+            query = query.filter(Customer.medicaid_level == f_medicaid)
 
     _sort_cols = {
         "name":     [Customer.last_name, Customer.first_name],
@@ -141,6 +174,30 @@ def customers_list():
         page=page, per_page=50, error_out=False
     )
 
+    # Summary stats — computed on full filtered set (not just current page)
+    total_count    = query.count()
+    active_count   = query.filter(Customer.deal_stage == "Active").count()
+    termed_count   = query.filter(Customer.deal_stage == "Termed").count()
+    medicaid_count = query.filter(
+        Customer.medicaid_level.isnot(None), Customer.medicaid_level != ""
+    ).count()
+
+    # Dropdown options for filter bar
+    carriers = [r[0] for r in
+        db.session.query(Policy.carrier).filter_by(agency_id=current_user.agency_id)
+        .distinct().order_by(Policy.carrier).all() if r[0]]
+    plan_types = [r[0] for r in
+        db.session.query(Policy.plan_type).filter_by(agency_id=current_user.agency_id)
+        .distinct().order_by(Policy.plan_type).all() if r[0]]
+
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .order_by(User.name).all()) if current_user.is_admin else []
+
+    # Shared saved views visible to this user
+    shared_views = CustomerSavedView.query.filter_by(
+        agency_id=current_user.agency_id, is_shared=True
+    ).order_by(CustomerSavedView.name).all()
+
     # Mark which customers are former (not current AOR) for the template
     if not current_user.is_admin and include_former:
         for c in customer_page.items:
@@ -149,9 +206,17 @@ def customers_list():
         for c in customer_page.items:
             c.is_former = False
 
-    return render_template("customers_list.html",
-                           customers=customer_page, q=q, sort=sort, dir=dir_,
-                           include_former=include_former)
+    return render_template(
+        "customers_list.html",
+        customers=customer_page,
+        q=q, sort=sort, dir=dir_, include_former=include_former,
+        f_carrier=f_carrier, f_plan_type=f_plan_type,
+        f_agent_id=f_agent_id, f_medicaid=f_medicaid,
+        stats={"total": total_count, "active": active_count,
+               "termed": termed_count, "medicaid": medicaid_count},
+        carriers=carriers, plan_types=plan_types, agents=agents,
+        shared_views=shared_views,
+    )
 
 
 @customers_bp.route("/customers/search")

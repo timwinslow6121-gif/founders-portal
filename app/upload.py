@@ -467,6 +467,114 @@ def batch_detail(batch_id):
     })
 
 
+@upload_bp.route("/upload/unresolvable/resolve", methods=["POST"])
+@login_required
+def resolve_unresolvable():
+    """Resolve one row from a batch's unresolvable_json list.
+
+    Request body (JSON):
+      batch_id: int
+      row_idx: int — index into the unresolvable_json array
+      action: 'assign_existing' | 'enter_mbi' | 'create_new'
+      customer_id: int — required for 'assign_existing'
+      mbi: str — required for 'enter_mbi' and 'create_new'
+    """
+    from app.models import Customer
+
+    data = request.get_json(silent=True) or request.form
+
+    try:
+        batch_id = int(data.get("batch_id", 0))
+        row_idx = int(data.get("row_idx", -1))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid batch_id or row_idx."}), 400
+
+    action = data.get("action", "")
+
+    batch = ImportBatch.query.filter_by(
+        id=batch_id, agency_id=current_user.agency_id
+    ).first_or_404()
+
+    if not batch.unresolvable_json:
+        return jsonify({"error": "No unresolvable rows on this batch."}), 400
+
+    try:
+        rows = json.loads(batch.unresolvable_json)
+    except (json.JSONDecodeError, TypeError):
+        return jsonify({"error": "Could not parse unresolvable rows."}), 500
+
+    if row_idx < 0 or row_idx >= len(rows):
+        return jsonify({"error": "Invalid row index."}), 400
+
+    row = rows[row_idx]
+
+    if action == "assign_existing":
+        try:
+            cid = int(data.get("customer_id", 0))
+        except (TypeError, ValueError):
+            return jsonify({"error": "customer_id must be an integer."}), 400
+        target = Customer.query.filter_by(
+            id=cid, agency_id=current_user.agency_id
+        ).first_or_404()
+        # Link the policy by updating its MBI to match the target customer's MBI
+        if target.mbi and row.get("member_id"):
+            Policy.query.filter_by(
+                agency_id=current_user.agency_id,
+                carrier=row.get("carrier"),
+                member_id=row.get("member_id"),
+            ).update({"mbi": target.mbi})
+
+    elif action in ("enter_mbi", "create_new"):
+        mbi = (data.get("mbi") or "").strip().upper()
+        if not mbi:
+            return jsonify({"error": "MBI is required."}), 400
+
+        # Try to match existing customer by MBI first
+        existing = Customer.query.filter_by(
+            agency_id=current_user.agency_id, mbi=mbi
+        ).first()
+
+        if existing and action == "enter_mbi":
+            # MBI already known — just link the policy
+            pass
+        else:
+            # Create a new customer from the row data
+            full_name = row.get("full_name") or ""
+            parts = full_name.split(" ", 1)
+            first_name = parts[0] if parts else ""
+            last_name = parts[1] if len(parts) > 1 else ""
+            from datetime import date as _date
+            new_c = Customer(
+                agency_id=current_user.agency_id,
+                primary_agent_id=current_user.id,
+                first_name=first_name,
+                last_name=last_name,
+                full_name=full_name,
+                mbi=mbi,
+                dob=row.get("dob"),
+            )
+            db.session.add(new_c)
+            db.session.flush()
+
+        # Update the corresponding Policy row to carry this MBI
+        if row.get("member_id"):
+            Policy.query.filter_by(
+                agency_id=current_user.agency_id,
+                carrier=row.get("carrier"),
+                member_id=row.get("member_id"),
+            ).update({"mbi": mbi})
+
+    else:
+        return jsonify({"error": f"Unknown action: {action}"}), 400
+
+    # Remove the resolved row from the unresolvable list
+    rows.pop(row_idx)
+    batch.unresolvable_json = json.dumps(rows) if rows else None
+    db.session.commit()
+
+    return jsonify({"ok": True, "remaining": len(rows)})
+
+
 @upload_bp.route("/upload/history")
 @login_required
 def import_history():

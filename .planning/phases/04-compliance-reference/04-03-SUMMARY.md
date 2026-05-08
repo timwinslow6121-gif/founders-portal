@@ -120,11 +120,17 @@ None. All routes return real data from the database.
 ## User Setup Required
 None — no external service configuration required. Deploy as normal: `git pull && flask db upgrade && systemctl restart founders-portal` (no new migrations in this plan).
 
-## Next Phase Readiness
-- Merge UI is complete and ready for VPS testing
-- Task 5 checkpoint: human smoke test + VPS deploy required before marking plan fully verified
-- After VPS deploy: agents can immediately start cleaning duplicate customer records
+## VPS Smoke Test (Task 5) — COMPLETE
+
+- VPS deploy confirmed working (2026-05-07): git pull, flask db upgrade (no migrations), systemctl restart — all succeeded
+- User confirmed: merge tested and working end-to-end
+- /customers/duplicates, /customers/merge/<a_id>/<b_id>, POST merge — all routes live and verified
+- Portal running clean; agents can immediately start cleaning duplicate customer records
 - Duplicate count > 0 will surface the nav entry automatically once real duplicates exist
+
+## Next Phase Readiness
+- Plan 04-03 fully verified and complete
+- Proceed to 04-04
 
 ---
 *Phase: 04-compliance-reference*

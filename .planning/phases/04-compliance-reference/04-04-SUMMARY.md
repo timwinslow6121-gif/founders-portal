@@ -55,7 +55,7 @@ completed: 2026-05-07
 - **Duration:** ~18 min
 - **Started:** 2026-05-07T00:00:00Z
 - **Completed:** 2026-05-07T00:00:00Z
-- **Tasks:** 4 of 5 (Task 5 is checkpoint:human-verify — paused for testing)
+- **Tasks:** 5 of 5 (Task 5 smoke test passed on VPS 2026-05-07)
 - **Files modified:** 3
 
 ## Accomplishments
@@ -73,7 +73,7 @@ completed: 2026-05-07
 3. **Task 3: POST /upload/unresolvable/resolve route** - `c9f9192` (feat)
 4. **Task 4: 4th tab + inline resolution UI** - `a55b10e` (feat)
 
-**Task 5 (checkpoint:human-verify):** Awaiting smoke test on local + VPS with real BOB file.
+**Task 5 (checkpoint:human-verify):** VPS smoke test passed 2026-05-07 — unresolvable tab confirmed working on production deploy.
 
 ## Files Created/Modified
 - `app/upload.py` — quarantine logic in bulk_upload(), unresolvable key in batch_detail(), resolve_unresolvable() route, import json added
@@ -124,9 +124,8 @@ None — all resolution actions are fully implemented. The assign_existing searc
 None — no external service configuration required.
 
 ## Next Phase Readiness
-- Task 5 (smoke test on local + VPS) is the blocking checkpoint
-- Once verified: all D-11 through D-14 and D-22 requirements satisfied
-- Humana MBI backfill (04-02) and customer dedup UI (04-03) may proceed in parallel
+- All tasks complete including VPS smoke test (Task 5) — D-11 through D-14 and D-22 requirements satisfied
+- Phase 04 is now fully complete (all 5 plans deployed and verified)
 
 ---
 *Phase: 04-compliance-reference*

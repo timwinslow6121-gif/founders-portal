@@ -26,7 +26,7 @@ decisions:
 metrics:
   duration: "~15 minutes"
   completed: "2026-05-07"
-  tasks_completed: 4
+  tasks_completed: 5
   tasks_total: 5
   files_modified: 5
 ---
@@ -95,8 +95,8 @@ PolicyPayment WHERE match_confidence='unmatched' AND agency/agent/carrier/period
 
 None — plan executed exactly as written. All CSS uses vars. No hardcoded hex. Both admin and agent nav entries added as specified.
 
-## Checkpoint Pending
+## Checkpoint: COMPLETE
 
-Task 5 (human verify) requires manual smoke test on local dev server + VPS deployment. The code is ready; no schema changes required (no migration needed — reads existing `policy_payments` table from migration 013).
+Task 5 (VPS smoke test) passed — deploy confirmed working 2026-05-07. Routes `/commissions/reconciliation` and `/admin/commissions/reconciliation` verified live on VPS.
 
 ## Self-Check: PASSED

@@ -1,6 +1,6 @@
 # Founders Insurance Agency — Agent Portal
 
-Flask CRM/portal for a Medicare insurance agency. 8 agents, 524 real policies across 5 carriers (UHC 287, Humana 196, BCBS 28, Aetna 11, Healthspring 2). 535 customers. All seeded/fake data deleted 2026-05-07.
+Flask CRM/portal for a Medicare insurance agency. 8 agents, 524 real policies across 5 carriers (UHC 287, Humana 196, BCBS 28, Aetna 11, Healthspring 2). 510 customers (25 shell customers deleted 2026-05-08). All seeded/fake data deleted 2026-05-07.
 
 ## Stack
 - Python 3.10, Flask 3.0, Flask-SQLAlchemy, Flask-Migrate (Alembic)
@@ -136,32 +136,20 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **AOR history backfill ✅ (2026-05-06)** — `scripts/backfill_aor_end_dates.py` closes stale open AOR rows where stored agent ≠ customer.primary_agent_id. Found 0 stale rows on first run (data was clean).
 - **BOB parser fixes ✅ (2026-05-07)** — UHC and Healthspring parsers rewritten for actual portal download formats. _detect_carrier() now scans up to 15 rows (was 1) and handles HTML-XLS files. Policy dedup falls back to MBI match when member_id differs between import formats.
 - **Data cleanup ✅ (2026-05-07)** — Deleted 4,941 seeded policies and 26 Devoted UUID policies. Real dataset: 524 policies (all with MBI or humana_id), 535 customers.
+- **Phase 4 — Data Integrity + Reconciliation ✅ DEPLOYED (2026-05-08)** — Migration 014: Humana mbi=''→NULL backfill (196 policies + 2 BCBS outliers), partial unique index `WHERE mbi IS NOT NULL` on customers.mbi, `unresolvable_json` column on import_batches. 25 shell customers (no MBI/humana_id/dependents) hard-deleted — 510 customers remain. MBI duplicate detection + side-by-side merge UI with single-transaction AOR-safe migration. Unresolvable BOB quarantine tab (4th tab in import modal with inline assign/MBI/create resolution). BOB↔Commission reconciliation page (members in BOB not paid + payments not in BOB, per carrier+period). Per-customer Payment History section on customer profile.
 
 ## Next Steps / To-Do
 
-### Phase 4 — Data Integrity + Reconciliation (NEXT — start fresh session)
+### Phase 5 — Operations (NEXT — start fresh session)
 
-**4A — Data integrity (do first):**
-- Fix Humana mbi="" → NULL (196 policies + affected customers) before adding any unique constraint
-- Add DB unique constraint on `customers.mbi` (migration) — prevents duplicate customers at DB level forever
-- Quarantine BOB records with no resolvable MBI instead of creating shell customers
-- Delete 29 shell customers with no MBI and no humana_id (verify no notes/contacts first)
-- Backfill Humana MBI from PolicyPayment records where name match is confident
+Time logging, service tickets, lead source tracking, MedicareCenter PDF OCR, SOP hub.
 
-**4B — BOB ↔ Commission reconciliation:**
-- Per-carrier, per-period report: members in BOB but not paid + members paid but not in BOB
-- Surface as reconciliation tab on commission audit page
-- PolicyPayment table already exists — needs the query + UI layer
-
-**4C — Reporting:**
-- Filterable by agent / carrier / plan / pharmacy / stage / date
-- Export CSV
-- No new models needed — data is all there
-
-**4D — Customer dedup prevention:**
-- MBI unique constraint (from 4A) is the primary guard
-- Upload-time check: if MBI already exists on a different customer, flag conflict instead of creating duplicate
-- Admin merge tool for any duplicates that slip through
+Key items:
+- Agent time log per customer interaction (minutes + activity type) from customer profile
+- Service tickets (open/close/resolve) linked to customers
+- Lead source field on customers for downstream analytics
+- MedicareCenter enrollment PDF auto-parse into customer records
+- SOP knowledge base (searchable)
 
 ### Future / backlog
 - **Termination outcome tracker** — log of every termed policy since Jan 1, outcome (saved/converted/moved/deceased/fraud), contact history, ties to customer profile
@@ -170,9 +158,9 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Plan commission rates** — update seeded plans with real 2026 CMS rates per carrier (placeholders: $22 initial / $15 renewal MAPD, 20% Medigap, $3 PDP)
 - **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
 
-## Agent Nav — what's in the sidebar (as of 2026-05-05)
-My Book: Dashboard, Customers, Upcoming Terms
-Commissions: Commission Audit
+## Agent Nav — what's in the sidebar (as of 2026-05-08)
+My Book: Dashboard, Customers, Duplicates (count badge, hidden when 0), Upcoming Terms
+Commissions: Commission Audit, Payment Ledger, Reconciliation
 Tools: Birthday Labels, Upload BOB Files, Carriers & Plans, SMS Templates
 Alerts: Unmatched Calls
 

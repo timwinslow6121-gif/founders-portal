@@ -45,10 +45,10 @@ completed: 2026-05-07
 
 ## Performance
 
-- **Duration:** ~2 min (Task 1 only — Task 2 is human-verified VPS execution)
+- **Duration:** ~2 min (Task 1 script creation) + VPS execution
 - **Started:** 2026-05-07T00:25:37Z
-- **Completed:** 2026-05-07 (Task 1); Task 2 pending VPS execution
-- **Tasks:** 1 of 2 complete (Task 2 is checkpoint:human-verify)
+- **Completed:** 2026-05-07 (both tasks)
+- **Tasks:** 2 of 2 complete
 - **Files modified:** 1
 
 ## Accomplishments
@@ -60,7 +60,7 @@ completed: 2026-05-07
 ## Task Commits
 
 1. **Task 1: Create shell customer deletion script** - `caf8a0a` (feat)
-2. **Task 2: VPS deploy + run** — PENDING (checkpoint:human-verify)
+2. **Task 2: VPS deploy + run** — COMPLETE (2026-05-07)
 
 ## Files Created/Modified
 - `scripts/delete_shell_customers.py` — one-time hard-delete script with dry-run default and --execute flag
@@ -77,20 +77,19 @@ None - plan executed exactly as written.
 ## Issues Encountered
 None.
 
-## User Setup Required
+## VPS Execution Results (2026-05-07)
 
-**VPS execution required.** After pushing this commit:
-
-1. Pull on VPS: `ssh -i ~/.ssh/id_ed25519 root@23.187.248.100 && cd /var/www/founders-portal && git pull`
-2. Dry-run: `./venv/bin/python3 scripts/delete_shell_customers.py`
-3. Review output — expect ~29 candidates, breakdown of deletable vs skipped
-4. Execute: `./venv/bin/python3 scripts/delete_shell_customers.py --execute`
-5. Verify: `psql -U founders_user -d founders_portal -c "SELECT COUNT(*) FROM customers WHERE mbi IS NULL AND humana_id IS NULL;"`
+- **Dry-run:** 29 candidates found — 25 deletable, 4 skipped (have AOR history)
+- **Execute:** "DELETED 25 shell customers."
+- **Skipped (preserved):**
+  - CHRISTOPHER HUFF (customer IDs 1608, 1645) — has AOR history
+  - BLANCHE SCHWARZ (customer IDs 1610, 1646) — has AOR history
+- Portal restarted and running after deploy
 
 ## Next Phase Readiness
-- After VPS execution, `mbi IS NULL AND humana_id IS NULL` customers will be reduced to only those with dependents
-- Plan 04-03 duplicate MBI detection will not be polluted by null-MBI ghost records
-- Customer count drop expected: ~535 - N_deleted ≈ lower (exact count after VPS run)
+- `mbi IS NULL AND humana_id IS NULL` customers reduced from 29 to 4 (those with AOR history — correctly preserved)
+- Plan 04-03 duplicate MBI detection not polluted by null-MBI ghost records
+- Customer count: 535 - 25 = 510 (approximately, net of any concurrent changes)
 
 ---
 *Phase: 04-compliance-reference*

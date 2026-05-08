@@ -4,9 +4,11 @@ import re
 from datetime import date, datetime
 
 import openpyxl
+from dateutil.relativedelta import relativedelta
 from flask import (abort, flash, redirect, render_template,
                    request, url_for, current_app)
 from flask_login import current_user, login_required
+from sqlalchemy import or_
 
 from app.extensions import db
 from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment
@@ -862,3 +864,123 @@ def commission_close_dispute(stmt_id):
     db.session.commit()
     flash(f"{stmt.carrier} {stmt.period_label} dispute closed and marked accepted.", "success")
     return redirect(url_for("commission.commission_admin"))
+
+
+# ─────────────────────────────────────────────
+# Reconciliation helpers
+# ─────────────────────────────────────────────
+
+def _period_bounds(period_label):
+    """Convert 'March 2026' to (date(2026,3,1), date(2026,3,31))."""
+    try:
+        start = datetime.strptime(period_label, "%B %Y").date().replace(day=1)
+        end = start + relativedelta(months=1) - relativedelta(days=1)
+        return start, end
+    except (ValueError, TypeError):
+        return None, None
+
+
+def _reconcile(agency_id, agent_id, carrier, period_label):
+    """Run both reconciliation queries for a single agent+carrier+period.
+    Returns dict with 'unpaid_policies' and 'unmatched_payments'.
+    """
+    period_start, period_end = _period_bounds(period_label)
+    if not period_start:
+        return {'unpaid_policies': [], 'unmatched_payments': []}
+
+    paid_policy_ids = (db.session.query(PolicyPayment.policy_id)
+        .filter_by(agency_id=agency_id, agent_id=agent_id,
+                   carrier=carrier, period_label=period_label)
+        .filter(PolicyPayment.policy_id.isnot(None))
+        .subquery())
+
+    unpaid = (Policy.query
+        .filter_by(agency_id=agency_id, agent_id=agent_id,
+                   carrier=carrier, status='active')
+        .filter(Policy.effective_date <= period_end)
+        .filter(or_(Policy.term_date.is_(None), Policy.term_date > period_start))
+        .filter(~Policy.id.in_(paid_policy_ids))
+        .all())
+
+    unmatched = (PolicyPayment.query
+        .filter_by(agency_id=agency_id, agent_id=agent_id,
+                   carrier=carrier, period_label=period_label,
+                   match_confidence='unmatched')
+        .all())
+
+    return {'unpaid_policies': unpaid, 'unmatched_payments': unmatched}
+
+
+# ─────────────────────────────────────────────
+# Reconciliation routes
+# ─────────────────────────────────────────────
+
+@commission_bp.route('/commissions/reconciliation')
+@login_required
+def reconciliation_view():
+    agency_id = current_user.agency_id
+    agent_id = current_user.id
+
+    available = (db.session.query(
+            CommissionStatement.carrier,
+            CommissionStatement.period_label,
+        )
+        .filter_by(agency_id=agency_id, agent_id=agent_id)
+        .distinct()
+        .order_by(CommissionStatement.period_label.desc(),
+                  CommissionStatement.carrier.asc())
+        .all())
+
+    selected_carrier = request.args.get('carrier')
+    selected_period = request.args.get('period')
+
+    results = None
+    if selected_carrier and selected_period:
+        results = _reconcile(agency_id, agent_id, selected_carrier, selected_period)
+
+    return render_template('commission_reconciliation.html',
+        available=available,
+        selected_carrier=selected_carrier,
+        selected_period=selected_period,
+        results=results,
+        is_admin=False,
+        agents=None,
+        selected_agent_id=agent_id)
+
+
+@commission_bp.route('/admin/commissions/reconciliation')
+@login_required
+def admin_reconciliation_view():
+    if not current_user.is_admin:
+        abort(403)
+    agency_id = current_user.agency_id
+
+    agents = User.query.filter_by(agency_id=agency_id).order_by(User.email).all()
+
+    selected_agent_id = request.args.get('agent_id', type=int) or current_user.id
+
+    available = (db.session.query(
+            CommissionStatement.carrier,
+            CommissionStatement.period_label,
+        )
+        .filter_by(agency_id=agency_id, agent_id=selected_agent_id)
+        .distinct()
+        .order_by(CommissionStatement.period_label.desc(),
+                  CommissionStatement.carrier.asc())
+        .all())
+
+    selected_carrier = request.args.get('carrier')
+    selected_period = request.args.get('period')
+
+    results = None
+    if selected_carrier and selected_period:
+        results = _reconcile(agency_id, selected_agent_id, selected_carrier, selected_period)
+
+    return render_template('commission_reconciliation.html',
+        available=available,
+        selected_carrier=selected_carrier,
+        selected_period=selected_period,
+        results=results,
+        is_admin=True,
+        agents=agents,
+        selected_agent_id=selected_agent_id)

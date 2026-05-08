@@ -116,6 +116,13 @@
   .profile-grid { grid-template-columns: 1fr; }
   .inline-form-grid { grid-template-columns: 1fr; }
 }
+/* ── Payment History ── */
+.payment-history.collapsed .payment-history-body { display: none; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; }
+.dot-green { background: var(--status-resolved); }
+.dot-amber { background: var(--status-progress); }
+.dot-red { background: var(--status-error); }
+.row-chargeback td { color: var(--status-error-text); }
 {% endblock %}
 
 {% block content %}
@@ -227,6 +234,52 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Payment History -->
+    <section class="card payment-history">
+      <h2 onclick="this.parentElement.classList.toggle('collapsed')" style="cursor:pointer;padding:16px 20px;margin:0;font-size:15px;font-weight:500;color:var(--ivory);display:flex;align-items:center;gap:8px;">
+        Payment History <span style="color:var(--slate);font-size:13px;font-weight:400;">({{ payments | length }})</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--slate);">click to toggle</span>
+      </h2>
+      <div class="payment-history-body">
+        {% if payments %}
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Carrier</th>
+                <th>Action</th>
+                <th>Amount</th>
+                <th>Match</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pp in payments %}
+                <tr {% if pp.is_chargeback %}class="row-chargeback"{% endif %}>
+                  <td>{{ pp.period_label }}</td>
+                  <td>{{ pp.carrier }}</td>
+                  <td>{{ pp.commission_action or '-' }}</td>
+                  <td>${{ '{:,.2f}'.format(pp.paid_amount or 0) }}</td>
+                  <td>
+                    {% if pp.match_confidence == 'exact_mbi' %}
+                      <span class="dot dot-green" title="MBI match"></span>
+                    {% elif pp.match_confidence == 'exact_carrier_id' %}
+                      <span class="dot dot-green" title="Carrier ID match"></span>
+                    {% elif pp.match_confidence == 'fuzzy_name' %}
+                      <span class="dot dot-amber" title="Fuzzy name match"></span>
+                    {% else %}
+                      <span class="dot dot-red" title="Unmatched"></span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p style="color:var(--slate);padding:16px 20px;margin:0;">No payments recorded for this customer's policies yet.</p>
+        {% endif %}
+      </div>
+    </section>
 
     <!-- AOR History -->
     <div class="card">

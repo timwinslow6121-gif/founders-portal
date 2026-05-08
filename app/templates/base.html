@@ -635,6 +635,10 @@
            class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>Payment Ledger
         </a>
+        <a href="{{ url_for('commission.admin_reconciliation_view') }}"
+           class="nav-item {% if request.endpoint == 'commission.admin_reconciliation_view' %}active{% endif %}">
+          <span class="nav-dot"></span>Reconciliation
+        </a>
         <div class="nav-section-label">Tools</div>
         <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">
           <span class="nav-dot"></span>Birthday Labels
@@ -683,6 +687,10 @@
         <a href="{{ url_for('commission.commission_ledger') }}"
            class="nav-item {% if 'ledger' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>Payment Ledger
+        </a>
+        <a href="{{ url_for('commission.reconciliation_view') }}"
+           class="nav-item {% if request.endpoint == 'commission.reconciliation_view' %}active{% endif %}">
+          <span class="nav-dot"></span>Reconciliation
         </a>
         <div class="nav-section-label">Tools</div>
         <a href="/birthday-labels" class="nav-item {% if request.path == '/birthday-labels' %}active{% endif %}">

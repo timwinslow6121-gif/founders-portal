@@ -215,7 +215,7 @@ def customers_list():
         customers=customer_page,
         q=q, sort=sort, dir=dir_, include_former=include_former,
         f_carrier=f_carrier, f_plan_type=f_plan_type,
-        f_agent_id=f_agent_id or "", f_medicaid=f_medicaid,
+        f_agent_id=str(f_agent_id) if f_agent_id else "", f_medicaid=f_medicaid,
         stats={"total": total_count, "active": active_count,
                "termed": termed_count, "medicaid": medicaid_count},
         carriers=carriers, plan_types=plan_types, agents=agents,

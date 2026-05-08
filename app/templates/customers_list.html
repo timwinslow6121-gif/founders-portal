@@ -237,7 +237,7 @@
       {% if include_former %}Hide former customers{% else %}Show former customers{% endif %}
     </a>
     {% endif %}
-    <a href="{{ url_for('customers.customers_export', q=q, carrier=f_carrier, plan_type=f_plan_type, agent_id=f_agent_id, medicaid=f_medicaid) }}"
+    <a href="{{ url_for('customers.customers_export', q=q, carrier=f_carrier, plan_type=f_plan_type, agent_id=f_agent_id, medicaid=f_medicaid, include_former='1' if include_former else None) }}"
        class="btn-secondary" style="font-size:12px;" title="Export current view to CSV">
       ↓ Export CSV
     </a>
@@ -274,14 +274,6 @@
       <label class="col-picker-item"><input type="checkbox" data-col="col-pharmacy" checked> Pharmacy</label>
     </div>
   </div>
-</div>
-
-{# Stats strip #}
-<div class="stats-strip">
-  <div class="stat-chip"><strong>{{ stats.total }}</strong> shown</div>
-  <div class="stat-chip"><strong>{{ stats.active }}</strong> active</div>
-  <div class="stat-chip"><strong>{{ stats.termed }}</strong> termed</div>
-  <div class="stat-chip"><strong>{{ stats.medicaid }}</strong> on medicaid</div>
 </div>
 
 {# Filter bar #}
@@ -330,10 +322,18 @@
     {% endif %}
 
     {% if f_carrier or f_plan_type or f_medicaid or f_agent_id %}
-    <a href="{{ url_for('customers.customers_list', q=q, sort=sort, dir=dir) }}"
+    <a href="{{ url_for('customers.customers_list', q=q, sort=sort, dir=dir, include_former='1' if include_former else None) }}"
        class="filter-clear">✕ Clear filters</a>
     {% endif %}
   </form>
+</div>
+
+{# Stats strip #}
+<div class="stats-strip">
+  <div class="stat-chip"><strong>{{ stats.total }}</strong> shown</div>
+  <div class="stat-chip"><strong>{{ stats.active }}</strong> active</div>
+  <div class="stat-chip"><strong>{{ stats.termed }}</strong> termed</div>
+  <div class="stat-chip"><strong>{{ stats.medicaid }}</strong> on medicaid</div>
 </div>
 
 <div id="search-results"></div>

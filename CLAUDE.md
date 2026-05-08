@@ -137,6 +137,7 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **BOB parser fixes ✅ (2026-05-07)** — UHC and Healthspring parsers rewritten for actual portal download formats. _detect_carrier() now scans up to 15 rows (was 1) and handles HTML-XLS files. Policy dedup falls back to MBI match when member_id differs between import formats.
 - **Data cleanup ✅ (2026-05-07)** — Deleted 4,941 seeded policies and 26 Devoted UUID policies. Real dataset: 524 policies (all with MBI or humana_id), 535 customers.
 - **Phase 4 — Data Integrity + Reconciliation ✅ DEPLOYED (2026-05-08)** — Migration 014: Humana mbi=''→NULL backfill (196 policies + 2 BCBS outliers), partial unique index `WHERE mbi IS NOT NULL` on customers.mbi, `unresolvable_json` column on import_batches. 25 shell customers (no MBI/humana_id/dependents) hard-deleted — 510 customers remain. MBI duplicate detection + side-by-side merge UI with single-transaction AOR-safe migration. Unresolvable BOB quarantine tab (4th tab in import modal with inline assign/MBI/create resolution). BOB↔Commission reconciliation page (members in BOB not paid + payments not in BOB, per carrier+period). Per-customer Payment History section on customer profile.
+- **UI Polish ✅ (2026-05-07)** — Enhanced base.html with subtle CSS micro-animations, glassmorphism on sidebars (backdrop-filter), and depth effects via hover states for cards, buttons, and nav items without changing the core layout.
 
 ## Next Steps / To-Do
 

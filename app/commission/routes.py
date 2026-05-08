@@ -91,6 +91,11 @@ def _scan_summary(ws):
 
 
 def _parse_uhc(ws):
+    # April 2026 UHC column layout (0-indexed):
+    #  col3:  Statement Date     col5:  Writing Agent Name
+    #  col7:  Member Name        col8:  MedicareID (MBI)
+    #  col11: Original Eff Date  col19: Commission Action
+    #  col23: Commission         col24: Term Reason    col28: Term Date
     paid, stated_rate = _scan_summary(ws)
     rows = list(ws.iter_rows(min_row=2, values_only=True))
     line_items = []
@@ -101,21 +106,24 @@ def _parse_uhc(ws):
     for row in rows:
         if not any(row):
             continue
-        action     = str(row[4] or "").strip()
-        commission = row[5]
+        action     = str(row[19] or "").strip()
+        commission = row[23]
 
-        if stmt_date is None and row[0] and isinstance(row[0], datetime):
-            stmt_date = row[0].date()
+        if stmt_date is None and row[3] and isinstance(row[3], datetime):
+            stmt_date = row[3].date()
 
-        # Skip summary rows — _scan_summary already handled them
-        if re.search(r'[\d,]+\.?\d*\s*x\.?\s*\.?\d+', action):
-            continue
-        if re.search(r'^\$[\d,]+\.\d+\s*\+', action):
-            continue
-
-        if action.startswith("HA payment"):
-            if commission and isinstance(commission, (int, float)):
-                bonus += float(commission)
+        if action in ("New Chargeback",):
+            amt = float(commission) if commission and isinstance(commission, (int, float)) else None
+            if amt:
+                gross += amt
+            line_items.append({
+                "mbi":         str(row[8] or "").strip(),
+                "member":      str(row[7] or ""),
+                "eff_date":    str(row[11].date() if isinstance(row[11], datetime) else row[11] or ""),
+                "action":      action,
+                "amount":      amt,
+                "term_reason": str(row[24] or ""),
+            })
             continue
 
         if action in ("Renewal", "New"):
@@ -123,11 +131,12 @@ def _parse_uhc(ws):
             if amt:
                 gross += amt
             line_items.append({
-                "member":      str(row[2] or ""),
-                "eff_date":    str(row[3].date() if isinstance(row[3], datetime) else row[3] or ""),
+                "mbi":         str(row[8] or "").strip(),
+                "member":      str(row[7] or ""),
+                "eff_date":    str(row[11].date() if isinstance(row[11], datetime) else row[11] or ""),
                 "action":      action,
                 "amount":      amt,
-                "term_reason": str(row[6] or ""),
+                "term_reason": str(row[24] or ""),
             })
 
     return gross, bonus, paid or 0.0, stmt_date, line_items, stated_rate
@@ -438,7 +447,7 @@ def _normalize_name(s):
 def _detect_agent_id(ws, carrier):
     """Extract agent name from file and match to a User in the database."""
     agent_col_map = {
-        "UHC":          1,   # Writing Agent Name (col B, index 1)
+        "UHC":          5,   # Writing Agent Name (col F, index 5)
         "Aetna":       16,   # Writing Agent Name (col Q, index 16)
         "Humana":       2,   # WaName (col C, index 2)
         "BCBS":         1,   # Agent Name (col B, index 1)

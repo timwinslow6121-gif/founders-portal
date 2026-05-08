@@ -89,62 +89,38 @@ def _parse_date(val):
 
 def extract_uhc(rows):
     """
-    UHC columns:
-      0 Statement Date, 1 Writing Agent Name, 2 Member Name,
-      3 Original Effective Date, 4 Commission Action, 5 Commission,
-      6 Term Reason, 7 Term Date
-    HA rows: action = "HA payment for agent... member NAME MBI *****XXXX policy number NNN"
+    UHC April 2026 column layout (0-indexed):
+      col3:  Statement Date      col5:  Writing Agent Name
+      col7:  Member Name         col8:  MedicareID (MBI)
+      col11: Original Eff Date   col19: Commission Action
+      col23: Commission          col24: Term Reason   col28: Term Date
     """
     items = []
     for row in rows:
         if not any(row):
             continue
-        action_raw = str(row[4] or "").strip()
-        amount     = row[5]
+        action_raw = str(row[19] or "").strip()
+        amount     = row[23]
 
         if not isinstance(amount, (int, float)):
             continue
 
-        # Skip AJ's summary rows
-        if re.search(r'[\d,]+\.?\d*\s*x\.?\s*\.?\d+', action_raw):
-            continue
-        if re.search(r'^\$[\d,]+\.\d+\s*\+', action_raw):
-            continue
-
-        # HA bonus rows — member name and partial MBI embedded in action string
-        if action_raw.lower().startswith("ha payment"):
-            m_name = re.search(r'member\s+([A-Z][A-Z\s]+?)\s+MBI', action_raw)
-            m_mbi  = re.search(r'MBI\s+\*+(\w+)', action_raw)
-            items.append({
-                "member_name":       m_name.group(1).strip() if m_name else "HA BONUS",
-                "mbi":               None,
-                "carrier_member_id": None,
-                "action_raw":        action_raw,
-                "commission_action": "hra_bonus",
-                "paid_amount":       float(amount),
-                "effective_date":    None,
-                "term_date":         None,
-                "term_reason":       None,
-                "period_month":      None,
-                "plan_name":         None,
-            })
-            continue
-
-        if action_raw not in ("Renewal", "New"):
+        if action_raw not in ("Renewal", "New", "New Chargeback"):
             continue
 
         items.append({
-            "member_name":       str(row[2] or ""),
-            "mbi":               None,
-            "carrier_member_id": None,
-            "action_raw":        action_raw,
-            "commission_action": _norm_action(action_raw, amount),
-            "paid_amount":       float(amount),
-            "effective_date":    _parse_date(row[3]),
-            "term_date":         _parse_date(row[7]),
-            "term_reason":       str(row[6] or "") or None,
-            "period_month":      None,
-            "plan_name":         None,
+            "member_name":        str(row[7] or ""),
+            "mbi":                str(row[8] or "").strip() or None,
+            "carrier_member_id":  None,
+            "action_raw":         action_raw,
+            "commission_action":  _norm_action(action_raw, amount),
+            "paid_amount":        float(amount),
+            "effective_date":     _parse_date(row[11]),
+            "term_date":          _parse_date(row[28]),
+            "term_reason":        str(row[24] or "") or None,
+            "period_month":       None,
+            "plan_name":          str(row[12] or "") or None,
+            "writing_agent_name": str(row[5] or "").strip() or None,
         })
     return items
 
@@ -468,6 +444,22 @@ def build_payments(statement, carrier, agent_id, agency_id, ws):
     from app.models import User as _User
     _all_users = _User.query.all()
     _agent_name_cache = {}
+    # Common legal→nickname mappings that first-3-chars fuzzy won't catch
+    _NICKNAMES = {
+        "michael": "mike", "mike": "michael",
+        "christopher": "chris", "chris": "christopher",
+        "timothy": "tim", "tim": "timothy",
+        "william": "bill", "bill": "william",
+        "robert": "bob", "bob": "robert",
+        "richard": "rick", "rick": "richard",
+        "james": "jim", "jim": "james",
+        "thomas": "tom", "tom": "thomas",
+    }
+
+    def _first_name_matches(a, b):
+        """True if two first names refer to the same person (exact or nickname)."""
+        return a == b or _NICKNAMES.get(a) == b or _NICKNAMES.get(b) == a
+
     def _resolve_agent_id(raw_name):
         if not raw_name:
             return agent_id
@@ -481,13 +473,12 @@ def build_payments(statement, carrier, agent_id, agency_id, ws):
                 matched = u.id
                 break
         if matched is None:
-            # Fuzzy: match on last name + first 3 chars of first name
-            # handles "Christopher Foster" → "Chris Foster"
+            # Fuzzy: same last name + first name exact/nickname/prefix match
             np = norm.split()
             for u in _all_users:
                 up = _norm(u.name).split()
                 if len(np) >= 2 and len(up) >= 2 and np[-1] == up[-1]:
-                    if np[0][:3] == up[0][:3]:
+                    if _first_name_matches(np[0], up[0]) or np[0][:3] == up[0][:3]:
                         matched = u.id
                         break
         _agent_name_cache[raw_name] = matched

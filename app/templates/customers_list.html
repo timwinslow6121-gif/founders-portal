@@ -328,6 +328,39 @@
   </form>
 </div>
 
+{# Saved views bar #}
+<div class="filter-bar" id="saved-views-bar" style="margin-bottom:20px;align-items:center;">
+  <span style="font-size:12px;color:var(--slate);white-space:nowrap;flex-shrink:0;">Saved views:</span>
+  <span id="personal-views-container" style="display:contents"></span>
+  {% for sv in shared_views %}
+  <span style="display:inline-flex;align-items:center;gap:4px;">
+    <a href="#" class="btn-secondary" style="font-size:11px;padding:4px 10px;"
+       data-view-state="{{ sv.state_json | tojson }}" onclick="applySavedView(this);return false;">
+      {{ sv.name }}<span style="color:var(--gold);margin-left:4px;" title="Shared">★</span>
+    </a>
+    {% if current_user.is_admin %}
+    <button onclick="deleteSharedView({{ sv.id }}, this)"
+            style="background:none;border:none;color:var(--slate);cursor:pointer;font-size:12px;padding:2px 4px;"
+            title="Delete">✕</button>
+    {% endif %}
+  </span>
+  {% endfor %}
+  <button class="btn-secondary" id="save-view-btn" style="font-size:11px;padding:4px 10px;flex-shrink:0;">+ Save View</button>
+  <div id="save-view-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="text" id="save-view-name" placeholder="View name…"
+           style="background:var(--surface-low);border:1px solid var(--border);border-radius:var(--radius);color:var(--ivory);font-size:13px;padding:6px 10px;outline:none;width:180px;">
+    {% if current_user.is_admin %}
+    <label style="font-size:12px;color:var(--slate);display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="checkbox" id="save-view-shared" style="accent-color:var(--gold);">
+      Share agency-wide
+    </label>
+    {% endif %}
+    <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="saveView()">Save</button>
+    <button class="btn-secondary" style="font-size:12px;padding:6px 14px;"
+            onclick="document.getElementById('save-view-panel').style.display='none'">Cancel</button>
+  </div>
+</div>
+
 {# Stats strip #}
 <div class="stats-strip">
   <div class="stat-chip"><strong>{{ stats.total }}</strong> shown</div>
@@ -489,6 +522,137 @@ document.querySelectorAll('#col-picker-dropdown input[type="checkbox"]').forEach
 });
 
 loadColPrefs();
+
+// ── Resizable columns ──
+function initResizableColumns() {
+  const table = document.getElementById('cust-table');
+  if (!table) return;
+  table.querySelectorAll('thead th').forEach(th => {
+    const handle = document.createElement('div');
+    handle.className = 'col-resize-handle';
+    th.appendChild(handle);
+    let startX, startW;
+    handle.addEventListener('mousedown', e => {
+      startX = e.pageX;
+      startW = th.offsetWidth;
+      const onMove = ev => { th.style.width = (startW + ev.pageX - startX) + 'px'; };
+      const onUp   = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      e.preventDefault();
+    });
+  });
+}
+initResizableColumns();
+
+// ── Saved views ──
+document.getElementById('save-view-btn').addEventListener('click', () => {
+  const panel = document.getElementById('save-view-panel');
+  panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+});
+
+function currentFilterState() {
+  const params = new URLSearchParams(window.location.search);
+  const cols = {};
+  document.querySelectorAll('#col-picker-dropdown input[type="checkbox"]').forEach(cb => {
+    cols[cb.dataset.col] = cb.checked;
+  });
+  return {
+    filters: {
+      carrier:   params.get('carrier')   || '',
+      plan_type: params.get('plan_type') || '',
+      medicaid:  params.get('medicaid')  || '',
+      agent_id:  params.get('agent_id')  || '',
+    },
+    columns: cols,
+  };
+}
+
+function saveView() {
+  const name     = document.getElementById('save-view-name').value.trim();
+  const sharedCb = document.getElementById('save-view-shared');
+  const isShared = sharedCb ? sharedCb.checked : false;
+  if (!name) { alert('Enter a name for this view.'); return; }
+  const state = currentFilterState();
+
+  // Always persist to localStorage (personal)
+  const personal = JSON.parse(localStorage.getItem('cust_saved_views') || '{}');
+  personal[name] = state;
+  localStorage.setItem('cust_saved_views', JSON.stringify(personal));
+
+  if (isShared) {
+    fetch('/customers/saved-views', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name, state, is_shared: true}),
+    }).then(r => r.json()).then(() => window.location.reload());
+  } else {
+    renderPersonalViews();
+    document.getElementById('save-view-panel').style.display = 'none';
+    document.getElementById('save-view-name').value = '';
+  }
+}
+
+function applySavedView(el) {
+  let state;
+  try { state = JSON.parse(el.dataset.viewState); } catch(e) { return; }
+  // Apply column visibility
+  if (state.columns) {
+    const prefs = {};
+    Object.entries(state.columns).forEach(([col, visible]) => {
+      prefs[col] = visible;
+      applyColVisibility(col, visible);
+      const cb = document.querySelector(`[data-col="${col}"]`);
+      if (cb) cb.checked = visible;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  }
+  // Navigate with filter params
+  if (state.filters) {
+    const p = new URLSearchParams(window.location.search);
+    ['carrier', 'plan_type', 'medicaid', 'agent_id'].forEach(k => {
+      if (state.filters[k]) p.set(k, state.filters[k]);
+      else p.delete(k);
+    });
+    p.set('page', '1');
+    window.location = window.location.pathname + '?' + p.toString();
+  }
+}
+
+function deleteSharedView(viewId, btn) {
+  if (!confirm('Delete this shared view?')) return;
+  fetch(`/customers/saved-views/${viewId}`, {method: 'DELETE'})
+    .then(r => r.json())
+    .then(d => { if (d.ok) btn.closest('span').remove(); });
+}
+
+function renderPersonalViews() {
+  const personal = JSON.parse(localStorage.getItem('cust_saved_views') || '{}');
+  const container = document.getElementById('personal-views-container');
+  if (!container) return;
+  container.innerHTML = Object.entries(personal).map(([vname, state]) => `
+    <span style="display:inline-flex;align-items:center;gap:4px;">
+      <a href="#" class="btn-secondary" style="font-size:11px;padding:4px 10px;"
+         data-view-state='${JSON.stringify(state).replace(/'/g, "&#39;")}'
+         onclick="applySavedView(this);return false;">${vname}</a>
+      <button onclick="deletePersonalView('${vname.replace(/'/g, "&#39;")}', this)"
+              style="background:none;border:none;color:var(--slate);cursor:pointer;font-size:12px;padding:2px 4px;"
+              title="Delete">✕</button>
+    </span>
+  `).join('');
+}
+
+function deletePersonalView(name, btn) {
+  const personal = JSON.parse(localStorage.getItem('cust_saved_views') || '{}');
+  delete personal[name];
+  localStorage.setItem('cust_saved_views', JSON.stringify(personal));
+  btn.closest('span').remove();
+}
+
+renderPersonalViews();
 
 // ── Live search ──
 const searchInput   = document.getElementById('search-input');

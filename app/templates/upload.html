@@ -102,6 +102,7 @@
       <button class="modal-tab active" onclick="showTab('new')" id="tab-new">New <span id="cnt-new" class="modal-cnt"></span></button>
       <button class="modal-tab" onclick="showTab('updated')" id="tab-updated">Updated <span id="cnt-updated" class="modal-cnt"></span></button>
       <button class="modal-tab" onclick="showTab('missing')" id="tab-missing">Not in this import <span id="cnt-missing" class="modal-cnt"></span></button>
+      <button class="modal-tab" onclick="showTab('unresolvable')" id="tab-unresolvable">Unresolvable <span id="cnt-unresolvable" class="modal-cnt"></span></button>
     </div>
 
     <div id="modal-loading" style="padding:40px;text-align:center;color:var(--slate);font-size:12px;">Loading…</div>
@@ -109,6 +110,12 @@
       <div id="tab-content-new"></div>
       <div id="tab-content-updated" style="display:none;"></div>
       <div id="tab-content-missing" style="display:none;"></div>
+      <div id="tab-content-unresolvable" style="display:none;">
+        <div id="unresolvable-empty" class="muted" style="padding:24px 20px;color:var(--slate);font-size:12px;display:none;">
+          No unresolvable rows in this import.
+        </div>
+        <div id="unresolvable-list" style="padding:12px 16px;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -188,6 +195,57 @@
   .missing-notice {
     background: color-mix(in srgb, var(--status-error-text) 6%, transparent); border-left: 3px solid var(--status-error);
     padding: 10px 16px; font-size: 13px; color: var(--ivory); margin: 0;
+  }
+
+  /* Unresolvable tab badge — amber accent */
+  #tab-unresolvable .modal-cnt:not(:empty) {
+    background: color-mix(in srgb, var(--gold) 18%, transparent);
+    color: var(--gold);
+  }
+
+  /* Unresolvable row cards */
+  .unresolvable-row {
+    border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+    border-radius: 6px;
+    margin: 8px 0;
+    background: var(--surface-low);
+  }
+  .unresolvable-summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    color: var(--ivory);
+    font-size: 13px;
+  }
+  .unresolvable-summary .muted { color: var(--slate); font-size: 11px; margin-left: 6px; }
+  .unresolvable-row.open .unresolvable-summary {
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  }
+  .unresolvable-actions {
+    display: none;
+    padding: 12px 16px;
+    gap: 12px;
+    flex-direction: column;
+  }
+  .unresolvable-row.open .unresolvable-actions { display: flex; }
+  .action-group-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--slate); margin-bottom: 4px;
+  }
+  .action-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .action-row input[type="text"],
+  .action-row input[type="number"] {
+    background: var(--surface);
+    color: var(--ivory);
+    border: 1px solid color-mix(in srgb, var(--gold) 40%, transparent);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    min-width: 160px;
+  }
+  .action-row input[type="text"]:focus,
+  .action-row input[type="number"]:focus {
+    outline: none;
+    border-color: var(--gold);
   }
 
   @media (max-width: 1023px) { .upload-grid { grid-template-columns: 1fr; } }
@@ -322,7 +380,10 @@
   // ── Batch detail modal ───────────────────────────────────────
   let activeTab = 'new';
 
+  let _activeBatchId = null;
+
   function openBatchDetail(id, carrier, date) {
+    _activeBatchId = id;
     document.getElementById('batch-modal').style.display = 'block';
     document.getElementById('modal-title').textContent = `${carrier} import`;
     document.getElementById('modal-sub').textContent = date;
@@ -349,7 +410,86 @@
       document.getElementById('tab-content-missing').innerHTML =
         (data.missing.length ? '<div class="missing-notice">These members were in a previous import but did not appear in this one — they may have termed, transferred, or lapsed.</div>' : '') +
         renderPolicyTable(data.missing, data.missing.length ? '' : 'All previously imported members are still active in this carrier file.');
+
+      // Populate unresolvable tab
+      const unresolvable = data.unresolvable || [];
+      const cntEl = document.getElementById('cnt-unresolvable');
+      cntEl.textContent = unresolvable.length > 0 ? unresolvable.length : '';
+      const listEl = document.getElementById('unresolvable-list');
+      const emptyEl = document.getElementById('unresolvable-empty');
+      listEl.innerHTML = '';
+      if (unresolvable.length === 0) {
+        emptyEl.style.display = '';
+      } else {
+        emptyEl.style.display = 'none';
+        unresolvable.forEach((row, idx) => {
+          const card = document.createElement('div');
+          card.className = 'unresolvable-row';
+          card.dataset.idx = idx;
+          card.innerHTML = `
+            <div class="unresolvable-summary" onclick="this.parentElement.classList.toggle('open')">
+              <strong>${row.full_name || '(no name)'}</strong>
+              &mdash; ${row.carrier || ''} ${row.plan_name || ''}
+              <span class="muted">DOB ${row.dob || '-'} &bull; member ${row.member_id || '-'} &bull; eff ${row.effective_date || '-'}</span>
+            </div>
+            <div class="unresolvable-actions">
+              <div>
+                <div class="action-group-label">Assign to existing customer (by ID)</div>
+                <div class="action-row">
+                  <input type="number" placeholder="Customer ID" data-customer-id min="1" style="width:140px;">
+                  <button class="btn-secondary" onclick="resolveRow(${id}, ${idx}, 'assign_existing', this.closest('.unresolvable-row'))">Assign</button>
+                </div>
+              </div>
+              <div>
+                <div class="action-group-label">Enter MBI (match or create customer)</div>
+                <div class="action-row">
+                  <input type="text" placeholder="MBI (e.g. 1EG4-TE5-MK72)" data-mbi-input maxlength="20">
+                  <button class="btn-secondary" onclick="resolveRow(${id}, ${idx}, 'enter_mbi', this.closest('.unresolvable-row'))">Save MBI</button>
+                  <button class="btn-secondary" onclick="resolveRow(${id}, ${idx}, 'create_new', this.closest('.unresolvable-row'))">Create New</button>
+                </div>
+              </div>
+            </div>
+          `;
+          listEl.appendChild(card);
+        });
+      }
     });
+  }
+
+  async function resolveRow(batchId, idx, action, cardEl) {
+    const payload = { batch_id: batchId, row_idx: idx, action };
+
+    if (action === 'enter_mbi' || action === 'create_new') {
+      const mbiInput = cardEl.querySelector('[data-mbi-input]');
+      payload.mbi = (mbiInput ? mbiInput.value : '').trim();
+      if (!payload.mbi) { alert('Enter MBI first.'); return; }
+    } else if (action === 'assign_existing') {
+      const cidInput = cardEl.querySelector('[data-customer-id]');
+      const cid = cidInput ? parseInt(cidInput.value, 10) : 0;
+      if (!cid) { alert('Enter a valid customer ID.'); return; }
+      payload.customer_id = cid;
+    }
+
+    try {
+      const res = await fetch('/upload/unresolvable/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const out = await res.json();
+      if (out.ok) {
+        cardEl.remove();
+        const cntEl = document.getElementById('cnt-unresolvable');
+        cntEl.textContent = out.remaining > 0 ? out.remaining : '';
+        if (out.remaining === 0) {
+          document.getElementById('unresolvable-empty').style.display = '';
+        }
+      } else {
+        alert('Error: ' + (out.error || 'unknown'));
+      }
+    } catch (err) {
+      alert('Request failed: ' + err.message);
+    }
   }
 
   function renderPolicyTable(rows, emptyMsg) {
@@ -369,7 +509,7 @@
 
   function showTab(name) {
     activeTab = name;
-    ['new','updated','missing'].forEach(t => {
+    ['new','updated','missing','unresolvable'].forEach(t => {
       document.getElementById(`tab-${t}`).classList.toggle('active', t === name);
       document.getElementById(`tab-content-${t}`).style.display = t === name ? 'block' : 'none';
     });

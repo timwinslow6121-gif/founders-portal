@@ -335,7 +335,7 @@
   {% for sv in shared_views %}
   <span style="display:inline-flex;align-items:center;gap:4px;">
     <a href="#" class="btn-secondary" style="font-size:11px;padding:4px 10px;"
-       data-view-state="{{ sv.state_json | tojson }}" onclick="applySavedView(this);return false;">
+       data-view-state="{{ sv.state_json }}" onclick="applySavedView(this);return false;">
       {{ sv.name }}<span style="color:var(--gold);margin-left:4px;" title="Shared">★</span>
     </a>
     {% if current_user.is_admin %}
@@ -578,18 +578,19 @@ function saveView() {
   if (!name) { alert('Enter a name for this view.'); return; }
   const state = currentFilterState();
 
-  // Always persist to localStorage (personal)
-  const personal = JSON.parse(localStorage.getItem('cust_saved_views') || '{}');
-  personal[name] = state;
-  localStorage.setItem('cust_saved_views', JSON.stringify(personal));
-
   if (isShared) {
     fetch('/customers/saved-views', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({name, state, is_shared: true}),
-    }).then(r => r.json()).then(() => window.location.reload());
+    })
+    .then(r => { if (!r.ok) throw new Error('Save failed'); return r.json(); })
+    .then(() => window.location.reload())
+    .catch(err => alert('Could not save shared view: ' + err.message));
   } else {
+    const personal = JSON.parse(localStorage.getItem('cust_saved_views') || '{}');
+    personal[name] = state;
+    localStorage.setItem('cust_saved_views', JSON.stringify(personal));
     renderPersonalViews();
     document.getElementById('save-view-panel').style.display = 'none';
     document.getElementById('save-view-name').value = '';
@@ -625,24 +626,38 @@ function applySavedView(el) {
 function deleteSharedView(viewId, btn) {
   if (!confirm('Delete this shared view?')) return;
   fetch(`/customers/saved-views/${viewId}`, {method: 'DELETE'})
-    .then(r => r.json())
-    .then(d => { if (d.ok) btn.closest('span').remove(); });
+    .then(r => { if (!r.ok) throw new Error('Delete failed'); return r.json(); })
+    .then(d => { if (d.ok) btn.closest('span').remove(); })
+    .catch(err => alert('Could not delete view: ' + err.message));
 }
 
 function renderPersonalViews() {
   const personal = JSON.parse(localStorage.getItem('cust_saved_views') || '{}');
   const container = document.getElementById('personal-views-container');
   if (!container) return;
-  container.innerHTML = Object.entries(personal).map(([vname, state]) => `
-    <span style="display:inline-flex;align-items:center;gap:4px;">
-      <a href="#" class="btn-secondary" style="font-size:11px;padding:4px 10px;"
-         data-view-state='${JSON.stringify(state).replace(/'/g, "&#39;")}'
-         onclick="applySavedView(this);return false;">${vname}</a>
-      <button onclick="deletePersonalView('${vname.replace(/'/g, "&#39;")}', this)"
-              style="background:none;border:none;color:var(--slate);cursor:pointer;font-size:12px;padding:2px 4px;"
-              title="Delete">✕</button>
-    </span>
-  `).join('');
+  container.innerHTML = '';
+  Object.entries(personal).forEach(([vname, state]) => {
+    const wrap = document.createElement('span');
+    wrap.style.cssText = 'display:inline-flex;align-items:center;gap:4px;';
+
+    const a = document.createElement('a');
+    a.href = '#';
+    a.className = 'btn-secondary';
+    a.style.cssText = 'font-size:11px;padding:4px 10px;';
+    a.dataset.viewState = JSON.stringify(state);
+    a.textContent = vname;
+    a.addEventListener('click', e => { e.preventDefault(); applySavedView(a); });
+
+    const btn = document.createElement('button');
+    btn.style.cssText = 'background:none;border:none;color:var(--slate);cursor:pointer;font-size:12px;padding:2px 4px;';
+    btn.title = 'Delete';
+    btn.textContent = '✕';
+    btn.addEventListener('click', () => deletePersonalView(vname, btn));
+
+    wrap.appendChild(a);
+    wrap.appendChild(btn);
+    container.appendChild(wrap);
+  });
 }
 
 function deletePersonalView(name, btn) {

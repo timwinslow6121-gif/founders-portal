@@ -192,6 +192,7 @@ def plan_new():
             hra_bonus        = float(request.form.get("hra_bonus") or 0) or None,
             comm_notes       = request.form.get("comm_notes", "").strip() or None,
             plan_name_aliases= request.form.get("plan_name_aliases", "").strip() or None,
+            friendly_name    = request.form.get("friendly_name", "").strip() or None,
             created_by_id    = current_user.id,
         )
         db.session.add(plan)
@@ -255,6 +256,7 @@ def plan_edit(plan_id):
         plan.hra_bonus        = float(request.form.get("hra_bonus") or 0) or None
         plan.comm_notes       = request.form.get("comm_notes", "").strip() or None
         plan.plan_name_aliases= request.form.get("plan_name_aliases", "").strip() or None
+        plan.friendly_name    = request.form.get("friendly_name", "").strip() or None
         db.session.commit()
         flash(f"{plan.plan_name} updated.", "success")
         return redirect(url_for("carriers.plan_detail", plan_id=plan.id))

@@ -15,7 +15,7 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 from datetime import datetime
-from app.models import db, Policy, ImportBatch, AuditLog, Customer, CustomerAorHistory
+from app.models import db, Policy, ImportBatch, AuditLog, Customer, CustomerAorHistory, Plan
 from app.parsers import parse_carrier_file, SUPPORTED_CARRIERS
 
 upload_bp = Blueprint("upload", __name__)
@@ -276,6 +276,22 @@ def process_upload():
         if os.path.exists(filepath):
             os.remove(filepath)
 
+    # Build plan alias map for this agency — used to resolve plan_id on each policy row
+    def _plan_alias_map(agency_id):
+        """Return dict of lowercase BOB plan_name → Plan.id for this agency."""
+        m = {}
+        for plan in Plan.query.filter_by(agency_id=agency_id).all():
+            if plan.plan_name_aliases:
+                for alias in plan.plan_name_aliases.split(","):
+                    alias = alias.strip()
+                    if alias:
+                        m[alias.lower()] = plan.id
+            if plan.plan_name:
+                m[plan.plan_name.lower()] = plan.id
+        return m
+
+    alias_map = _plan_alias_map(upload_agency_id)
+
     # Upsert records into the Policy table
     today = date.today()
     new_count = 0
@@ -312,6 +328,7 @@ def process_upload():
             existing.import_batch_id = batch.id
             if upload_agent_id:
                 existing.agent_id = upload_agent_id
+            existing.plan_id = alias_map.get((rec["plan_name"] or "").strip().lower())
             updated_count += 1
         else:
             policy = Policy(
@@ -339,6 +356,7 @@ def process_upload():
                 status=rec["status"],
                 last_seen_date=today,
                 import_batch_id=batch.id,
+                plan_id=alias_map.get((rec["plan_name"] or "").strip().lower()),
             )
             db.session.add(policy)
             new_count += 1

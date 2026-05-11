@@ -112,11 +112,19 @@
     </div>
 
     <div class="form-row">
+      <label>Agent-facing name (friendly name)</label>
+      <input class="form-input" type="text" name="friendly_name"
+             value="{{ plan.friendly_name if plan else '' }}"
+             placeholder="e.g. NC-0015 or UHC Plan 3 — what agents call this plan">
+      <div class="form-hint">Shown on customer profiles and the customer list. If blank, the plan name is used.</div>
+    </div>
+
+    <div class="form-row">
       <label>BOB plan name aliases</label>
       <input class="form-input" type="text" name="plan_name_aliases"
              value="{{ plan.plan_name_aliases if plan else '' }}"
              placeholder="Comma-separated list of alternate names from BOB imports">
-      <div class="form-hint">Used to match policies imported from BOB files to this plan record.</div>
+      <div class="form-hint">Used to match policies imported from BOB files to this plan record. Separate multiple names with commas.</div>
     </div>
 
     <div class="form-row">

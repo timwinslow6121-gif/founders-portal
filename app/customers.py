@@ -216,11 +216,14 @@ def customers_list():
     page_mbis = [c.mbi for c in customer_page.items if c.mbi]
     policy_info = {}  # mbi → {carrier, plan_type, plan_name, effective_date}
     if page_mbis:
+        from app.models import Plan as PlanModel
         rows = (
             db.session.query(
                 Policy.mbi, Policy.carrier, Policy.plan_type,
                 Policy.plan_name, Policy.effective_date,
+                PlanModel.friendly_name,
             )
+            .outerjoin(PlanModel, Policy.plan_id == PlanModel.id)
             .filter(
                 Policy.agency_id == current_user.agency_id,
                 Policy.mbi.in_(page_mbis),
@@ -234,10 +237,11 @@ def customers_list():
         for row in rows:
             if row.mbi not in seen:
                 seen.add(row.mbi)
+                display_name = row.friendly_name or row.plan_name or ""
                 policy_info[row.mbi] = {
                     "carrier":        row.carrier or "",
                     "plan_type":      row.plan_type or "",
-                    "plan_name":      row.plan_name or "",
+                    "plan_name":      display_name,
                     "effective_date": row.effective_date,
                 }
 

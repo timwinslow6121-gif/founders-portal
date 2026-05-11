@@ -110,6 +110,10 @@ class Policy(db.Model):
     agent_id = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
     agent = db.relationship("User", back_populates="policies")
 
+    # Link to canonical Plan record — resolved at BOB upload via plan_name_aliases matching
+    plan_id = db.Column(db.Integer, db.ForeignKey("plans.id"), nullable=True, index=True)
+    plan    = db.relationship("Plan", foreign_keys=[plan_id])
+
     # Audit fields
     last_seen_date = db.Column(db.Date)            # date of most recent BOB import where record appeared
     import_batch_id = db.Column(db.Integer, db.ForeignKey("import_batches.id"))
@@ -356,6 +360,10 @@ class Plan(db.Model):
     # Aliases for matching against raw BOB plan_name strings
     # Comma-separated list of strings that map to this plan
     plan_name_aliases = db.Column(db.Text)
+
+    # Agent-facing name: what agents call this plan in appointments and training
+    # e.g. "NC-0015" or "UHC Plan 3" — shown on customer profiles and list
+    friendly_name   = db.Column(db.String(128))
 
     # Audit
     created_by_id   = db.Column(db.Integer, db.ForeignKey("users.id"))

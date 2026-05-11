@@ -125,7 +125,9 @@
   cursor: pointer;
   outline: none;
   transition: border-color 0.2s;
-  min-width: 140px;
+  min-width: 130px;
+  max-width: 200px;
+  width: auto;
 }
 .filter-select:focus { border-color: var(--gold); }
 .filter-active { border-color: var(--gold) !important; }
@@ -294,9 +296,14 @@
     <select name="plan_type" class="filter-select {% if f_plan_type %}filter-active{% endif %}"
             onchange="this.form.submit()">
       <option value="">All Plan Types</option>
-      {% for pt in plan_types %}
-        <option value="{{ pt }}" {% if f_plan_type == pt %}selected{% endif %}>{{ pt }}</option>
-      {% endfor %}
+      <option value="all_ma"  {% if f_plan_type == 'all_ma'  %}selected{% endif %}>Medicare Advantage (All)</option>
+      <option value="MAPD"    {% if f_plan_type == 'MAPD'    %}selected{% endif %}>MAPD (w/ Drug)</option>
+      <option value="MA"      {% if f_plan_type == 'MA'      %}selected{% endif %}>MA Only (no drug)</option>
+      <option value="DSNP"    {% if f_plan_type == 'DSNP'    %}selected{% endif %}>D-SNP (Dual)</option>
+      <option value="CSNP"    {% if f_plan_type == 'CSNP'    %}selected{% endif %}>C-SNP (Chronic)</option>
+      <option value="MS"      {% if f_plan_type == 'MS'      %}selected{% endif %}>Medicare Supplement</option>
+      <option value="PDP"     {% if f_plan_type == 'PDP'     %}selected{% endif %}>Part D (PDP)</option>
+      <option value="Dental"  {% if f_plan_type == 'Dental'  %}selected{% endif %}>Dental</option>
     </select>
 
     <select name="medicaid" class="filter-select {% if f_medicaid %}filter-active{% endif %}"

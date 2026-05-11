@@ -127,7 +127,11 @@ def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_
         if f_carrier:
             policy_q = policy_q.filter(Policy.carrier == f_carrier)
         if f_plan_type:
-            policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
+            # "all_ma" = any Medicare Advantage subtype; specific values filter exactly
+            if f_plan_type == "all_ma":
+                policy_q = policy_q.filter(Policy.plan_type.in_(["MAPD", "MA", "DSNP", "CSNP"]))
+            else:
+                policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
         query = query.filter(Customer.mbi.in_(policy_q.distinct()))
     if f_agent_id and current_user.is_admin:
         query = query.filter(Customer.primary_agent_id == f_agent_id)
@@ -189,9 +193,6 @@ def customers_list():
     carriers = [r[0] for r in
         db.session.query(Policy.carrier).filter_by(agency_id=current_user.agency_id)
         .distinct().order_by(Policy.carrier).all() if r[0]]
-    plan_types = [r[0] for r in
-        db.session.query(Policy.plan_type).filter_by(agency_id=current_user.agency_id)
-        .distinct().order_by(Policy.plan_type).all() if r[0]]
 
     agents = (User.query.filter_by(agency_id=current_user.agency_id)
               .filter(User.is_admin == False)
@@ -218,7 +219,7 @@ def customers_list():
         f_agent_id=str(f_agent_id) if f_agent_id else "", f_medicaid=f_medicaid,
         stats={"total": total_count, "active": active_count,
                "termed": termed_count, "medicaid": medicaid_count},
-        carriers=carriers, plan_types=plan_types, agents=agents,
+        carriers=carriers, agents=agents,
         shared_views=shared_views,
     )
 

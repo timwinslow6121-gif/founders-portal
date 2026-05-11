@@ -60,14 +60,24 @@ PLAN_UPDATES = [
         ],
     },
     {
-        "carrier": "UHC", "match": "Dual Complete",
-        "friendly_name": "Dual Complete D-SNP",
-        "aliases": [
-            "UHC Dual Complete NC-S3",
-            "UHC Dual Complete NC-D001",
-            "UHC Dual Complete NC-V001",
-            "UHC Dual Complete NC-S001",
-        ],
+        "carrier": "UHC", "match": "NC-S3",
+        "friendly_name": "NC-S3",
+        "aliases": ["UHC Dual Complete NC-S3"],
+    },
+    {
+        "carrier": "UHC", "match": "NC-D001",
+        "friendly_name": "NC-D001",
+        "aliases": ["UHC Dual Complete NC-D001"],
+    },
+    {
+        "carrier": "UHC", "match": "NC-V001",
+        "friendly_name": "NC-V001",
+        "aliases": ["UHC Dual Complete NC-V001"],
+    },
+    {
+        "carrier": "UHC", "match": "NC-S001",
+        "friendly_name": "NC-S001",
+        "aliases": ["UHC Dual Complete NC-S001"],
     },
     {
         "carrier": "UHC", "match": "Complete Care",

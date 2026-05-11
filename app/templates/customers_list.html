@@ -172,13 +172,17 @@
 .data-table th { position: relative; }
 .col-resize-handle {
   position: absolute;
-  right: 0; top: 0; bottom: 0;
-  width: 6px;
+  right: 0; top: 20%; bottom: 20%;
+  width: 5px;
   cursor: col-resize;
   user-select: none;
   z-index: 10;
+  border-right: 2px solid var(--border);
+  border-radius: 1px;
+  transition: border-color 0.15s;
 }
-.col-resize-handle:hover { background: var(--gold); opacity: 0.4; }
+.col-resize-handle:hover,
+.col-resize-handle.dragging { border-color: var(--gold); }
 
 /* ── Table ── */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -273,6 +277,10 @@
         <input type="checkbox" data-col="col-agent" {% if current_user.is_admin %}checked{% endif %}> Agent
       </label>
       <label class="col-picker-item"><input type="checkbox" data-col="col-stage" checked> Stage</label>
+      <label class="col-picker-item"><input type="checkbox" data-col="col-carrier"> Carrier</label>
+      <label class="col-picker-item"><input type="checkbox" data-col="col-plan-type"> Plan Type</label>
+      <label class="col-picker-item"><input type="checkbox" data-col="col-plan-name"> Plan Name</label>
+      <label class="col-picker-item"><input type="checkbox" data-col="col-eff-year"> Eff. Year</label>
       <label class="col-picker-item"><input type="checkbox" data-col="col-pharmacy" checked> Pharmacy</label>
     </div>
   </div>
@@ -410,12 +418,16 @@
                 </i>
               </th>
             {% endmacro %}
-            {{ sort_th('Name', 'name', width='28%') }}
-            <th class="col-mbi" style="width:15%">MBI</th>
-            <th class="col-phone" style="width:14%">Phone</th>
-            <th class="col-agent" style="width:20%{% if not current_user.is_admin %};display:none{% endif %}">Agent</th>
-            {{ sort_th('Stage', 'stage', 'col-stage', '12%') }}
-            {{ sort_th('Pharmacy', 'pharmacy', 'col-pharmacy', '11%') }}
+            {{ sort_th('Name', 'name', width='22%') }}
+            <th class="col-mbi" style="width:12%">MBI</th>
+            <th class="col-phone" style="width:12%">Phone</th>
+            <th class="col-agent" style="width:14%{% if not current_user.is_admin %};display:none{% endif %}">Agent</th>
+            {{ sort_th('Stage', 'stage', 'col-stage', '9%') }}
+            <th class="col-carrier" style="display:none;width:10%">Carrier</th>
+            <th class="col-plan-type" style="display:none;width:9%">Plan Type</th>
+            <th class="col-plan-name" style="display:none;width:16%">Plan Name</th>
+            <th class="col-eff-year" style="display:none;width:7%">Year</th>
+            {{ sort_th('Pharmacy', 'pharmacy', 'col-pharmacy', '10%') }}
           </tr>
         </thead>
         <tbody>
@@ -444,6 +456,13 @@
                 {% elif stage == 'Lead' %}<span class="badge badge-amber">{{ stage }}</span>
                 {% else %}<span class="badge badge-gray">{{ stage }}</span>{% endif %}
               {% endif %}
+            </td>
+            {% set pi = policy_info.get(c.mbi, {}) %}
+            <td class="col-carrier text-muted" style="display:none">{{ pi.get('carrier') or '—' }}</td>
+            <td class="col-plan-type text-muted" style="display:none">{{ pi.get('plan_type') or '—' }}</td>
+            <td class="col-plan-name text-muted" style="display:none;font-size:12px">{{ pi.get('plan_name') or '—' }}</td>
+            <td class="col-eff-year text-muted" style="display:none">
+              {%- if pi.get('effective_date') %}{{ pi['effective_date'].strftime('%Y') }}{% else %}—{% endif -%}
             </td>
             <td class="col-pharmacy text-muted">{{ c.pharmacy.name if c.pharmacy else '—' }}</td>
           </tr>
@@ -500,6 +519,10 @@ function applyColVisibility(col, visible) {
   });
 }
 
+// Columns that are off by default (no checkbox attribute = checked by default,
+// these are opt-in extras)
+const COL_DEFAULTS_OFF = new Set(['col-carrier', 'col-plan-type', 'col-plan-name', 'col-eff-year']);
+
 function loadColPrefs() {
   const isAdmin = {{ 'true' if current_user.is_admin else 'false' }};
   let prefs = {};
@@ -507,8 +530,7 @@ function loadColPrefs() {
 
   document.querySelectorAll('#col-picker-dropdown input[type="checkbox"]').forEach(cb => {
     const col = cb.dataset.col;
-    // agent col: default off for non-admin (row is already hidden via Jinja)
-    let defaultOn = true;
+    let defaultOn = !COL_DEFAULTS_OFF.has(col);
     if (col === 'col-agent' && !isAdmin) defaultOn = false;
 
     const visible = prefs[col] !== undefined ? prefs[col] : defaultOn;
@@ -538,18 +560,38 @@ function initResizableColumns() {
     const handle = document.createElement('div');
     handle.className = 'col-resize-handle';
     th.appendChild(handle);
-    let startX, startW;
+
+    let startX, startW, dragged = false;
+
     handle.addEventListener('mousedown', e => {
-      startX = e.pageX;
-      startW = th.offsetWidth;
-      const onMove = ev => { th.style.width = (startW + ev.pageX - startX) + 'px'; };
-      const onUp   = () => {
+      startX  = e.pageX;
+      startW  = th.offsetWidth;
+      dragged = false;
+      handle.classList.add('dragging');
+
+      const onMove = ev => {
+        const delta = ev.pageX - startX;
+        if (Math.abs(delta) > 2) dragged = true;
+        const newW = Math.max(60, startW + delta);
+        th.style.width = newW + 'px';
+        th.style.minWidth = newW + 'px';
+      };
+
+      const onUp = ev => {
+        handle.classList.remove('dragging');
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
+        // Swallow the click on th so sort doesn't fire after a drag
+        if (dragged) {
+          ev.stopPropagation();
+          th.addEventListener('click', e2 => e2.stopPropagation(), { once: true, capture: true });
+        }
       };
+
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
       e.preventDefault();
+      e.stopPropagation();
     });
   });
 }

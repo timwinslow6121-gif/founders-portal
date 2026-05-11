@@ -211,6 +211,36 @@ def customers_list():
         for c in customer_page.items:
             c.is_former = False
 
+    # Build a policy-info lookup for the current page — single query, no N+1.
+    # For each MBI, pick the most recently effective active policy.
+    page_mbis = [c.mbi for c in customer_page.items if c.mbi]
+    policy_info = {}  # mbi → {carrier, plan_type, plan_name, effective_date}
+    if page_mbis:
+        rows = (
+            db.session.query(
+                Policy.mbi, Policy.carrier, Policy.plan_type,
+                Policy.plan_name, Policy.effective_date,
+            )
+            .filter(
+                Policy.agency_id == current_user.agency_id,
+                Policy.mbi.in_(page_mbis),
+                Policy.status != "termed",
+            )
+            .order_by(Policy.mbi, Policy.effective_date.desc().nullslast())
+            .all()
+        )
+        # Keep only the first (most recent) row per MBI
+        seen = set()
+        for row in rows:
+            if row.mbi not in seen:
+                seen.add(row.mbi)
+                policy_info[row.mbi] = {
+                    "carrier":        row.carrier or "",
+                    "plan_type":      row.plan_type or "",
+                    "plan_name":      row.plan_name or "",
+                    "effective_date": row.effective_date,
+                }
+
     return render_template(
         "customers_list.html",
         customers=customer_page,
@@ -221,6 +251,7 @@ def customers_list():
                "termed": termed_count, "medicaid": medicaid_count},
         carriers=carriers, agents=agents,
         shared_views=shared_views,
+        policy_info=policy_info,
     )
 
 

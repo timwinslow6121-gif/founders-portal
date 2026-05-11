@@ -139,6 +139,10 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Phase 4 — Data Integrity + Reconciliation ✅ DEPLOYED (2026-05-08)** — Migration 014: Humana mbi=''→NULL backfill (196 policies + 2 BCBS outliers), partial unique index `WHERE mbi IS NOT NULL` on customers.mbi, `unresolvable_json` column on import_batches. 25 shell customers (no MBI/humana_id/dependents) hard-deleted — 510 customers remain. MBI duplicate detection + side-by-side merge UI with single-transaction AOR-safe migration. Unresolvable BOB quarantine tab (4th tab in import modal with inline assign/MBI/create resolution). BOB↔Commission reconciliation page (members in BOB not paid + payments not in BOB, per carrier+period). Per-customer Payment History section on customer profile.
 - **UI Polish ✅ (2026-05-07)** — Enhanced base.html with subtle CSS micro-animations, glassmorphism on sidebars (backdrop-filter), and depth effects via hover states for cards, buttons, and nav items without changing the core layout.
 - **Commission parser fixes ✅ (2026-05-08)** — UHC and Aetna parsers corrected for April 2026 file formats. UHC: 29-col layout, agent=col5, mbi=col8, action=col19, commission=col23. Aetna: agency-level multi-agent file, agent_id=NULL on statement, per-row agent resolution via col16. PolicyPayment.agent_id made nullable (migration 015). Nickname matching (michael↔mike, christopher↔chris, etc.) added to both _detect_agent_id() and _resolve_agent_id(). paid=0 (no summary row) defaults to expected amount. extract_aetna and extract_uhc in payments.py updated to match new layouts with MBI now included.
+- **Customer list phase 2 enhancements ✅ (2026-05-11)** — Carrier/plan_type/agent/medicaid filter bar (8 curated plan type options including "Medicare Advantage (All)" = `all_ma` value covering MAPD+MA+DSNP+CSNP). Stats strip (total/active/termed/medicaid counts). CSV export route `/customers/export`. Resizable columns (drag handles, drag-without-sort fix via `capture:true` one-time listener). Column picker expanded to 9 options: added Carrier, Plan Type, Plan Name, Eff. Year (all off by default). Saved views: personal localStorage + shared agency-wide via DB (`customer_saved_views` table, migration 016). Filter bar sizing fixed: `min-width:130px; max-width:200px; width:auto`.
+- **Plan data single source of truth ✅ (2026-05-11)** — Migration 017: `Plan.friendly_name` VARCHAR(128) + `Policy.plan_id` FK → plans.id (SET NULL on delete, indexed). BOB upload now resolves `plan_id` via `_plan_alias_map(agency_id)` helper on every upsert. `scripts/seed_plan_aliases.py` populated all 38 plans with friendly names, BOB aliases, and resolved all 524 policy.plan_id values. Healthspring Cigna-named plans deleted; correct HealthSpring Preferred Savings HMO (H9725-015) created.
+- **Plan names normalized + CMS IDs populated ✅ (2026-05-11)** — Redundant carrier prefix stripped from all 38 plan names (carrier is own table column). CMS IDs populated from `docs/All Insurance Plans for Zoho - Sheet1.csv` for all active plans. Key corrections: BCBS Freedom+ was H3894-009 → H3404-004; Aetna Eagle PPO was H5521-284 → H5521-241; Humana Choice PPO was H5525-034 → H5525-070. Humana PDP SOB data populated: Basic (S5884-133, $6.80/mo, $615 ded, 4-tier copays), Premier (S5884-154, $110.90/mo, $0 ded), Value (S5884-187, $32.00/mo, tiered ded). Service area = "Statewide NC" for all three Humana PDPs.
+- **Carriers & Plans UI refresh ✅ (2026-05-11)** — Filter bar matches customers module exactly (same CSS classes, flex sizing, `onchange` submit). Carrier as dedicated column. Two-line plan name display: friendly name prominent, technical name muted below. Whole-row clickable; edit button uses `event.stopPropagation()`. SNP flags use `.flag-snp` (blue) vs `.flag` (gold). `plan_form.html` has friendly_name field above plan_name_aliases.
 
 ## Next Steps / To-Do
 
@@ -157,7 +161,7 @@ Key items:
 - **Termination outcome tracker** — log of every termed policy since Jan 1, outcome (saved/converted/moved/deceased/fraud), contact history, ties to customer profile
 - **AEP page** — dedicated AEP enrollment window tracker (separate from upcoming terminations)
 - **Carriers & Plans** — customer profile → plan detail page link (match by carrier+plan_name)
-- **Plan commission rates** — update seeded plans with real 2026 CMS rates per carrier (placeholders: $22 initial / $15 renewal MAPD, 20% Medigap, $3 PDP)
+- **Plan benefit data (MA plans)** — Humana PDP SOBs done. Still need MA plan SOB data: monthly premiums, OOPM, copays for UHC, BCBS, Aetna, Humana MAPD plans. User will provide SOB URLs next session.
 - **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
 
 ## Agent Nav — what's in the sidebar (as of 2026-05-08)
@@ -255,7 +259,7 @@ On commission upload, the portal should enrich Customer/Policy records — not j
 
 **AOR discrepancies:** Commission file writing agent ≠ stored primary_agent_id → flag only, don't auto-update. Stored in CommissionStatement.aor_flags_json, surfaced as 5th tab in import modal.
 
-**Pending migrations:** 016 — Customer.stub (Boolean), Customer.source (String), CommissionStatement.aor_flags_json (Text).
+**Pending migrations:** 018 — Customer.stub (Boolean), Customer.source (String), CommissionStatement.aor_flags_json (Text). (016 = customer_saved_views ✅, 017 = plan_link ✅)
 
 ## Key Files
 - `FOUNDERS_PORTAL_CONTEXT.md` — full project context, agent roster, carrier details, roadmap

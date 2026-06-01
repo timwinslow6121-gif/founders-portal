@@ -143,10 +143,82 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Plan data single source of truth ✅ (2026-05-11)** — Migration 017: `Plan.friendly_name` VARCHAR(128) + `Policy.plan_id` FK → plans.id (SET NULL on delete, indexed). BOB upload now resolves `plan_id` via `_plan_alias_map(agency_id)` helper on every upsert. `scripts/seed_plan_aliases.py` populated all 38 plans with friendly names, BOB aliases, and resolved all 524 policy.plan_id values. Healthspring Cigna-named plans deleted; correct HealthSpring Preferred Savings HMO (H9725-015) created.
 - **Plan names normalized + CMS IDs populated ✅ (2026-05-11)** — Redundant carrier prefix stripped from all 38 plan names (carrier is own table column). CMS IDs populated from `docs/All Insurance Plans for Zoho - Sheet1.csv` for all active plans. Key corrections: BCBS Freedom+ was H3894-009 → H3404-004; Aetna Eagle PPO was H5521-284 → H5521-241; Humana Choice PPO was H5525-034 → H5525-070. Humana PDP SOB data populated: Basic (S5884-133, $6.80/mo, $615 ded, 4-tier copays), Premier (S5884-154, $110.90/mo, $0 ded), Value (S5884-187, $32.00/mo, tiered ded). Service area = "Statewide NC" for all three Humana PDPs.
 - **Carriers & Plans UI refresh ✅ (2026-05-11)** — Filter bar matches customers module exactly (same CSS classes, flex sizing, `onchange` submit). Carrier as dedicated column. Two-line plan name display: friendly name prominent, technical name muted below. Whole-row clickable; edit button uses `event.stopPropagation()`. SNP flags use `.flag-snp` (blue) vs `.flag` (gold). `plan_form.html` has friendly_name field above plan_name_aliases.
+- **CMS sync scripts ✅ (2026-06-01)** — `scripts/sync_cms_plan_data.py`: reads CY2026 Landscape CSV, updates monthly_premium/annual_oopm/star_rating, deduplicates by plan across county rows, handles PPO "Not Applicable" consolidated premium fallback. `scripts/sync_pbp_benefit_data.py`: reads CMS PBP Benefits flat files (pbp_b4_emerg_urgent.txt + pbp_b7_health_prof.txt), updates pcp_copay/specialist_copay/er_copay. Both write reports to scripts/. Verified: UHC H5253-117 → pcp=$0, specialist=$35, er=$150, matches agent SOB. Source data: `docs/Medicare Landscape Files/` (not in git — scp to VPS before running pbp script).
 
 ## Next Steps / To-Do
 
-### Phase 5 — Operations (NEXT — start fresh session)
+### CMS Data Sync — In Progress (2026-06-01)
+
+Two complementary one-time scripts that populate plan benefit data from CMS bulk files. Both run on VPS. The `pbp-benefits-2026/` directory must be scp'd to VPS before running sync_pbp_benefit_data.py (too large for git).
+
+- **`scripts/sync_cms_plan_data.py` ✅ committed** — reads `docs/Medicare Landscape Files/CY2026_Landscape_202603/CY2026_Landscape_202603.csv`. Updates `monthly_premium`, `annual_oopm`, `star_rating`. Writes `scripts/cms_sync_report.txt`.
+- **`scripts/sync_pbp_benefit_data.py` ✅ committed** — reads `docs/Medicare Landscape Files/pbp-benefits-2026/pbp_b4_emerg_urgent.txt` + `pbp_b7_health_prof.txt`. Updates `pcp_copay` (b7a), `specialist_copay` (b7c = outpatient hospital specialist, confirmed $35 vs SOB), `er_copay` (b4a = ER with admission waiver, confirmed $150). Writes `scripts/pbp_sync_report.txt`. PDP plans (S5884-*) correctly land in "not found" — they have no b4/b7 rows.
+
+**VPS run sequence:**
+```bash
+scp -ri ~/.ssh/id_ed25519 "docs/Medicare Landscape Files/pbp-benefits-2026/" root@23.187.248.100:"/var/www/founders-portal/docs/Medicare Landscape Files/"
+ssh root@23.187.248.100
+cd /var/www/founders-portal && git pull
+./venv/bin/python3 scripts/sync_cms_plan_data.py
+./venv/bin/python3 scripts/sync_pbp_benefit_data.py
+```
+
+### Plan Database — Full SOB Enhancement (NEXT)
+
+Goal: make the Carriers & Plans page the portal's equivalent of HealthSherpa's plan comparison tool — a full SOB snapshot per plan, with quick-scan list view + expandable detail matching agent appointment reference charts.
+
+**Design decisions locked in (2026-06-01):**
+- Enhance existing `plan_list.html` / `plan_detail.html` / `plan_form.html` — do not rebuild
+- Per-benefit note fields in the plan edit form (e.g. `dental_note`, `otc_note`) — for nuance like "Humana OTC = online only", "Devoted OTC = CVS catalogue price only"
+- Full benefit snapshot stored in `details_json` (column already exists) — no 30-column migration
+- Migration 018 needed: add `drug_tier4` + `drug_tier5` VARCHAR(32) to `plans` table (tier 1-3 already exist as columns); `sob_url` VARCHAR(512) for SOB PDF link
+
+**Benefit fields to add to `details_json` (sourced from agent appointment charts):**
+```
+inpatient_hospital       # e.g. "$455/day days 1-6, $0 days 7-90"
+inpatient_hospital_note
+outpatient_surgery       # e.g. "$455"
+snf                      # e.g. "$0 days 1-20, $218 days 21-100"
+ambulance                # e.g. "$275"
+urgent_care_copay        # e.g. "$65"
+dental_allowance         # e.g. "$2,000/yr preventive + comprehensive"
+dental_note              # e.g. "Preventive only" or "50% coinsurance on major"
+vision_allowance         # e.g. "$200/2yr eyewear"
+vision_note
+otc_allowance            # e.g. "$45/qtr"
+otc_note                 # e.g. "Pharmacy accepts only" / "Humana: online only" / "Devoted: CVS catalogue price"
+healthy_food_card        # e.g. "$85/mo"
+transportation           # e.g. "24 one-way trips/yr"
+gym                      # e.g. "Silver Sneakers" / "Renew Active"
+hearing                  # e.g. "$0 exam, $199-$1,249/device"
+hearing_note
+drug_deductible          # e.g. "$440" or "$0"
+drug_deductible_exempt_tiers  # e.g. "Tiers 1 & 2"
+sob_url                  # direct link to CMS/carrier SOB PDF
+```
+
+**Plan list view enhancements (matching HealthSherpa overview + agent charts):**
+- Card/row: carrier badge, plan name + H-code, plan type tags (HMO/PPO/D-SNP/C-SNP/5★), premium, MOOP, PCP/specialist copay, dental allowance, OTC, star rating, customer count
+- Filters: carrier, plan type, D-SNP/C-SNP/5-star, year, county/service area
+
+**Plan detail view enhancements:**
+- SOB PDF link prominent at top
+- Sections mirroring SOB layout: Medical Benefits, Supplemental Benefits (dental/vision/hearing/OTC/fitness/food/transport), Prescriptions (tier table with deductible + exempt tiers)
+- Per-benefit note badges shown inline
+- All benefit data auto-populated by CMS sync scripts; nuance notes manually entered by AJ
+
+**CMS source files for additional benefit data (pbp-benefits-2026/):**
+- `pbp_b1a_inpat_hosp.txt` → inpatient hospital (tiered by day)
+- `pbp_b2_snf.txt` → SNF (tiered by day)
+- `pbp_b9_outpat_hosp.txt` → outpatient surgery
+- `pbp_b10_amb_trans.txt` → ambulance
+- `pbp_b16_dental.txt` → dental allowance + coinsurance
+- `pbp_b17_eye_exams_wear.txt` → vision allowance
+- `pbp_b18_hearing_exams_aids.txt` → hearing exam + aid cost
+- `pbp_mrx.txt` + `pbp_mrx_tier.txt` → drug deductible + tier 4/5 copays
+- `pbp_Section_D.txt` → MOOP (supplements Landscape CSV)
+
+### Phase 5 — Operations (after plan database)
 
 Time logging, service tickets, lead source tracking, MedicareCenter PDF OCR, SOP hub.
 
@@ -161,7 +233,6 @@ Key items:
 - **Termination outcome tracker** — log of every termed policy since Jan 1, outcome (saved/converted/moved/deceased/fraud), contact history, ties to customer profile
 - **AEP page** — dedicated AEP enrollment window tracker (separate from upcoming terminations)
 - **Carriers & Plans** — customer profile → plan detail page link (match by carrier+plan_name)
-- **Plan benefit data (MA plans)** — Humana PDP SOBs done. Still need MA plan SOB data: monthly premiums, OOPM, copays for UHC, BCBS, Aetna, Humana MAPD plans. User will provide SOB URLs next session.
 - **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
 
 ## Agent Nav — what's in the sidebar (as of 2026-05-08)

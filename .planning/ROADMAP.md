@@ -2,221 +2,231 @@
 
 ## Overview
 
-Phases 1 and 2 are complete: production infrastructure, carrier BOB parsers, commission auditing, and the customer master record are live. Phase 2.5 (PostgreSQL migration) is a hard prerequisite before Phase 3 begins — the multi-tenant Agency model must be built in PostgreSQL from the start, never retrofitted from SQLite. Phases 3 through 7 build the features that make the portal the single tab agents need — communication history without manual entry, compliance-grade SOA and license tracking, operational tooling, analytics, and finally the full multi-tenant SaaS architecture that becomes MAMS.
+Phases 1–4 are complete and deployed to production. The portal is live at portal.foundersinsuranceagency.com serving 8 agents, 510 customers, and 524 policies across 5 carriers. Phase 5 (Plan Database SOB) extends the Carriers & Plans module into a full plan comparison reference tool. Phases 6–8 build the operational tooling, analytics, and multi-tenant SaaS architecture that becomes MAMS.
+
+**Note on Phase numbering:** Phase 2.5 (PostgreSQL) and Phase 3 (Communications Hub) completed as planned. Phase 4 was replanned mid-execution to focus on data integrity + plan database rather than NIPR/expense tracking (those moved to Phase 6). All historical plans remain in `.planning/phases/`.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Integer phases: Planned milestone work
+- Decimal phases: Urgent insertions or extensions
 
 <details>
 <summary>Phases 1 & 2 — Complete (validated 2026-03-20)</summary>
 
-- [x] **Phase 1: Infrastructure & Core** - VPS, auth, carrier BOB parsers, commission audit, agent dashboard
-- [x] **Phase 2: Customer Master** - Customer model (MBI-keyed), contacts, notes, AOR history, pharmacies
+- [x] **Phase 1: Infrastructure & Core** — VPS, Nginx, Gunicorn, SSL, Google OAuth, carrier BOB parsers (6 carriers), commission audit, agent dashboard, birthday labels
+- [x] **Phase 2: Customer Master** — Customer model (MBI-keyed), CustomerContact, CustomerNote, CustomerAorHistory, Pharmacy model, customers_bp + pharmacies_bp, all templates
 
 </details>
 
-- [ ] **Phase 2.5: PostgreSQL Migration** *(hard prerequisite — must complete before Phase 3)*
-- [ ] **Phase 3: Communications Hub** - Twilio + Retell AI voice engine; Google Meet native recording; Calendly + HealthSherpa webhooks; SMS templates; email campaigns; consent model; multi-tenant Agency model
-- [x] **Phase 4: Compliance Reference** - Carrier plan master (CMS API), NIPR license sync, expense reimbursement (completed 2026-05-08)
-- [ ] **Phase 5: Operations** - Time logging, service tickets, lead source, MedicareCenter PDF OCR, SOP hub
-- [ ] **Phase 6: Analytics** - Commission forecast, AEP performance, retention/churn metrics, pharmacy ROI, nightly aggregation
-- [ ] **Phase 7: White Label / Multi-Tenant** - PostgreSQL schema-per-tenant, agency onboarding wizard, branding, Stripe billing, audit log, HIPAA gates
-  *(Agency model + agency_id FK architecture established in Phase 2.5/3 — this phase adds full schema isolation, billing, and operator portal)*
+<details>
+<summary>Phase 2.5 — PostgreSQL Migration — Complete (validated 2026-03-26)</summary>
+
+- [x] **Phase 2.5: PostgreSQL Migration** — PostgreSQL 16 on VPS, Flask-Migrate initialized, Agency multi-tenant model + agency_id FKs, 5,589 rows migrated, 2GB swap, Gunicorn gthread. All 5 plans complete.
+
+</details>
+
+- [x] **Phase 3: Communications Hub** — Quo/Twilio webhooks, Calendly integration, SMS templates, agency_id scoping sweep, UnmatchedCall resolution UI, Google Meet Pub/Sub + HealthSherpa webhook skeleton. All 7 plans complete. (2026-04-13)
+- [x] **Phase 4: Data Integrity & Plan Database** — MBI backfill, partial unique index, duplicate merge UI, BOB quarantine, commission reconciliation, Carriers & Plans module (Plan model, 38 plans seeded, CMS sync scripts), payment ledger, AOR visibility, commission type, customer list enhancements, theme overhaul. (2026-06-01)
+- [ ] **Phase 5: Plan Database SOB Enhancement** — Full SOB snapshot per plan (inpatient, SNF, dental, vision, OTC, drug tiers), enhanced plan list/detail views matching HealthSherpa reference charts, per-benefit admin note fields
+- [ ] **Phase 6: Operations** — Commission statement→customer sync, agent time logging, service tickets, lead source tracking, NIPR license sync, expense reimbursement, SOP hub
+- [ ] **Phase 7: Analytics** — Commission forecast, AEP performance, retention/churn metrics, pharmacy ROI, nightly pre-aggregation
+- [ ] **Phase 8: White Label / Multi-Tenant** — PostgreSQL schema-per-tenant, agency onboarding wizard, branding, Stripe billing, HIPAA gates, audit log closure
+
+---
 
 ## Phase Details
 
-### Phase 2.5: PostgreSQL Migration *(Hard prerequisite — do not start Phase 3 until complete)*
+### Phase 5: Plan Database SOB Enhancement *(next)*
 
-**Goal**: Migrate the production database from SQLite to PostgreSQL on the NixiHost VPS, with zero data loss. All existing data (policies, commissions, customers, agents) must be verified in PostgreSQL before any Phase 3 work begins. The multi-tenant Agency model and agency_id foreign keys must land in PostgreSQL from the start — never in SQLite.
-
-**Why this is a hard prerequisite**: The Agency model and agency_id FK columns that underpin all Phase 3 features require PostgreSQL column types and constraints. Building these in SQLite and migrating later creates schema debt and data migration risk during AEP season.
-
-**Depends on**: Phase 2
-
-**Tasks**:
-  - Install PostgreSQL on NixiHost VPS
-  - Create `founders_portal` database and user with appropriate permissions
-  - Update `config.py` DATABASE_URL from SQLite to PostgreSQL connection string
-  - Run `flask db upgrade` — verify all existing Alembic migrations apply cleanly
-  - Verify all existing data migrated correctly (commissions, policies, customers, agent contracts)
-  - Update `.env` with new `DATABASE_URL`
-  - Test full application against PostgreSQL (auth, BOB upload, commission audit, customer master)
-  - Remove SQLite dependency from `requirements.txt`
-  - Add 2GB swap file to VPS (required before AEP webhook traffic)
-  - Update Gunicorn config to threading model (`--workers 2 --threads 4 --worker-class gthread`)
-  - Update FOUNDERS_PORTAL_CONTEXT.md Section 4 to reflect PostgreSQL as production database
-
-**Success Criteria** (what must be TRUE):
-  1. Flask app starts and serves requests from PostgreSQL — no SQLite file referenced in production
-  2. All existing data is present and counts match between old SQLite export and new PostgreSQL tables
-  3. Commission audit, BOB upload, and customer master all function identically against PostgreSQL
-  4. Alembic migration chain applies cleanly from scratch against a fresh PostgreSQL database
-  5. VPS swap file active and Gunicorn threading config deployed
-
-**Plans:** 5 plans
-
-Plans:
-- [ ] 02.5-01-PLAN.md — Fix __init__.py syntax, init Flask-Migrate, generate baseline migration
-- [ ] 02.5-02-PLAN.md — Add Agency model, generate migrations 002+003 (nullable + NOT NULL), create seed script
-- [ ] 02.5-03-PLAN.md — Install PostgreSQL 16 on VPS, create DB/user, run flask db upgrade
-- [ ] 02.5-04-PLAN.md — pgloader data transfer, verify row counts, seed Agency, apply NOT NULL migration
-- [ ] 02.5-05-PLAN.md — Cutover .env, add swap file, update Gunicorn threading, full smoke test
-
----
-
-### Phase 3: Communications Hub
-
-**Goal**: Agents see complete communication history on every customer profile — calls, SMS threads, and meeting summaries appear automatically without manual entry; agents can send CMS-approved SMS templates and targeted email campaigns from within the portal. All multi-tenant Agency infrastructure lands here.
-
-**Telephony**: Dialpad (primary). Webhooks for call.completed, call.missed, voicemail.created, SMS. JWT HS256 signed payloads.
-
-**Edge-case telephony**: Twilio — for programmatic SMS blasts and Retell AI SIP trunking.
-
-**AI Voice Engine**: Retell AI (confirmed). HIPAA compliant, SOC2 Type II, $0.07/min, 600-800ms latency. Handles inbound missed calls — triage, appointment booking via Calendly mid-call, message taking.
-
-**Meeting Recording**: Google Meet native recording. Fireflies eliminated (BAA requires $40/user/mo Enterprise + Private Storage). Google Workspace Business Plus BAA already covers Meet. One unique Meet space created per appointment via Meet REST API; Workspace Events webhook fires when transcript is ready. Cost: $0 additional.
-
-**Enrollment Data**: HealthSherpa webhooks replace MedicareCenter PDF OCR (abandoned — too memory-intensive). Agency account setup pending — email medicare-integrations@healthsherpa.com. Captive join code required for LOA agents (full payload); AOR agents use independent join code (limited payload).
-
-**Pre-code dependencies (must be true before Phase 3 code starts)**:
-  - Phase 2.5 complete — app running on PostgreSQL
-  - Dialpad account provisioned (DIALPAD_HMAC_SECRET in `.env`) — sign BAA immediately on signup
-  - Twilio account provisioned (account SID, auth token in `.env`) — for SMS blasts and Retell SIP trunk
-  - Retell AI trial tested — call own number, verify quality with Medicare senior persona
-  - HealthSherpa agency account active and captive join code distributed
-  - Google Workspace admin settings: Meet recording + transcription enabled for domain
-  - Calendly plan tier confirmed for API access (Professional or Teams)
-  - HIPAA BAA status verified: Google Workspace (done via Business Plus), Twilio/SendGrid, Retell AI, Calendly, HealthSherpa, NixiHost
-
-**Depends on**: Phase 2.5
-
-**New models (Phase 3 schema migrations)**:
-  - `UnmatchedCall` — queue for calls with no customer match (new table)
-  - `SmsTemplate` — admin-approved CMS-compliant template library (new table)
-  - `CustomerNote` extended — dialpad_call_id, twilio_msg_sid, retell_call_id, resolved columns added
-  - `Customer` extended — sms_consent_at datetime added
-  - `agency_id` FK backfill on remaining tables without it (CustomerContact, CustomerAorHistory, etc.)
-
-**Success Criteria** (what must be TRUE):
-  1. Agent opens a customer profile and sees all calls (completed and missed) with timestamp, duration, direction, and AI summary — no manual entry required
-  2. Agent opens a customer profile and sees the full SMS thread with that customer, including inbound and outbound messages via Dialpad
-  3. After a Calendly booking, a pre-call brief (current plan, last interaction, open tasks) appears on the agent dashboard automatically
-  4. After a Google Meet appointment, the AI-extracted meeting summary and action items appear on the customer profile — no manual entry
-  5. Agent can send an admin-approved, CMS-compliant SMS template to a consenting customer directly from the customer profile
-  6. Inbound call from unknown number creates an UnmatchedCall record and surfaces in agent's resolution queue
-  7. Every database query is scoped to `agency_id` — no query returns cross-tenant data
-
-**Plans:** 5/7 plans executed
-
-Plans:
-- [ ] 03-01-PLAN.md — Schema migrations + test infrastructure (models, Alembic, pytest fixtures)
-- [ ] 03-02-PLAN.md — comms blueprint skeleton, phone utils, webhook verifiers, config slots
-- [ ] 03-03-PLAN.md — Dialpad webhook handler (calls + SMS + voicemail + UnmatchedCall creation)
-- [ ] 03-04-PLAN.md — Calendly webhook + UnmatchedCall resolution UI + upcoming appointments dashboard card
-- [ ] 03-05-PLAN.md — SMS template admin CRUD + agent send endpoint + consent guard
-- [ ] 03-06-PLAN.md — Google Meet Pub/Sub subscriber (systemd service) + HealthSherpa webhook
-- [ ] 03-07-PLAN.md — agency_id scoping sweep across all existing queries (SC-7)
-
----
-
-### Phase 4: Compliance Reference
-
-**Goal**: Agents and admins have authoritative plan and license data without leaving the portal — carrier plans are sourced from CMS and searchable by H-number; agent licenses are synced from NIPR with expiration warnings; expense reimbursements have a clear submission and approval workflow.
-
-**Depends on**: Phase 3
-
-**Requirements**: PLAN-01, PLAN-02, PLAN-03, PLAN-04, NIPR-01, NIPR-02, NIPR-03, NIPR-04, EXPE-01, EXPE-02, EXPE-03, EXPE-04
-
-**Success Criteria** (what must be TRUE):
-  1. Agent can look up any carrier plan by H-number or carrier name and see premium, MOOP, network type, and star rating — data sourced from CMS Plan Finder, not manually maintained
-  2. Customer AOR history displays plan name and premium pulled from the carrier_plans table when a match exists
-  3. Dashboard displays a warning banner for any agent whose license expires within 60 days; admin can view all agent licenses in one view
-  4. Agent can submit an expense with receipt, admin can approve or reject it with a note, and admin can mark approved expenses as paid and see total unpaid reimbursements per agent
-
-**Plans**: 5 plans
-
-Plans:
-- [x] 04-01-PLAN.md — Humana mbi='' → NULL backfill, partial unique index on customers.mbi, parser + upload.py hardening (deployed 2026-05-07)
-- [x] 04-02-PLAN.md — Upload-time MBI conflict detection + admin merge tool for duplicate customers
-- [x] 04-03-PLAN.md — Shell customer cleanup (29 customers with no MBI and no humana_id)
-- [x] 04-04-PLAN.md — Quarantine BOB records with no resolvable MBI (use unresolvable_json column)
-- [x] 04-05-PLAN.md — Humana MBI backfill from PolicyPayment records (name-match confidence)
-
-### Phase 5: Operations
-
-**Goal**: Agents have structured tooling for tracking their time and service work within the portal — interaction time is logged against customers, service tickets are opened and closed, the lead source field enables downstream analytics, MedicareCenter enrollment PDFs are auto-parsed into customer records, and agents have a searchable SOP knowledge base.
+**Goal**: The Carriers & Plans page becomes the portal's equivalent of HealthSherpa's plan comparison tool — every plan has a full SOB snapshot (medical benefits, supplemental benefits, drug tiers) that agents can reference without leaving the portal. CMS bulk files auto-populate most fields; agents add nuance notes manually.
 
 **Depends on**: Phase 4
 
-**Requirements**: OPER-01, OPER-02, OPER-03, OPER-04, OPER-05, OPER-06, OPER-07
+**Design decisions locked in (2026-06-01):**
+- Enhance existing `plan_list.html` / `plan_detail.html` / `plan_form.html` — do not rebuild
+- Per-benefit note fields stored as named keys in `details_json` (column already exists) — no 30-column migration
+- Migration 018: `drug_tier4` + `drug_tier5` VARCHAR(32), `sob_url` VARCHAR(512)
+- CMS PBP flat files drive auto-population; manual note fields for nuance (e.g. "OTC = online only")
+
+**Benefit fields to populate (via `details_json`):**
+```
+inpatient_hospital, inpatient_hospital_note
+outpatient_surgery
+snf
+ambulance
+urgent_care_copay
+dental_allowance, dental_note
+vision_allowance, vision_note
+otc_allowance, otc_note
+healthy_food_card
+transportation
+gym
+hearing, hearing_note
+drug_deductible, drug_deductible_exempt_tiers
+sob_url
+```
+
+**CMS source files for additional sync scripts (pbp-benefits-2026/):**
+- `pbp_b1a_inpat_hosp.txt` → inpatient_hospital
+- `pbp_b2_snf.txt` → snf
+- `pbp_b9_outpat_hosp.txt` → outpatient_surgery
+- `pbp_b10_amb_trans.txt` → ambulance
+- `pbp_b16_dental.txt` → dental_allowance
+- `pbp_b17_eye_exams_wear.txt` → vision_allowance
+- `pbp_b18_hearing_exams_aids.txt` → hearing
+- `pbp_mrx.txt` + `pbp_mrx_tier.txt` → drug tiers 4+5, deductible
 
 **Success Criteria** (what must be TRUE):
-  1. Agent can log time spent on a customer interaction (minutes, activity type) from the customer profile; the profile displays a time log summary
-  2. Agent can open and close service tickets on a customer; the customer profile shows all open tickets
-  3. Agent uploads a MedicareCenter enrollment PDF and the system extracts name, DOB, plan, carrier, effective date, and agent NPN — matching the record to the correct customer automatically
-  4. Agent can search the SOP knowledge base by keyword and find published SOP documents; admin can publish new SOPs
+1. Plan detail page shows complete SOB: medical benefits section, supplemental benefits section (dental/vision/hearing/OTC/fitness/food/transport), drug tier table
+2. Per-benefit note fields visible inline next to each benefit on detail view
+3. SOB PDF link displayed prominently on plan detail
+4. Plan list rows show: premium, MOOP, PCP copay, specialist copay, dental allowance, OTC, star rating, member count
+5. All benefit data for active MAPD plans populated from CMS PBP files (b1a, b2, b9, b10, b16, b17, b18, mrx)
+6. Admin form allows editing all benefit fields and saving notes per benefit
 
-**Plans**: TBD
+**Plans**: TBD (estimate 3–4 plans)
 
-### Phase 6: Analytics
+---
 
-**Goal**: Admins and agents have a data-driven view of agency performance — commission forecast, AEP conversion rates, retention by carrier, and pharmacy ROI are all visible from the dashboard with data sourced from pre-aggregated nightly summary tables, never on-demand queries against live data.
+### Phase 6: Operations
+
+**Goal**: Commission data enriches customer/policy records automatically on upload. Agents have structured tooling for time logging, service tickets, and lead tracking. NIPR license expiration warnings prevent compliance lapses. Expense reimbursement has a clear submission/approval workflow. Agents have a searchable SOP knowledge base.
 
 **Depends on**: Phase 5
 
-**Requirements**: ANAL-01, ANAL-02, ANAL-03, ANAL-04, ANAL-05, ANAL-06
+**Key work items:**
+- Commission statement → Customer/Policy sync on upload (stub customer auto-creation on unmatched MBI; AOR discrepancy flagging; policy enrichment — plan_type, plan_name, effective_date, commission_type, term_date)
+- Agent time log per customer interaction (minutes + activity type from customer profile)
+- Service tickets (open/close/resolve) linked to customers
+- Lead source field on Customer model
+- NIPR license sync per agent (API or manual) + dashboard expiration warnings (60-day window)
+- Expense reimbursement (submit/approve/reject/mark-paid workflow with receipt upload)
+- SOP knowledge base (admin publish, agent search by keyword)
+
+**Pending migrations:** 019+ for stub Customer fields (stub boolean, source string), CommissionStatement.aor_flags_json, service ticket table, time log table, lead source field
 
 **Success Criteria** (what must be TRUE):
-  1. Each agent's dashboard shows a commission forecast by carrier (Part D, supplement, MAPD) broken down by projected rates
-  2. Admin can view AEP performance per agent: appointments booked, enrolled, conversion rate, and comparison to the prior AEP
-  3. Admin can view retention rates by carrier and plan across the agency; customers flagged as churn risk appear with a visible indicator on their profiles
-  4. Analytics pages load from pre-aggregated summary tables — no on-demand GROUP BY queries run against live customer or policy tables
+1. Commission upload automatically enriches matched policy records (plan_type, plan_name, effective_date, commission_type)
+2. Unmatched MBI on commission upload auto-creates a stub Customer + Policy; agent can promote to full record from portal
+3. AOR discrepancy (commission file writing agent ≠ stored primary_agent_id) is flagged in import modal — not auto-updated
+4. Agent can log time on a customer interaction; profile shows time log summary
+5. Agent can open and close service tickets on a customer
+6. Dashboard warns agents with licenses expiring within 60 days
+7. Agent can submit an expense with receipt; admin can approve/reject/mark-paid
+8. Agent can search published SOP documents by keyword
 
-**Plans**: TBD
+**Plans**: TBD (estimate 5–6 plans)
 
-### Phase 7: White Label / Multi-Tenant
+---
 
-**Goal**: The portal becomes a deployable SaaS product — new agencies are provisioned with isolated PostgreSQL schemas, have their own branding, and pay via Stripe; HIPAA compliance gates (BAA, audit log, data export) are fully closed; the Founders agency runs as the first tenant with zero data loss from the SQLite migration.
+### Phase 7: Analytics
+
+**Goal**: Admins and agents have a data-driven view of agency performance — commission forecast, AEP conversion rates, retention by carrier, and pharmacy ROI sourced from nightly pre-aggregated summary tables, never on-demand queries.
 
 **Depends on**: Phase 6
 
-**Prerequisites (must be true before Phase 7 starts)**:
-  - All Phase 3–6 Alembic migrations use PostgreSQL-compatible column types (no SQLite-specific types)
-  - `SQLALCHEMY_ECHO=False` enforced in production config
-  - Audit log model complete (current CONCERNS.md flags it as incomplete)
-  - HIPAA BAA obtained from SendGrid, OpenPhone, and hosting provider
-  - `current_agency` context processor injected in all templates (prevents hardcoded-brand refactor)
-
-**Requirements**: WLAB-01, WLAB-02, WLAB-03, WLAB-04, WLAB-05, WLAB-06, WLAB-07, WLAB-08
-
 **Success Criteria** (what must be TRUE):
-  1. Founders agency data is fully intact in a `founders` PostgreSQL schema after migration — all customers, policies, notes, commissions, and files present with zero data loss
-  2. A new agency can be provisioned through the admin onboarding wizard: isolated schema created, branding configured, Stripe subscription active — without any manual database work
-  3. Each agency sees only its own data; the MAMS operator portal can view all agencies, billing status, and support tickets across tenants
-  4. Any agency can export all of their data (customers, policies, notes, commissions) as CSV or JSON; all PHI mutations are recorded in the audit log with user ID, timestamp, and field-level diff
+1. Agent dashboard shows commission forecast by carrier (MAPD/PDP/supplement projected rates)
+2. Admin can view AEP performance per agent: appointments booked, enrolled, conversion rate, vs prior AEP
+3. Admin can view retention rates by carrier and plan; churn-risk customers flagged on profiles
+4. Analytics pages load from pre-aggregated nightly tables — no GROUP BY against live data
 
 **Plans**: TBD
 
+---
+
+### Phase 8: White Label / Multi-Tenant
+
+**Goal**: The portal becomes a deployable SaaS product — new agencies are provisioned with isolated PostgreSQL schemas, have their own branding, and pay via Stripe. HIPAA compliance gates are fully closed. Founders Agency runs as the first tenant.
+
+**Depends on**: Phase 7
+
+**Prerequisites (must be true before Phase 8 starts):**
+- All Alembic migrations use PostgreSQL-compatible types
+- `SQLALCHEMY_ECHO=False` enforced in production config
+- AuditLog model complete and capturing all PHI mutations
+- HIPAA BAA obtained from all data processors (SendGrid, NixiHost, Twilio, Retell AI, Calendly)
+- `current_agency` context processor injected in all templates
+
+**Success Criteria** (what must be TRUE):
+1. Founders agency data intact in isolated schema after migration — zero data loss
+2. New agency provisioned through onboarding wizard: isolated schema, branding, Stripe subscription — no manual DB work
+3. Each agency sees only its own data; MAMS operator portal has cross-tenant visibility
+4. Any agency can export all data as CSV/JSON; all PHI mutations in audit log with field-level diff
+
+**Plans**: TBD
+
+---
+
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 2.5 → 3 → 4 → 5 → 6 → 7
-**Phase 2.5 is a hard gate — Phase 3 does not begin until 2.5 is complete and verified.**
+**Execution Order:** 5 → 6 → 7 → 8
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Infrastructure & Core | - | Complete | 2026-03-20 |
-| 2. Customer Master | - | Complete | 2026-03-20 |
-| 2.5. PostgreSQL Migration | 0/TBD | Not started | - |
-| 3. Communications Hub | 5/7 | In Progress|  |
-| 4. Compliance Reference | 5/5 | Complete   | 2026-05-08 |
-| 5. Operations | 0/TBD | Not started | - |
-| 6. Analytics | 0/TBD | Not started | - |
-| 7. White Label / Multi-Tenant | 0/TBD | Not started | - |
+| Phase | Plans | Status | Completed |
+|-------|-------|--------|-----------|
+| 1. Infrastructure & Core | — | ✅ Complete | 2026-03-20 |
+| 2. Customer Master | — | ✅ Complete | 2026-03-20 |
+| 2.5. PostgreSQL Migration | 5/5 | ✅ Complete | 2026-03-26 |
+| 3. Communications Hub | 7/7 | ✅ Complete | 2026-04-13 |
+| 4. Data Integrity & Plan Database | 5/5 | ✅ Complete | 2026-06-01 |
+| 5. Plan Database SOB Enhancement | 0/TBD | Not started | — |
+| 6. Operations | 0/TBD | Not started | — |
+| 7. Analytics | 0/TBD | Not started | — |
+| 8. White Label / Multi-Tenant | 0/TBD | Not started | — |
+
+---
+
+## What Phase 4 Built (vs. Original Scope)
+
+The original Phase 4 scope described NIPR license sync, expense reimbursement, and CMS Plan Finder API. During execution the scope was revised to urgent data integrity work first, then the Carriers & Plans module, customer list enhancements, and theme overhaul built organically across multiple sessions (2026-05-05 to 2026-06-01). NIPR and expense tracking deferred to Phase 6.
+
+**Completed between Phase 3 and Phase 5 (all in production):**
+
+*Data integrity & migrations:*
+- Migration 014: Humana mbi=''→NULL backfill, partial unique index on customers.mbi, unresolvable_json column
+- Migration 015: PolicyPayment.agent_id nullable
+- Migration 016: CustomerSavedView table
+- Migration 017: Plan.friendly_name + Policy.plan_id FK
+- 25 shell customers hard-deleted; 510 customers remain
+- MBI duplicate detection + side-by-side merge UI (AOR-safe, single-transaction)
+- BOB quarantine pipeline (4th tab in import modal, 3 inline resolution actions)
+- BOB↔Commission reconciliation page + per-customer payment history on profile
+
+*Commission & payments:*
+- Policy commission_type field (initial/renewal); inline AJAX editor on customer profile
+- Payment Ledger: per-carrier, per-period, 3-tier match confidence (MBI/ID/fuzzy name)
+- Commission parser fixes: UHC April 2026 29-col layout, Aetna per-row agent attribution, nickname matching
+- paid=0 handling: defaults to expected amount (no summary row = clean carrier file)
+
+*Agent visibility:*
+- Agent AOR visibility: current-AOR-only default, read-only former-AOR toggle, write-lock for non-current AOR
+
+*Carriers & Plans module:*
+- Plan model (migration 009) with CMS plan ID, lifecycle status, successor chain, SNP flags, commission rates, benefits snapshot, BOB alias matching
+- 38 plans seeded across 6 carriers; Humana chain 137→291→335 linked; CMS IDs populated
+- Plan list (filter by year/carrier/type/status), plan detail (chain viz, member count, commission highlights), admin add/edit
+- Plan friendly names normalized; redundant carrier prefix stripped
+- CMS sync: sync_cms_plan_data.py (Landscape CSV → monthly_premium/annual_oopm/star_rating)
+- CMS sync: sync_pbp_benefit_data.py (PBP flat files → pcp_copay/specialist_copay/er_copay)
+- BOB upload now resolves plan_id via _plan_alias_map() on every upsert
+
+*Customer list:*
+- Filter bar: carrier, plan_type, agent, medicaid (8 curated plan type options)
+- Stats strip: total/active/termed/medicaid counts
+- CSV export: /customers/export
+- Resizable columns (drag handles, capture:true fix)
+- Column visibility picker (9 options); saved views (personal localStorage + shared DB via CustomerSavedView)
+- Sortable columns via sort=/dir= URL params
+
+*UI/UX:*
+- System-aware light/dark theme (prefers-color-scheme; replaces Lux dark-only theme)
+- Border-radius 6px, larger card padding, font sizes bumped throughout
+- Terminations redesign: priority-based (high/low/death), 30-day window, inline AJAX reason editor
+- Pharmacy enhancements: pharmacy_agents join table, agent location assignment, expanded list view
+- BOB parser fixes: UHC/Healthspring rewrites, _detect_carrier() 15-row scan, HTML-XLS detection
 
 ---
 *Roadmap created: 2026-03-20*
-*Last updated: 2026-03-26 — Phase 3 planned (7 plans, 6 waves); telephony updated to Dialpad primary / Twilio edge-case; new models updated to reflect CustomerNote extension approach (not 8 new tables); plan list added*
+*Last updated: 2026-06-01 — full sync after Phase 4 completion; Phases 5–8 replanned to reflect actual built state*

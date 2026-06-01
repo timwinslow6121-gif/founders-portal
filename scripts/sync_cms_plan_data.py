@@ -1,26 +1,27 @@
 """
-Sync plan benefit data from CMS Medicare Advantage Plan Landscape file.
+Sync plan data from CMS Medicare Advantage/PDP Landscape CSV into the plans table.
 
-CMS publishes this file annually before AEP at:
-  https://www.cms.gov/data-research/statistics-trends-and-reports/
-  medicare-advantagepart-d-contract-and-enrollment-data/benefits-data
+SOURCE FILE:
+  docs/Medicare Landscape Files/CY2026_Landscape_202603/CY2026_Landscape_202603.csv
+  (or pass a path as first argument)
 
-USAGE:
-  1. Download the 2026 MA/PDP Landscape file from the URL above (CSV or ZIP)
-  2. Place the CSV in: docs/cms_landscape_2026.csv
-  3. Run: ./venv/bin/python3 scripts/sync_cms_plan_data.py
+WHAT IT UPDATES (fields present in the Landscape file):
+  - monthly_premium  (Monthly Consolidated Premium Part C + D)
+  - annual_oopm      (In-Network MOOP Amount)
+  - star_rating      (Overall Star Rating)
+  - service_area     (derived from states the plan appears in)
 
-What it does:
-  - Matches CMS rows to existing Plan records by cms_plan_id (H-number)
-  - Updates: monthly_premium, annual_oopm, pcp_copay, specialist_copay,
-             er_copay, drug_tier1, drug_tier2, drug_tier3
-  - Filters to your SERVICE_AREA_STATES so you only process relevant plans
-  - Writes scripts/cms_sync_unmatched.txt for CMS plans not in your DB
-  - Writes scripts/cms_sync_report.txt with a summary of all changes
+NOTE: PCP copay, specialist copay, ER copay, and drug tier data are NOT in the
+Landscape file — they live in the separate CMS Plan Benefit Package (PBP) files.
+This script only syncs what the Landscape file actually contains.
 
-Run on VPS: ./venv/bin/python3 scripts/sync_cms_plan_data.py [path/to/landscape.csv]
+WHAT IT REPORTS (scripts/cms_sync_report.txt):
+  - All plans updated with old → new values
+  - CMS plans in NC/SC not matched to your DB (flag for manual review)
+
+Run on VPS: ./venv/bin/python3 scripts/sync_cms_plan_data.py [optional/path/to/file.csv]
 """
-import sys, os, csv
+import sys, os, csv, re
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db
@@ -30,122 +31,52 @@ from app.models import Plan
 # CONFIG
 # ---------------------------------------------------------------------------
 
-# States you serve — filters the CMS file so you only process relevant plans
 SERVICE_AREA_STATES = {"NC", "SC"}
-
-# Default CSV path (relative to project root)
-DEFAULT_CSV_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "docs", "cms_landscape_2026.csv"
-)
 
 PLAN_YEAR = 2026
 
+DEFAULT_CSV = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "docs", "Medicare Landscape Files",
+    "CY2026_Landscape_202603", "CY2026_Landscape_202603.csv",
+)
+
 # ---------------------------------------------------------------------------
-# CMS Landscape CSV column names (2026 format)
-# These may shift slightly year to year — update if CMS changes headers.
-# The script will print available columns if it can't find the expected ones.
+# Helpers
 # ---------------------------------------------------------------------------
 
-# Column name aliases: maps our logical field → list of possible CSV column names
-COLUMN_ALIASES = {
-    "contract_id":   ["Contract ID", "contract_id", "ContractID"],
-    "plan_id":       ["Plan ID", "plan_id", "PlanID", "PBP"],
-    "state":         ["State", "state", "State Code"],
-    "county":        ["County Name", "county_name", "County"],
-    "plan_name":     ["Plan Name", "plan_name", "PlanName"],
-    "org_name":      ["Organization Name", "org_name", "Organization"],
-    "plan_type":     ["Plan Type", "plan_type", "PlanType"],
-    "premium":       ["Monthly Consolidated Premium (incl. Part D)", "Monthly Premium",
-                      "Total Monthly Premium", "monthly_premium", "Premium"],
-    "oopm":          ["In-Network MOOP", "In Network MOOP", "MOOP Amount",
-                      "Maximum Out-of-Pocket Responsibility (In-Network)",
-                      "annual_oopm", "MOOP"],
-    "pcp_copay":     ["Primary Care Physician Cost-Sharing", "PCP Cost", "PCP Copay",
-                      "Primary Care Copay", "In-Network PCP Cost-Sharing"],
-    "specialist":    ["Specialist Cost-Sharing", "Specialist Copay",
-                      "In-Network Specialist Cost-Sharing"],
-    "er_copay":      ["Emergency Room Cost-Sharing", "ER Copay",
-                      "In-Network ER Cost-Sharing", "Emergency Cost-Sharing"],
-    "tier1":         ["Drug Tier 1 Cost-Sharing", "Tier 1", "Drug Tier 1"],
-    "tier2":         ["Drug Tier 2 Cost-Sharing", "Tier 2", "Drug Tier 2"],
-    "tier3":         ["Drug Tier 3 Cost-Sharing", "Tier 3", "Drug Tier 3"],
-}
-
-
-def _find_col(headers, aliases):
-    """Find the first matching column name from a list of aliases (case-insensitive)."""
-    h_lower = {h.lower(): h for h in headers}
-    for alias in aliases:
-        found = h_lower.get(alias.lower())
-        if found:
-            return found
-    return None
-
-
-def _build_col_map(headers):
-    """Build a dict: logical_name → actual_csv_column (or None if not found)."""
-    return {
-        field: _find_col(headers, aliases)
-        for field, aliases in COLUMN_ALIASES.items()
-    }
-
-
-def _normalize_cms_id(contract_id, plan_id):
-    """
-    Build the H-number we store in plans.cms_plan_id.
-    CMS landscape uses separate Contract ID (H####) and Plan ID (###) columns.
-    We store them combined as H####-### (matching the format already in the DB).
-    """
-    if not contract_id:
-        return None
+def _cms_id(contract_id, plan_id):
+    """Build H####-### from separate Contract ID and Plan ID columns."""
     cid = str(contract_id).strip()
-    pid = str(plan_id).strip().lstrip("0") if plan_id else ""
-    if pid:
-        return f"{cid}-{pid.zfill(3)}"
-    return cid
+    # Plan ID is zero-padded to 3 digits (e.g. '117', '034')
+    pid = str(plan_id).strip().zfill(3)
+    return f"{cid}-{pid}"
 
 
-def _clean_value(val):
-    """Strip whitespace, return None for empty/N/A values."""
-    if val is None:
+def _parse_dollar(val):
+    """'$4,200.00 ' → 4200.0, 'Not Applicable' → None."""
+    if not val:
         return None
-    v = str(val).strip()
-    if v.lower() in ("", "n/a", "na", "not applicable", "none", "$0.00 copay",):
-        return v if "$0" in v else None
-    return v
-
-
-def _format_currency(val):
-    """Normalize a currency value like '$1,500' or '1500' → '$1,500'."""
-    if val is None:
+    v = val.strip()
+    if v.lower() in ("not applicable", "n/a", ""):
         return None
-    v = str(val).replace(",", "").replace("$", "").strip()
+    # Handle negative values like ($3.90)
+    negative = v.startswith("(") and v.endswith(")")
+    v = v.strip("()").replace("$", "").replace(",", "").strip()
     try:
-        f = float(v)
-        if f == 0:
-            return "$0"
-        return f"${f:,.0f}" if f == int(f) else f"${f:,.2f}"
-    except ValueError:
-        return val  # return as-is if not parseable
-
-
-def _parse_premium(val):
-    """Parse premium to float for DB storage."""
-    if val is None:
-        return None
-    v = str(val).replace(",", "").replace("$", "").strip()
-    try:
-        return float(v)
+        result = float(v)
+        return -result if negative else result
     except ValueError:
         return None
 
 
-def _parse_oopm(val):
-    """Parse OOPM to float."""
-    if val is None:
+def _parse_star(val):
+    """'4.0' → 4.0, 'Not Applicable' → None."""
+    if not val:
         return None
-    v = str(val).replace(",", "").replace("$", "").strip()
+    v = val.strip()
+    if v.lower() in ("not applicable", "n/a", ""):
+        return None
     try:
         return float(v)
     except ValueError:
@@ -157,17 +88,13 @@ def _parse_oopm(val):
 # ---------------------------------------------------------------------------
 
 def run(csv_path=None):
-    csv_path = csv_path or DEFAULT_CSV_PATH
+    csv_path = csv_path or DEFAULT_CSV
 
     if not os.path.exists(csv_path):
-        print(f"❌ CMS landscape file not found: {csv_path}")
+        print(f"❌  File not found: {csv_path}")
         print()
-        print("To get this file:")
-        print("  1. Go to: https://www.cms.gov/data-research/statistics-trends-and-reports/")
-        print("            medicare-advantagepart-d-contract-and-enrollment-data/benefits-data")
-        print(f"  2. Download the {PLAN_YEAR} MA/PDP Landscape Source Data file (CSV)")
-        print(f"  3. Save it as: docs/cms_landscape_{PLAN_YEAR}.csv")
-        print("  4. Re-run this script")
+        print("Expected the CMS Landscape CSV at:")
+        print(f"  {csv_path}")
         return
 
     app = create_app()
@@ -176,144 +103,120 @@ def run(csv_path=None):
             db.text("SELECT agency_id FROM plans LIMIT 1")
         ).scalar()
         if not agency_id:
-            print("No plans found. Exiting.")
+            print("No plans in database. Exiting.")
             return
 
-        # Build lookup: normalized cms_plan_id → Plan row
+        # Build lookup: "H5253-117" → Plan row
         db_plans = Plan.query.filter_by(agency_id=agency_id, year=PLAN_YEAR).all()
-        plan_map = {}
-        for p in db_plans:
-            if p.cms_plan_id:
-                plan_map[p.cms_plan_id.strip().upper()] = p
+        plan_map = {p.cms_plan_id.strip().upper(): p
+                    for p in db_plans if p.cms_plan_id}
 
-        print(f"Loaded {len(plan_map)} plans with CMS IDs in DB for year {PLAN_YEAR}")
-        print(f"Processing: {csv_path}\n")
+        print(f"DB plans with CMS IDs ({PLAN_YEAR}): {len(plan_map)}")
+        print(f"Reading: {csv_path}\n")
 
-        updated = {}      # plan_id → Plan
-        unmatched = {}    # cms_id → {"name", "states", "count"}
-        skipped_state = 0
+        # One CMS plan appears once per county — deduplicate, take first NC/SC row
+        seen = set()          # cms_ids already processed
+        updates = {}          # plan_id → {field: (old, new)} for report
+        unmatched = {}        # cms_id → {"name", "org", "states"}
 
         with open(csv_path, newline="", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
-            headers = reader.fieldnames or []
-
-            col = _build_col_map(headers)
-
-            # Warn about missing columns
-            missing = [k for k, v in col.items() if v is None and k not in ("tier1","tier2","tier3")]
-            if missing:
-                print(f"⚠️  Columns not found in CSV: {missing}")
-                print(f"   Available columns: {headers[:20]}")
-                print()
 
             for row in reader:
-                # State filter
-                state_col = col.get("state")
-                if state_col:
-                    state = (row.get(state_col) or "").strip().upper()
-                    if state not in SERVICE_AREA_STATES:
-                        skipped_state += 1
-                        continue
-
-                # Build CMS plan ID
-                contract_col = col.get("contract_id")
-                plan_col = col.get("plan_id")
-                raw_contract = row.get(contract_col, "") if contract_col else ""
-                raw_plan = row.get(plan_col, "") if plan_col else ""
-                cms_id = _normalize_cms_id(raw_contract, raw_plan)
-
-                if not cms_id:
+                state = row["State Territory Abbreviation"].strip().upper()
+                if state not in SERVICE_AREA_STATES:
                     continue
 
-                cms_id_upper = cms_id.upper()
-                db_plan = plan_map.get(cms_id_upper)
+                cms_id = _cms_id(row["Contract ID"], row["Plan ID"]).upper()
 
-                if not db_plan:
-                    # Also try without leading zeros in plan segment
-                    # e.g. H5253-117 might appear as H5253-0117 or vice versa
-                    alt = None
-                    if "-" in cms_id_upper:
-                        contract_part, plan_part = cms_id_upper.rsplit("-", 1)
-                        alt = f"{contract_part}-{int(plan_part):03d}"
-                        db_plan = plan_map.get(alt)
-
-                if not db_plan:
-                    name_col = col.get("plan_name")
-                    name = row.get(name_col, "Unknown") if name_col else "Unknown"
-                    if cms_id_upper not in unmatched:
-                        unmatched[cms_id_upper] = {"name": name, "states": set(), "count": 0}
-                    if state_col:
-                        unmatched[cms_id_upper]["states"].add(state)
-                    unmatched[cms_id_upper]["count"] += 1
+                if cms_id in seen:
+                    # Already processed this plan — just track which states it's in
+                    if cms_id in unmatched:
+                        unmatched[cms_id]["states"].add(state)
                     continue
 
-                # --- Extract and apply fields ---
-                def get(field):
-                    c = col.get(field)
-                    return _clean_value(row.get(c)) if c else None
+                seen.add(cms_id)
 
-                # Premium
-                prem = _parse_premium(get("premium"))
-                if prem is not None:
-                    db_plan.monthly_premium = prem
+                db_plan = plan_map.get(cms_id)
+                if not db_plan:
+                    unmatched[cms_id] = {
+                        "name": row.get("Plan Name", "").strip(),
+                        "org":  row.get("Organization Marketing Name", "").strip(),
+                        "states": {state},
+                    }
+                    continue
 
-                # OOPM
-                oopm = _parse_oopm(get("oopm"))
-                if oopm is not None:
-                    db_plan.annual_oopm = oopm
+                changes = {}
 
-                # Copays (stored as display strings)
-                pcp = get("pcp_copay")
-                if pcp: db_plan.pcp_copay = pcp
+                # Monthly premium — use consolidated (Part C+D) first, fall back to Part C only
+                # (PPO plans without drug coverage have 'Not Applicable' for consolidated)
+                premium = (_parse_dollar(row.get("Monthly Consolidated Premium (Part C + D)", ""))
+                           or _parse_dollar(row.get("Part C Premium", "")))
+                if premium is not None and premium != db_plan.monthly_premium:
+                    changes["monthly_premium"] = (db_plan.monthly_premium, premium)
+                    db_plan.monthly_premium = premium
 
-                spec = get("specialist")
-                if spec: db_plan.specialist_copay = spec
+                # In-Network MOOP
+                moop = _parse_dollar(row.get("In-Network Maximum Out-of-Pocket (MOOP) Amount", ""))
+                if moop is not None and moop != db_plan.annual_oopm:
+                    changes["annual_oopm"] = (db_plan.annual_oopm, moop)
+                    db_plan.annual_oopm = moop
 
-                er = get("er_copay")
-                if er: db_plan.er_copay = er
+                # Overall Star Rating
+                stars = _parse_star(row.get("Overall Star Rating", ""))
+                if stars is not None and stars != db_plan.star_rating:
+                    changes["star_rating"] = (db_plan.star_rating, stars)
+                    db_plan.star_rating = stars
 
-                # Drug tiers
-                t1 = get("tier1")
-                if t1: db_plan.drug_tier1 = t1
-
-                t2 = get("tier2")
-                if t2: db_plan.drug_tier2 = t2
-
-                t3 = get("tier3")
-                if t3: db_plan.drug_tier3 = t3
-
-                updated[db_plan.id] = db_plan
+                if changes:
+                    updates[db_plan.id] = {"plan": db_plan, "changes": changes}
 
         db.session.commit()
-        print(f"✅ Updated {len(updated)} plans with CMS benefit data.")
-        print(f"   Skipped {skipped_state:,} rows outside {'/'.join(sorted(SERVICE_AREA_STATES))}")
 
-        # Summary of what was updated
-        report_lines = [f"CMS Plan Data Sync — {PLAN_YEAR}", "=" * 60, ""]
-        report_lines.append("UPDATED PLANS:")
-        for plan in sorted(updated.values(), key=lambda p: (p.carrier, p.plan_name)):
-            report_lines.append(
-                f"  {plan.carrier} | {plan.cms_plan_id} | {plan.friendly_name or plan.plan_name}"
-                f" | ${plan.monthly_premium or '?'}/mo | OOPM ${plan.annual_oopm or '?'}"
-            )
+        # --- Report ---
+        lines = [
+            f"CMS Landscape Sync Report — {PLAN_YEAR}",
+            f"Source: {os.path.basename(csv_path)}",
+            "=" * 65, "",
+        ]
 
-        # Write unmatched report
-        report_lines += ["", "=" * 60, f"UNMATCHED CMS PLANS ({len(unmatched)} — not in your plans table):"]
-        report_lines.append("Review and add via Carriers & Plans → Add Plan if you sell any of these.")
-        report_lines.append("")
+        lines.append(f"UPDATED ({len(updates)} plans):")
+        if updates:
+            for entry in sorted(updates.values(), key=lambda e: (e["plan"].carrier, e["plan"].plan_name)):
+                p = entry["plan"]
+                lines.append(f"\n  {p.carrier} | {p.cms_plan_id} | {p.friendly_name or p.plan_name}")
+                for field, (old, new) in entry["changes"].items():
+                    lines.append(f"    {field}: {old} → {new}")
+        else:
+            lines.append("  (no changes — DB already up to date)")
+
+        lines += [
+            "",
+            "=" * 65,
+            f"",
+            f"NOT IN YOUR DB ({len(unmatched)} CMS plans in NC/SC not matched):",
+            "  Add any you sell via Carriers & Plans → Add Plan.",
+            "",
+        ]
         for cms_id, info in sorted(unmatched.items()):
             states_str = "/".join(sorted(info["states"]))
-            report_lines.append(f"  {cms_id}  |  {info['name']}  |  {states_str}  |  {info['count']} county rows")
+            lines.append(f"  {cms_id}  |  {info['org']}  |  {info['name']}  [{states_str}]")
 
-        scripts_dir = os.path.dirname(__file__)
-        report_path = os.path.join(scripts_dir, "cms_sync_report.txt")
+        report_path = os.path.join(os.path.dirname(__file__), "cms_sync_report.txt")
         with open(report_path, "w") as f:
-            f.write("\n".join(report_lines))
+            f.write("\n".join(lines))
 
-        print(f"📄 Full report: scripts/cms_sync_report.txt")
-        print(f"   {len(unmatched)} CMS plan IDs not matched to your plans table")
+        print(f"✅  Updated {len(updates)} plans.")
+        print(f"📄  Report: scripts/cms_sync_report.txt")
+        print(f"    {len(unmatched)} CMS plans in NC/SC not in your DB")
+
+        # Print the updated plans inline too
+        if updates:
+            print()
+            for entry in sorted(updates.values(), key=lambda e: (e["plan"].carrier, e["plan"].plan_name)):
+                p = entry["plan"]
+                print(f"  ✓ {p.carrier} {p.cms_plan_id} — {', '.join(entry['changes'].keys())}")
 
 
 if __name__ == "__main__":
-    csv_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    run(csv_arg)
+    run(sys.argv[1] if len(sys.argv) > 1 else None)

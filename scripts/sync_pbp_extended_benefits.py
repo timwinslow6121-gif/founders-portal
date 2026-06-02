@@ -48,30 +48,56 @@ def _load_tsv(filepath):
         return list(reader)
 
 
-def _build_lookup(rows, segment="0"):
-    """Build {(hnumber_upper, plan_id_str): row} dict filtered by segment_id."""
-    lookup = {}
+def _build_lookup(rows):
+    """Build {(hnumber_upper, plan_id_str): row} using the lowest segment_id per plan."""
+    # Collect all rows per key, then pick lowest segment (0 if present, else min available)
+    candidates = {}
     for row in rows:
-        if row.get("segment_id", "").strip() != segment:
-            continue
         key = (
             row.get("pbp_a_hnumber", "").strip().upper(),
             row.get("pbp_a_plan_identifier", "").strip(),
         )
-        lookup[key] = row
-    return lookup
+        seg = row.get("segment_id", "").strip()
+        try:
+            seg_int = int(seg)
+        except ValueError:
+            seg_int = 999
+        existing_seg = candidates.get(key, (None, 999))[1]
+        if seg_int < existing_seg:
+            candidates[key] = (row, seg_int)
+    return {key: val[0] for key, val in candidates.items()}
 
 
-def _build_tier_lookup(rows, segment="0"):
-    """Build {(hnumber, plan_id): {tier_id_str: row}} for mrx_tier (multiple rows per plan)."""
-    lookup = {}
+def _build_tier_lookup(rows):
+    """Build {(hnumber, plan_id): {tier_id_str: row}} using lowest segment_id per plan."""
+    # First pass: find lowest segment per plan key
+    best_seg = {}
     for row in rows:
-        if row.get("segment_id", "").strip() != segment:
-            continue
         key = (
             row.get("pbp_a_hnumber", "").strip().upper(),
             row.get("pbp_a_plan_identifier", "").strip(),
         )
+        seg = row.get("segment_id", "").strip()
+        try:
+            seg_int = int(seg)
+        except ValueError:
+            seg_int = 999
+        if seg_int < best_seg.get(key, 999):
+            best_seg[key] = seg_int
+    # Second pass: collect tier rows for the best segment only
+    lookup = {}
+    for row in rows:
+        key = (
+            row.get("pbp_a_hnumber", "").strip().upper(),
+            row.get("pbp_a_plan_identifier", "").strip(),
+        )
+        seg = row.get("segment_id", "").strip()
+        try:
+            seg_int = int(seg)
+        except ValueError:
+            seg_int = 999
+        if seg_int != best_seg.get(key, 999):
+            continue
         tier_id = row.get("mrx_tier_id", "").strip()
         lookup.setdefault(key, {})[tier_id] = row
     return lookup

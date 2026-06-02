@@ -346,6 +346,9 @@ class Plan(db.Model):
     drug_tier1      = db.Column(db.String(32))
     drug_tier2      = db.Column(db.String(32))
     drug_tier3      = db.Column(db.String(32))
+    drug_tier4      = db.Column(db.String(32))
+    drug_tier5      = db.Column(db.String(32))
+    sob_url         = db.Column(db.String(512))
     details_json    = db.Column(db.Text)                        # JSON overflow for extra benefit fields
 
     # Commission rates (per member per month for MAPD/PDP; % of premium for others)

@@ -279,6 +279,7 @@ def plan_new():
 
     # Candidate successor plans for the dropdown
     existing_plans = _base_query().order_by(Plan.carrier, Plan.year.desc(), Plan.plan_name).all()
+    details = {}
 
     return render_template("plan_form.html",
         plan=None,
@@ -289,6 +290,7 @@ def plan_new():
         comm_types=COMM_TYPES,
         plan_letters=PLAN_LETTERS,
         existing_plans=existing_plans,
+        details=details,
     )
 
 
@@ -345,6 +347,7 @@ def plan_edit(plan_id):
     existing_plans = (_base_query()
                       .filter(Plan.id != plan_id)
                       .order_by(Plan.carrier, Plan.year.desc(), Plan.plan_name).all())
+    details = _parse_details(plan.details_json)
 
     return render_template("plan_form.html",
         plan=plan,
@@ -355,4 +358,5 @@ def plan_edit(plan_id):
         comm_types=COMM_TYPES,
         plan_letters=PLAN_LETTERS,
         existing_plans=existing_plans,
+        details=details,
     )

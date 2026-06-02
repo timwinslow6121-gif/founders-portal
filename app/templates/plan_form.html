@@ -26,8 +26,38 @@
 
 .form-actions { display: flex; gap: 10px; align-items: center; margin-top: 8px; }
 
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--slate);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+
+details.form-card > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+}
+details.form-card > summary::-webkit-details-marker { display: none; }
+details.form-card > summary h3 { margin: 0; }
+details.form-card > summary .toggle-chevron {
+  color: var(--slate);
+  font-size: 12px;
+  font-weight: 400;
+}
+details.form-card[open] > summary .toggle-chevron::before { content: "▾ Collapse"; }
+details.form-card:not([open]) > summary .toggle-chevron::before { content: "▸ Expand"; }
+details.form-card > div.section-body {
+  margin-top: 16px;
+}
+.benefit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 @media (max-width: 768px) {
-  .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+  .form-grid, .form-grid-3, .benefit-row { grid-template-columns: 1fr; }
 }
 {% endblock %}
 {% block content %}
@@ -117,6 +147,14 @@
              value="{{ plan.friendly_name if plan else '' }}"
              placeholder="e.g. NC-0015 or UHC Plan 3 — what agents call this plan">
       <div class="form-hint">Shown on customer profiles and the customer list. If blank, the plan name is used.</div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label" for="sob_url">SOB PDF URL</label>
+      <input type="url" id="sob_url" name="sob_url" class="form-input"
+             value="{{ plan.sob_url or '' }}"
+             placeholder="https://carrier.com/path/to/sob.pdf">
+      <div class="form-hint">Direct link to the CMS or carrier Summary of Benefits PDF.</div>
     </div>
 
     <div class="form-row">
@@ -233,13 +271,183 @@
         <input class="form-input" type="text" name="drug_tier3"
                value="{{ plan.drug_tier3 if plan else '' }}" placeholder="e.g. $47">
       </div>
-    </div>
-    <div class="form-row">
-      <label>Additional details (freeform / JSON)</label>
-      <textarea class="form-textarea" name="details_json"
-                placeholder='e.g. {"dental_allowance": 1500, "otc_quarterly": 100}'>{{ plan.details_json if plan else '' }}</textarea>
+      <div class="form-row">
+        <label class="form-label" for="drug_tier4">Drug Tier 4 (Non-Preferred)</label>
+        <input type="text" id="drug_tier4" name="drug_tier4" class="form-input"
+               value="{{ plan.drug_tier4 or '' }}" placeholder="$95">
+      </div>
+      <div class="form-row">
+        <label class="form-label" for="drug_tier5">Drug Tier 5 (Specialty)</label>
+        <input type="text" id="drug_tier5" name="drug_tier5" class="form-input"
+               value="{{ plan.drug_tier5 or '' }}" placeholder="33% coinsurance">
+      </div>
     </div>
   </div>
+
+  {# ============ Medical Benefits ============ #}
+  <details class="form-card" style="margin-bottom:16px">
+    <summary>
+      <h3>Medical Benefits</h3>
+      <span class="toggle-chevron"></span>
+    </summary>
+    <div class="section-body">
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="inpatient_hospital">Inpatient Hospital</label>
+          <input type="text" id="inpatient_hospital" name="inpatient_hospital" class="form-input"
+                 value="{{ details.get('inpatient_hospital') or '' }}"
+                 placeholder="$455 days 1-6, $0 days 7-90">
+        </div>
+        <div>
+          <label class="form-label" for="inpatient_hospital_note">Inpatient Note</label>
+          <input type="text" id="inpatient_hospital_note" name="inpatient_hospital_note" class="form-input"
+                 value="{{ details.get('inpatient_hospital_note') or '' }}"
+                 placeholder="e.g. prior auth required">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="snf">Skilled Nursing Facility</label>
+          <input type="text" id="snf" name="snf" class="form-input"
+                 value="{{ details.get('snf') or '' }}"
+                 placeholder="$0 days 1-20, $218 days 21-100">
+        </div>
+        <div>
+          <label class="form-label" for="outpatient_surgery">Outpatient Surgery</label>
+          <input type="text" id="outpatient_surgery" name="outpatient_surgery" class="form-input"
+                 value="{{ details.get('outpatient_surgery') or '' }}"
+                 placeholder="$455">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="ambulance">Ambulance</label>
+          <input type="text" id="ambulance" name="ambulance" class="form-input"
+                 value="{{ details.get('ambulance') or '' }}"
+                 placeholder="$275">
+        </div>
+        <div>
+          <label class="form-label" for="urgent_care_copay">Urgent Care Copay</label>
+          <input type="text" id="urgent_care_copay" name="urgent_care_copay" class="form-input"
+                 value="{{ details.get('urgent_care_copay') or '' }}"
+                 placeholder="$65">
+        </div>
+      </div>
+    </div>
+  </details>
+
+  {# ============ Supplemental Benefits ============ #}
+  <details class="form-card" style="margin-bottom:16px">
+    <summary>
+      <h3>Supplemental Benefits</h3>
+      <span class="toggle-chevron"></span>
+    </summary>
+    <div class="section-body">
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="dental_allowance">Dental Allowance</label>
+          <input type="text" id="dental_allowance" name="dental_allowance" class="form-input"
+                 value="{{ details.get('dental_allowance') or '' }}"
+                 placeholder="$2,000/yr">
+        </div>
+        <div>
+          <label class="form-label" for="dental_note">Dental Note</label>
+          <input type="text" id="dental_note" name="dental_note" class="form-input"
+                 value="{{ details.get('dental_note') or '' }}"
+                 placeholder="Preventive + comprehensive">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="vision_allowance">Vision Allowance</label>
+          <input type="text" id="vision_allowance" name="vision_allowance" class="form-input"
+                 value="{{ details.get('vision_allowance') or '' }}"
+                 placeholder="$200/2yr eyewear">
+        </div>
+        <div>
+          <label class="form-label" for="vision_note">Vision Note</label>
+          <input type="text" id="vision_note" name="vision_note" class="form-input"
+                 value="{{ details.get('vision_note') or '' }}"
+                 placeholder="Exam $0; eyewear cap applies">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="hearing">Hearing</label>
+          <input type="text" id="hearing" name="hearing" class="form-input"
+                 value="{{ details.get('hearing') or '' }}"
+                 placeholder="$0 exam, $199-$1,249/device">
+        </div>
+        <div>
+          <label class="form-label" for="hearing_note">Hearing Note</label>
+          <input type="text" id="hearing_note" name="hearing_note" class="form-input"
+                 value="{{ details.get('hearing_note') or '' }}"
+                 placeholder="2 devices/year max">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="otc_allowance">OTC Allowance</label>
+          <input type="text" id="otc_allowance" name="otc_allowance" class="form-input"
+                 value="{{ details.get('otc_allowance') or '' }}"
+                 placeholder="$45/qtr">
+        </div>
+        <div>
+          <label class="form-label" for="otc_note">OTC Note</label>
+          <input type="text" id="otc_note" name="otc_note" class="form-input"
+                 value="{{ details.get('otc_note') or '' }}"
+                 placeholder="Humana: online only; Devoted: CVS catalogue">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="healthy_food_card">Healthy Food Card</label>
+          <input type="text" id="healthy_food_card" name="healthy_food_card" class="form-input"
+                 value="{{ details.get('healthy_food_card') or '' }}"
+                 placeholder="$85/mo">
+        </div>
+        <div>
+          <label class="form-label" for="transportation">Transportation</label>
+          <input type="text" id="transportation" name="transportation" class="form-input"
+                 value="{{ details.get('transportation') or '' }}"
+                 placeholder="24 one-way trips/yr">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="gym">Gym / Fitness</label>
+          <input type="text" id="gym" name="gym" class="form-input"
+                 value="{{ details.get('gym') or '' }}"
+                 placeholder="SilverSneakers / Renew Active">
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </details>
+
+  {# ============ Prescriptions ============ #}
+  <details class="form-card" style="margin-bottom:16px">
+    <summary>
+      <h3>Prescriptions</h3>
+      <span class="toggle-chevron"></span>
+    </summary>
+    <div class="section-body">
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="drug_deductible">Drug Deductible</label>
+          <input type="text" id="drug_deductible" name="drug_deductible" class="form-input"
+                 value="{{ details.get('drug_deductible') or '' }}"
+                 placeholder="$440">
+        </div>
+        <div>
+          <label class="form-label" for="drug_deductible_exempt_tiers">Exempt Tiers</label>
+          <input type="text" id="drug_deductible_exempt_tiers" name="drug_deductible_exempt_tiers" class="form-input"
+                 value="{{ details.get('drug_deductible_exempt_tiers') or '' }}"
+                 placeholder="Tiers 1, 2">
+        </div>
+      </div>
+    </div>
+  </details>
 
   {# Section 4: Commissions #}
   <div class="form-card" style="margin-bottom:16px">

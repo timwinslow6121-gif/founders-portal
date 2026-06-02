@@ -56,10 +56,14 @@ carries **attribution** (who-changed-what-when) for accountability, never **owne
   instead of blind-merging.
 - **OTC extraction** (PBP `b13b`) and **Meals extraction** (PBP `b13c`) as the first new benefits,
   written through the provenance helper.
-- **Agent editing**: any agent with the `can_edit_plans` capability may edit any plan benefit field;
-  edits are attributed (who/when/what), append to history, and propagate agency-wide (single source
-  of truth). Newbies without the capability are read-only.
-- **Edit-permission gating**: a `can_edit_plans` capability on `User` (admins always allowed).
+- **Agent editing**: any agent with shared-data edit rights (via role) may edit any plan benefit field;
+  edits are attributed (who/when/what), append to history, propagate agency-wide (single source of
+  truth), AND write an `AuditLog` entry. Agents without edit rights are read-only.
+- **RBAC foundation**: a `User.role` field (`agent` | `senior_agent` | `admin`) + a
+  `can_edit_shared_data(user)` helper. This spec **enforces it on plan editing only**; Pharmacy,
+  contracts, and other shared modules adopt the same helper later (no new columns per module).
+  `is_admin` (existing, recomputed from `ADMIN_EMAILS`) always implies edit rights — admin supersedes
+  role, so there is one source of truth for "is admin."
 - **Conflict review queue**: an admin view listing plans with `has_unresolved_conflicts = true`,
   showing each conflict (existing vs. incoming with sources) and letting AJ resolve it.
 - **Robust plan filtering**: a filter layer that queries on *both* real columns and structured-JSON
@@ -155,9 +159,21 @@ provenance entry in `_meta` keyed by the same name (the helper bridges column �
 - `has_unresolved_conflicts` — `Boolean`, default `false`, **indexed**. Drives the review-queue
   badge/filter. Maintained by the provenance helper.
 
-### 3.5 New User capability (migration 019)
-- `can_edit_plans` — `Boolean`, default `false`. Admins bypass (always allowed). Gates the plan edit
-  routes and edit UI affordances.
+### 3.5 New User role field (migration 019) — RBAC foundation
+- `User.role` — `String(16)`, default `'agent'`. Values: `agent` (read-only on shared data),
+  `senior_agent` (may edit shared data), `admin`.
+- Edit gating goes through one helper, `can_edit_shared_data(user) -> bool`:
+  returns `True` if `user.is_admin` **or** `user.role in ('senior_agent', 'admin')`.
+  `is_admin` (existing, recomputed from `ADMIN_EMAILS` on OAuth login) always wins — admin supersedes
+  role, single source of truth for admin status.
+- **This spec enforces the helper only on plan-edit routes.** Pharmacy/contracts/other shared modules
+  reuse the same helper when they're next touched — no per-module permission columns.
+
+### 3.6 Audit trail (reuse existing `AuditLog`)
+- Every plan benefit edit writes an `AuditLog(user_id, action="plan_edit", detail=...)` row, where
+  `detail` captures plan id, field, old→new value, and note. This is the agency-wide forensic trail
+  ("which agent changed this?") and is distinct from the per-field `history` in `_meta` (which is the
+  value-lineage for a single field). Both are written on every human edit.
 
 ---
 
@@ -244,14 +260,25 @@ PDP plans (no b13 row) → fields simply absent (graceful, same as today).
 
 ---
 
-## 7. Editing & Permissions
+## 7. Editing & Permissions (RBAC foundation)
 
-- **Capability:** `User.can_edit_plans` (admins always allowed). Enforced in `carriers.py` edit routes
-  and used to show/hide edit affordances in templates.
-- **Agency-wide:** plan data is already `agency_id`-scoped (not per-agent); every agent reads the full
-  database; an authorized edit is visible to all agents immediately (single source of truth).
-- **Attribution:** every edit records who/when/what via `set_human_value` (history entry).
-- **Verify action:** authorized users (AJ/admin, or trusted agents) can mark a field `human_verified`.
+- **Roles:** `User.role` ∈ `agent` | `senior_agent` | `admin`. Gating via `can_edit_shared_data(user)`
+  = `user.is_admin or user.role in ('senior_agent','admin')`. `is_admin` supersedes role.
+
+  | Role | Read shared data | Edit shared data (Plan now; Pharmacy/contracts later) | Admin functions |
+  |---|---|---|---|
+  | `agent` | ✓ | ✗ (protects data from newbies) | ✗ |
+  | `senior_agent` | ✓ | ✓ (attributed + audit-logged) | ✗ |
+  | `admin` / `is_admin` | ✓ | ✓ | ✓ |
+
+- **Scope of enforcement (this spec):** the helper gates the `carriers.py` plan-edit routes and
+  show/hides edit affordances in templates. Other shared modules adopt the same helper when next
+  touched.
+- **Agency-wide:** plan data is already `agency_id`-scoped; every agent reads the full database; an
+  authorized edit is visible to all agents immediately (single source of truth).
+- **Attribution (two records per edit):** (1) per-field `history` entry via `set_human_value`
+  (value lineage); (2) an `AuditLog` row (agency-wide forensic trail — "who went rogue?").
+- **Verify action:** users with edit rights can mark a field `human_verified` (`verify=True`).
 
 ---
 
@@ -298,7 +325,8 @@ PDP plans (no b13 row) → fields simply absent (graceful, same as today).
   predicates against structured `amount`s.
 - **OTC/Meals extractor tests** — against real PBP rows (H5253-117 = OTC offered/no-amount + meals;
   a plan with an OTC dollar amount; a PDP plan = absent).
-- **Permission test** — non-`can_edit_plans` agent blocked from edit route; admin allowed.
+- **Permission test** — `role='agent'` blocked from plan-edit route; `senior_agent` allowed; `admin`
+  allowed; `is_admin` supersedes a lower role. Every successful edit writes an `AuditLog` row.
 - **Filter test** — the `ppo + moop<6000 + dental>2000` example returns the right plan set.
 
 ---
@@ -308,7 +336,9 @@ PDP plans (no b13 row) → fields simply absent (graceful, same as today).
 **Migration 019** (`019_plan_provenance.py`):
 - `plans.cms_synced_at` `DateTime NULL`
 - `plans.has_unresolved_conflicts` `Boolean NOT NULL DEFAULT false`, indexed
-- `users.can_edit_plans` `Boolean NOT NULL DEFAULT false`
+- `users.role` `String(16) NOT NULL DEFAULT 'agent'`
+  (backfill: existing admins/`is_admin` users → `'admin'`; all others → `'agent'`. Founders can
+  promote specific agents to `'senior_agent'` afterward.)
 - Data backfill: existing `details_json` benefit strings → structured `{amount, period, unit, display}`
   with `_meta` source `cms_pbp` / `cms_authoritative` (best-effort parse; unparseable kept as
   `display` with `amount=null`). Idempotent, reversible.

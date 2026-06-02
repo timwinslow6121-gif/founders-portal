@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 04 fully complete including post-phase work (CMS sync scripts, plan data normalization, customer list enhancements, commission parser fixes, theme overhaul). Roadmap and PROJECT.md synced 2026-06-01. Ready to plan Phase 05 (Plan Database SOB Enhancement).
-last_updated: "2026-06-01T00:00:00.000Z"
-last_activity: 2026-06-01
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-06-02T13:30:48.942Z"
+last_activity: 2026-06-02
 progress:
-  total_phases: 8
-  completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 50
 ---
 
@@ -21,14 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-01)
 
 **Core value:** Agents open one tab and everything they need is there — no switching between carrier portals, personal phones, spreadsheets, scheduling tools, and CRMs.
-**Current focus:** Phase 05 — Plan Database SOB Enhancement (Phase 04 + post-phase work complete)
+**Current focus:** Phase 05 — plan-database-sob-enhancement-next
 
 ## Current Position
 
-Phase: 5
+Phase: 05 (plan-database-sob-enhancement-next) — EXECUTING
+Plan: 2 of 4
 Phase: 05 (plan-database-sob-enhancement) — NOT STARTED
-Status: Phase 04 and all post-phase additions fully closed; roadmap + PROJECT.md synced 2026-06-01; ready to plan Phase 05
-Last activity: 2026-06-01
+Status: Ready to execute
+Last activity: 2026-06-02
 
 Progress: [████████░░░░░░░░] 50% (phases 1–2–2.5–3–4 complete, 4 phases remaining)
 
@@ -62,6 +63,7 @@ Progress: [████████░░░░░░░░] 50% (phases 1–2�
 | Phase 03-communications-hub P04 | 6 | 2 tasks | 8 files |
 | Phase 04-compliance-reference P03 | 3 | 4 tasks | 6 files |
 | Phase 04-compliance-reference P04 | 18 | 4 tasks | 3 files |
+| Phase 05 P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -96,6 +98,7 @@ Recent decisions affecting current work:
 - [Phase 04-03]: Context processor pattern for duplicate count badge: inject_duplicate_count() in app/__init__.py wraps in try/except, returns empty dict if not authenticated
 - [Phase 04-compliance-reference]: 04-04: Policy row inserted even for unresolvable (carrier record preserved); only _upsert_customer_from_policy is skipped to prevent shell customers
 - [Phase 04-compliance-reference]: 04-04: assign_existing uses customer ID (not search typeahead) in v1 — search modal deferred
+- [Phase 05]: Migration 018: sob_url/drug_tier4/drug_tier5 all nullable, no index, direct ALTER TABLE (PostgreSQL), columns after drug_tier3 in Plan ORM model
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-05-07T00:00:00Z
-Stopped at: Phase 04 fully complete — 04-05 reconciliation VPS smoke test confirmed working. Ready to plan Phase 05.
+Last session: 2026-06-02T13:30:48.940Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None

@@ -43,7 +43,7 @@ REPORT_PATH = os.path.join(
 
 def _load_tsv(filepath):
     """Load tab-delimited PBP file. Returns list of dicts."""
-    with open(filepath, newline="", encoding="utf-8-sig") as f:
+    with open(filepath, newline="", encoding="cp1252") as f:
         reader = csv.DictReader(f, delimiter="\t")
         return list(reader)
 

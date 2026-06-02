@@ -67,13 +67,13 @@ Agents open one tab and everything they need is there — no switching between c
 
 ### Active / In Progress
 
-*Phase 5 — Plan Database SOB Enhancement (next):*
-- [ ] Migration 018: drug_tier4, drug_tier5, sob_url columns on plans table
-- [ ] Full benefit snapshot in details_json: inpatient, SNF, ambulance, dental, vision, OTC, food card, transport, gym, hearing, drug deductible + exempt tiers
-- [ ] Additional CMS sync scripts: pbp_b1a, pbp_b2, pbp_b9, pbp_b10, pbp_b16, pbp_b17, pbp_b18, pbp_mrx
-- [ ] plan_detail.html — SOB sections: Medical, Supplemental, Prescriptions
-- [ ] plan_list.html — benefit summary columns (dental allowance, OTC, star rating)
-- [ ] plan_form.html — per-benefit note fields
+*Phase 5 — Plan Database SOB Enhancement (complete 2026-06-02):*
+- [x] Migration 018: drug_tier4, drug_tier5, sob_url columns on plans table
+- [x] CMS PBP extended sync script (sync_pbp_extended_benefits.py) — 9 PBP files, 11 benefit fields
+- [x] plan_detail.html — SOB sections: Medical Benefits, Supplemental Benefits, Prescriptions (24 benefit rows, SOB PDF button)
+- [x] plan_list.html — benefit summary columns (MOOP, PCP, Dental, OTC, Stars, Members) replacing commission columns
+- [x] plan_form.html — structured admin inputs for all 19 benefit fields in collapsible sections, raw JSON textarea removed
+- Validated in Phase 5: SOB-01 through SOB-08
 
 *Phase 6 — Operations (planned):*
 - [ ] Commission statement → Customer/Policy sync on upload (stub auto-creation, AOR discrepancy flagging)
@@ -146,4 +146,4 @@ Agents open one tab and everything they need is there — no switching between c
 - **Google Meet Pub/Sub:** Pub/Sub subscriber code built; pending: Meet recording + transcription enabled in Workspace admin, Pub/Sub topic + subscription created, service account on VPS, GOOGLE_MEET_PUBSUB_SUBSCRIPTION in .env.
 
 ---
-*Last updated: 2026-06-01 — full sync: PostgreSQL live, Quo live, Phases 1–4 complete, Phase 5–8 replanned*
+*Last updated: 2026-06-02 — Phase 5 complete: SOB enhancement live, plan_detail/plan_list/plan_form rebuilt, migration 018 applied, CMS sync scripts committed*

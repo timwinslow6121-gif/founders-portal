@@ -151,7 +151,7 @@ Google Meet Pub/Sub subscriber (`app/comms/` + systemd service) built. Pending: 
 - [x] **SOB-03**: Plan detail page shows drug coverage section — deductible, exempt tiers, tier 1–5 copays
 - [x] **SOB-04**: SOB PDF link displayed prominently on plan detail page (sob_url field)
 - [x] **SOB-05**: Plan list rows show benefit summary: dental allowance, OTC, star rating, member count
-- [ ] **SOB-06**: Per-benefit note fields editable in admin plan form (dental_note, otc_note, vision_note, etc.)
+- [x] **SOB-06**: Per-benefit note fields editable in admin plan form (dental_note, otc_note, vision_note, etc.)
 - [x] **SOB-07**: CMS PBP sync scripts populated for inpatient, SNF, ambulance, dental, vision, hearing, drug tiers (pbp_b1a, b2, b9, b10, b16, b17, b18, mrx files)
 - [x] **SOB-08**: Migration 018 adds drug_tier4, drug_tier5 VARCHAR(32) and sob_url VARCHAR(512) to plans table
 

@@ -91,7 +91,7 @@ sob_url
 - [x] 05-01-PLAN.md — Migration 018 + Plan model SOB columns (drug_tier4, drug_tier5, sob_url)
 - [x] 05-02-PLAN.md — sync_pbp_extended_benefits.py: 9 CMS PBP files → details_json + drug_tier4/5 DB columns
 - [x] 05-03-PLAN.md — plan_detail SOB cards + plan_list benefit columns (routes + 2 templates)
-- [ ] 05-04-PLAN.md — plan_form structured SOB sections + merge-not-overwrite details_json serialization
+- [x] 05-04-PLAN.md — plan_form structured SOB sections + merge-not-overwrite details_json serialization
 
 ---
 

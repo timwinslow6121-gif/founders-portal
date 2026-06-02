@@ -64,6 +64,45 @@ def _parse_details(details_json_str):
         return {}
 
 
+# Benefit field keys serialized into Plan.details_json via the admin form.
+# MUST stay in sync with the form input `name=...` attributes in plan_form.html.
+BENEFIT_KEYS = [
+    "inpatient_hospital", "inpatient_hospital_note",
+    "outpatient_surgery",
+    "snf",
+    "ambulance",
+    "urgent_care_copay",
+    "dental_allowance", "dental_note",
+    "vision_allowance", "vision_note",
+    "otc_allowance", "otc_note",
+    "healthy_food_card",
+    "transportation",
+    "gym",
+    "hearing", "hearing_note",
+    "drug_deductible", "drug_deductible_exempt_tiers",
+]
+
+
+def _serialize_benefits(existing_json_str, form):
+    """
+    Merge structured form fields into details_json, PRESERVING any existing keys
+    not in BENEFIT_KEYS (e.g., CMS sync output fields not exposed in the form).
+
+    Returns: JSON string suitable for assigning to plan.details_json.
+    """
+    existing = {}
+    if existing_json_str:
+        try:
+            existing = json.loads(existing_json_str)
+        except (json.JSONDecodeError, TypeError):
+            existing = {}
+    for key in BENEFIT_KEYS:
+        raw = form.get(key, "")
+        val = raw.strip() if isinstance(raw, str) else raw
+        existing[key] = val if val else None
+    return json.dumps(existing)
+
+
 def _base_query():
     return Plan.query.filter_by(agency_id=current_user.agency_id)
 
@@ -229,6 +268,10 @@ def plan_new():
             friendly_name    = request.form.get("friendly_name", "").strip() or None,
             created_by_id    = current_user.id,
         )
+        plan.sob_url    = (request.form.get("sob_url", "") or "").strip() or None
+        plan.drug_tier4 = (request.form.get("drug_tier4", "") or "").strip() or None
+        plan.drug_tier5 = (request.form.get("drug_tier5", "") or "").strip() or None
+        plan.details_json = _serialize_benefits(plan.details_json, request.form)
         db.session.add(plan)
         db.session.commit()
         flash(f"{plan.carrier} — {plan.plan_name} ({plan.year}) added.", "success")
@@ -291,6 +334,10 @@ def plan_edit(plan_id):
         plan.comm_notes       = request.form.get("comm_notes", "").strip() or None
         plan.plan_name_aliases= request.form.get("plan_name_aliases", "").strip() or None
         plan.friendly_name    = request.form.get("friendly_name", "").strip() or None
+        plan.sob_url    = (request.form.get("sob_url", "") or "").strip() or None
+        plan.drug_tier4 = (request.form.get("drug_tier4", "") or "").strip() or None
+        plan.drug_tier5 = (request.form.get("drug_tier5", "") or "").strip() or None
+        plan.details_json = _serialize_benefits(plan.details_json, request.form)
         db.session.commit()
         flash(f"{plan.plan_name} updated.", "success")
         return redirect(url_for("carriers.plan_detail", plan_id=plan.id))

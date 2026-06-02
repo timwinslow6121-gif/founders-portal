@@ -104,11 +104,13 @@ def _build_tier_lookup(rows):
 
 
 def _parse_cms_plan_id(cms_plan_id):
-    """'H5253-117' -> ('H5253', '117') -- strips leading zeros from plan_id."""
+    """'H5253-117' -> ('H5253', '117'); 'H3449-023-001' -> ('H3449', '023') (segment suffix dropped)."""
     parts = (cms_plan_id or "").strip().upper().split("-")
     if len(parts) < 2 or not parts[1].isdigit():
         return None
-    return (parts[0], str(int(parts[1])))
+    # Preserve leading zeros to match PBP file plan_identifier format (e.g. '004' not '4')
+    # Third segment (e.g. '-001' in 'H3449-023-001') is a portal segment suffix, not part of PBP key
+    return (parts[0], parts[1])
 
 
 def _fmt_money(raw):

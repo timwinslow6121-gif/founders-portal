@@ -147,9 +147,12 @@
         <th style="width:8%">Status</th>
         <th style="width:9%">Flags</th>
         <th style="width:7%">Premium</th>
-        <th style="width:9%">Initial</th>
-        <th style="width:9%">Renewal</th>
-        <th style="width:5%">HRA</th>
+        <th style="width:7%">MOOP</th>
+        <th style="width:6%">PCP</th>
+        <th style="width:8%">Dental</th>
+        <th style="width:7%">OTC</th>
+        <th style="width:6%">Stars</th>
+        <th style="width:7%">Members</th>
         {% if current_user.is_admin %}<th style="width:5%"></th>{% endif %}
       </tr>
     </thead>
@@ -161,7 +164,7 @@
       {% if p.carrier != ns.carrier %}
       {% set ns.carrier = p.carrier %}
       <tr>
-        <td colspan="{{ 11 if current_user.is_admin else 10 }}"
+        <td colspan="{{ 14 if current_user.is_admin else 13 }}"
             style="background:color-mix(in srgb,var(--gold) 6%,transparent);
                    font-size:11px;font-weight:700;letter-spacing:0.16em;
                    text-transform:uppercase;color:var(--gold);padding:8px 14px;">
@@ -213,24 +216,12 @@
         <td class="comm-cell">
           {% if p.monthly_premium is not none %}${{ "%.2f"|format(p.monthly_premium) }}{% else %}—{% endif %}
         </td>
-        <td class="comm-cell">
-          {% if p.comm_initial %}
-            {% if p.comm_type == 'pmpm' %}${{ "%.2f"|format(p.comm_initial) }}/mo
-            {% elif p.comm_type == 'percent_premium' %}{{ "%.1f"|format(p.comm_initial * 100) }}%
-            {% else %}${{ "%.2f"|format(p.comm_initial) }}{% endif %}
-          {% elif not p.is_commissionable %}<span class="no-comm">—</span>
-          {% else %}—{% endif %}
-        </td>
-        <td class="comm-cell">
-          {% if p.comm_renewal %}
-            {% if p.comm_type == 'pmpm' %}${{ "%.2f"|format(p.comm_renewal) }}/mo
-            {% elif p.comm_type == 'percent_premium' %}{{ "%.1f"|format(p.comm_renewal * 100) }}%
-            {% else %}${{ "%.2f"|format(p.comm_renewal) }}{% endif %}
-          {% else %}—{% endif %}
-        </td>
-        <td class="comm-cell">
-          {% if p.hra_bonus %}${{ "%.0f"|format(p.hra_bonus) }}{% else %}—{% endif %}
-        </td>
+        <td class="comm-cell">{{ p.annual_oopm or '—' }}</td>
+        <td class="comm-cell">{{ p.pcp_copay or '—' }}</td>
+        <td class="comm-cell">{{ details_map.get(p.id, {}).get('dental_allowance') or '—' }}</td>
+        <td class="comm-cell">{{ details_map.get(p.id, {}).get('otc_allowance') or '—' }}</td>
+        <td class="comm-cell">{{ p.star_rating or '—' }}</td>
+        <td class="comm-cell">{{ member_counts.get(p.id, 0) }}</td>
         {% if current_user.is_admin %}
         <td onclick="event.stopPropagation()">
           <a href="{{ url_for('carriers.plan_edit', plan_id=p.id) }}"

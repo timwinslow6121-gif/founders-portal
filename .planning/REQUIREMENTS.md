@@ -146,14 +146,14 @@ Google Meet Pub/Sub subscriber (`app/comms/` + systemd service) built. Pending: 
 
 ### Plan Database SOB Enhancement *(Phase 5 — Not built)*
 
-- [ ] **SOB-01**: Plan detail page shows full medical benefits section — inpatient hospital (tiered by day), SNF, outpatient surgery, ambulance, ER, PCP, specialist, urgent care
-- [ ] **SOB-02**: Plan detail page shows supplemental benefits section — dental (allowance + note), vision, hearing, OTC (allowance + note), healthy food card, transportation, gym
-- [ ] **SOB-03**: Plan detail page shows drug coverage section — deductible, exempt tiers, tier 1–5 copays
-- [ ] **SOB-04**: SOB PDF link displayed prominently on plan detail page (sob_url field)
-- [ ] **SOB-05**: Plan list rows show benefit summary: dental allowance, OTC, star rating, member count
+- [x] **SOB-01**: Plan detail page shows full medical benefits section — inpatient hospital (tiered by day), SNF, outpatient surgery, ambulance, ER, PCP, specialist, urgent care
+- [x] **SOB-02**: Plan detail page shows supplemental benefits section — dental (allowance + note), vision, hearing, OTC (allowance + note), healthy food card, transportation, gym
+- [x] **SOB-03**: Plan detail page shows drug coverage section — deductible, exempt tiers, tier 1–5 copays
+- [x] **SOB-04**: SOB PDF link displayed prominently on plan detail page (sob_url field)
+- [x] **SOB-05**: Plan list rows show benefit summary: dental allowance, OTC, star rating, member count
 - [ ] **SOB-06**: Per-benefit note fields editable in admin plan form (dental_note, otc_note, vision_note, etc.)
-- [ ] **SOB-07**: CMS PBP sync scripts populated for inpatient, SNF, ambulance, dental, vision, hearing, drug tiers (pbp_b1a, b2, b9, b10, b16, b17, b18, mrx files)
-- [ ] **SOB-08**: Migration 018 adds drug_tier4, drug_tier5 VARCHAR(32) and sob_url VARCHAR(512) to plans table
+- [x] **SOB-07**: CMS PBP sync scripts populated for inpatient, SNF, ambulance, dental, vision, hearing, drug tiers (pbp_b1a, b2, b9, b10, b16, b17, b18, mrx files)
+- [x] **SOB-08**: Migration 018 adds drug_tier4, drug_tier5 VARCHAR(32) and sob_url VARCHAR(512) to plans table
 
 ---
 

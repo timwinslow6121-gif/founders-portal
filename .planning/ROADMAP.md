@@ -90,7 +90,7 @@ sob_url
 
 - [x] 05-01-PLAN.md — Migration 018 + Plan model SOB columns (drug_tier4, drug_tier5, sob_url)
 - [x] 05-02-PLAN.md — sync_pbp_extended_benefits.py: 9 CMS PBP files → details_json + drug_tier4/5 DB columns
-- [ ] 05-03-PLAN.md — plan_detail SOB cards + plan_list benefit columns (routes + 2 templates)
+- [x] 05-03-PLAN.md — plan_detail SOB cards + plan_list benefit columns (routes + 2 templates)
 - [ ] 05-04-PLAN.md — plan_form structured SOB sections + merge-not-overwrite details_json serialization
 
 ---
@@ -176,7 +176,7 @@ sob_url
 | 2.5. PostgreSQL Migration | 5/5 | ✅ Complete | 2026-03-26 |
 | 3. Communications Hub | 7/7 | ✅ Complete | 2026-04-13 |
 | 4. Data Integrity & Plan Database | 5/5 | ✅ Complete | 2026-06-01 |
-| 5. Plan Database SOB Enhancement | 2/4 | In Progress|  |
+| 5. Plan Database SOB Enhancement | 3/4 | In Progress|  |
 | 6. Operations | 0/TBD | Not started | — |
 | 7. Analytics | 0/TBD | Not started | — |
 | 8. White Label / Multi-Tenant | 0/TBD | Not started | — |

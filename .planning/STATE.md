@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-06-02T13:33:48.317Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-06-02T13:38:43.533Z"
 last_activity: 2026-06-02
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 50
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-01)
 ## Current Position
 
 Phase: 05 (plan-database-sob-enhancement-next) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Phase: 05 (plan-database-sob-enhancement) — NOT STARTED
 Status: Ready to execute
 Last activity: 2026-06-02
@@ -65,6 +65,7 @@ Progress: [████████░░░░░░░░] 50% (phases 1–2�
 | Phase 04-compliance-reference P04 | 18 | 4 tasks | 3 files |
 | Phase 05 P01 | 2 | 2 tasks | 2 files |
 | Phase 05 P02 | 5 | 1 tasks | 1 files |
+| Phase 05 P03 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Migration 018: sob_url/drug_tier4/drug_tier5 all nullable, no index, direct ALTER TABLE (PostgreSQL), columns after drug_tier3 in Plan ORM model
 - [Phase 05]: drug_tier4/5 written to DB columns not details_json (existing Plan schema columns from 05-01)
 - [Phase 05]: OTC/healthy_food_card/transportation/gym excluded from PBP sync — CMS b13 VBID structure not cleanly mappable; admin form entry only
+- [Phase 05]: D-07 confirmed: plan_list columns are MOOP, PCP, Dental, OTC, Stars, Members — specialist_copay intentionally excluded from list, visible on plan_detail only
+- [Phase 05]: SOB benefit data pre-parsed at route level via _parse_details helper — no JSON parsing in Jinja templates, GROUP BY pre-computes member_counts to avoid N+1 queries
 
 ### Pending Todos
 
@@ -117,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-02T13:33:48.314Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-06-02T13:38:43.530Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None

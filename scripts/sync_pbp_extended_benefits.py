@@ -172,36 +172,74 @@ def _extract_snf(row):
 
 
 def _extract_outpatient_surgery(row):
-    """Outpatient surgery copay from b9."""
+    """Outpatient surgery copay from b9. Uses obs (observation/inpatient) max copay."""
     if not row:
         return None
-    amt = row.get("pbp_b9a_copay_ohs_amt_min", "").strip() or row.get("pbp_b9a_copay_ohs_amt_max", "").strip()
+    # b9a_copay_obs = observation stay copay; use max (min is waived/zero portion for some tiers)
+    amt = row.get("pbp_b9a_copay_obs_amt_max", "").strip() or row.get("pbp_b9a_copay_obs_amt_min", "").strip()
+    if not amt or amt == "0.00":
+        # fallback: outpatient hospital surgery copay max
+        amt = row.get("pbp_b9a_copay_ohs_amt_max", "").strip()
     return _fmt_money(amt)
 
 
 def _extract_ambulance(row):
-    """Ambulance copay from b10."""
+    """Ambulance copay from b10 — separate ground vs air amounts."""
     if not row:
         return None
-    amt = row.get("pbp_b10a_copay_gas_amt_min", "").strip() or row.get("pbp_b10a_copay_gas_amt_max", "").strip()
-    return _fmt_money(amt)
+    ground = _fmt_money(row.get("pbp_b10a_copay_gas_amt_max", "").strip()
+                        or row.get("pbp_b10a_copay_gas_amt_min", "").strip())
+    air = _fmt_money(row.get("pbp_b10a_copay_aas_amt_max", "").strip()
+                     or row.get("pbp_b10a_copay_aas_amt_min", "").strip())
+    # Check for air coinsurance (some plans use % instead of flat copay)
+    air_coins = row.get("pbp_b10a_coins_aas_pct", "").strip()
+    if not air and air_coins:
+        try:
+            if float(air_coins) > 0:
+                air = f"{int(float(air_coins))}% coinsurance"
+        except (ValueError, TypeError):
+            pass
+    if ground and air and ground != air:
+        return f"Ground: {ground} / Air: {air}"
+    return ground or air
 
 
 def _extract_dental(row):
-    """Dental annual plan max (comprehensive)."""
+    """Dental allowance: preventive max + comprehensive coinsurance rate."""
     if not row:
         return None
-    amt = row.get("pbp_b16b_maxplan_pv_amt", "").strip()
-    money = _fmt_money(amt)
-    return f"{money}/yr" if money else None
+    # b16b = preventive/basic dental allowance
+    prev_amt = _fmt_money(row.get("pbp_b16b_maxplan_pv_amt", "").strip())
+    # b16c comprehensive coinsurance (50% is typical)
+    comp_coins = row.get("pbp_b16c_coins_rs_pct", "").strip()  # restorative is most common
+    if not comp_coins:
+        # try any comprehensive coinsurance column
+        for col in ("pbp_b16c_coins_end_pct", "pbp_b16c_coins_peri_pct", "pbp_b16c_coins_prm_pct"):
+            comp_coins = row.get(col, "").strip()
+            if comp_coins:
+                break
+    per_code = row.get("pbp_b16b_maxplan_pv_per", "").strip()
+    per_map = {"1": "/mo", "2": "/qtr", "3": "/yr", "6": "/period"}
+    period = per_map.get(per_code, "/yr")
+    if prev_amt and comp_coins:
+        try:
+            pct = int(float(comp_coins))
+            return f"{prev_amt}{period} preventive; {pct}% coinsurance comprehensive"
+        except (ValueError, TypeError):
+            pass
+    return f"{prev_amt}{period}" if prev_amt else None
 
 
 def _extract_vision(row):
-    """Vision eyewear allowance."""
+    """Vision eyewear allowance with frequency."""
     if not row:
         return None
-    amt = row.get("pbp_b17b_maxenr_amt", "").strip() or row.get("pbp_b17b_comb_maxplan_amt", "").strip()
-    return _fmt_money(amt)
+    amt = _fmt_money(row.get("pbp_b17b_comb_maxplan_amt", "").strip()
+                     or row.get("pbp_b17b_maxenr_amt", "").strip())
+    per_code = row.get("pbp_b17b_comb_maxplan_per", "").strip()
+    per_map = {"1": "/yr", "2": "/2yr", "3": "/3yr"}
+    period = per_map.get(per_code, "")
+    return f"{amt}{period}" if amt else None
 
 
 def _extract_hearing(row):
@@ -407,19 +445,22 @@ def run(pbp_dir=None):
             else:
                 not_found_per_file["mrx"].append(plan.cms_plan_id)
 
-            # mrx_tier -> drug_tier4 / drug_tier5 (DB columns, not details_json)
+            # mrx_tier -> drug_tier1/2/3 (DB columns) + drug_tier4/5 (DB columns)
             tier_rows = tier_lookup.get(key, {})
             if tier_rows:
-                if "4" in tier_rows:
-                    t4 = _extract_tier_copay(tier_rows["4"])
-                    if t4:
-                        plan.drug_tier4 = t4
-                        fields_written.append("drug_tier4")
-                if "5" in tier_rows:
-                    t5 = _extract_tier_copay(tier_rows["5"])
-                    if t5:
-                        plan.drug_tier5 = t5
-                        fields_written.append("drug_tier5")
+                tier_col_map = {
+                    "1": ("drug_tier1", None),    # (db_col, details_json_key)
+                    "2": ("drug_tier2", None),
+                    "3": ("drug_tier3", None),
+                    "4": ("drug_tier4", None),
+                    "5": ("drug_tier5", None),
+                }
+                for tier_id, (col, _) in tier_col_map.items():
+                    if tier_id in tier_rows:
+                        val = _extract_tier_copay(tier_rows[tier_id])
+                        if val and hasattr(plan, col):
+                            setattr(plan, col, val)
+                            fields_written.append(col)
             else:
                 not_found_per_file["mrx_tier"].append(plan.cms_plan_id)
 

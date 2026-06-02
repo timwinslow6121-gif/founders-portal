@@ -6,6 +6,8 @@ Plans track lifecycle (current/legacy/sunset), benefits snapshot, and
 commission rates per plan per year.
 """
 
+import json
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -52,6 +54,16 @@ CARRIERS = [
 PLAN_LETTERS = ["A", "B", "C", "D", "F", "G", "K", "L", "M", "N"]
 
 
+def _parse_details(details_json_str):
+    """Parse plan.details_json string into a dict. Returns {} on null/error."""
+    if not details_json_str:
+        return {}
+    try:
+        return json.loads(details_json_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
 def _base_query():
     return Plan.query.filter_by(agency_id=current_user.agency_id)
 
@@ -86,8 +98,27 @@ def plan_list():
                 .order_by(Plan.carrier).all())
     carriers = [r[0] for r in carriers]
 
+    # Pre-compute member counts to prevent N+1 queries in template
+    plan_ids = [p.id for p in plans]
+    member_counts = {}
+    if plan_ids:
+        rows = (db.session.query(Policy.plan_id, func.count(Policy.id))
+                .filter(
+                    Policy.plan_id.in_(plan_ids),
+                    Policy.status == 'active',
+                    Policy.agency_id == current_user.agency_id,
+                )
+                .group_by(Policy.plan_id)
+                .all())
+        member_counts = {plan_id: count for plan_id, count in rows}
+
+    # Pre-parse details_json for each plan (avoids JSON parsing in template)
+    details_map = {p.id: _parse_details(p.details_json) for p in plans}
+
     return render_template("plan_list.html",
         plans=plans,
+        member_counts=member_counts,
+        details_map=details_map,
         years=years,
         carriers=carriers,
         plan_types=PLAN_TYPES,
@@ -141,12 +172,15 @@ def plan_detail(plan_id):
         )
         customers_on_plan = customers_on_plan + id_matches
 
+    details = _parse_details(plan.details_json)
+
     return render_template("plan_detail.html",
         plan=plan,
         predecessors=predecessors,
         customers_on_plan=customers_on_plan,
         plan_types=dict(PLAN_TYPES),
         statuses=dict(STATUSES),
+        details=details,
     )
 
 

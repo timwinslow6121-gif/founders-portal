@@ -68,3 +68,26 @@ def test_load_sheets_humana_spreadsheetml():
     assert "WaName" in header        # writing agent
     assert "UMID" in header          # MBI-shaped id
     assert "PaidAmount" in header
+
+
+def test_normalize_healthspring_collapses_paired_rows():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_healthspring
+    from app.commission.member_fact import RowClass
+
+    sheets = load_sheets(os.path.join(FIXTURES, "healthspring_sample.xlsx"))
+    facts = normalize_healthspring(sheets)
+
+    assert facts, "expected MemberFacts"
+    for f in facts:
+        assert f.carrier == "Healthspring"
+        assert f.row_class in (RowClass.ENROLLMENT, RowClass.RENEWAL, RowClass.CHARGEBACK)
+        # collapsed fact's amount is the agent (Broker Level) share, never the $80 fee alone
+        assert f.amount != 80.0 or f.agency_share_amount is None
+
+    # WANDA LONG (member 71A2L3L49) appears as a single collapsed fact
+    wanda = [f for f in facts if f.carrier_member_id == "71A2L3L49"]
+    assert len(wanda) == 1
+    assert wanda[0].mbi == "3AP7QV3RJ37"
+    assert wanda[0].row_class == RowClass.ENROLLMENT   # "Initial - New to CMS"
+    assert wanda[0].plan_contract == "H9725"

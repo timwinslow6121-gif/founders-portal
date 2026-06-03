@@ -221,3 +221,30 @@ def test_role_defaults_to_agent(db_session, agency):
     db.session.add(u)
     db.session.commit()
     assert u.role == "agent"
+
+
+def test_year_invariant_plans_are_independent(db_session, agency, agent_user):
+    """A 2027 first-look must not touch the 2026 row, even same carrier+cms_plan_id."""
+    from app.models import Plan
+    from app.extensions import db
+    from app.plan_provenance import set_cms_value, set_human_value, field_value, make_value
+
+    p2026 = Plan(agency_id=agency.id, carrier="UHC", plan_name="NC-0015",
+                 year=2026, plan_type="mapd", cms_plan_id="H5253-117")
+    p2027 = Plan(agency_id=agency.id, carrier="UHC", plan_name="NC-0015",
+                 year=2027, plan_type="mapd", cms_plan_id="H5253-117")
+    db.session.add_all([p2026, p2027])
+    db.session.commit()
+
+    # 2026 gets a verified human value
+    set_human_value(p2026, "dental_allowance", make_value(2000, "yr", "usd"),
+                    user=agent_user, verify=True)
+    # 2027 first-look CMS sync writes a different value
+    set_cms_value(p2027, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    db.session.commit()
+
+    # neither touched the other
+    assert field_value(p2026, "dental_allowance")["amount"] == 2000
+    assert field_value(p2027, "dental_allowance")["amount"] == 1500
+    assert p2026.has_unresolved_conflicts in (False, None)
+    assert p2027.has_unresolved_conflicts in (False, None)

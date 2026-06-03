@@ -34,6 +34,9 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(255))
     picture = db.Column(db.String(512))
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+
+    # RBAC: agent (read-only shared data) | senior_agent (edit) | admin
+    role = db.Column(db.String(16), nullable=False, default="agent")
     agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     last_login = db.Column(db.DateTime)
@@ -55,6 +58,19 @@ class User(UserMixin, db.Model):
     @property
     def display_name(self):
         return self.name or self.email.split("@")[0].title()
+
+
+def can_edit_shared_data(user):
+    """True if the user may edit agency-wide shared reference data (plans, etc.).
+
+    is_admin always wins (single source of truth for admin); otherwise the role
+    must be senior_agent or admin. See spec 2026-06-02 §7.
+    """
+    if user is None:
+        return False
+    if getattr(user, "is_admin", False):
+        return True
+    return getattr(user, "role", "agent") in ("senior_agent", "admin")
 
 
 class Policy(db.Model):
@@ -350,6 +366,10 @@ class Plan(db.Model):
     drug_tier5      = db.Column(db.String(32))
     sob_url         = db.Column(db.String(512))
     details_json    = db.Column(db.Text)                        # JSON overflow for extra benefit fields
+
+    # Provenance / integrity (spec 2026-06-02)
+    cms_synced_at           = db.Column(db.DateTime, nullable=True)
+    has_unresolved_conflicts = db.Column(db.Boolean, nullable=False, default=False, index=True)
 
     # Commission rates (per member per month for MAPD/PDP; % of premium for others)
     # comm_type: pmpm, percent_premium, flat_annual

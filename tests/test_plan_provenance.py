@@ -248,3 +248,62 @@ def test_year_invariant_plans_are_independent(db_session, agency, agent_user):
     assert field_value(p2027, "dental_allowance")["amount"] == 1500
     assert p2026.has_unresolved_conflicts in (False, None)
     assert p2027.has_unresolved_conflicts in (False, None)
+
+
+def test_repeated_cms_sync_does_not_duplicate_conflict(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value, list_conflicts, make_value
+    set_human_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), user=agent_user)
+    # first CMS sync flags the conflict
+    set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    # second identical sync (sync scripts run repeatedly) must NOT add a duplicate
+    set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    conflicts = list_conflicts(plan)
+    assert len(conflicts) == 1  # still exactly one unresolved conflict for this field
+
+
+def test_promotion_sets_source_and_locks_against_later_cms(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value, get_field, make_value
+    set_human_value(plan, "specialist_copay", make_value(35, None, "usd"), user=agent_user)
+    set_cms_value(plan, "specialist_copay", make_value(35, None, "usd"), "cms_pbp")
+    rec = get_field(plan, "specialist_copay")
+    assert rec["trust"] == "human_verified"
+    assert rec["source"] == "aj_verified"
+    # now a later CMS sync with a DIFFERENT value must be skipped (locked)
+    action = set_cms_value(plan, "specialist_copay", make_value(50, None, "usd"), "cms_pbp")
+    assert action == "skipped_human"
+    assert get_field(plan, "specialist_copay")["value"]["amount"] == 35  # unchanged
+
+
+def test_resolved_field_is_immune_to_later_cms(plan, agent_user, admin_user):
+    from app.plan_provenance import set_cms_value, set_human_value, resolve_conflict, get_field, make_value
+    set_human_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), user=agent_user)
+    set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    resolve_conflict(plan, "dental_allowance", make_value(1500, "yr", "usd"), user=admin_user)
+    # a later CMS sync with yet another value must be skipped (resolved = human_verified)
+    action = set_cms_value(plan, "dental_allowance", make_value(1800, "yr", "usd"), "cms_pbp")
+    assert action == "skipped_human"
+    assert get_field(plan, "dental_allowance")["value"]["amount"] == 1500
+
+
+def test_partial_resolve_keeps_flag_set(plan, agent_user, admin_user):
+    from app.plan_provenance import set_cms_value, set_human_value, resolve_conflict, list_conflicts, make_value
+    # two different fields each get a conflict
+    set_human_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), user=agent_user)
+    set_human_value(plan, "otc_allowance", make_value(45, "qtr", "usd"), user=agent_user)
+    set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    set_cms_value(plan, "otc_allowance", make_value(30, "qtr", "usd"), "cms_pbp")
+    assert len(list_conflicts(plan)) == 2
+    assert plan.has_unresolved_conflicts is True
+    # resolve only one
+    resolve_conflict(plan, "dental_allowance", make_value(1500, "yr", "usd"), user=admin_user)
+    assert len(list_conflicts(plan)) == 1            # one remains
+    assert plan.has_unresolved_conflicts is True      # flag stays set
+
+
+def test_list_conflicts_include_resolved(plan, agent_user, admin_user):
+    from app.plan_provenance import set_cms_value, set_human_value, resolve_conflict, list_conflicts, make_value
+    set_human_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), user=agent_user)
+    set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    resolve_conflict(plan, "dental_allowance", make_value(1500, "yr", "usd"), user=admin_user)
+    assert list_conflicts(plan, unresolved_only=True) == []
+    assert len(list_conflicts(plan, unresolved_only=False)) == 1  # history preserved

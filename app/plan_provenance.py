@@ -183,8 +183,12 @@ def set_cms_value(plan, field, value, cms_source):
 
     trust = existing.get("trust")
     prev_display = existing.get("value", {}).get("display")
-    same = existing.get("value", {}).get("amount") == value.get("amount") and \
-        existing.get("value", {}).get("display") == value.get("display")
+    _ev = existing.get("value", {})
+    same = (
+        _ev.get("amount") == value.get("amount")
+        and _ev.get("period") == value.get("period")
+        and _ev.get("unit") == value.get("unit")
+    )
 
     if trust == "human_verified":
         _save(plan, data)  # persist cms_synced_at bump only
@@ -218,6 +222,11 @@ def set_cms_value(plan, field, value, cms_source):
 
 def _flag_conflict(data, plan, field, existing, incoming, cms_source):
     conflicts = data.setdefault("_conflicts", [])
+    # Idempotency: don't stack duplicate unresolved conflicts for the same field
+    # (sync scripts run repeatedly). One open conflict per field is enough.
+    for c in conflicts:
+        if c["field"] == field and not c.get("resolved"):
+            return
     conflicts.append({
         "field": field,
         "existing": {

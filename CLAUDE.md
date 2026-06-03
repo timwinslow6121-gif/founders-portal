@@ -83,6 +83,25 @@ app.register_blueprint(customers_bp)
 
 **PostgreSQL sequence drift:** After bulk inserts or manual SQL, sequences can fall behind max(id). Fix with: `SELECT setval('tablename_id_seq', (SELECT MAX(id) FROM tablename));` — has affected `commission_statements` and `agent_carrier_contracts` in production.
 
+## Plan Provenance Rules — READ BEFORE TOUCHING app/plan_provenance.py OR sync scripts
+
+- **The seam:** ALL reads/writes of `_meta`/`_conflicts` go through `app/plan_provenance.py`. Nothing else touches the raw structure (keeps the future relational `plan_benefit_values` migration localized).
+- **CMS sync writes via `set_cms_value()`**, never blind-merge. Precedence: empty→write; first-look (`unverified`)→CMS overwrites; `agent_entered`+match→promote to `human_verified`; `agent_entered`+differ→flag conflict (don't overwrite); `human_verified`→skip. Returns the action taken.
+- **Year invariant:** logic operates on ONE Plan row `(carrier, cms_plan_id, year)`. Never compare across years — a 2027 first-look creates/updates the 2027 row, never touches 2026.
+- **Benefit values are structured** (`make_value(amount, period, unit)`), NOT formatted strings — required for numeric filtering AND reliable conflict comparison.
+- Human edits via `set_human_value(plan, field, value, user, note, verify=)`; `verify=True` = AJ marks `human_verified`. Also write an `AuditLog` row for agency-wide forensics (planned in editing UI = Plan 3).
+- Tests run locally: `python3 -m pytest tests/test_plan_provenance.py` (SQLite in-memory, no VPS/venv needed).
+
+## Agent Roster & RBAC (User.role, migration 019)
+
+`User.role` ∈ `agent` (read-only shared data) | `senior_agent` (may edit) | `admin`. Gate via `can_edit_shared_data(user)` in `models.py` = `is_admin OR role in (senior_agent, admin)`. `is_admin` (from `ADMIN_EMAILS`, recomputed each OAuth login) **SUPERSEDES** role — single source of truth for admin.
+
+- **admin:** Brian Freeman (owner+agent), AJ (admin@, builds carrier charts), Tim Winslow (developer+agent)
+- **senior_agent:** Rebekah Long (principal, contracting), Justin Basinger, Chris Foster, Mike Lauzurique (LOA but trusted)
+- **agent (read-only):** Anjana Patel, Betty Marlowe; new hires default here. **Alex** = not provisioned (not yet licensed; onboarding case study).
+- Betty is also Brian's assistant (submits apps on his behalf) — delegation model TBD (see session notes).
+- **Design principle for tech-averse agents (Betty/Brian/Rebekah):** simple default + few clearly-labeled controls, NO hidden modes/toggles. Behave like PioneerRx (their pharmacy software). Note: `tim@` is intentionally `is_admin=false` for admin-vs-agent view testing (his `role=admin` still grants edit rights).
+
 ## UX Design System — NEW THEME (replacing Lux dark theme, 2026-05-04)
 
 **Decision: Replace dark mode entirely with system-aware light/dark theme.**
@@ -144,6 +163,8 @@ Use CSS `prefers-color-scheme` media query so the OS setting drives the palette 
 - **Plan names normalized + CMS IDs populated ✅ (2026-05-11)** — Redundant carrier prefix stripped from all 38 plan names (carrier is own table column). CMS IDs populated from `docs/All Insurance Plans for Zoho - Sheet1.csv` for all active plans. Key corrections: BCBS Freedom+ was H3894-009 → H3404-004; Aetna Eagle PPO was H5521-284 → H5521-241; Humana Choice PPO was H5525-034 → H5525-070. Humana PDP SOB data populated: Basic (S5884-133, $6.80/mo, $615 ded, 4-tier copays), Premier (S5884-154, $110.90/mo, $0 ded), Value (S5884-187, $32.00/mo, tiered ded). Service area = "Statewide NC" for all three Humana PDPs.
 - **Carriers & Plans UI refresh ✅ (2026-05-11)** — Filter bar matches customers module exactly (same CSS classes, flex sizing, `onchange` submit). Carrier as dedicated column. Two-line plan name display: friendly name prominent, technical name muted below. Whole-row clickable; edit button uses `event.stopPropagation()`. SNP flags use `.flag-snp` (blue) vs `.flag` (gold). `plan_form.html` has friendly_name field above plan_name_aliases.
 - **CMS sync scripts ✅ (2026-06-01)** — `scripts/sync_cms_plan_data.py`: reads CY2026 Landscape CSV, updates monthly_premium/annual_oopm/star_rating, deduplicates by plan across county rows, handles PPO "Not Applicable" consolidated premium fallback. `scripts/sync_pbp_benefit_data.py`: reads CMS PBP Benefits flat files (pbp_b4_emerg_urgent.txt + pbp_b7_health_prof.txt), updates pcp_copay/specialist_copay/er_copay. Both write reports to scripts/. Verified: UHC H5253-117 → pcp=$0, specialist=$35, er=$150, matches agent SOB. Source data: `docs/Medicare Landscape Files/` (not in git — scp to VPS before running pbp script).
+- **Structured SOB plan benefits ✅ (2026-06-01)** — Migration 018 (drug_tier4/5, sob_url). `sync_pbp_extended_benefits.py` syncs 9 PBP files → details_json. plan_form/detail/list structured SOB sections. (Was listed as "NEXT" — now done.)
+- **Plan Data Integrity & Provenance ✅ DEPLOYED (2026-06-03)** — `app/plan_provenance.py` is the seam owning structured benefit values `{amount,period,unit,display}` + per-field `_meta` (source/trust/history) + `_conflicts` inside `Plan.details_json`. `set_cms_value()` enforces CMS-vs-human precedence: first-looks yield to CMS, CMS never overwrites `human_verified`, CMS-vs-agent mismatch flags a conflict (the BCBS first-look-vs-CMS-approved incident preventer); CMS matching an agent value auto-promotes to verified. `resolve_conflict()` for AJ review. Migration 019: `plans.cms_synced_at`, `plans.has_unresolved_conflicts` (indexed), `users.role`. 55 tests in `tests/test_plan_provenance.py`. Spec/plan in `docs/superpowers/`. Consumers (sync retrofit + OTC/meals, editing UI, conflict queue, filter layer) = Plans 2–5, NOT yet built.
 
 ## Next Steps / To-Do
 
@@ -163,60 +184,9 @@ cd /var/www/founders-portal && git pull
 ./venv/bin/python3 scripts/sync_pbp_benefit_data.py
 ```
 
-### Plan Database — Full SOB Enhancement (NEXT)
+### Plan Database — Full SOB Enhancement ✅ DONE (2026-06-01)
 
-Goal: make the Carriers & Plans page the portal's equivalent of HealthSherpa's plan comparison tool — a full SOB snapshot per plan, with quick-scan list view + expandable detail matching agent appointment reference charts.
-
-**Design decisions locked in (2026-06-01):**
-- Enhance existing `plan_list.html` / `plan_detail.html` / `plan_form.html` — do not rebuild
-- Per-benefit note fields in the plan edit form (e.g. `dental_note`, `otc_note`) — for nuance like "Humana OTC = online only", "Devoted OTC = CVS catalogue price only"
-- Full benefit snapshot stored in `details_json` (column already exists) — no 30-column migration
-- Migration 018 needed: add `drug_tier4` + `drug_tier5` VARCHAR(32) to `plans` table (tier 1-3 already exist as columns); `sob_url` VARCHAR(512) for SOB PDF link
-
-**Benefit fields to add to `details_json` (sourced from agent appointment charts):**
-```
-inpatient_hospital       # e.g. "$455/day days 1-6, $0 days 7-90"
-inpatient_hospital_note
-outpatient_surgery       # e.g. "$455"
-snf                      # e.g. "$0 days 1-20, $218 days 21-100"
-ambulance                # e.g. "$275"
-urgent_care_copay        # e.g. "$65"
-dental_allowance         # e.g. "$2,000/yr preventive + comprehensive"
-dental_note              # e.g. "Preventive only" or "50% coinsurance on major"
-vision_allowance         # e.g. "$200/2yr eyewear"
-vision_note
-otc_allowance            # e.g. "$45/qtr"
-otc_note                 # e.g. "Pharmacy accepts only" / "Humana: online only" / "Devoted: CVS catalogue price"
-healthy_food_card        # e.g. "$85/mo"
-transportation           # e.g. "24 one-way trips/yr"
-gym                      # e.g. "Silver Sneakers" / "Renew Active"
-hearing                  # e.g. "$0 exam, $199-$1,249/device"
-hearing_note
-drug_deductible          # e.g. "$440" or "$0"
-drug_deductible_exempt_tiers  # e.g. "Tiers 1 & 2"
-sob_url                  # direct link to CMS/carrier SOB PDF
-```
-
-**Plan list view enhancements (matching HealthSherpa overview + agent charts):**
-- Card/row: carrier badge, plan name + H-code, plan type tags (HMO/PPO/D-SNP/C-SNP/5★), premium, MOOP, PCP/specialist copay, dental allowance, OTC, star rating, customer count
-- Filters: carrier, plan type, D-SNP/C-SNP/5-star, year, county/service area
-
-**Plan detail view enhancements:**
-- SOB PDF link prominent at top
-- Sections mirroring SOB layout: Medical Benefits, Supplemental Benefits (dental/vision/hearing/OTC/fitness/food/transport), Prescriptions (tier table with deductible + exempt tiers)
-- Per-benefit note badges shown inline
-- All benefit data auto-populated by CMS sync scripts; nuance notes manually entered by AJ
-
-**CMS source files for additional benefit data (pbp-benefits-2026/):**
-- `pbp_b1a_inpat_hosp.txt` → inpatient hospital (tiered by day)
-- `pbp_b2_snf.txt` → SNF (tiered by day)
-- `pbp_b9_outpat_hosp.txt` → outpatient surgery
-- `pbp_b10_amb_trans.txt` → ambulance
-- `pbp_b16_dental.txt` → dental allowance + coinsurance
-- `pbp_b17_eye_exams_wear.txt` → vision allowance
-- `pbp_b18_hearing_exams_aids.txt` → hearing exam + aid cost
-- `pbp_mrx.txt` + `pbp_mrx_tier.txt` → drug deductible + tier 4/5 copays
-- `pbp_Section_D.txt` → MOOP (supplements Landscape CSV)
+Migration 018 applied; structured SOB benefit fields in `details_json` (`make_value` shape via provenance layer); `plan_form`/`plan_detail`/`plan_list` updated with SOB sections. `sync_pbp_extended_benefits.py` populates 9 PBP files. See build-status entries. Remaining benefit-data completeness (OTC/meals from PBP b13, per-benefit nuance notes) = provenance **Plan 2** (sync retrofit + OTC/meals), not yet built.
 
 ### Phase 5 — Operations (after plan database)
 
@@ -234,6 +204,11 @@ Key items:
 - **AEP page** — dedicated AEP enrollment window tracker (separate from upcoming terminations)
 - **Carriers & Plans** — customer profile → plan detail page link (match by carrier+plan_name)
 - **Medicare.gov API** — annual plan refresh script for western NC zip codes during AEP prep (`data.cms.gov`, no auth required)
+
+### Active Brainstorms (paused — resume, don't restart)
+- **Commission→Customer Sync** — `docs/superpowers/Ideas/SESSION-NOTES-commission-customer-sync.md`. Bug: commission upload creates payments (CommissionStatement/PolicyPayment) but NOT Customer records. Paused awaiting AJ's RAW commission files (the ones in `docs/Commission DL/` are agent-cleaned, not source). Locked decisions: unified pipeline (row = payment + customer/AOR fact), stub customers (`stub=True, source='commission_import'`), dedup by stable ID not name, idempotent re-upload. Hard part: UHC LOA lumped-payment splitting (agent vs Founders share) — reuse the provenance pattern (inferred value + confidence + AJ phone-call override).
+- **Customer Access Model** — interval-aware AOR access. Settled: full profile access on direct lookup (name/DOB/MBI); enumerate/report own+delegated book only (no fishing); Betty↔Brian delegation (explicit, modeless, attributed); OEP overlap via `CustomerAorHistory` intervals (current AOR active + future AOR in pipeline, date-driven). Queued AFTER commission sync (consumes the AOR intervals sync produces). Decisions in the session notes file.
+- Triaged idea backlog: `docs/superpowers/Ideas/BACKLOG-triaged-2026-06-03.md`.
 
 ## Agent Nav — what's in the sidebar (as of 2026-05-08)
 My Book: Dashboard, Customers, Duplicates (count badge, hidden when 0), Upcoming Terms

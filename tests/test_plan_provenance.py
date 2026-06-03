@@ -33,3 +33,31 @@ def test_make_value_offered_no_amount():
     v = make_value(amount=None, period="qtr", unit="usd")
     assert v["amount"] is None
     assert v["display"] == "Offered"
+
+
+def test_parse_money_basic():
+    from app.plan_provenance import parse_money
+    assert parse_money("455.00") == 455
+    assert parse_money("2000.00") == 2000
+    assert parse_money("0.00") == 0
+
+
+def test_parse_money_blank_is_none():
+    from app.plan_provenance import parse_money
+    assert parse_money("") is None
+    assert parse_money(None) is None
+    assert parse_money("   ") is None
+
+
+def test_parse_money_decimal_preserved():
+    from app.plan_provenance import parse_money
+    assert parse_money("12.50") == 12.5
+
+
+def test_period_code_to_token():
+    from app.plan_provenance import period_code_to_token
+    # CMS period codes: 1=mo, 2=qtr, 3=yr, 5=mo(alt), 7=yr(alt) per PBP dictionary
+    assert period_code_to_token("2") == "qtr"
+    assert period_code_to_token("3") == "yr"
+    assert period_code_to_token("1") == "mo"
+    assert period_code_to_token("") is None

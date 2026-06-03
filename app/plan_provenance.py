@@ -43,3 +43,32 @@ def _format_display(amount, period, unit):
     if unit == "count":
         return f"{amount}{suffix}"
     return str(amount)
+
+
+# CMS PBP period codes -> our period tokens. Codes vary by sub-section; this is
+# the common mapping used across b13b/b16/b17. Unknown codes -> None (no suffix).
+_PERIOD_CODE = {
+    "1": "mo", "2": "qtr", "3": "yr",
+    "5": "mo", "7": "yr",   # alternate code sets seen in b13b
+}
+
+
+def parse_money(raw):
+    """'455.00' -> 455 ; '12.50' -> 12.5 ; '' / None / blank -> None."""
+    if raw is None:
+        return None
+    raw = str(raw).strip()
+    if not raw:
+        return None
+    try:
+        val = float(raw)
+    except (ValueError, TypeError):
+        return None
+    return int(val) if val == int(val) else val
+
+
+def period_code_to_token(code):
+    """Map a CMS period code string to our period token, or None."""
+    if code is None:
+        return None
+    return _PERIOD_CODE.get(str(code).strip(), None)

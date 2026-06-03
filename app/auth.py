@@ -56,7 +56,11 @@ def google_login():
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
-        hd=ALLOWED_DOMAIN
+        hd=ALLOWED_DOMAIN,
+        # Force Google's account chooser every login so users can switch between
+        # Founders accounts (e.g. admin@ vs tim@). Without this, Google silently
+        # reuses the active Google session and never offers a picker.
+        prompt='select_account',
     )
     session['oauth_state'] = state
     return redirect(authorization_url)

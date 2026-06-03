@@ -31,3 +31,6 @@ docs/.obsidian/workspace-mobile.json
 stop-slop/
 docs/.obsidian/workspace.json
 docs/.obsidian/workspace-mobile.json
+
+# Local git worktrees (isolated workspaces)
+.worktrees/

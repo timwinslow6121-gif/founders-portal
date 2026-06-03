@@ -61,3 +61,47 @@ def test_period_code_to_token():
     assert period_code_to_token("3") == "yr"
     assert period_code_to_token("1") == "mo"
     assert period_code_to_token("") is None
+
+
+@pytest.fixture
+def plan(db_session, agency):
+    """A minimal Plan row for provenance tests."""
+    from app.models import Plan
+    from app.extensions import db
+    p = Plan(
+        agency_id=agency.id, carrier="UHC", plan_name="Test Plan",
+        year=2026, plan_type="mapd", cms_plan_id="H5253-117",
+    )
+    db.session.add(p)
+    db.session.commit()
+    db.session.refresh(p)
+    return p
+
+
+def test_get_field_missing_returns_none(plan):
+    from app.plan_provenance import get_field
+    assert get_field(plan, "dental_allowance") is None
+
+
+def test_set_and_get_human_value_roundtrip(plan, agent_user):
+    from app.plan_provenance import set_human_value, get_field, make_value
+    set_human_value(plan, "dental_allowance",
+                    make_value(2000, "yr", "usd"),
+                    user=agent_user, note="BCBS first look")
+    rec = get_field(plan, "dental_allowance")
+    assert rec["value"]["amount"] == 2000
+    assert rec["value"]["display"] == "$2,000/yr"
+    assert rec["source"] == "agent_edit"
+    assert rec["trust"] == "agent_entered"
+    assert rec["updated_by"] == "Agent"
+    assert len(rec["history"]) == 1
+    assert rec["history"][0]["to"] == "$2,000/yr"
+    assert rec["history"][0]["note"] == "BCBS first look"
+
+
+def test_field_value_returns_plain_value(plan, agent_user):
+    from app.plan_provenance import set_human_value, field_value, make_value
+    set_human_value(plan, "otc_allowance", make_value(45, "qtr", "usd"), user=agent_user)
+    assert field_value(plan, "otc_allowance") == {
+        "amount": 45, "period": "qtr", "unit": "usd", "display": "$45/qtr"
+    }

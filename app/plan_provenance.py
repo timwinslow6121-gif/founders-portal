@@ -72,3 +72,72 @@ def period_code_to_token(code):
     if code is None:
         return None
     return _PERIOD_CODE.get(str(code).strip(), None)
+
+
+import json
+from datetime import datetime
+
+
+def _load(plan):
+    """Return parsed details_json dict (always a dict)."""
+    if not plan.details_json:
+        return {}
+    try:
+        return json.loads(plan.details_json)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def _save(plan, data):
+    plan.details_json = json.dumps(data)
+
+
+def _now():
+    return datetime.utcnow().isoformat(timespec="seconds")
+
+
+def get_field(plan, field):
+    """Full provenance record for a field, or None if absent.
+
+    Returns {value, source, trust, as_of, updated_at, updated_by, history}.
+    """
+    meta = _load(plan).get("_meta", {})
+    rec = meta.get(field)
+    return rec if rec else None
+
+
+def field_value(plan, field):
+    """Plain structured value for a field (what templates/filters call), or None."""
+    rec = get_field(plan, field)
+    return rec["value"] if rec else None
+
+
+def set_human_value(plan, field, value, user, note=None, verify=False):
+    """Apply a human edit (agent) or verification (verify=True -> AJ verified).
+
+    Always applies immediately. Records attribution + appends history.
+    """
+    data = _load(plan)
+    meta = data.setdefault("_meta", {})
+    prev = meta.get(field, {}).get("value")
+    prev_display = prev["display"] if prev else None
+    source = "aj_verified" if verify else "agent_edit"
+    trust = "human_verified" if verify else "agent_entered"
+    history = meta.get(field, {}).get("history", [])
+    history.append({
+        "at": _now(),
+        "by": getattr(user, "name", None),
+        "from": prev_display,
+        "to": value["display"],
+        "note": note,
+    })
+    meta[field] = {
+        "value": value,
+        "source": source,
+        "trust": trust,
+        "as_of": str(plan.year),
+        "updated_at": _now(),
+        "updated_by": getattr(user, "name", None),
+        "history": history,
+    }
+    _save(plan, data)

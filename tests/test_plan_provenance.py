@@ -172,3 +172,24 @@ def test_cms_skips_human_verified(plan, agent_user):
     action = set_cms_value(plan, "er_copay", make_value(200, None, "usd"), "cms_pbp")
     assert action == "skipped_human"
     assert get_field(plan, "er_copay")["value"]["amount"] == 150  # unchanged
+
+
+def test_resolve_conflict_clears_flag(plan, agent_user, admin_user):
+    from app.plan_provenance import (
+        set_cms_value, set_human_value, resolve_conflict,
+        list_conflicts, get_field, make_value,
+    )
+    set_human_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), user=agent_user)
+    set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    assert plan.has_unresolved_conflicts is True
+
+    # AJ accepts the CMS value
+    resolve_conflict(plan, "dental_allowance",
+                     chosen=make_value(1500, "yr", "usd"),
+                     user=admin_user, note="CMS approved value is correct")
+
+    assert list_conflicts(plan) == []
+    assert plan.has_unresolved_conflicts is False
+    rec = get_field(plan, "dental_allowance")
+    assert rec["value"]["amount"] == 1500
+    assert rec["trust"] == "human_verified"  # AJ's choice is authoritative

@@ -237,3 +237,35 @@ def list_conflicts(plan, unresolved_only=True):
     if unresolved_only:
         return [c for c in conflicts if not c.get("resolved")]
     return conflicts
+
+
+def resolve_conflict(plan, field, chosen, user, note=None):
+    """AJ resolves a conflict by choosing the surviving value (human_verified).
+
+    Marks the conflict resolved, writes the chosen value, recomputes
+    plan.has_unresolved_conflicts.
+    """
+    data = _load(plan)
+    # write the chosen value as human-verified
+    meta = data.setdefault("_meta", {})
+    prev = meta.get(field, {}).get("value", {}).get("display")
+    history = meta.get(field, {}).get("history", [])
+    history.append({"at": _now(), "by": getattr(user, "name", None),
+                    "from": prev, "to": chosen["display"],
+                    "note": note or "conflict resolved"})
+    meta[field] = {
+        "value": chosen, "source": "aj_verified", "trust": "human_verified",
+        "as_of": str(plan.year), "updated_at": _now(),
+        "updated_by": getattr(user, "name", None), "history": history,
+    }
+    # mark matching conflicts resolved
+    for c in data.get("_conflicts", []):
+        if c["field"] == field and not c.get("resolved"):
+            c["resolved"] = True
+            c["resolved_by"] = getattr(user, "name", None)
+            c["resolved_at"] = _now()
+            c["resolution"] = chosen["display"]
+    _save(plan, data)
+    # recompute flag
+    remaining = [c for c in data.get("_conflicts", []) if not c.get("resolved")]
+    plan.has_unresolved_conflicts = bool(remaining)

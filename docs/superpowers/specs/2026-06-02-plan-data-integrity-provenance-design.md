@@ -271,6 +271,17 @@ PDP plans (no b13 row) → fields simply absent (graceful, same as today).
   | `senior_agent` | ✓ | ✓ (attributed + audit-logged) | ✗ |
   | `admin` / `is_admin` | ✓ | ✓ | ✓ |
 
+- **Founders role assignments (seed/backfill targets):**
+  - `admin`: **Brian Freeman** (owner), **AJ Bhatt** (builds carrier charts — primary plan-data
+    editor), **Tim Winslow** (portal developer — needs admin to audit/troubleshoot, also an agent).
+  - `senior_agent`: **Rebekah** (principal agent, contracting), **Justin B**, **Chris F** (1099,
+    established), **Mike L** (LOA but long-tenured/trusted — note: contract type does NOT determine
+    role; trust does).
+  - `agent` (read-only): **Anj P**, **Betty M**, and all future new hires by default.
+  - **Held / not yet provisioned:** **Alex** — newest agent, not yet fully licensed. His account is
+    intentionally deferred and used as the **new-agent onboarding case study** (see §9.6): what state,
+    role, and gating a not-yet-licensed agent should have.
+
 - **Scope of enforcement (this spec):** the helper gates the `carriers.py` plan-edit routes and
   show/hides edit affordances in templates. Other shared modules adopt the same helper when next
   touched.
@@ -311,6 +322,12 @@ PDP plans (no b13 row) → fields simply absent (graceful, same as today).
    differs (Adderall XR $5-vs-$50 case). Separate data model (per-drug, per-quote).
 5. **Policy/AOR "ownership" model refinement** — the idea that an agent effectively owns the *policy*
    (time-bounded by AOR) rather than the customer. Tabled.
+6. **New-agent onboarding flow (Alex case study)** — Alex is the newest Founders agent but is **not
+   yet fully licensed**. His account is deliberately *not* provisioned in this spec; he is the
+   motivating case for a future onboarding design answering: what account state does a not-yet-licensed
+   agent have (e.g. `pending_license` flag → no customer assignment, no commission attribution,
+   `role='agent'` read-only), what unlocks on licensure, and how the AOR/BOB model engages once they
+   start writing policies. Captured here so the requirement isn't lost; designed separately.
 
 ---
 
@@ -337,8 +354,12 @@ PDP plans (no b13 row) → fields simply absent (graceful, same as today).
 - `plans.cms_synced_at` `DateTime NULL`
 - `plans.has_unresolved_conflicts` `Boolean NOT NULL DEFAULT false`, indexed
 - `users.role` `String(16) NOT NULL DEFAULT 'agent'`
-  (backfill: existing admins/`is_admin` users → `'admin'`; all others → `'agent'`. Founders can
-  promote specific agents to `'senior_agent'` afterward.)
+  - Backfill rule: `is_admin` users → `'admin'`; all others → `'agent'` (safe read-only default).
+  - Then explicit promotions (data step, by email/name match): Rebekah, Justin B, Chris F, Mike L
+    → `'senior_agent'`. Brian, AJ, Tim W are already `is_admin` → `'admin'`. Anj P, Betty M remain
+    `'agent'`. Alex is **not provisioned** (see §7 / §9.6).
+  - Note: `is_admin` is recomputed from `ADMIN_EMAILS` on each OAuth login and supersedes `role`, so
+    the admin set stays authoritative even if `role` drifts.
 - Data backfill: existing `details_json` benefit strings → structured `{amount, period, unit, display}`
   with `_meta` source `cms_pbp` / `cms_authoritative` (best-effort parse; unparseable kept as
   `display` with `amount=null`). Idempotent, reversible.

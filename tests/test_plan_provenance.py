@@ -193,3 +193,31 @@ def test_resolve_conflict_clears_flag(plan, agent_user, admin_user):
     rec = get_field(plan, "dental_allowance")
     assert rec["value"]["amount"] == 1500
     assert rec["trust"] == "human_verified"  # AJ's choice is authoritative
+
+
+def test_plan_has_provenance_columns(plan):
+    # defaults
+    assert plan.has_unresolved_conflicts in (False, None)
+    assert plan.cms_synced_at is None
+
+
+def test_can_edit_shared_data_by_role(db_session, agency):
+    from app.models import User, can_edit_shared_data
+    from app.extensions import db
+    newbie = User(email="n@t.com", name="Newbie", is_admin=False, role="agent")
+    senior = User(email="s@t.com", name="Senior", is_admin=False, role="senior_agent")
+    boss = User(email="b@t.com", name="Boss", is_admin=True, role="agent")
+    db.session.add_all([newbie, senior, boss])
+    db.session.commit()
+    assert can_edit_shared_data(newbie) is False
+    assert can_edit_shared_data(senior) is True
+    assert can_edit_shared_data(boss) is True   # is_admin supersedes role
+
+
+def test_role_defaults_to_agent(db_session, agency):
+    from app.models import User
+    from app.extensions import db
+    u = User(email="d@t.com", name="Default", is_admin=False)
+    db.session.add(u)
+    db.session.commit()
+    assert u.role == "agent"

@@ -105,3 +105,70 @@ def test_field_value_returns_plain_value(plan, agent_user):
     assert field_value(plan, "otc_allowance") == {
         "amount": 45, "period": "qtr", "unit": "usd", "display": "$45/qtr"
     }
+
+
+def test_cms_writes_to_empty_field(plan):
+    from app.plan_provenance import set_cms_value, get_field, make_value
+    action = set_cms_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), "cms_pbp")
+    assert action == "written"
+    rec = get_field(plan, "dental_allowance")
+    assert rec["source"] == "cms_pbp"
+    assert rec["trust"] == "cms_authoritative"
+    assert rec["value"]["amount"] == 2000
+
+
+def test_cms_overwrites_first_look(plan, agent_user):
+    from app.plan_provenance import set_cms_value, get_field, make_value, _load, _save
+    # seed a carrier_first_look value directly
+    data = _load(plan)
+    data.setdefault("_meta", {})["dental_allowance"] = {
+        "value": make_value(2000, "yr", "usd"), "source": "carrier_first_look",
+        "trust": "unverified", "as_of": "2026", "updated_at": "x",
+        "updated_by": None, "history": [],
+    }
+    _save(plan, data)
+    action = set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    assert action == "overwrote_firstlook"
+    rec = get_field(plan, "dental_allowance")
+    assert rec["value"]["amount"] == 1500
+    assert rec["trust"] == "cms_authoritative"
+    assert len(rec["history"]) == 1  # change logged
+
+
+def test_cms_refreshes_prior_cms(plan):
+    from app.plan_provenance import set_cms_value, get_field, make_value
+    set_cms_value(plan, "pcp_copay", make_value(0, None, "usd"), "cms_pbp")
+    action = set_cms_value(plan, "pcp_copay", make_value(5, None, "usd"), "cms_pbp")
+    assert action == "refreshed"
+    assert get_field(plan, "pcp_copay")["value"]["amount"] == 5
+
+
+def test_cms_matching_agent_value_promotes_to_verified(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value, get_field, make_value
+    set_human_value(plan, "specialist_copay", make_value(35, None, "usd"), user=agent_user)
+    action = set_cms_value(plan, "specialist_copay", make_value(35, None, "usd"), "cms_pbp")
+    assert action == "promoted_verified"
+    rec = get_field(plan, "specialist_copay")
+    assert rec["trust"] == "human_verified"
+
+
+def test_cms_differing_from_agent_flags_conflict(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value, get_field, list_conflicts, make_value
+    set_human_value(plan, "dental_allowance", make_value(2000, "yr", "usd"), user=agent_user)
+    action = set_cms_value(plan, "dental_allowance", make_value(1500, "yr", "usd"), "cms_pbp")
+    assert action == "conflict_flagged"
+    # agent value is NOT overwritten
+    assert get_field(plan, "dental_allowance")["value"]["amount"] == 2000
+    conflicts = list_conflicts(plan)
+    assert len(conflicts) == 1
+    assert conflicts[0]["field"] == "dental_allowance"
+    assert conflicts[0]["incoming"]["value"] == "$1,500/yr"
+    assert plan.has_unresolved_conflicts is True
+
+
+def test_cms_skips_human_verified(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value, get_field, make_value
+    set_human_value(plan, "er_copay", make_value(150, None, "usd"), user=agent_user, verify=True)
+    action = set_cms_value(plan, "er_copay", make_value(200, None, "usd"), "cms_pbp")
+    assert action == "skipped_human"
+    assert get_field(plan, "er_copay")["value"]["amount"] == 150  # unchanged

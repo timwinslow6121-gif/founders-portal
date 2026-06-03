@@ -141,3 +141,99 @@ def set_human_value(plan, field, value, user, note=None, verify=False):
         "history": history,
     }
     _save(plan, data)
+
+
+_CMS_TRUST = "cms_authoritative"
+
+
+def _append_history(rec, by, frm, to, note):
+    rec.setdefault("history", []).append(
+        {"at": _now(), "by": by, "from": frm, "to": to, "note": note}
+    )
+
+
+def set_cms_value(plan, field, value, cms_source):
+    """Apply a CMS-sourced value using the precedence rules.
+
+    Returns one of: 'written' | 'refreshed' | 'overwrote_firstlook'
+                    | 'promoted_verified' | 'conflict_flagged' | 'skipped_human'.
+    Maintains plan.cms_synced_at. Sets plan.has_unresolved_conflicts on conflict.
+    """
+    data = _load(plan)
+    meta = data.setdefault("_meta", {})
+    existing = meta.get(field)
+    plan.cms_synced_at = datetime.utcnow()
+
+    def _write(trust, source, action, history_note=None, prev_display=None):
+        rec = existing or {}
+        _append_history(rec, by=None, frm=prev_display,
+                        to=value["display"], note=history_note)
+        rec.update({
+            "value": value, "source": source, "trust": trust,
+            "as_of": str(plan.year), "updated_at": _now(),
+            "updated_by": None,
+        })
+        meta[field] = rec
+        _save(plan, data)
+        return action
+
+    if existing is None:
+        # brand new field from CMS
+        return _write(_CMS_TRUST, cms_source, "written")
+
+    trust = existing.get("trust")
+    prev_display = existing.get("value", {}).get("display")
+    same = existing.get("value", {}).get("amount") == value.get("amount") and \
+        existing.get("value", {}).get("display") == value.get("display")
+
+    if trust == "human_verified":
+        _save(plan, data)  # persist cms_synced_at bump only
+        return "skipped_human"
+
+    if trust == "agent_entered":
+        if same:
+            # CMS confirms the agent — lock as verified
+            existing["trust"] = "human_verified"
+            existing["source"] = "aj_verified"
+            _append_history(existing, by=None, frm=prev_display,
+                            to=value["display"], note="CMS confirmed agent value")
+            existing["updated_at"] = _now()
+            meta[field] = existing
+            _save(plan, data)
+            return "promoted_verified"
+        # CMS disagrees with agent -> flag, do NOT overwrite
+        _flag_conflict(data, plan, field, existing, value, cms_source)
+        _save(plan, data)
+        plan.has_unresolved_conflicts = True
+        return "conflict_flagged"
+
+    if trust == "unverified":  # carrier_first_look
+        if same:
+            return _write(_CMS_TRUST, cms_source, "refreshed", prev_display=prev_display)
+        return _write(_CMS_TRUST, cms_source, "overwrote_firstlook", prev_display=prev_display)
+
+    # prior CMS value -> refresh
+    return _write(_CMS_TRUST, cms_source, "refreshed", prev_display=prev_display)
+
+
+def _flag_conflict(data, plan, field, existing, incoming, cms_source):
+    conflicts = data.setdefault("_conflicts", [])
+    conflicts.append({
+        "field": field,
+        "existing": {
+            "value": existing["value"]["display"],
+            "source": existing.get("source"),
+            "by": existing.get("updated_by"),
+            "at": existing.get("updated_at"),
+        },
+        "incoming": {"value": incoming["display"], "source": cms_source, "at": _now()},
+        "flagged_at": _now(),
+        "resolved": False, "resolved_by": None, "resolved_at": None, "resolution": None,
+    })
+
+
+def list_conflicts(plan, unresolved_only=True):
+    conflicts = _load(plan).get("_conflicts", [])
+    if unresolved_only:
+        return [c for c in conflicts if not c.get("resolved")]
+    return conflicts

@@ -30,10 +30,24 @@ class ResolveResult:
     actions: List[str] = field(default_factory=list)
 
 
+def _effective_member_id(fact: MemberFact) -> str:
+    """The Policy.member_id for this fact: carrier id, else MBI, else the
+    per-row source_ref (so rows lacking both still get a UNIQUE member_id and
+    are never collapsed/collided).
+
+    TRADEOFF: source_ref encodes the row INDEX (e.g. "humana::...::226"). For
+    rows with no carrier id/MBI, the crosswalk re-link on re-upload therefore
+    depends on the row landing at the same index. Acceptable for these rare
+    no-id rows (better than a crash or an empty-string collision); carrier-id/
+    MBI rows are unaffected — they still key on their stable id."""
+    return (fact.carrier_member_id or fact.mbi or fact.source_ref or "").strip()
+
+
 def _crosswalk(fact: MemberFact, agency_id: int):
     """Return existing Policy matched by (carrier, effective member_id), else None.
-    The effective member_id mirrors _attach_policy: carrier_member_id, else MBI."""
-    cid = (fact.carrier_member_id or fact.mbi or "").strip()
+    The effective member_id mirrors _attach_policy: carrier_member_id, else MBI,
+    else source_ref."""
+    cid = _effective_member_id(fact)
     if not cid:
         return None
     return (Policy.query
@@ -47,7 +61,7 @@ def _attach_policy(fact: MemberFact, customer: Customer, agency_id: int,
     p = Policy(
         agency_id=agency_id,
         carrier=fact.carrier,
-        member_id=(fact.carrier_member_id or fact.mbi or "").strip(),
+        member_id=_effective_member_id(fact),
         mbi=fact.mbi,
         first_name=fact.first_name,
         last_name=fact.last_name,

@@ -30,14 +30,25 @@ def write_payment_from_fact(fact: MemberFact, statement, policy, agency_id: int,
     key = _payment_key(fact)
     action = fact.row_class  # canonical: enrollment|renewal|chargeback|non_customer
     norm_name = _norm(fact.full_name)
+    source_ref = (fact.source_ref or "").strip() or None
 
-    existing = (PolicyPayment.query
-                .filter_by(statement_id=statement.id, agency_id=agency_id,
-                           commission_action=action)
-                .filter((PolicyPayment.carrier_member_id == (fact.carrier_member_id or None)) |
-                        (PolicyPayment.mbi == (fact.mbi or None)) |
-                        (PolicyPayment.member_name_normalized == norm_name))
-                .first()) if key else None
+    if source_ref:
+        # Preferred: stable per-row provenance key. NON_CUSTOMER (HRA) rows have no
+        # member identity and degenerate to the same normalized name, so name/id
+        # matching would false-merge them — source_ref keeps them distinct while
+        # still updating in place on re-ingest.
+        existing = (PolicyPayment.query
+                    .filter_by(statement_id=statement.id, agency_id=agency_id,
+                               source_ref=source_ref)
+                    .first())
+    else:
+        existing = (PolicyPayment.query
+                    .filter_by(statement_id=statement.id, agency_id=agency_id,
+                               commission_action=action)
+                    .filter((PolicyPayment.carrier_member_id == (fact.carrier_member_id or None)) |
+                            (PolicyPayment.mbi == (fact.mbi or None)) |
+                            (PolicyPayment.member_name_normalized == norm_name))
+                    .first()) if key else None
 
     if existing is None:
         existing = PolicyPayment(
@@ -53,6 +64,7 @@ def write_payment_from_fact(fact: MemberFact, statement, policy, agency_id: int,
         db.session.add(existing)
 
     existing.agent_id = agent_id
+    existing.source_ref = source_ref
     existing.member_name = fact.full_name
     existing.member_name_normalized = norm_name
     existing.mbi = fact.mbi
@@ -78,3 +90,62 @@ def compute_fingerprint(carrier: str, period_label: str, facts: List[MemberFact]
     h = hashlib.sha256()
     h.update(f"{carrier}|{period_label}|{len(facts)}|{total}|{'|'.join(ids)}".encode())
     return h.hexdigest()
+
+
+@dataclass
+class IngestResult:
+    fingerprint: str = ""
+    facts_total: int = 0
+    customers_created: int = 0
+    stubs_created: int = 0
+    payments_written: int = 0
+    chargebacks: int = 0
+    match_suggestions: int = 0
+    carrier_switches: int = 0
+    gross: float = 0.0
+    actions: List[str] = field(default_factory=list)
+
+
+# Carriers handled by the new normalize→resolve pipeline. UHC stays on the legacy
+# parser until Plan 6 (lumped LOA split).
+from app.commission.normalizers import NORMALIZERS
+
+
+def ingest_statement(statement, carrier: str, agent_id, agency_id: int, sheets) -> IngestResult:
+    """Normalize a carrier file → resolve each fact → write payments. One pass."""
+    result = IngestResult()
+    normalizer = NORMALIZERS.get(carrier)
+    if normalizer is None:
+        return result
+
+    facts = normalizer(sheets)
+    result.facts_total = len(facts)
+    result.fingerprint = compute_fingerprint(carrier, statement.period_label, facts)
+    result.gross = round(sum(f.amount for f in facts), 2)
+
+    for fact in facts:
+        if fact.row_class == RowClass.NON_CUSTOMER:
+            write_payment_from_fact(fact, statement, None, agency_id, agent_id)
+            result.payments_written += 1
+            if fact.amount < 0:
+                result.chargebacks += 1
+            continue
+
+        res = resolve_customer(fact, agency_id=agency_id, agent_id=agent_id,
+                               source="commission_import")
+        if res.created_customer:
+            result.customers_created += 1
+            if res.customer is not None and res.customer.stub:
+                result.stubs_created += 1
+        if "match_suggestion" in res.actions:
+            result.match_suggestions += 1
+        if "carrier_switch" in res.actions:
+            result.carrier_switches += 1
+
+        write_payment_from_fact(fact, statement, res.policy, agency_id, agent_id)
+        result.payments_written += 1
+        if fact.amount < 0:
+            result.chargebacks += 1
+
+    db.session.flush()
+    return result

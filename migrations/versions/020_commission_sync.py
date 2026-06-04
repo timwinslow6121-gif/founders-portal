@@ -63,8 +63,23 @@ def upgrade():
     op.create_index("ix_match_suggestions_stub_customer_id", "match_suggestions", ["stub_customer_id"])
     op.create_index("ix_match_suggestions_suggested_customer_id", "match_suggestions", ["suggested_customer_id"])
 
+    # Per-row provenance key for payments. NON_CUSTOMER (HRA) rows have no member
+    # identity and collapse on member_name_normalized, so dedup must key on
+    # source_ref instead. Replace the name-based unique constraint accordingly.
+    op.add_column("policy_payments", sa.Column("source_ref", sa.String(128), nullable=True))
+    op.create_index("ix_policy_payments_source_ref", "policy_payments", ["source_ref"])
+    op.drop_constraint("uq_payment_statement_member_action", "policy_payments", type_="unique")
+    op.create_unique_constraint("uq_payment_statement_source_ref", "policy_payments",
+                                ["statement_id", "source_ref"])
+
 
 def downgrade():
+    op.drop_constraint("uq_payment_statement_source_ref", "policy_payments", type_="unique")
+    op.create_unique_constraint("uq_payment_statement_member_action", "policy_payments",
+                                ["statement_id", "member_name_normalized", "commission_action"])
+    op.drop_index("ix_policy_payments_source_ref", table_name="policy_payments")
+    op.drop_column("policy_payments", "source_ref")
+
     op.drop_table("match_suggestions")
     op.drop_index("ix_policies_customer_id", table_name="policies")
     op.drop_column("policies", "customer_id")

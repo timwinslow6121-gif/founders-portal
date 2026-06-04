@@ -98,3 +98,53 @@ def test_compute_fingerprint_is_stable_and_sensitive(db_session, app, agency):
 
     # A different period → different fingerprint
     assert compute_fingerprint("Devoted", "June 2026", facts) != fp1
+
+
+def test_ingest_statement_devoted_creates_customers_and_payments(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy, PolicyPayment, CommissionStatement
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.ingest import ingest_statement
+
+    with app.app_context():
+        sheets = load_sheets(os.path.join(FIXTURES, "devoted_sample.xlsx"))
+        stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted",
+                                   statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(stmt); db.session.flush()
+
+        result = ingest_statement(stmt, "Devoted", agent_user.id, agency.id, sheets)
+        db.session.commit()
+
+        assert Customer.query.filter_by(agency_id=agency.id).count() > 0
+        payments = PolicyPayment.query.filter_by(statement_id=stmt.id).all()
+        assert len(payments) > 0
+        bolder = [p for p in payments if p.carrier_member_id == "DS97W3"]
+        assert bolder and bolder[0].is_chargeback is True
+        assert result.payments_written == len(payments)
+        assert result.customers_created > 0
+        assert result.fingerprint
+
+
+def test_ingest_statement_is_idempotent(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy, PolicyPayment, CommissionStatement
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.ingest import ingest_statement
+
+    with app.app_context():
+        sheets = load_sheets(os.path.join(FIXTURES, "devoted_sample.xlsx"))
+        stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted",
+                                   statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(stmt); db.session.flush()
+
+        ingest_statement(stmt, "Devoted", agent_user.id, agency.id, sheets)
+        db.session.commit()
+        c1 = Customer.query.filter_by(agency_id=agency.id).count()
+        p1 = PolicyPayment.query.filter_by(statement_id=stmt.id).count()
+        pol1 = Policy.query.filter_by(agency_id=agency.id).count()
+
+        ingest_statement(stmt, "Devoted", agent_user.id, agency.id, sheets)
+        db.session.commit()
+        assert Customer.query.filter_by(agency_id=agency.id).count() == c1
+        assert PolicyPayment.query.filter_by(statement_id=stmt.id).count() == p1
+        assert Policy.query.filter_by(agency_id=agency.id).count() == pol1

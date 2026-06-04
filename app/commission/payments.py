@@ -84,6 +84,11 @@ def _parse_date(val):
                 return datetime.strptime(val.strip(), fmt).date()
             except ValueError:
                 pass
+        # ISO with time component (Humana SpreadsheetML)
+        try:
+            return datetime.fromisoformat(val.strip().replace("Z", "")).date()
+        except ValueError:
+            pass
     return None
 
 

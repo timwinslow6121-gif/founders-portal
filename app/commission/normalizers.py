@@ -304,3 +304,66 @@ def normalize_aetna(sheets):
             source_ref=f"aetna::0::{idx}",
         ))
     return out
+
+
+def _classify_humana(txn_type, amount):
+    t = str(txn_type or "").upper().strip()
+    if amount < 0:
+        return RowClass.CHARGEBACK
+    if t == "ARCM":          # renewal commissions
+        return RowClass.RENEWAL
+    if t in ("ARCF", "MED2", "ICCF", "ICFA"):   # first-year / 2nd-half first-year
+        return RowClass.ENROLLMENT
+    if t in ("HRAP",):       # HRA bonus
+        return RowClass.NON_CUSTOMER
+    return RowClass.RENEWAL
+
+
+def _humana_name(grp_name):
+    """'VILLEGAS ANASTACIO Z' -> (full as-is, first(guess), last(guess))."""
+    s = str(grp_name or "").strip()
+    parts = s.split()
+    if len(parts) >= 2:
+        return s, parts[1], parts[0]
+    return s, "", s
+
+
+def normalize_humana(sheets):
+    if not sheets:
+        return []
+    name = next((n for n in sheets if "CommissionData" in n), None) or next(iter(sheets))
+    rows = sheets.get(name, [])
+    if not rows:
+        return []
+    header = rows[0]
+    col = {h: i for i, h in enumerate(header)}
+
+    def g(row, key):
+        i = col.get(key)
+        return row[i] if i is not None and i < len(row) else ""
+
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+        umid = str(g(row, "UMID") or "").strip()
+        grp = g(row, "GrpName")
+        if not umid and not grp:
+            continue
+        amount = _to_float(g(row, "PaidAmount"))
+        full, first, last = _humana_name(grp)
+        out.append(MemberFact(
+            carrier="Humana",
+            full_name=full,
+            first_name=first,
+            last_name=last,
+            mbi=umid or None,
+            carrier_member_id=str(g(row, "PID") or "").strip() or None,
+            effective_date=_parse_date(g(row, "EffDate")),
+            plan_contract=str(g(row, "Contract") or "").strip() or None,
+            row_class=_classify_humana(g(row, "TxnTypeCd"), amount),
+            amount=amount,
+            writing_agent_raw=str(g(row, "WaName") or "").strip(),
+            source_ref=f"humana::{name}::{idx}",
+        ))
+    return out

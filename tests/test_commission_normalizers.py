@@ -181,3 +181,27 @@ def test_normalize_aetna_sales_events_and_mbi():
     burner_cb = [f for f in facts if f.mbi == "1KR6UW2KP73" and f.amount < 0]
     assert burner_cb
     assert burner_cb[0].row_class == RowClass.CHARGEBACK
+
+
+def test_normalize_humana_txntype_taxonomy():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_humana
+    from app.commission.member_fact import RowClass
+
+    sheets = load_sheets(os.path.join(FIXTURES, "humana_sample.xls"))
+    facts = normalize_humana(sheets)
+    assert facts
+    for f in facts:
+        assert f.carrier == "Humana"
+
+    # VILLEGAS ANASTACIO Z (UMID 5EN4NW3VF63) ARCF first-year +231.33 → enrollment
+    vill = [f for f in facts if f.mbi == "5EN4NW3VF63"]
+    assert vill and vill[0].row_class == RowClass.ENROLLMENT
+    assert vill[0].amount == 231.33
+
+    # MURRAY member (UMID 8QV9Q10TC36) ARCF but -231.33 → chargeback (negative wins)
+    murray = [f for f in facts if f.mbi == "8QV9Q10TC36"]
+    assert murray and murray[0].row_class == RowClass.CHARGEBACK
+
+    # at least one ARCM renewal present
+    assert any(f.row_class == RowClass.RENEWAL for f in facts)

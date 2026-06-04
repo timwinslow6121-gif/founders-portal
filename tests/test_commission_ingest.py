@@ -280,3 +280,45 @@ def test_ingest_falls_back_to_statement_agent_when_no_resolver(db_session, app, 
                 ingest_mod.NORMALIZERS["Devoted"] = orig
         c = Customer.query.filter_by(agency_id=agency.id, last_name="One").first()
         assert c.primary_agent_id == agent_user.id   # fell back to statement agent
+
+
+def test_agency_level_statement_has_null_agent(client, app, agency, db_session):
+    """A Devoted (agency-level) upload creates a statement with agent_id=NULL,
+    while per-row payments still attribute to individual agents."""
+    import io, os
+    from app.extensions import db
+    from app.models import User, CommissionStatement, PolicyPayment
+    FIX = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+    with app.app_context():
+        for nm in ["Brian Freeman", "Rebekah Long", "Michael Lauzurique",
+                   "Christopher Foster", "Justin Basinger", "Anjana Patel", "Timothy Winslow"]:
+            db.session.add(User(email=nm.replace(" ","").lower()+"@t.com", name=nm, agency_id=agency.id))
+        aj = User(email="aj@t.com", name="AJ", is_admin=True, agency_id=agency.id)
+        db.session.add(aj); db.session.commit(); ajid = aj.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(ajid)
+    with open(os.path.join(FIX, "devoted_sample.xlsx"), "rb") as fh:
+        client.post("/admin/commissions/upload",
+                    data={"file": (io.BytesIO(fh.read()), "devoted_sample.xlsx"),
+                          "statement_month": "2026-04"},
+                    content_type="multipart/form-data", follow_redirects=True)
+    with app.app_context():
+        stmt = CommissionStatement.query.filter_by(agency_id=agency.id, carrier="Devoted").first()
+        assert stmt is not None
+        assert stmt.agent_id is None                      # agency-level → NULL
+        # per-row payments attribute to multiple distinct agents
+        agent_ids = {p.agent_id for p in PolicyPayment.query.filter_by(statement_id=stmt.id).all()}
+        assert len([a for a in agent_ids if a]) >= 2       # more than one real agent
+
+
+def test_humana_period_from_commrundt(app, agency, db_session):
+    """Humana period derives from CommRunDt in the file, not today's date."""
+    import os
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.routes import _statement_date_from_sheets
+    FIX = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+    with app.app_context():
+        sheets = load_sheets(os.path.join(FIX, "humana_sample.xls"))
+        d = _statement_date_from_sheets("Humana", sheets)
+        assert d is not None
+        assert d.year == 2026 and d.month == 5    # CommRunDt 2026-05-06

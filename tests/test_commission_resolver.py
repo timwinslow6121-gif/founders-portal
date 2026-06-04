@@ -82,3 +82,34 @@ def test_crosswalk_reuses_existing_customer(db_session, app, agency, agent_user)
         assert result.created_customer is False
         assert result.match_path == "crosswalk"
         assert result.customer.stub is False        # existing real customer untouched
+
+
+def test_mbi_match_reuses_customer_and_creates_policy(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Bobby", last_name="Aderhold",
+                     full_name="Bobby Aderhold", mbi="6CM1RV8NW05",
+                     primary_agent_id=agent_user.id, source="bob")
+        db.session.add(c)
+        db.session.flush()
+
+        fact = MemberFact(
+            carrier="Aetna", full_name="ADERHOLD R,BOBBY", first_name="Bobby",
+            last_name="Aderhold", mbi="6CM1RV8NW05", carrier_member_id="NG101350365000",
+            plan_contract="H3146", plan_pbp="006", row_class=RowClass.RENEWAL, amount=28.92,
+            effective_date=date(2026, 5, 1),
+        )
+        result = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                                  source="commission_import")
+
+        assert result.customer.id == c.id
+        assert result.match_path == "mbi"
+        assert result.created_customer is False
+        assert result.created_policy is True
+        assert result.policy.carrier == "Aetna"
+        assert result.policy.member_id == "NG101350365000"
+        assert result.policy.customer_id == c.id

@@ -37,6 +37,40 @@ def _crosswalk(fact: MemberFact, agency_id: int):
             .first())
 
 
+def _attach_policy(fact: MemberFact, customer: Customer, agency_id: int,
+                   agent_id: Optional[int]) -> Policy:
+    """Create a Policy for this fact linked to the given customer."""
+    p = Policy(
+        agency_id=agency_id,
+        carrier=fact.carrier,
+        member_id=(fact.carrier_member_id or fact.mbi or "").strip(),
+        mbi=fact.mbi,
+        first_name=fact.first_name,
+        last_name=fact.last_name,
+        full_name=fact.full_name,
+        plan_type=fact.plan_type,
+        effective_date=fact.effective_date,
+        term_date=fact.term_date,
+        status="active",
+        agent_id=agent_id,
+        customer_id=customer.id,
+    )
+    db.session.add(p)
+    db.session.flush()
+    return p
+
+
+def _match_by_mbi(fact: MemberFact, agency_id: int):
+    """Return existing Customer by MBI (or humana_id for Humana), else None."""
+    if fact.carrier == "Humana" and fact.mbi:
+        c = Customer.query.filter_by(humana_id=fact.mbi, agency_id=agency_id).first()
+        if c:
+            return c
+    if fact.mbi:
+        return Customer.query.filter_by(mbi=fact.mbi, agency_id=agency_id).first()
+    return None
+
+
 def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int],
                      batch_id: Optional[int] = None, source: str = "commission_import"
                      ) -> ResolveResult:
@@ -52,5 +86,14 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
             result.match_path = "crosswalk"
             return result
 
-    # later steps (MBI, suggest-link, stub) added in subsequent tasks
+    # 2. MBI / humana_id match
+    customer = _match_by_mbi(fact, agency_id)
+    if customer is not None:
+        result.customer = customer
+        result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+        result.created_policy = True
+        result.match_path = "mbi"
+        return result
+
+    # later steps (suggest-link, stub) added in subsequent tasks
     return result

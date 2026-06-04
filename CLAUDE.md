@@ -263,7 +263,7 @@ Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprint
 **Column indices per carrier (verified against April 2026 files):**
 - UHC: **29-col format** — agent=col5 (Writing Agent Name), mbi=col8 (MedicareID), action=col19, commission=col23, eff_date=col11, term_date=col28, term_reason=col24, stmt_date=col3, comp_type=col26 (I=initial/R=renewal-year), plan_type=col12, prior_plan=col27. No summary row in direct UHC downloads — paid defaults to expected.
 - Aetna: **Agency-level multi-agent XLSX** — Payee=Founders (not an individual agent). agent_id=NULL on CommissionStatement. Per-row agent attribution via col16 (Writing Agent Name). mbi=col1, member=col4, action=col6, eff_date=col12, amount=col20. `AGENCY_LEVEL_CARRIERS = {"Aetna"}` in commission_upload(). Split rate read from any active Aetna contract.
-- Humana: agent=col2, amount=col8 (PaidAmount). No separate paid row — Humana pays Tim directly, `paid = gross`. **Split rate = 1.0** in `agent_carrier_contracts` for Tim.
+- Humana: agent=col2, amount=col8 (PaidAmount). No separate paid row — `paid = gross`. **Every carrier (incl. Humana) pays Founders, never an agent directly** — there is NO direct-pay/split=1.0; Tim's Humana split is 0.55 like other carriers. Statements are agency-level (agent_id=NULL); per-agent earnings come from per-row PolicyPayment splits.
 - BCBS: agent=col1, commission=col13. Summary row: `'$N x .55'` in col9, paid in col10.
 - Devoted: agent=col2, amount=col11 (Base Amount). Summary row: `'N x .55'` in col8, paid in col9. Statement date is string `MM/DD/YYYY` in col0.
 - Healthspring: agent=col3, amount=col7. Summary row: `'N x.55'` in col6, paid in col7. Also combines overrides + agent payments (same as UHC) — not yet handled.
@@ -278,8 +278,8 @@ Parsers are keyed by carrier name. Detection via `_detect_carrier()` fingerprint
 
 **paid=0 handling:** When `_scan_summary()` finds no summary row (carrier sends clean data files with no AJ annotation), `paid` returns 0. In `commission_upload()`, paid=0 is treated as "no summary present" and defaults to expected amount, marking statement verified. AJ corrects manually if actual payment differs.
 
-**Split rates in agent_carrier_contracts:**
-- Tim Winslow: all carriers 0.55 except Humana 1.0 (direct pay)
+**Split rates in agent_carrier_contracts:** (every carrier pays Founders, not agents — NO direct-pay/1.0 for anyone; statements are agency-level, agent_id=NULL)
+- Tim Winslow: all carriers 0.55 (incl. Humana — the old "Humana 1.0 direct pay" was WRONG, corrected 2026-06-04)
 - Mike Lauzurique: all carriers 0.525
 - Betty Marlowe: 0.525 (stored; was incorrectly 0.55 in docs — actual is 52.5%)
 - Aetna: 0.55 (55%) — AJ's March file used 0.525 by mistake; contract rate is 55%

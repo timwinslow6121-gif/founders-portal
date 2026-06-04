@@ -20,11 +20,13 @@ from app.commission.normalizers import NORMALIZERS
 
 SPLIT_RATE = 0.55
 
-# Carriers whose statements bundle many writing agents into one file. The
-# STATEMENT belongs to no single agent (agent_id=NULL); per-row PolicyPayment
-# attribution is resolved individually. BCBS files are per-agent in this
-# workflow and Humana pays Tim directly — both single-agent, NOT agency-level.
-AGENCY_LEVEL_CARRIERS = {"Aetna", "Devoted", "Healthspring"}
+# Every carrier pays Founders (the agency) directly — no carrier pays an agent
+# directly. So EVERY statement is agency-level: the STATEMENT belongs to no
+# single agent (agent_id=NULL) and per-row PolicyPayment attribution is resolved
+# individually. This set is effectively all commission carriers; it drives the
+# legacy (non-normalized) upload path, which still needs a split rate from any
+# active carrier contract for statement-level expected/paid math.
+AGENCY_LEVEL_CARRIERS = {"Aetna", "Devoted", "Healthspring", "Humana", "UHC", "BCBS"}
 
 
 def _statement_date_from_sheets(carrier, sheets):
@@ -330,7 +332,8 @@ def _parse_humana(ws):
                 "product": str(row[7] or ""),
             })
 
-    # Humana pays Tim directly — use scanned paid if available, otherwise gross
+    # Humana (like every carrier) pays Founders; the statement is agency-level.
+    # Use scanned paid if available, otherwise gross.
     paid = paid_scan if paid_scan is not None else gross
     return gross, 0.0, paid, stmt_date, line_items, stated_rate
 
@@ -795,12 +798,11 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     if agent_id is None:
         agent_id = current_user.id
 
-    # The STATEMENT agent_id: NULL for agency-level carriers (the file spans many
-    # writing agents — per-row PolicyPayment attribution carries the real agent).
-    # For single-agent carriers, the statement belongs to the resolved agent.
-    # `agent_id` (resolved-or-uploader) is still passed to ingest_statement as the
-    # per-row resolver fallback for unmatched rows.
-    statement_agent_id = None if carrier in AGENCY_LEVEL_CARRIERS else agent_id
+    # Every carrier pays Founders (the agency), never an agent directly. The
+    # statement is always agency-level; per-agent earnings come from per-row
+    # PolicyPayment splits (resolved via agent_resolver). agent_id stays the
+    # per-row fallback only.
+    statement_agent_id = None
 
     fingerprint = compute_fingerprint(carrier, period_label, facts)
     replace = request.form.get("replace") == "1"
@@ -941,33 +943,16 @@ def commission_upload():
             "warning"
         )
 
-    # Agency-level carriers pay across multiple LOA agents \u2014 no single portal user
-    # owns the statement. Use agent_id=None and look up split from any active
-    # contract. (Uses the module-level AGENCY_LEVEL_CARRIERS constant.)
-    if carrier in AGENCY_LEVEL_CARRIERS:
-        agent_id = None
-        contract = AgentCarrierContract.query.filter_by(
-            carrier=carrier, is_active=True
-        ).first()
-        agent_split = contract.split_rate if contract else 0.55
-    else:
-        # Auto-detect agent from file
-        agent_id = _detect_agent_id(ws, carrier)
-        if not agent_id:
-            flash("Could not match agent name in file to a portal user. Check the Writing Agent Name column.", "error")
-            return redirect(url_for("commission.commission_admin"))
-
-        # Validate agent has active contract with this carrier
-        contract = AgentCarrierContract.query.filter_by(
-            agent_id=agent_id, carrier=carrier, is_active=True
-        ).first()
-        if not contract:
-            agent_name = User.query.get(agent_id).display_name
-            flash(f"\u26a0 {agent_name} does not have an active {carrier} contract. Upload rejected.", "error")
-            return redirect(url_for("commission.commission_admin"))
-
-        # Use agent's actual split rate
-        agent_split = contract.split_rate
+    # Every carrier pays Founders (the agency) directly, not any single agent, so
+    # the statement is always agency-level: agent_id=None. Per-row PolicyPayment
+    # attribution (via build_payments) carries the real per-agent earnings. The
+    # statement-level expected/paid math just needs a split rate, taken from any
+    # active carrier contract.
+    agent_id = None
+    contract = AgentCarrierContract.query.filter_by(
+        carrier=carrier, is_active=True
+    ).first()
+    agent_split = contract.split_rate if contract else 0.55
     period_label = stmt_date.strftime("%B %Y")
     expected     = round((gross + bonus) * agent_split, 2)
     # If the file has no summary row (paid=0), assume expected was paid — no discrepancy to flag.

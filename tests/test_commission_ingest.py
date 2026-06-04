@@ -311,6 +311,34 @@ def test_agency_level_statement_has_null_agent(client, app, agency, db_session):
         assert len([a for a in agent_ids if a]) >= 2       # more than one real agent
 
 
+def test_all_carriers_produce_agency_level_statements(client, app, agency, db_session):
+    """Every carrier pays Founders → every statement agent_id is NULL, regardless
+    of single- vs multi-agent file. Per-row payments still attribute to agents."""
+    import io, os
+    from app.extensions import db
+    from app.models import User, CommissionStatement, PolicyPayment
+    FIX = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+    with app.app_context():
+        for nm in ["Brian Freeman", "Rebekah Long", "Michael Lauzurique",
+                   "Christopher Foster", "Justin Basinger", "Anjana Patel", "Timothy Winslow"]:
+            db.session.add(User(email=nm.replace(" ","").lower()+"@t.com", name=nm, agency_id=agency.id))
+        aj = User(email="aj@t.com", name="AJ", is_admin=True, agency_id=agency.id)
+        db.session.add(aj); db.session.commit(); ajid = aj.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(ajid)
+    for fn, carrier in [("bcbs_sample.xlsx", "BCBS"), ("humana_sample.xls", "Humana")]:
+        with open(os.path.join(FIX, fn), "rb") as fh:
+            client.post("/admin/commissions/upload",
+                        data={"file": (io.BytesIO(fh.read()), fn), "statement_month": "2026-05"},
+                        content_type="multipart/form-data", follow_redirects=True)
+    with app.app_context():
+        for carrier in ["BCBS", "Humana"]:
+            stmt = CommissionStatement.query.filter_by(agency_id=agency.id, carrier=carrier).first()
+            assert stmt is not None, f"{carrier} statement missing"
+            assert stmt.agent_id is None, f"{carrier} statement should be agency-level (NULL agent)"
+            assert PolicyPayment.query.filter_by(statement_id=stmt.id).count() > 0
+
+
 def test_humana_period_from_commrundt(app, agency, db_session):
     """Humana period derives from CommRunDt in the file, not today's date."""
     import os

@@ -17,7 +17,7 @@ Healthspring Detail column layout (0-indexed, verified against fixture):
   17 Plan Type           18 Plan Name           20 CMS Contract   21 PBP
 """
 from app.commission.member_fact import MemberFact, RowClass
-from app.commission.payments import _norm, _parse_date
+from app.commission.payments import _parse_date
 
 
 def _to_float(v):
@@ -47,6 +47,8 @@ def normalize_healthspring(sheets):
 
     for idx, row in enumerate(rows[1:], start=1):   # skip header
         if not any(row):
+            continue
+        if len(row) <= 21:
             continue
         member_id = str(row[8] or "").strip()
         if not member_id:
@@ -119,6 +121,8 @@ def normalize_devoted(sheets):
     for idx, row in enumerate(sheets.get("Agent Portion", [])[1:], start=1):
         if not any(row):
             continue
+        if len(row) <= 17:
+            continue
         member_id = str(row[3] or "").strip()
         if not member_id:
             continue
@@ -146,6 +150,8 @@ def normalize_devoted(sheets):
     for idx, row in enumerate(sheets.get("Override", [])[1:], start=1):
         if not any(row):
             continue
+        if len(row) <= 17:
+            continue
         member_id = str(row[3] or "").strip()
         if member_id:
             agency[member_id] = _to_float(row[17])
@@ -157,6 +163,8 @@ def normalize_devoted(sheets):
 
     for idx, row in enumerate(sheets.get("HRA", [])[1:], start=1):
         if not any(row):
+            continue
+        if len(row) <= 3:
             continue
         rep = str(row[0] or "").strip()
         amt = _to_float(row[2])
@@ -206,6 +214,8 @@ def normalize_bcbs(sheets):
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row):
+            continue
+        if len(row) <= 14:
             continue
         name = str(row[4] or "").strip()
         customer_no = str(row[5] or "").strip()

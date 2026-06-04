@@ -82,8 +82,6 @@ def test_normalize_healthspring_collapses_paired_rows():
     for f in facts:
         assert f.carrier == "Healthspring"
         assert f.row_class in (RowClass.ENROLLMENT, RowClass.RENEWAL, RowClass.CHARGEBACK)
-        # collapsed fact's amount is the agent (Broker Level) share, never the $80 fee alone
-        assert f.amount != 80.0 or f.agency_share_amount is None
 
     # WANDA LONG (member 71A2L3L49) appears as a single collapsed fact
     wanda = [f for f in facts if f.carrier_member_id == "71A2L3L49"]
@@ -91,6 +89,13 @@ def test_normalize_healthspring_collapses_paired_rows():
     assert wanda[0].mbi == "3AP7QV3RJ37"
     assert wanda[0].row_class == RowClass.ENROLLMENT   # "Initial - New to CMS"
     assert wanda[0].plan_contract == "H9725"
+
+    # 63X7U5U84 is genuinely PAIRED: a Service Fee ($80) row + a Broker Level
+    # ($231.33) row collapse into ONE fact carrying both shares.
+    paired = [f for f in facts if f.carrier_member_id == "63X7U5U84"]
+    assert len(paired) == 1
+    assert paired[0].agency_share_amount == 80.0   # Service Fee row folded in
+    assert paired[0].amount == 231.33              # Broker Level (agent) share
 
 
 def test_normalize_devoted_collapses_and_flags_chargebacks():

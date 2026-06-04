@@ -276,3 +276,50 @@ def test_get_customer_policies_finds_fk_linked_bcbs_no_mbi(db_session, app, agen
         policies = get_customer_policies(c)
         assert any(pol.carrier == "BCBS" and pol.member_id == "106999999"
                    for pol in policies)
+
+
+def test_bob_two_step_flow_no_duplicate_policy(db_session, app, agency, agent_user):
+    """Reproduces the REAL BOB upload: outer loop adds the Policy (customer_id NULL),
+    THEN _upsert_customer_from_policy runs. Must NOT create a duplicate policy."""
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.upload import _upsert_customer_from_policy
+
+    with app.app_context():
+        # Step 1: outer loop creates the canonical policy with NO customer_id
+        policy = Policy(agency_id=agency.id, agent_id=agent_user.id, carrier="UHC",
+                        member_id="9726", mbi="MBINEW001", first_name="New",
+                        last_name="Member", full_name="New Member", status="active")
+        db.session.add(policy)
+        db.session.flush()
+        # Step 2: the customer upsert (delegates to resolver)
+        rec = {"carrier": "UHC", "mbi": "MBINEW001", "member_id": "9726",
+               "first_name": "New", "last_name": "Member", "full_name": "New Member",
+               "plan_name": "UHC Dual Complete", "effective_date": date(2026, 1, 1)}
+        _upsert_customer_from_policy(rec, agent_user.id, None, agency.id)
+        db.session.commit()  # MUST NOT raise IntegrityError
+
+        assert Policy.query.filter_by(agency_id=agency.id, carrier="UHC",
+                                      member_id="9726").count() == 1
+        c = Customer.query.filter_by(mbi="MBINEW001", agency_id=agency.id).first()
+        assert c is not None
+        # the outer-loop policy got adopted + linked
+        db.session.refresh(policy)
+        assert policy.customer_id == c.id
+
+
+def test_bob_aor_plan_name_preserved(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, CustomerAorHistory
+    from app.upload import _upsert_customer_from_policy
+
+    with app.app_context():
+        rec = {"carrier": "UHC", "mbi": "MBIPLAN01", "member_id": "P1",
+               "first_name": "Plan", "last_name": "Named", "full_name": "Plan Named",
+               "plan_name": "UHC Dual Complete HMO", "effective_date": date(2026, 1, 1)}
+        _upsert_customer_from_policy(rec, agent_user.id, None, agency.id)
+        db.session.commit()
+        c = Customer.query.filter_by(mbi="MBIPLAN01", agency_id=agency.id).first()
+        aor = CustomerAorHistory.query.filter_by(customer_id=c.id, carrier="UHC").first()
+        assert aor is not None
+        assert aor.plan_name == "UHC Dual Complete HMO"

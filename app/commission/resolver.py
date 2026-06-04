@@ -123,9 +123,11 @@ def _apply_carrier_switch(fact: MemberFact, customer: Customer, new_policy: Poli
 
 
 def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
-                       agent_id, batch_id, result: ResolveResult):
+                       agent_id, batch_id, result: ResolveResult, source: str):
     """Open an AOR interval if none exists for this customer+carrier+effective_date.
-    BCBS term_date is a renewal date — never an end_date."""
+    BCBS term_date is a renewal date — never an end_date. The `source` (e.g. "bob"
+    or "commission_import") is recorded for provenance, and plan_name is carried
+    from the fact so BOB plan names are preserved."""
     if not fact.effective_date:
         return
     existing = CustomerAorHistory.query.filter_by(
@@ -136,12 +138,30 @@ def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
     end_date = None if fact.carrier == "BCBS" else fact.term_date
     aor = CustomerAorHistory(
         agency_id=agency_id, customer_id=customer.id, agent_id=agent_id,
-        carrier=fact.carrier, plan_name=None, effective_date=fact.effective_date,
-        end_date=end_date, source=result.match_path or "commission_import",
+        carrier=fact.carrier, plan_name=fact.plan_name, effective_date=fact.effective_date,
+        end_date=end_date, source=source or "commission_import",
         import_batch_id=batch_id,
     )
     db.session.add(aor)
     result.actions.append("aor_interval")
+
+
+def _enqueue_suggestion(fact: MemberFact, stub_customer: Customer, candidate: Customer,
+                        confidence, agency_id: int, result: ResolveResult):
+    """Record a MatchSuggestion for human confirm (no automerge)."""
+    ms = MatchSuggestion(
+        agency_id=agency_id,
+        stub_customer_id=stub_customer.id,
+        suggested_customer_id=candidate.id,
+        confidence=confidence,
+        status="pending",
+        source_member_fact_json=json.dumps({
+            "carrier": fact.carrier, "carrier_member_id": fact.carrier_member_id,
+            "full_name": fact.full_name, "dob": fact.dob.isoformat() if fact.dob else None,
+        }),
+    )
+    db.session.add(ms)
+    result.actions.append("match_suggestion")
 
 
 def _find_name_dob_match(fact: MemberFact, agency_id: int):
@@ -168,15 +188,37 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
                      ) -> ResolveResult:
     result = ResolveResult()
 
-    # 1. Crosswalk — deterministic monthly re-link
+    # 1. Crosswalk — deterministic re-link. A policy may already exist either from a
+    #    prior import OR from the BOB outer loop that just added it this same flow.
+    #    ALWAYS adopt a found policy — never fall through and create a duplicate.
     policy = _crosswalk(fact, agency_id)
     if policy is not None:
+        result.policy = policy
+        result.match_path = "crosswalk"
         customer = Customer.query.get(policy.customer_id) if policy.customer_id else None
-        if customer is not None:
-            result.customer = customer
-            result.policy = policy
-            result.match_path = "crosswalk"
-            return result
+        if customer is None:
+            # Outer-loop policy with no customer yet, OR legacy policy: resolve the
+            # customer by MBI/humana/name+DOB, else create a stub, then link the policy.
+            customer = _match_by_mbi(fact, agency_id)
+            match_path = "mbi" if customer is not None else None
+            if customer is None:
+                cand, conf = _find_name_dob_match(fact, agency_id)
+                if cand is not None:
+                    customer = _create_stub(fact, agency_id, agent_id, source)
+                    result.created_customer = True
+                    _enqueue_suggestion(fact, customer, cand, conf, agency_id, result)
+                    match_path = "suggest_link"
+            if customer is None:
+                customer = _create_stub(fact, agency_id, agent_id, source)
+                result.created_customer = True
+                match_path = "stub"
+            policy.customer_id = customer.id
+            result.match_path = match_path or "crosswalk"
+        result.customer = customer
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+        return result
 
     # 2. MBI / humana_id match
     customer = _match_by_mbi(fact, agency_id)
@@ -184,6 +226,7 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         result.customer = customer
         existing = _crosswalk(fact, agency_id)
         if existing is not None:
+            existing.customer_id = existing.customer_id or customer.id
             result.policy = existing
         else:
             result.policy = _attach_policy(fact, customer, agency_id, agent_id)
@@ -191,7 +234,7 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         result.match_path = "mbi"
         _apply_rapid_disenroll(result.policy, fact, result)
         _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
-        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
         return result
 
     # 3. Suggest-link — no crosswalk, no MBI, but a name+DOB near-match exists.
@@ -204,22 +247,10 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         result.policy = _attach_policy(fact, customer, agency_id, agent_id)
         result.created_policy = True
         result.match_path = "suggest_link"
-        ms = MatchSuggestion(
-            agency_id=agency_id,
-            stub_customer_id=customer.id,
-            suggested_customer_id=candidate.id,
-            confidence=confidence,
-            status="pending",
-            source_member_fact_json=json.dumps({
-                "carrier": fact.carrier, "carrier_member_id": fact.carrier_member_id,
-                "full_name": fact.full_name, "dob": fact.dob.isoformat() if fact.dob else None,
-            }),
-        )
-        db.session.add(ms)
-        result.actions.append("match_suggestion")
+        _enqueue_suggestion(fact, customer, candidate, confidence, agency_id, result)
         _apply_rapid_disenroll(result.policy, fact, result)
         _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
-        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
         return result
 
     # 4. Stub — nothing matched; create stub customer + policy (at most once per member,
@@ -232,7 +263,7 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
     result.match_path = "stub"
     _apply_rapid_disenroll(result.policy, fact, result)
     _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
-    _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
+    _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
     return result
 
 
@@ -253,6 +284,7 @@ def member_fact_from_bob_rec(rec: dict) -> MemberFact:
         effective_date=rec.get("effective_date"),
         term_date=rec.get("term_date"),
         plan_type=rec.get("plan_type"),
+        plan_name=rec.get("plan_name"),
         row_class=RowClass.RENEWAL,
         amount=0.0,
     )

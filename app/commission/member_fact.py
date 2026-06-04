@@ -38,6 +38,7 @@ class MemberFact:
     plan_contract: Optional[str] = None   # "H9725"
     plan_pbp: Optional[str] = None        # "015"
     plan_type: Optional[str] = None       # "MAPD" / "DSNP" ...
+    plan_name: Optional[str] = None       # carrier/BOB plan name string
 
     # classification + money
     row_class: str = RowClass.RENEWAL

@@ -20,6 +20,35 @@ from app.commission.normalizers import NORMALIZERS
 
 SPLIT_RATE = 0.55
 
+# Carriers whose statements bundle many writing agents into one file. The
+# STATEMENT belongs to no single agent (agent_id=NULL); per-row PolicyPayment
+# attribution is resolved individually. BCBS files are per-agent in this
+# workflow and Humana pays Tim directly — both single-agent, NOT agency-level.
+AGENCY_LEVEL_CARRIERS = {"Aetna", "Devoted", "Healthspring"}
+
+
+def _statement_date_from_sheets(carrier, sheets):
+    """Best-effort statement date from the file content for carriers that embed it.
+    Humana SpreadsheetML: 'CommRunDt' column on the data sheet."""
+    from app.commission.payments import _parse_date
+    for name, rows in (sheets or {}).items():
+        if not rows:
+            continue
+        header = rows[0]
+        # find a run/paid date column
+        idx = None
+        for i, h in enumerate(header):
+            hl = str(h).lower()
+            if hl in ("commrundt", "statement date", "payment date", "pay period"):
+                idx = i; break
+        if idx is not None:
+            for r in rows[1:]:
+                if idx < len(r) and r[idx]:
+                    d = _parse_date(r[idx])
+                    if d:
+                        return d
+    return None
+
 
 def load_sheets_from_bytes(file_bytes, filename):
     """Write bytes to a temp path and load via sheet_loader (handles xlsx/xls/SpreadsheetML)."""
@@ -693,7 +722,17 @@ def commission_admin():
                  .filter_by(agent_id=agent.id, agency_id=agency_id)
                  .order_by(CommissionStatement.statement_date.desc())
                  .limit(5).all())
-        agent_summaries.append({"agent": agent, "statements": stmts})
+        # Agency-level statements (agent_id is NULL) where THIS agent has payments
+        agency_level = (CommissionStatement.query
+                        .join(PolicyPayment, PolicyPayment.statement_id == CommissionStatement.id)
+                        .filter(CommissionStatement.agency_id == agency_id,
+                                CommissionStatement.agent_id.is_(None),
+                                PolicyPayment.agent_id == agent.id)
+                        .order_by(CommissionStatement.statement_date.desc())
+                        .distinct()
+                        .limit(5).all())
+        combined = stmts + [s for s in agency_level if s not in stmts]
+        agent_summaries.append({"agent": agent, "statements": combined})
     recent = (CommissionStatement.query
               .filter_by(agency_id=agency_id)
               .order_by(CommissionStatement.upload_date.desc())
@@ -726,6 +765,8 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     if not stmt_date:
         stmt_date = _parse_date_from_filename(filename)
     if not stmt_date:
+        stmt_date = _statement_date_from_sheets(carrier, sheets)
+    if not stmt_date:
         stmt_date = date.today()
         flash(
             "Could not detect statement period from the file or filename. "
@@ -750,9 +791,16 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
 
     # AOR history rows require a non-null agent_id. When no writing agent in the
     # file matches a portal user (common for agency-level multi-agent files),
-    # attribute the statement to the uploading admin.
+    # attribute the per-row fallback to the uploading admin.
     if agent_id is None:
         agent_id = current_user.id
+
+    # The STATEMENT agent_id: NULL for agency-level carriers (the file spans many
+    # writing agents — per-row PolicyPayment attribution carries the real agent).
+    # For single-agent carriers, the statement belongs to the resolved agent.
+    # `agent_id` (resolved-or-uploader) is still passed to ingest_statement as the
+    # per-row resolver fallback for unmatched rows.
+    statement_agent_id = None if carrier in AGENCY_LEVEL_CARRIERS else agent_id
 
     fingerprint = compute_fingerprint(carrier, period_label, facts)
     replace = request.form.get("replace") == "1"
@@ -769,10 +817,10 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         return redirect(url_for("commission.commission_admin"))
 
     existing = CommissionStatement.query.filter_by(
-        carrier=carrier, agent_id=agent_id, period_label=period_label,
+        carrier=carrier, agent_id=statement_agent_id, period_label=period_label,
         agency_id=current_user.agency_id).first()
     stmt = existing or CommissionStatement(
-        carrier=carrier, agent_id=agent_id, agency_id=current_user.agency_id)
+        carrier=carrier, agent_id=statement_agent_id, agency_id=current_user.agency_id)
     if not existing:
         db.session.add(stmt)
     stmt.statement_date = stmt_date
@@ -893,10 +941,9 @@ def commission_upload():
             "warning"
         )
 
-    # Aetna pays the agency directly across multiple LOA agents \u2014 no single portal user owns it.
-    # Use agent_id=None (agency-level statement) and look up split from any active Aetna contract.
-    AGENCY_LEVEL_CARRIERS = {"Aetna"}
-
+    # Agency-level carriers pay across multiple LOA agents \u2014 no single portal user
+    # owns the statement. Use agent_id=None and look up split from any active
+    # contract. (Uses the module-level AGENCY_LEVEL_CARRIERS constant.)
     if carrier in AGENCY_LEVEL_CARRIERS:
         agent_id = None
         contract = AgentCarrierContract.query.filter_by(

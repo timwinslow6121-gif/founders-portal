@@ -227,3 +227,25 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
     _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
     _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
     return result
+
+
+def member_fact_from_bob_rec(rec: dict) -> MemberFact:
+    """Adapt a BOB upload `rec` dict to a MemberFact so BOB upload can route
+    through the same resolver. BOB rows are enrollments/renewals (never commission
+    chargeback rows), so row_class defaults to RENEWAL — the resolver's lifecycle
+    handles interval opening."""
+    carrier = rec.get("carrier", "")
+    return MemberFact(
+        carrier=carrier,
+        full_name=rec.get("full_name") or f"{rec.get('first_name','')} {rec.get('last_name','')}".strip(),
+        first_name=rec.get("first_name") or "",
+        last_name=rec.get("last_name") or "",
+        mbi=(rec.get("mbi") or None),
+        carrier_member_id=(rec.get("member_id") or None),
+        dob=rec.get("dob"),
+        effective_date=rec.get("effective_date"),
+        term_date=rec.get("term_date"),
+        plan_type=rec.get("plan_type"),
+        row_class=RowClass.RENEWAL,
+        amount=0.0,
+    )

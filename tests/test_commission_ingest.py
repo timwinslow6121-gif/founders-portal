@@ -148,3 +148,51 @@ def test_ingest_statement_is_idempotent(db_session, app, agency, agent_user):
         assert Customer.query.filter_by(agency_id=agency.id).count() == c1
         assert PolicyPayment.query.filter_by(statement_id=stmt.id).count() == p1
         assert Policy.query.filter_by(agency_id=agency.id).count() == pol1
+
+
+def test_statement_has_content_fingerprint_column(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionStatement
+    from datetime import date as _d
+    with app.app_context():
+        s = CommissionStatement(agency_id=agency.id, carrier="Devoted",
+                                statement_date=_d(2026, 5, 1), period_label="May 2026",
+                                content_fingerprint="abc123")
+        db.session.add(s); db.session.commit()
+        assert s.content_fingerprint == "abc123"
+
+
+def _login_admin(client, app, agency):
+    from app.extensions import db
+    from app.models import User
+    with app.app_context():
+        u = User(email="aj@test.com", name="AJ", is_admin=True, agency_id=agency.id)
+        db.session.add(u); db.session.commit()
+        uid = u.id
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(uid)
+    return uid
+
+
+def test_route_blocks_exact_duplicate(client, app, agency, db_session):
+    _login_admin(client, app, agency)
+    from app.models import CommissionStatement
+    path = os.path.join(FIXTURES, "devoted_sample.xlsx")
+
+    r1 = client.post("/admin/commissions/upload",
+                     data={"file": (open(path, "rb"), "devoted_sample.xlsx"),
+                           "statement_month": "2026-05"},
+                     content_type="multipart/form-data", follow_redirects=True)
+    assert r1.status_code == 200
+    with app.app_context():
+        n_before = CommissionStatement.query.filter_by(agency_id=agency.id,
+                                                       carrier="Devoted").count()
+    r2 = client.post("/admin/commissions/upload",
+                     data={"file": (open(path, "rb"), "devoted_sample.xlsx"),
+                           "statement_month": "2026-05"},
+                     content_type="multipart/form-data", follow_redirects=True)
+    assert b"already" in r2.data.lower() or b"duplicate" in r2.data.lower()
+    with app.app_context():
+        n_after = CommissionStatement.query.filter_by(agency_id=agency.id,
+                                                      carrier="Devoted").count()
+    assert n_after == n_before

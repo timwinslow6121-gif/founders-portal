@@ -15,8 +15,75 @@ from app.extensions import db
 from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment
 from app.commission import commission_bp
 from app.commission.payments import build_payments
+from app.commission.ingest import ingest_statement, compute_fingerprint
+from app.commission.normalizers import NORMALIZERS
 
 SPLIT_RATE = 0.55
+
+
+def load_sheets_from_bytes(file_bytes, filename):
+    """Write bytes to a temp path and load via sheet_loader (handles xlsx/xls/SpreadsheetML)."""
+    import tempfile, os as _os
+    suffix = ".xlsx" if (filename or "").lower().endswith("xlsx") else ".xls"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tf:
+        tf.write(file_bytes)
+        tmp = tf.name
+    try:
+        from app.commission.sheet_loader import load_sheets
+        return load_sheets(tmp)
+    finally:
+        _os.unlink(tmp)
+
+
+def _detect_carrier_from_headers(header_cells):
+    """Same fingerprints as _detect_carrier, but on a plain list of header cells."""
+    headers = [str(c or "").lower() for c in header_cells]
+    header_str = " ".join(headers)
+    if "commission action" in header_str and "writing agent" in header_str:
+        return "UHC"
+    if "payee amount" in header_str and "sales event" in header_str:
+        return "Aetna"
+    if "commrundt" in header_str or "grpname" in header_str:
+        return "Humana"
+    if "billed amount" in header_str or ("group type" in header_str and "customer name" in header_str):
+        return "BCBS"
+    if "member hicn" in header_str or "agent npn" in header_str:
+        return "Devoted"
+    if "payment type" in header_str and "medicare beneficiary identifier" in header_str:
+        return "Healthspring"
+    if "distributor number" in header_str and "advance type" in header_str:
+        return "Wellable"
+    return None
+
+
+def _detect_carrier_from_sheets(sheets):
+    """Scan every sheet's first row for a recognizable carrier header.
+
+    Multi-sheet carrier files (Devoted, Healthspring) keep their data on a
+    non-first/non-active sheet, so the legacy active-sheet-only detector misses
+    them. This scans all sheets and returns the first carrier matched.
+    """
+    for rows in sheets.values():
+        if not rows:
+            continue
+        carrier = _detect_carrier_from_headers(rows[0])
+        if carrier:
+            return carrier
+    return None
+
+
+def _resolve_agent_from_facts(facts):
+    """Pick the first writing-agent name present in the normalized facts and
+    match it to a portal User. Returns user id or None (agency-level)."""
+    for f in facts:
+        raw = (getattr(f, "writing_agent_raw", "") or "").strip()
+        if raw:
+            return _match_agent_name(raw)
+    return None
+
+
+def _gross_preview(facts):
+    return round(sum(f.amount for f in facts if f.amount > 0), 2)
 
 
 def _scan_summary(ws):
@@ -522,18 +589,24 @@ def _detect_agent_id(ws, carrier):
     if not agent_name_raw:
         return None
 
-    normalized = _normalize_name(agent_name_raw)
+    return _match_agent_name(agent_name_raw)
 
-    _NICKNAMES = {
-        "michael": "mike", "mike": "michael",
-        "christopher": "chris", "chris": "christopher",
-        "timothy": "tim", "tim": "timothy",
-        "william": "bill", "bill": "william",
-        "robert": "bob", "bob": "robert",
-        "richard": "rick", "rick": "richard",
-        "james": "jim", "jim": "james",
-        "thomas": "tom", "tom": "thomas",
-    }
+
+_NICKNAMES = {
+    "michael": "mike", "mike": "michael",
+    "christopher": "chris", "chris": "christopher",
+    "timothy": "tim", "tim": "timothy",
+    "william": "bill", "bill": "william",
+    "robert": "bob", "bob": "robert",
+    "richard": "rick", "rick": "richard",
+    "james": "jim", "jim": "james",
+    "thomas": "tom", "tom": "thomas",
+}
+
+
+def _match_agent_name(agent_name_raw):
+    """Match a raw 'Last, First' / 'First Last' agent name to a portal User id."""
+    normalized = _normalize_name(agent_name_raw)
 
     def _first_matches(a, b):
         return a == b or _NICKNAMES.get(a) == b or _NICKNAMES.get(b) == a
@@ -630,6 +703,113 @@ def commission_admin():
         is_admin=True, viewing_agent=None)
 
 
+def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
+    """Run the normalize→resolve→pay pipeline for a clean-split carrier.
+
+    Handles statement-period resolution, agent/contract/split resolution, the
+    fingerprint duplicate guard, statement upsert, ingest, and summary flash.
+    Returns a redirect response. UHC never reaches here (not in NORMALIZERS).
+    """
+    facts = NORMALIZERS[carrier](sheets)
+    if not facts:
+        flash(f"No commission rows found in the {carrier} file.", "error")
+        return redirect(url_for("commission.commission_admin"))
+
+    # Statement period: form override → filename → today.
+    stmt_date = None
+    form_month = request.form.get("statement_month", "").strip()  # "YYYY-MM"
+    if form_month:
+        try:
+            stmt_date = datetime.strptime(form_month, "%Y-%m").date()
+        except ValueError:
+            stmt_date = None
+    if not stmt_date:
+        stmt_date = _parse_date_from_filename(filename)
+    if not stmt_date:
+        stmt_date = date.today()
+        flash(
+            "Could not detect statement period from the file or filename. "
+            "Defaulted to today's month. Use the 'Statement Month' field to correct this.",
+            "warning")
+    period_label = stmt_date.strftime("%B %Y")
+
+    # Agent + split. These carriers are often agency-level (multiple writing
+    # agents in one file); attribute the statement to the first writing agent
+    # found, but resolve the split from any active contract for the carrier.
+    agent_id = _resolve_agent_from_facts(facts)
+    contract = None
+    if agent_id:
+        contract = AgentCarrierContract.query.filter_by(
+            agent_id=agent_id, carrier=carrier, is_active=True,
+            agency_id=current_user.agency_id).first()
+    if contract is None:
+        contract = AgentCarrierContract.query.filter_by(
+            carrier=carrier, is_active=True,
+            agency_id=current_user.agency_id).first()
+    agent_split = contract.split_rate if contract else 0.55
+
+    # AOR history rows require a non-null agent_id. When no writing agent in the
+    # file matches a portal user (common for agency-level multi-agent files),
+    # attribute the statement to the uploading admin.
+    if agent_id is None:
+        agent_id = current_user.id
+
+    fingerprint = compute_fingerprint(carrier, period_label, facts)
+    replace = request.form.get("replace") == "1"
+    dup = CommissionStatement.query.filter_by(
+        agency_id=current_user.agency_id, carrier=carrier,
+        content_fingerprint=fingerprint).first()
+    if dup is not None and not replace:
+        flash(
+            f"This looks like the {carrier} {dup.period_label} statement already "
+            f"imported on {dup.statement_date:%b %d, %Y} "
+            f"({len(facts)} members, ${_gross_preview(facts):,.2f}). "
+            f"No payments were created. Re-submit with 'Replace existing' to overwrite.",
+            "warning")
+        return redirect(url_for("commission.commission_admin"))
+
+    existing = CommissionStatement.query.filter_by(
+        carrier=carrier, agent_id=agent_id, period_label=period_label,
+        agency_id=current_user.agency_id).first()
+    stmt = existing or CommissionStatement(
+        carrier=carrier, agent_id=agent_id, agency_id=current_user.agency_id)
+    if not existing:
+        db.session.add(stmt)
+    stmt.statement_date = stmt_date
+    stmt.period_label = period_label
+    stmt.split_rate = agent_split
+    stmt.filename = filename
+    stmt.uploaded_by_id = current_user.id
+    stmt.content_fingerprint = fingerprint
+    db.session.flush()
+
+    # If replacing, clear stale ledger rows so re-ingest doesn't double-count
+    # rows that no longer appear in the file.
+    if existing:
+        PolicyPayment.query.filter_by(
+            statement_id=stmt.id, agency_id=current_user.agency_id
+        ).delete(synchronize_session=False)
+        db.session.flush()
+
+    ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets)
+
+    stmt.gross_amount = round(sum(f.amount for f in facts if f.amount > 0), 2)
+    stmt.bonus_amount = 0.0
+    stmt.expected_amount = round(stmt.gross_amount * agent_split, 2)
+    stmt.paid_amount = stmt.expected_amount
+    stmt.difference = 0.0
+    stmt.status = "verified"
+    db.session.commit()
+
+    flash(
+        f"✓ {carrier} {period_label} — {ingest.payments_written} payments, "
+        f"{ingest.customers_created} customers created "
+        f"({ingest.stubs_created} stubs), {ingest.chargebacks} chargebacks"
+        + (f", {ingest.match_suggestions} match suggestions" if ingest.match_suggestions else "")
+        + ".", "success")
+    return redirect(url_for("commission.commission_admin"))
+
+
 @commission_bp.route("/admin/commissions/upload", methods=["POST"])
 @login_required
 def commission_upload():
@@ -640,9 +820,27 @@ def commission_upload():
         flash("No file selected.", "error")
         return redirect(url_for("commission.commission_admin"))
 
+    file_bytes = file.read()
+    filename_lower = (file.filename or "").lower()
+
+    # ── New normalize→resolve→pay pipeline for the 5 clean-split carriers ──
+    # These carriers (Healthspring, Devoted, BCBS, Aetna, Humana) ship multi-
+    # sheet / SpreadsheetML files that the legacy single-active-sheet path can't
+    # read. Detect via sheet_loader (handles xlsx/xls/SpreadsheetML), and if the
+    # carrier is in NORMALIZERS, run the ingest pipeline. UHC (and anything not
+    # in NORMALIZERS) falls through to the unchanged legacy path below.
+    if not filename_lower.endswith(".csv"):
+        try:
+            _sheets_probe = load_sheets_from_bytes(file_bytes, file.filename)
+        except Exception:
+            _sheets_probe = None
+        if _sheets_probe:
+            probe_carrier = _detect_carrier_from_sheets(_sheets_probe)
+            if probe_carrier in NORMALIZERS:
+                return _ingest_normalized_upload(
+                    probe_carrier, _sheets_probe, file_bytes, file.filename)
+
     try:
-        file_bytes = file.read()
-        filename_lower = (file.filename or "").lower()
         if filename_lower.endswith(".csv"):
             wb = _csv_bytes_to_workbook(file_bytes)
         else:

@@ -244,6 +244,7 @@ class CommissionStatement(db.Model):
     # Status
     # pending / verified / discrepancy / pending_review / accepted / disputed
     status         = db.Column(db.String(32), default="pending")
+    content_fingerprint = db.Column(db.String(64), index=True)  # duplicate-upload detection
 
     # Discrepancy override workflow
     # AJ submits an explanation → agent accepts or disputes

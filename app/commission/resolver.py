@@ -17,6 +17,8 @@ from app.extensions import db
 from app.models import Customer, Policy, CustomerAorHistory, MatchSuggestion
 from app.commission.member_fact import MemberFact, RowClass
 
+__all__ = ["resolve_customer", "ResolveResult", "member_fact_from_bob_rec"]
+
 
 @dataclass
 class ResolveResult:

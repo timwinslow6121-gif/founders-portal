@@ -197,3 +197,36 @@ def test_carrier_switch_terms_old_policy_and_opens_new_interval(db_session, app,
         intervals = CustomerAorHistory.query.filter_by(customer_id=c.id, carrier="BCBS").all()
         assert len(intervals) == 1
         assert intervals[0].end_date is None
+
+
+def test_suggest_link_creates_stub_and_suggestion_no_automerge(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, MatchSuggestion
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        existing = Customer(agency_id=agency.id, first_name="Mark", last_name="Brown",
+                            full_name="Mark Brown", dob=date(1950, 4, 2),
+                            primary_agent_id=agent_user.id, source="bob")
+        db.session.add(existing); db.session.flush()
+
+        fact = MemberFact(
+            carrier="BCBS", full_name="Brown,Mark", first_name="Mark", last_name="Brown",
+            dob=date(1950, 4, 2), carrier_member_id="106777777", mbi=None,
+            row_class=RowClass.ENROLLMENT, amount=0.0, effective_date=date(2026, 1, 1),
+        )
+        r = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                             source="commission_import")
+
+        assert r.created_customer is True
+        assert r.customer.id != existing.id
+        assert r.customer.stub is True
+        assert r.match_path == "suggest_link"
+        assert "match_suggestion" in r.actions
+
+        ms = MatchSuggestion.query.filter_by(agency_id=agency.id, status="pending").first()
+        assert ms is not None
+        assert ms.suggested_customer_id == existing.id
+        assert ms.stub_customer_id == r.customer.id
+        assert ms.confidence == "name_dob"

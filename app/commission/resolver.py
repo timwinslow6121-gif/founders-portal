@@ -9,11 +9,12 @@ cannot confidently match, a stub + a MatchSuggestion for human confirm.
 Resolution order: crosswalk (Policy by carrier+member_id) → MBI → suggest-link →
 stub. See docs/superpowers/specs/2026-06-03-commission-customer-sync-design.md §2.
 """
+import json
 from dataclasses import dataclass, field
 from typing import Optional, List
 
 from app.extensions import db
-from app.models import Customer, Policy, CustomerAorHistory
+from app.models import Customer, Policy, CustomerAorHistory, MatchSuggestion
 from app.commission.member_fact import MemberFact, RowClass
 
 
@@ -140,6 +141,25 @@ def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
     result.actions.append("aor_interval")
 
 
+def _find_name_dob_match(fact: MemberFact, agency_id: int):
+    """Return (customer, confidence) for a name+DOB near-match, else (None, None).
+    Only fires when DOB is present (BCBS rows have no DOB, so they won't match
+    until DOB exists from a prior BOB record/edit)."""
+    fn = (fact.first_name or "").strip().lower()
+    ln = (fact.last_name or "").strip().lower()
+    if not fn or not ln or not fact.dob:
+        return None, None
+    c = (Customer.query
+         .filter(Customer.agency_id == agency_id,
+                 db.func.lower(Customer.first_name) == fn,
+                 db.func.lower(Customer.last_name) == ln,
+                 Customer.dob == fact.dob)
+         .first())
+    if c:
+        return c, "name_dob"
+    return None, None
+
+
 def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int],
                      batch_id: Optional[int] = None, source: str = "commission_import"
                      ) -> ResolveResult:
@@ -162,6 +182,34 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         result.policy = _attach_policy(fact, customer, agency_id, agent_id)
         result.created_policy = True
         result.match_path = "mbi"
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
+        return result
+
+    # 3. Suggest-link — no crosswalk, no MBI, but a name+DOB near-match exists.
+    #    Create a stub (so no payment is lost) AND a MatchSuggestion for human confirm.
+    candidate, confidence = _find_name_dob_match(fact, agency_id)
+    if candidate is not None:
+        customer = _create_stub(fact, agency_id, agent_id, source)
+        result.customer = customer
+        result.created_customer = True
+        result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+        result.created_policy = True
+        result.match_path = "suggest_link"
+        ms = MatchSuggestion(
+            agency_id=agency_id,
+            stub_customer_id=customer.id,
+            suggested_customer_id=candidate.id,
+            confidence=confidence,
+            status="pending",
+            source_member_fact_json=json.dumps({
+                "carrier": fact.carrier, "carrier_member_id": fact.carrier_member_id,
+                "full_name": fact.full_name, "dob": fact.dob.isoformat() if fact.dob else None,
+            }),
+        )
+        db.session.add(ms)
+        result.actions.append("match_suggestion")
         _apply_rapid_disenroll(result.policy, fact, result)
         _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
         _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)

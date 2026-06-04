@@ -17,153 +17,66 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from app.models import db, Policy, ImportBatch, AuditLog, Customer, CustomerAorHistory, Plan
 from app.parsers import parse_carrier_file, SUPPORTED_CARRIERS
+from app.commission.resolver import resolve_customer, member_fact_from_bob_rec
 
 upload_bp = Blueprint("upload", __name__)
 
 
 def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency_id: int) -> None:
     """
-    Create or update a Customer record from a parsed policy row.
+    Create or update a Customer from a parsed BOB policy row.
 
-    Called after every policy upsert. Uses MBI as the primary key.
-    Humana fallback: match on humana_id, then name+DOB+zip (all three required).
-
-    agency_id must be passed explicitly — this function runs in a batch loop
-    without guaranteed Flask request context per record.
-
-    Guards:
-    - If customer.manually_edited is True, contact fields are not overwritten.
-    - BCBS term_date is a renewal date — never copied to AOR end_date.
+    Identity resolution (crosswalk → MBI → name+DOB → stub) is delegated to the
+    shared resolve_customer() service so BOB and commission upload share ONE
+    identity codepath. BOB-specific PII rules are applied here afterward:
+    - manually_edited customers keep their contact/address fields.
+    - BCBS AOR end_date stays None (handled inside the resolver's interval logic).
     """
-    carrier = rec.get("carrier", "")
-    mbi = rec.get("mbi") or None
-    humana_id = rec.get("member_id") if carrier == "Humana" else None
+    fact = member_fact_from_bob_rec(rec)
+    result = resolve_customer(fact, agency_id=agency_id, agent_id=agent_id,
+                              batch_id=batch_id, source="bob")
+    customer = result.customer
+    if customer is None:
+        return
 
     now = datetime.utcnow()
-    customer = None
-
-    # --- Locate existing customer (always scoped to agency) ---
-    if mbi:
-        customer = Customer.query.filter_by(mbi=mbi, agency_id=agency_id).first()
-    elif humana_id:
-        customer = Customer.query.filter_by(humana_id=humana_id, agency_id=agency_id).first()
-        if not customer:
-            # Final fallback: name + DOB + zip (all three must match)
-            fn = (rec.get("first_name") or "").strip().lower()
-            ln = (rec.get("last_name") or "").strip().lower()
-            dob = rec.get("dob")
-            zc = (rec.get("zip_code") or "").strip()
-            if fn and ln and dob and zc:
-                customer = (
-                    Customer.query
-                    .filter(
-                        Customer.agency_id == agency_id,
-                        db.func.lower(Customer.first_name) == fn,
-                        db.func.lower(Customer.last_name) == ln,
-                        Customer.dob == dob,
-                        Customer.zip_code == zc,
-                    )
-                    .first()
-                )
-    else:
-        # Carriers with no MBI in their export (UHC, Healthspring commission format):
-        # try name-only match so we update existing customers rather than creating shells.
-        fn = (rec.get("first_name") or "").strip().lower()
-        ln = (rec.get("last_name") or "").strip().lower()
-        if fn and ln:
-            customer = (
-                Customer.query
-                .filter(
-                    Customer.agency_id == agency_id,
-                    db.func.lower(Customer.first_name) == fn,
-                    db.func.lower(Customer.last_name) == ln,
-                )
-                .first()
-            )
-
     full_name = rec.get("full_name") or f"{rec.get('first_name', '')} {rec.get('last_name', '')}".strip()
     address_parts = [rec.get("address1"), rec.get("city"), rec.get("state"), rec.get("zip_code")]
     carrier_address = ", ".join(p for p in address_parts if p)
 
-    if customer:
-        # Always update carrier-sourced fields
-        customer.last_carrier_sync = now
-        customer.carrier_address = carrier_address
-        if mbi and not customer.mbi:
-            customer.mbi = mbi
-        if humana_id and not customer.humana_id:
-            customer.humana_id = humana_id
+    # A BOB row is authoritative carrier data → clear the stub flag if set.
+    if customer.stub:
+        customer.stub = False
+    customer.last_carrier_sync = now
+    customer.carrier_address = carrier_address
+    mbi = rec.get("mbi") or None
+    humana_id = rec.get("member_id") if rec.get("carrier") == "Humana" else None
+    if mbi and not customer.mbi:
+        customer.mbi = mbi
+    if humana_id and not customer.humana_id:
+        customer.humana_id = humana_id
 
-        # Only overwrite contact/address fields if agent hasn't manually edited them
-        if not customer.manually_edited:
-            customer.first_name = rec.get("first_name") or customer.first_name
-            customer.last_name = rec.get("last_name") or customer.last_name
-            customer.full_name = full_name or customer.full_name
-            customer.dob = rec.get("dob") or customer.dob
-            customer.phone_primary = rec.get("phone") or customer.phone_primary
-            customer.address1 = rec.get("address1") or customer.address1
-            customer.city = rec.get("city") or customer.city
-            customer.state = rec.get("state") or customer.state
-            customer.zip_code = rec.get("zip_code") or customer.zip_code
-            customer.county = rec.get("county") or customer.county
+    if not customer.manually_edited:
+        customer.first_name = rec.get("first_name") or customer.first_name
+        customer.last_name = rec.get("last_name") or customer.last_name
+        customer.full_name = full_name or customer.full_name
+        customer.dob = rec.get("dob") or customer.dob
+        customer.phone_primary = rec.get("phone") or customer.phone_primary
+        customer.address1 = rec.get("address1") or customer.address1
+        customer.city = rec.get("city") or customer.city
+        customer.state = rec.get("state") or customer.state
+        customer.zip_code = rec.get("zip_code") or customer.zip_code
+        customer.county = rec.get("county") or customer.county
 
-        # Update agent ownership to most recent import.
-        # If ownership is transferring, close the previous agent's open AOR row.
-        if customer.primary_agent_id and customer.primary_agent_id != agent_id:
-            open_aor = CustomerAorHistory.query.filter_by(
-                customer_id=customer.id,
-                agent_id=customer.primary_agent_id,
-                carrier=carrier,
-                end_date=None,
-            ).first()
-            if open_aor:
-                open_aor.end_date = now.date()
-        customer.primary_agent_id = agent_id
-    else:
-        # New customer — create from policy data
-        customer = Customer(
-            agency_id=agency_id,
-            mbi=mbi,
-            humana_id=humana_id,
-            first_name=rec.get("first_name") or "",
-            last_name=rec.get("last_name") or "",
-            full_name=full_name,
-            dob=rec.get("dob"),
-            phone_primary=rec.get("phone"),
-            address1=rec.get("address1"),
-            city=rec.get("city"),
-            state=rec.get("state"),
-            zip_code=rec.get("zip_code"),
-            county=rec.get("county"),
-            carrier_address=carrier_address,
-            primary_agent_id=agent_id,
-            last_carrier_sync=now,
-        )
-        db.session.add(customer)
-        db.session.flush()  # get customer.id before AOR insert
-
-    # --- AOR history upsert ---
-    # BCBS term_date is a renewal date, not a real end_date — skip it
-    effective_date = rec.get("effective_date")
-    if effective_date and customer.id:
-        existing_aor = CustomerAorHistory.query.filter_by(
-            customer_id=customer.id,
-            carrier=carrier,
-            effective_date=effective_date,
+    # Agent ownership transfer: close previous agent's open AOR row for this carrier.
+    if customer.primary_agent_id and customer.primary_agent_id != agent_id:
+        open_aor = CustomerAorHistory.query.filter_by(
+            customer_id=customer.id, agent_id=customer.primary_agent_id,
+            carrier=rec.get("carrier", ""), end_date=None,
         ).first()
-        if not existing_aor:
-            aor = CustomerAorHistory(
-                agency_id=agency_id,
-                customer_id=customer.id,
-                agent_id=agent_id,
-                carrier=carrier,
-                plan_name=rec.get("plan_name"),
-                effective_date=effective_date,
-                end_date=None,  # BCBS term_date intentionally excluded
-                source="carrier_import",
-                import_batch_id=batch_id,
-            )
-            db.session.add(aor)
+        if open_aor:
+            open_aor.end_date = now.date()
+    customer.primary_agent_id = agent_id
 
 # File extensions allowed per carrier
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}

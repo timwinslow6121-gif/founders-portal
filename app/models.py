@@ -111,6 +111,10 @@ class Policy(db.Model):
     # Commission type — set manually by agent; drives expected commission calculation
     # Values: None=unknown, 'initial'=first-ever MA enrollment, 'renewal'=all other MA enrollments
     commission_type = db.Column(db.String(16))
+    # Commission-sync flags + the real Customer link (migration 020)
+    rapid_disenroll = db.Column(db.Boolean, default=False, nullable=False)
+    commission_split_flag = db.Column(db.String(24))  # None | no_contract | provenance_conditional
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True, index=True)
 
     # Termination context — set manually by agent when reason is known
     # Values: None=unknown, 'agent_initiated', 'death', 'plan_cancelled', 'involuntary'
@@ -471,6 +475,9 @@ class Customer(db.Model):
 
     # Import guard — True = agent-edited fields won't be overwritten by BOB imports
     manually_edited   = db.Column(db.Boolean, default=False, nullable=False)
+    # Commission-sync provenance (migration 020)
+    stub              = db.Column(db.Boolean, default=False, nullable=False)
+    source            = db.Column(db.String(32))   # commission_import | bob | healthsherpa | manual
     last_carrier_sync = db.Column(db.DateTime)
 
     # SMS consent — NULL = no consent; datetime = consent given at this timestamp
@@ -595,6 +602,33 @@ class CustomerAorHistory(db.Model):
 
     def __repr__(self):
         return f"<CustomerAorHistory customer={self.customer_id} carrier={self.carrier}>"
+
+
+class MatchSuggestion(db.Model):
+    """
+    A possible identity link the resolver is NOT confident enough to apply
+    automatically (e.g. a no-MBI carrier-switch enrollment that name+DOB-matches
+    an existing customer). Surfaced for human confirm in the merge UI. Never an
+    auto-merge.
+    """
+    __tablename__ = "match_suggestions"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
+
+    # The stub customer that was created for the unmatched fact (so no payment is lost)
+    stub_customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), index=True)
+    # The existing customer we think it might really be
+    suggested_customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), index=True)
+
+    confidence  = db.Column(db.String(16))   # name_dob | name_only
+    status      = db.Column(db.String(16), default="pending", index=True)  # pending|confirmed|rejected
+
+    source_member_fact_json = db.Column(db.Text)
+
+    created_at  = db.Column(db.DateTime, server_default=db.func.now())
+    resolved_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    resolved_at = db.Column(db.DateTime)
 
 
 class AgentCarrierContract(db.Model):

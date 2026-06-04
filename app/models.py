@@ -244,6 +244,7 @@ class CommissionStatement(db.Model):
     # Status
     # pending / verified / discrepancy / pending_review / accepted / disputed
     status         = db.Column(db.String(32), default="pending")
+    content_fingerprint = db.Column(db.String(64), index=True)  # duplicate-upload detection
 
     # Discrepancy override workflow
     # AJ submits an explanation → agent accepts or disputes
@@ -699,6 +700,11 @@ class PolicyPayment(db.Model):
     member_name_normalized = db.Column(db.String(256), index=True)  # lowercased "first last"
     mbi                = db.Column(db.String(20), index=True)        # full MBI where carrier provides
     carrier_member_id  = db.Column(db.String(128))                   # carrier's own member/policy ID
+    # Stable per-row provenance key from the normalizer ("file::sheet::rowindex").
+    # The reliable idempotency key for re-ingest — NON_CUSTOMER rows (HRA bonuses)
+    # have no member identity and degenerate to the same normalized name, so they
+    # must dedup on source_ref, not name.
+    source_ref         = db.Column(db.String(128), index=True)
 
     # Policy linkage — populated by matching logic
     policy_id          = db.Column(db.Integer, db.ForeignKey("policies.id"), nullable=True)
@@ -721,8 +727,8 @@ class PolicyPayment(db.Model):
     created_at         = db.Column(db.DateTime, server_default=db.func.now())
 
     __table_args__ = (
-        db.UniqueConstraint("statement_id", "member_name_normalized", "commission_action",
-                            name="uq_payment_statement_member_action"),
+        db.UniqueConstraint("statement_id", "source_ref",
+                            name="uq_payment_statement_source_ref"),
     )
 
     def __repr__(self):

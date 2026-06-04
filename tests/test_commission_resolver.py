@@ -323,3 +323,46 @@ def test_bob_aor_plan_name_preserved(db_session, app, agency, agent_user):
         aor = CustomerAorHistory.query.filter_by(customer_id=c.id, carrier="UHC").first()
         assert aor is not None
         assert aor.plan_name == "UHC Dual Complete HMO"
+
+
+def test_humana_rows_without_carrier_id_or_mbi_do_not_collide(db_session, app, agency, agent_user):
+    """Real Humana files have rows with neither PID nor MBI. They must each get a
+    unique policy member_id (via source_ref), not collide on empty string."""
+    from app.extensions import db
+    from app.models import Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        f1 = MemberFact(carrier="Humana", full_name="Helms Teressa", first_name="Teressa",
+                        last_name="Helms", mbi=None, carrier_member_id=None,
+                        row_class=RowClass.RENEWAL, amount=29.94,
+                        source_ref="humana::CommissionData_1::226")
+        f2 = MemberFact(carrier="Humana", full_name="Bollinger Annette", first_name="Annette",
+                        last_name="Bollinger", mbi=None, carrier_member_id=None,
+                        row_class=RowClass.RENEWAL, amount=23.66,
+                        source_ref="humana::CommissionData_1::227")
+        resolve_customer(f1, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        resolve_customer(f2, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        db.session.commit()  # must NOT raise IntegrityError
+        # two distinct policies, keyed by their source_refs
+        assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 2
+        mids = {p.member_id for p in Policy.query.filter_by(carrier="Humana").all()}
+        assert mids == {"humana::CommissionData_1::226", "humana::CommissionData_1::227"}
+
+
+def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+    with app.app_context():
+        f = MemberFact(carrier="Humana", full_name="Helms Teressa", first_name="Teressa",
+                       last_name="Helms", mbi=None, carrier_member_id=None,
+                       row_class=RowClass.RENEWAL, amount=29.94,
+                       source_ref="humana::CommissionData_1::226")
+        resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        db.session.commit()
+        resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        db.session.commit()
+        assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 1

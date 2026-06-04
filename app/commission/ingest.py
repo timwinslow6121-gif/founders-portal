@@ -111,8 +111,15 @@ class IngestResult:
 from app.commission.normalizers import NORMALIZERS
 
 
-def ingest_statement(statement, carrier: str, agent_id, agency_id: int, sheets) -> IngestResult:
-    """Normalize a carrier file → resolve each fact → write payments. One pass."""
+def ingest_statement(statement, carrier: str, agent_id, agency_id: int, sheets,
+                     agent_resolver=None) -> IngestResult:
+    """Normalize a carrier file → resolve each fact → write payments. One pass.
+
+    Agency-level carriers (Devoted/Healthspring/Aetna) name a writing agent per
+    row on the MemberFact. When ``agent_resolver`` (a callable raw_name -> user_id
+    or None) is supplied, each row's agent is resolved from ``writing_agent_raw``,
+    falling back to the statement-level ``agent_id``. When None, ``agent_id`` is
+    used for every row (backward compatible)."""
     result = IngestResult()
     normalizer = NORMALIZERS.get(carrier)
     if normalizer is None:
@@ -124,14 +131,22 @@ def ingest_statement(statement, carrier: str, agent_id, agency_id: int, sheets) 
     result.gross = round(sum(f.amount for f in facts), 2)
 
     for fact in facts:
+        row_agent_id = agent_id
+        if agent_resolver is not None:
+            raw = (getattr(fact, "writing_agent_raw", "") or "").strip()
+            if raw:
+                resolved = agent_resolver(raw)
+                if resolved:
+                    row_agent_id = resolved
+
         if fact.row_class == RowClass.NON_CUSTOMER:
-            write_payment_from_fact(fact, statement, None, agency_id, agent_id)
+            write_payment_from_fact(fact, statement, None, agency_id, row_agent_id)
             result.payments_written += 1
             if fact.amount < 0:
                 result.chargebacks += 1
             continue
 
-        res = resolve_customer(fact, agency_id=agency_id, agent_id=agent_id,
+        res = resolve_customer(fact, agency_id=agency_id, agent_id=row_agent_id,
                                source="commission_import")
         if res.created_customer:
             result.customers_created += 1
@@ -142,7 +157,7 @@ def ingest_statement(statement, carrier: str, agent_id, agency_id: int, sheets) 
         if "carrier_switch" in res.actions:
             result.carrier_switches += 1
 
-        write_payment_from_fact(fact, statement, res.policy, agency_id, agent_id)
+        write_payment_from_fact(fact, statement, res.policy, agency_id, row_agent_id)
         result.payments_written += 1
         if fact.amount < 0:
             result.chargebacks += 1

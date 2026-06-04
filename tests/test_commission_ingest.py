@@ -196,3 +196,87 @@ def test_route_blocks_exact_duplicate(client, app, agency, db_session):
         n_after = CommissionStatement.query.filter_by(agency_id=agency.id,
                                                       carrier="Devoted").count()
     assert n_after == n_before
+
+
+def test_ingest_resolves_agent_per_row(db_session, app, agency):
+    """Agency-level file: each row's writing agent should own that member's
+    customer/AOR/payment, not one statement-level agent."""
+    from app.extensions import db
+    from app.models import User, Customer, Policy, PolicyPayment, CommissionStatement, CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.ingest import ingest_statement
+
+    with app.app_context():
+        brian = User(email="brian@t.com", name="Brian Freeman", agency_id=agency.id)
+        rebekah = User(email="reb@t.com", name="Rebekah Long", agency_id=agency.id)
+        uploader = User(email="aj@t.com", name="AJ", is_admin=True, agency_id=agency.id)
+        db.session.add_all([brian, rebekah, uploader]); db.session.flush()
+
+        stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted",
+                                   statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(stmt); db.session.flush()
+
+        facts = [
+            MemberFact(carrier="Devoted", full_name="Member One", first_name="Member",
+                       last_name="One", carrier_member_id="M1", writing_agent_raw="Brian Freeman",
+                       row_class=RowClass.ENROLLMENT, amount=260.25, effective_date=date(2026,4,1),
+                       source_ref="devoted::Agent Portion::1"),
+            MemberFact(carrier="Devoted", full_name="Member Two", first_name="Member",
+                       last_name="Two", carrier_member_id="M2", writing_agent_raw="Rebekah Long",
+                       row_class=RowClass.ENROLLMENT, amount=260.25, effective_date=date(2026,4,1),
+                       source_ref="devoted::Agent Portion::2"),
+        ]
+
+        # monkeypatch the normalizer for this carrier to return our crafted facts
+        import app.commission.ingest as ingest_mod
+        orig = ingest_mod.NORMALIZERS.get("Devoted")
+        ingest_mod.NORMALIZERS["Devoted"] = lambda sheets: facts
+        try:
+            def resolver(raw):
+                from app.models import User as U
+                u = U.query.filter(U.agency_id == agency.id, U.name == raw).first()
+                return u.id if u else None
+            ingest_statement(stmt, "Devoted", uploader.id, agency.id, {}, agent_resolver=resolver)
+            db.session.commit()
+        finally:
+            if orig is not None:
+                ingest_mod.NORMALIZERS["Devoted"] = orig
+
+        m1 = Customer.query.filter_by(agency_id=agency.id, last_name="One").first()
+        m2 = Customer.query.filter_by(agency_id=agency.id, last_name="Two").first()
+        assert m1.primary_agent_id == brian.id      # row 1 → Brian
+        assert m2.primary_agent_id == rebekah.id     # row 2 → Rebekah
+        # payments attribute per-row too
+        p1 = PolicyPayment.query.filter_by(statement_id=stmt.id, carrier_member_id="M1").first()
+        p2 = PolicyPayment.query.filter_by(statement_id=stmt.id, carrier_member_id="M2").first()
+        assert p1.agent_id == brian.id
+        assert p2.agent_id == rebekah.id
+
+
+def test_ingest_falls_back_to_statement_agent_when_no_resolver(db_session, app, agency, agent_user):
+    """Backward compatible: no agent_resolver → statement-level agent_id used for all."""
+    from app.extensions import db
+    from app.models import Customer, CommissionStatement
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.ingest import ingest_statement
+    import app.commission.ingest as ingest_mod
+
+    with app.app_context():
+        stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted",
+                                   statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(stmt); db.session.flush()
+        facts = [MemberFact(carrier="Devoted", full_name="Solo One", first_name="Solo",
+                            last_name="One", carrier_member_id="S1",
+                            writing_agent_raw="Nobody Matches",
+                            row_class=RowClass.ENROLLMENT, amount=10.0,
+                            source_ref="devoted::Agent Portion::1")]
+        orig = ingest_mod.NORMALIZERS.get("Devoted")
+        ingest_mod.NORMALIZERS["Devoted"] = lambda sheets: facts
+        try:
+            ingest_statement(stmt, "Devoted", agent_user.id, agency.id, {})
+            db.session.commit()
+        finally:
+            if orig is not None:
+                ingest_mod.NORMALIZERS["Devoted"] = orig
+        c = Customer.query.filter_by(agency_id=agency.id, last_name="One").first()
+        assert c.primary_agent_id == agent_user.id   # fell back to statement agent

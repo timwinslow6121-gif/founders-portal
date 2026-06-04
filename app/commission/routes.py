@@ -791,7 +791,8 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         ).delete(synchronize_session=False)
         db.session.flush()
 
-    ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets)
+    ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets,
+                              agent_resolver=_match_agent_name)
 
     stmt.gross_amount = round(sum(f.amount for f in facts if f.amount > 0), 2)
     stmt.bonus_amount = 0.0

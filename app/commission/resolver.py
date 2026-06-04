@@ -71,6 +71,26 @@ def _match_by_mbi(fact: MemberFact, agency_id: int):
     return None
 
 
+def _create_stub(fact: MemberFact, agency_id: int, agent_id: Optional[int],
+                 source: str) -> Customer:
+    """Create a stub Customer from whatever the fact provides."""
+    humana_id = fact.mbi if fact.carrier == "Humana" else None
+    c = Customer(
+        agency_id=agency_id,
+        mbi=fact.mbi if fact.carrier != "Humana" else None,
+        humana_id=humana_id,
+        first_name=fact.first_name or "",
+        last_name=fact.last_name or "",
+        full_name=fact.full_name or f"{fact.first_name} {fact.last_name}".strip(),
+        primary_agent_id=agent_id,
+        stub=True,
+        source=source,
+    )
+    db.session.add(c)
+    db.session.flush()
+    return c
+
+
 def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int],
                      batch_id: Optional[int] = None, source: str = "commission_import"
                      ) -> ResolveResult:
@@ -95,5 +115,12 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         result.match_path = "mbi"
         return result
 
-    # later steps (suggest-link, stub) added in subsequent tasks
+    # 4. Stub — nothing matched; create stub customer + policy (at most once per member,
+    #    because next time the crosswalk in step 1 will find this policy).
+    customer = _create_stub(fact, agency_id, agent_id, source)
+    result.customer = customer
+    result.created_customer = True
+    result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+    result.created_policy = True
+    result.match_path = "stub"
     return result

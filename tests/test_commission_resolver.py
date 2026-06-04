@@ -113,3 +113,36 @@ def test_mbi_match_reuses_customer_and_creates_policy(db_session, app, agency, a
         assert result.policy.carrier == "Aetna"
         assert result.policy.member_id == "NG101350365000"
         assert result.policy.customer_id == c.id
+
+
+def test_stub_created_once_then_crosswalk_relinks(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        fact = MemberFact(
+            carrier="BCBS", full_name="Newby,Sam", first_name="Sam", last_name="Newby",
+            carrier_member_id="106999999", mbi=None,
+            row_class=RowClass.ENROLLMENT, amount=0.0, effective_date=date(2026, 4, 1),
+        )
+        # First upload → stub created
+        r1 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                              source="commission_import")
+        assert r1.created_customer is True
+        assert r1.match_path == "stub"
+        assert r1.customer.stub is True
+        assert r1.customer.source == "commission_import"
+        db.session.commit()
+
+        # Second upload of the SAME fact → crosswalk re-link, NO new stub
+        r2 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                              source="commission_import")
+        assert r2.created_customer is False
+        assert r2.match_path == "crosswalk"
+        assert r2.customer.id == r1.customer.id
+
+        # Exactly one customer + one policy exist for this member
+        assert Customer.query.filter_by(agency_id=agency.id).count() == 1
+        assert Policy.query.filter_by(agency_id=agency.id, member_id="106999999").count() == 1

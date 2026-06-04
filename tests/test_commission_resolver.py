@@ -42,3 +42,43 @@ def test_new_orm_columns_and_match_suggestion_model(db_session, app, agency):
         assert p.customer_id == c.id
         assert ms.status == "pending"
         assert ms.confidence == "name_dob"
+
+
+def _seed_customer_with_policy(db, agency, agent, *, carrier, member_id, mbi=None,
+                               first="Jane", last="Doe"):
+    from app.models import Customer, Policy
+    c = Customer(agency_id=agency.id, first_name=first, last_name=last,
+                 full_name=f"{first} {last}", mbi=mbi, primary_agent_id=agent.id,
+                 source="bob")
+    db.session.add(c)
+    db.session.flush()
+    p = Policy(agency_id=agency.id, carrier=carrier, member_id=member_id, mbi=mbi,
+              full_name=f"{first} {last}", status="active", agent_id=agent.id,
+              customer_id=c.id)
+    db.session.add(p)
+    db.session.flush()
+    return c, p
+
+
+def test_crosswalk_reuses_existing_customer(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        c, p = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="BCBS", member_id="106815011",
+            first="Brenda", last="Allen",
+        )
+        fact = MemberFact(
+            carrier="BCBS", full_name="Allen,Brenda M", first_name="Brenda",
+            last_name="Allen", carrier_member_id="106815011",
+            row_class=RowClass.RENEWAL, amount=28.91,
+        )
+        result = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                                  source="commission_import")
+
+        assert result.customer.id == c.id          # reused, not new
+        assert result.created_customer is False
+        assert result.match_path == "crosswalk"
+        assert result.customer.stub is False        # existing real customer untouched

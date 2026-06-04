@@ -791,16 +791,22 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         ).delete(synchronize_session=False)
         db.session.flush()
 
-    ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets,
-                              agent_resolver=_match_agent_name)
+    try:
+        ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets,
+                                  agent_resolver=_match_agent_name)
 
-    stmt.gross_amount = round(sum(f.amount for f in facts if f.amount > 0), 2)
-    stmt.bonus_amount = 0.0
-    stmt.expected_amount = round(stmt.gross_amount * agent_split, 2)
-    stmt.paid_amount = stmt.expected_amount
-    stmt.difference = 0.0
-    stmt.status = "verified"
-    db.session.commit()
+        stmt.gross_amount = round(sum(f.amount for f in facts if f.amount > 0), 2)
+        stmt.bonus_amount = 0.0
+        stmt.expected_amount = round(stmt.gross_amount * agent_split, 2)
+        stmt.paid_amount = stmt.expected_amount
+        stmt.difference = 0.0
+        stmt.status = "verified"
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Commission ingest error ({carrier}): {e}")
+        flash(f"Could not import {carrier} {period_label}: {e}. No payments were created.", "error")
+        return redirect(url_for("commission.commission_admin"))
 
     flash(
         f"✓ {carrier} {period_label} — {ingest.payments_written} payments, "

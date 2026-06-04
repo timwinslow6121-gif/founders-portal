@@ -96,8 +96,9 @@ def test_compute_fingerprint_is_stable_and_sensitive(db_session, app, agency):
               carrier_member_id="2", row_class=RowClass.RENEWAL, amount=99.99)]
     assert compute_fingerprint("Devoted", "May 2026", facts2) != fp1
 
-    # A different period → different fingerprint
-    assert compute_fingerprint("Devoted", "June 2026", facts) != fp1
+    # A different period → SAME fingerprint (period is intentionally excluded
+    # from the hash so the same file detected at a drifted period is still caught)
+    assert compute_fingerprint("Devoted", "June 2026", facts) == fp1
 
 
 def test_ingest_statement_devoted_creates_customers_and_payments(db_session, app, agency, agent_user):
@@ -350,3 +351,52 @@ def test_humana_period_from_commrundt(app, agency, db_session):
         d = _statement_date_from_sheets("Humana", sheets)
         assert d is not None
         assert d.year == 2026 and d.month == 5    # CommRunDt 2026-05-06
+
+
+def test_match_agent_name_handles_last_first_two_word(app, agency, db_session):
+    from app.extensions import db
+    from app.models import User
+    from app.commission.routes import _match_agent_name
+    with app.app_context():
+        users = {}
+        for nm in ["Brian Freeman", "Rebekah Long", "Michael Lauzurique",
+                   "Christopher Foster", "Justin Basinger", "Timothy Winslow", "Anjana Patel"]:
+            u = User(email=nm.replace(" ","").lower()+"@t.com", name=nm, agency_id=agency.id)
+            db.session.add(u); db.session.flush(); users[nm] = u.id
+        db.session.commit()
+        # Humana "LAST FIRST [MI]" format must resolve to the right agent
+        assert _match_agent_name("LONG REBEKAH") == users["Rebekah Long"]
+        assert _match_agent_name("LAUZURIQUE MICHAEL") == users["Michael Lauzurique"]
+        assert _match_agent_name("FOSTER CHRISTOPHER") == users["Christopher Foster"]
+        assert _match_agent_name("FREEMAN BRIAN L") == users["Brian Freeman"]
+        assert _match_agent_name("WINSLOW TIMOTHY J") == users["Timothy Winslow"]
+        assert _match_agent_name("PATEL ANJANA A") == users["Anjana Patel"]
+        # a genuinely unknown name still returns None
+        assert _match_agent_name("ZZZ NOBODY") is None
+
+
+def test_humana_upload_attributes_to_real_agents_not_uploader(client, app, agency, db_session):
+    import io, os
+    from app.extensions import db
+    from app.models import User, CommissionStatement, PolicyPayment
+    FIX = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+    with app.app_context():
+        for nm in ["Brian Freeman", "Rebekah Long", "Michael Lauzurique",
+                   "Christopher Foster", "Justin Basinger", "Anjana Patel", "Timothy Winslow"]:
+            db.session.add(User(email=nm.replace(" ","").lower()+"@t.com", name=nm, agency_id=agency.id))
+        aj = User(email="aj@t.com", name="AJ Admin", is_admin=True, agency_id=agency.id)
+        db.session.add(aj); db.session.commit(); ajid = aj.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(ajid)
+    with open(os.path.join(FIX, "humana_sample.xls"), "rb") as fh:
+        client.post("/admin/commissions/upload",
+                    data={"file": (io.BytesIO(fh.read()), "humana_sample.xls")},
+                    content_type="multipart/form-data", follow_redirects=True)
+    with app.app_context():
+        stmt = CommissionStatement.query.filter_by(agency_id=agency.id, carrier="Humana").first()
+        by_agent = {}
+        for p in PolicyPayment.query.filter_by(statement_id=stmt.id).all():
+            by_agent[p.agent_id] = by_agent.get(p.agent_id, 0) + 1
+        # most payments should NOT be on the uploader (ajid); multiple real agents present
+        assert len([a for a in by_agent if a and a != ajid]) >= 4
+        assert by_agent.get(ajid, 0) < 20   # only the genuinely-unmatched few (e.g. RIDDLE) fall back

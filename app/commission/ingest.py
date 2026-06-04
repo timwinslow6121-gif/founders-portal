@@ -81,14 +81,19 @@ def write_payment_from_fact(fact: MemberFact, statement, policy, agency_id: int,
 
 
 def compute_fingerprint(carrier: str, period_label: str, facts: List[MemberFact]) -> str:
-    """A stable, order-independent signature of a statement's content. Used to
+    """A stable, order-independent signature of a statement's CONTENT. Used to
     detect an exact re-upload. Sensitive to row count, the set of member ids, and
     the summed amount — so a corrected re-pull (different totals) is NOT mistaken
-    for an exact duplicate."""
+    for an exact duplicate.
+
+    ``period_label`` is intentionally EXCLUDED from the hash: the same file can be
+    detected at a drifted period (e.g. June vs May from a parser fix), and the
+    duplicate guard must still catch it as the same content. The param is kept in
+    the signature only for call-site compatibility."""
     total = round(sum(f.amount for f in facts), 2)
     ids = sorted((f.carrier_member_id or f.mbi or _norm(f.full_name) or "") for f in facts)
     h = hashlib.sha256()
-    h.update(f"{carrier}|{period_label}|{len(facts)}|{total}|{'|'.join(ids)}".encode())
+    h.update(f"{carrier}|{len(facts)}|{total}|{'|'.join(ids)}".encode())
     return h.hexdigest()
 
 

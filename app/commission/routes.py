@@ -638,24 +638,53 @@ _NICKNAMES = {
 
 def _match_agent_name(agent_name_raw):
     """Match a raw 'Last, First' / 'First Last' agent name to a portal User id."""
-    normalized = _normalize_name(agent_name_raw)
 
     def _first_matches(a, b):
         return a == b or _NICKNAMES.get(a) == b or _NICKNAMES.get(b) == a
 
     users = User.query.all()
-    # Exact match after normalisation
-    for user in users:
-        if _normalize_name(user.name) == normalized:
-            return user.id
 
-    # Fuzzy: same last name + first name matches via nickname or prefix
-    np = normalized.split()
-    for user in users:
-        up = _normalize_name(user.name).split()
-        if len(np) >= 2 and len(up) >= 2 and np[-1] == up[-1]:
-            if _first_matches(np[0], up[0]) or np[0][:3] == up[0][:3]:
+    def _match_normalized(normalized):
+        """Match an already-normalized 'first last' string to exactly one user id,
+        using exact-normalized then nickname/fuzzy (same last name + first-3) logic.
+        Returns the user id, or None on no match / ambiguity."""
+        if not normalized:
+            return None
+        # Exact match after normalisation
+        for user in users:
+            if _normalize_name(user.name) == normalized:
                 return user.id
+        # Fuzzy: same last name + first name matches via nickname or prefix
+        np = normalized.split()
+        for user in users:
+            up = _normalize_name(user.name).split()
+            if len(np) >= 2 and len(up) >= 2 and np[-1] == up[-1]:
+                if _first_matches(np[0], up[0]) or np[0][:3] == up[0][:3]:
+                    return user.id
+        return None
+
+    # 1) Straightforward normalization (handles "Last, First", "Last First MI",
+    #    and already "First Last").
+    matched = _match_normalized(_normalize_name(agent_name_raw))
+    if matched is not None:
+        return matched
+
+    # 2) Ambiguous-order fallback: from word count alone you cannot tell
+    #    "LONG REBEKAH" (last first) from "REBEKAH LONG" (first last). If the raw
+    #    name has exactly two tokens (ignoring a trailing single-letter middle
+    #    initial), try BOTH orderings against the user list and accept whichever
+    #    resolves to a real user.
+    raw = str(agent_name_raw or "").strip()
+    if "," not in raw:
+        tokens = raw.lower().split()
+        # Drop a trailing single-letter middle initial (e.g. "FREEMAN BRIAN L").
+        if len(tokens) == 3 and len(tokens[2]) == 1:
+            tokens = tokens[:2]
+        if len(tokens) == 2:
+            for first, last in ((tokens[0], tokens[1]), (tokens[1], tokens[0])):
+                m = _match_normalized(f"{first} {last}")
+                if m is not None:
+                    return m
 
     return None
 

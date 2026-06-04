@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 
 from app.extensions import db
-from app.models import Customer, Policy
+from app.models import Customer, Policy, CustomerAorHistory
 from app.commission.member_fact import MemberFact, RowClass
 
 
@@ -91,6 +91,55 @@ def _create_stub(fact: MemberFact, agency_id: int, agent_id: Optional[int],
     return c
 
 
+def _apply_rapid_disenroll(policy: Policy, fact: MemberFact, result: ResolveResult):
+    eff, term = fact.effective_date, fact.term_date
+    if eff and term and (term - eff).days < 90:
+        policy.rapid_disenroll = True
+        result.actions.append("rapid_disenroll")
+
+
+def _apply_carrier_switch(fact: MemberFact, customer: Customer, new_policy: Policy,
+                          agency_id: int, agent_id, result: ResolveResult):
+    """If customer has an active policy on a different carrier and this is an
+    ENROLLMENT, term the old policy. (Same-carrier renewals are not switches.)"""
+    if fact.row_class != RowClass.ENROLLMENT:
+        return
+    others = (Policy.query
+              .filter(Policy.agency_id == agency_id,
+                      Policy.customer_id == customer.id,
+                      Policy.carrier != fact.carrier,
+                      Policy.status == "active")
+              .all())
+    for old in others:
+        old.status = "termed"
+        old.new_carrier = fact.carrier
+        if not old.term_date and fact.effective_date:
+            old.term_date = fact.effective_date
+        result.actions.append("carrier_switch")
+
+
+def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
+                       agent_id, batch_id, result: ResolveResult):
+    """Open an AOR interval if none exists for this customer+carrier+effective_date.
+    BCBS term_date is a renewal date — never an end_date."""
+    if not fact.effective_date:
+        return
+    existing = CustomerAorHistory.query.filter_by(
+        customer_id=customer.id, carrier=fact.carrier, effective_date=fact.effective_date,
+    ).first()
+    if existing:
+        return
+    end_date = None if fact.carrier == "BCBS" else fact.term_date
+    aor = CustomerAorHistory(
+        agency_id=agency_id, customer_id=customer.id, agent_id=agent_id,
+        carrier=fact.carrier, plan_name=None, effective_date=fact.effective_date,
+        end_date=end_date, source=result.match_path or "commission_import",
+        import_batch_id=batch_id,
+    )
+    db.session.add(aor)
+    result.actions.append("aor_interval")
+
+
 def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int],
                      batch_id: Optional[int] = None, source: str = "commission_import"
                      ) -> ResolveResult:
@@ -113,6 +162,9 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         result.policy = _attach_policy(fact, customer, agency_id, agent_id)
         result.created_policy = True
         result.match_path = "mbi"
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
         return result
 
     # 4. Stub — nothing matched; create stub customer + policy (at most once per member,
@@ -123,4 +175,7 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
     result.policy = _attach_policy(fact, customer, agency_id, agent_id)
     result.created_policy = True
     result.match_path = "stub"
+    _apply_rapid_disenroll(result.policy, fact, result)
+    _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+    _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result)
     return result

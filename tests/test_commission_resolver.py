@@ -146,3 +146,54 @@ def test_stub_created_once_then_crosswalk_relinks(db_session, app, agency, agent
         # Exactly one customer + one policy exist for this member
         assert Customer.query.filter_by(agency_id=agency.id).count() == 1
         assert Policy.query.filter_by(agency_id=agency.id, member_id="106999999").count() == 1
+
+
+def test_rapid_disenroll_flag_set_when_under_90_days(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        fact = MemberFact(
+            carrier="Devoted", full_name="Elizabeth Bolder", first_name="Elizabeth",
+            last_name="Bolder", carrier_member_id="DS97W3", mbi="1X57MJ7FA64",
+            row_class=RowClass.CHARGEBACK, amount=-347.0,
+            effective_date=date(2026, 1, 1), term_date=date(2026, 3, 31),  # < 90d
+        )
+        r = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                             source="commission_import")
+        assert r.policy.rapid_disenroll is True
+        assert "rapid_disenroll" in r.actions
+
+
+def test_carrier_switch_terms_old_policy_and_opens_new_interval(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy, CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Dorothy", last_name="Smith",
+                     full_name="Dorothy Smith", mbi="9ZZ9ZZ9ZZ99",
+                     primary_agent_id=agent_user.id, source="bob")
+        db.session.add(c); db.session.flush()
+        old = Policy(agency_id=agency.id, carrier="Humana", member_id="PID123",
+                     mbi="9ZZ9ZZ9ZZ99", status="active", agent_id=agent_user.id,
+                     customer_id=c.id, effective_date=date(2025, 1, 1))
+        db.session.add(old); db.session.flush()
+
+        fact = MemberFact(
+            carrier="BCBS", full_name="Smith,Dorothy", first_name="Dorothy",
+            last_name="Smith", carrier_member_id="106800000", mbi="9ZZ9ZZ9ZZ99",
+            row_class=RowClass.ENROLLMENT, amount=0.0, effective_date=date(2026, 1, 1),
+        )
+        r = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                             source="commission_import")
+
+        assert r.customer.id == c.id
+        db.session.refresh(old)
+        assert old.status == "termed"
+        assert "carrier_switch" in r.actions
+        intervals = CustomerAorHistory.query.filter_by(customer_id=c.id, carrier="BCBS").all()
+        assert len(intervals) == 1
+        assert intervals[0].end_date is None

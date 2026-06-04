@@ -81,3 +81,93 @@ def normalize_healthspring(sheets):
     for mid, fact in facts_by_member.items():
         fact.agency_share_amount = agency_by_member.get(mid)
     return list(facts_by_member.values())
+
+
+# ---------------------------------------------------------------------------
+# Devoted
+#
+# Agency file has 4 sheets: Total, Override, Agent Portion, HRA.
+# The SAME member appears in both "Agent Portion" (agent share, "Base Amount")
+# and "Override" (agency share, "Admin Amount"). Collapse to ONE MemberFact:
+#   amount               = Agent Portion Base Amount
+#   agency_share_amount  = Override Admin Amount
+# HRA sheet = $50 bonuses -> NON_CUSTOMER facts with carrier_member_id=None.
+# Negative Base Amount OR a Disenroll Date present = CHARGEBACK.
+#
+# Column layout (0-indexed, verified against fixture; identical for both
+# Agent Portion and Override):
+#   0  Statement Date  1  Agent NPN     2  Agent Name      3  Member ID
+#   4  Member HICN     5  Member First  6  Member Last     7  Member State
+#   8  Signature Date  9  Effective Date 10 Disenroll Date 11 Contract
+#   12 PBP             13 Prior Plan Type 14 CMS Cycle Year 15 Commission Type
+#   16 Period          17 Base Amount (Agent Portion) / Admin Amount (Override)
+# HRA: 0 Rep Name  1 Rep ID  2 Amount  3 Note
+# ---------------------------------------------------------------------------
+def _classify_devoted(commission_type, amount, disenroll):
+    if amount < 0 or disenroll:
+        return RowClass.CHARGEBACK
+    ct = str(commission_type or "").lower()
+    if "new" in ct:        # "Initial - New" / "Initial - Not New"
+        return RowClass.ENROLLMENT
+    return RowClass.RENEWAL
+
+
+def normalize_devoted(sheets):
+    facts = {}        # member_id -> MemberFact (from Agent Portion)
+    agency = {}       # member_id -> Override admin amount
+
+    for idx, row in enumerate(sheets.get("Agent Portion", [])[1:], start=1):
+        if not any(row):
+            continue
+        member_id = str(row[3] or "").strip()
+        if not member_id:
+            continue
+        amount = _to_float(row[17])
+        first = str(row[5] or "").strip()
+        last = str(row[6] or "").strip()
+        disen = _parse_date(row[10])
+        facts[member_id] = MemberFact(
+            carrier="Devoted",
+            full_name=f"{first} {last}".strip(),
+            first_name=first,
+            last_name=last,
+            mbi=str(row[4] or "").strip() or None,    # HICN (MBI-shaped)
+            carrier_member_id=member_id,
+            effective_date=_parse_date(row[9]),
+            term_date=disen,
+            plan_contract=str(row[11] or "").strip() or None,
+            plan_pbp=str(row[12] or "").strip() or None,
+            row_class=_classify_devoted(row[15], amount, disen),
+            amount=amount,
+            writing_agent_raw=str(row[2] or "").strip(),
+            source_ref=f"devoted::Agent Portion::{idx}",
+        )
+
+    for idx, row in enumerate(sheets.get("Override", [])[1:], start=1):
+        if not any(row):
+            continue
+        member_id = str(row[3] or "").strip()
+        if member_id:
+            agency[member_id] = _to_float(row[17])
+
+    for mid, fact in facts.items():
+        fact.agency_share_amount = agency.get(mid)
+
+    out = list(facts.values())
+
+    for idx, row in enumerate(sheets.get("HRA", [])[1:], start=1):
+        if not any(row):
+            continue
+        rep = str(row[0] or "").strip()
+        amt = _to_float(row[2])
+        if not rep or amt == 0:
+            continue
+        out.append(MemberFact(
+            carrier="Devoted",
+            full_name=str(row[3] or "").strip() or "HRA Bonus",
+            row_class=RowClass.NON_CUSTOMER,
+            amount=amt,
+            writing_agent_raw=rep,
+            source_ref=f"devoted::HRA::{idx}",
+        ))
+    return out

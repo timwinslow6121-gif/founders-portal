@@ -91,3 +91,41 @@ def test_normalize_healthspring_collapses_paired_rows():
     assert wanda[0].mbi == "3AP7QV3RJ37"
     assert wanda[0].row_class == RowClass.ENROLLMENT   # "Initial - New to CMS"
     assert wanda[0].plan_contract == "H9725"
+
+
+def test_normalize_devoted_collapses_and_flags_chargebacks():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_devoted
+    from app.commission.member_fact import RowClass
+
+    sheets = load_sheets(os.path.join(FIXTURES, "devoted_sample.xlsx"))
+    facts = normalize_devoted(sheets)
+    assert facts
+
+    # Elizabeth Bolder (DS97W3): eff 01/01/2026, disenroll 03/31/2026, Base -347 = chargeback
+    bolder = [f for f in facts if f.carrier_member_id == "DS97W3"]
+    assert len(bolder) == 1
+    assert bolder[0].carrier == "Devoted"
+    assert bolder[0].row_class == RowClass.CHARGEBACK
+    assert bolder[0].amount == -347.0
+    assert bolder[0].term_date is not None
+
+    # Rene Barger (DGFY27): Apr enrollment, Base 260.25, no disenroll
+    barger = [f for f in facts if f.carrier_member_id == "DGFY27"]
+    assert len(barger) == 1
+    assert barger[0].row_class == RowClass.ENROLLMENT
+    assert barger[0].amount == 260.25
+    assert barger[0].agency_share_amount == 125.0   # Override row for same member
+
+
+def test_normalize_devoted_hra_is_non_customer():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_devoted
+    from app.commission.member_fact import RowClass
+
+    sheets = load_sheets(os.path.join(FIXTURES, "devoted_sample.xlsx"))
+    facts = normalize_devoted(sheets)
+    hras = [f for f in facts if f.row_class == RowClass.NON_CUSTOMER]
+    assert hras, "expected HRA bonus rows as NON_CUSTOMER"
+    assert all(f.carrier_member_id is None for f in hras)
+    assert all(f.amount == 50.0 for f in hras)

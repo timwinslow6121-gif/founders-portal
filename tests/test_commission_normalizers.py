@@ -129,3 +129,31 @@ def test_normalize_devoted_hra_is_non_customer():
     assert hras, "expected HRA bonus rows as NON_CUSTOMER"
     assert all(f.carrier_member_id is None for f in hras)
     assert all(f.amount == 50.0 for f in hras)
+
+
+def test_normalize_bcbs_group_types_and_no_mbi():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_bcbs
+    from app.commission.member_fact import RowClass
+
+    sheets = load_sheets(os.path.join(FIXTURES, "bcbs_sample.xlsx"))
+    facts = normalize_bcbs(sheets)
+    assert facts
+    for f in facts:
+        assert f.carrier == "BCBS"
+        assert f.mbi is None                     # BCBS never has MBI
+        assert f.carrier_member_id                # always a Customer No
+
+    classes = {f.carrier_member_id: f.row_class for f in facts}
+    # Buchanan,Andrea M 106815011 is FY → ENROLLMENT
+    assert classes.get("106815011") == RowClass.ENROLLMENT
+    # Allen,Brenda M 106729743 is RENEW → RENEWAL
+    assert classes.get("106729743") == RowClass.RENEWAL
+
+
+def test_normalize_bcbs_skips_total_row():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_bcbs
+    sheets = load_sheets(os.path.join(FIXTURES, "bcbs_sample.xlsx"))
+    facts = normalize_bcbs(sheets)
+    assert all("total" not in f.full_name.lower() for f in facts)

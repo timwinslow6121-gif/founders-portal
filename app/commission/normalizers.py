@@ -171,3 +171,65 @@ def normalize_devoted(sheets):
             source_ref=f"devoted::HRA::{idx}",
         ))
     return out
+
+
+# ---------------------------------------------------------------------------
+# BCBS
+#
+# Columns (0-indexed, verified against fixture):
+#   0  Agent #           1  Agent Name        2  Group Type (FY | NEW | RENEW | ADJUSTMENT)
+#   3  Customer Type     4  Customer Name     5  Customer No (stable id, no MBI)
+#   6  Orig Eff Date     7  Product           8  Coverage From
+#   9  Coverage To       10 Premium Period    11 Orig Sub Count
+#   12 Renewal Date      13 Billed Amount     14 Commission
+#
+# Group Type = FY|NEW → ENROLLMENT, RENEW → RENEWAL, ADJUSTMENT|negative amount → CHARGEBACK
+# Trailing "Total:" row is skipped (no Customer No).
+# Customer Name is "Last,First M" format.
+# No MBI column; carrier_member_id = Customer No.
+# ---------------------------------------------------------------------------
+def _classify_bcbs(group_type, amount):
+    gt = str(group_type or "").upper().strip()
+    if amount < 0 or gt == "ADJUSTMENT":
+        return RowClass.CHARGEBACK
+    if gt == "RENEW":
+        return RowClass.RENEWAL
+    if gt in ("FY", "NEW"):
+        return RowClass.ENROLLMENT
+    return RowClass.RENEWAL
+
+
+def normalize_bcbs(sheets):
+    rows = sheets.get("Sheet1", [])
+    if not rows:
+        return []
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+        name = str(row[4] or "").strip()
+        customer_no = str(row[5] or "").strip()
+        if not name or not customer_no:        # skips Total: row
+            continue
+        if "," in name:
+            last, first_rest = [p.strip() for p in name.split(",", 1)]
+            first = first_rest.split()[0] if first_rest else ""
+        else:
+            last, first = name, ""
+        amount = _to_float(row[14])
+        out.append(MemberFact(
+            carrier="BCBS",
+            full_name=name,
+            first_name=first,
+            last_name=last,
+            mbi=None,
+            carrier_member_id=customer_no,
+            effective_date=_parse_date(row[6]),
+            term_date=_parse_date(row[9]),
+            plan_type=str(row[7] or "").strip() or None,
+            row_class=_classify_bcbs(row[2], amount),
+            amount=amount,
+            writing_agent_raw=str(row[1] or "").strip(),
+            source_ref=f"bcbs::Sheet1::{idx}",
+        ))
+    return out

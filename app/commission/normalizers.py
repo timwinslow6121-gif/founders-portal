@@ -233,3 +233,74 @@ def normalize_bcbs(sheets):
             source_ref=f"bcbs::Sheet1::{idx}",
         ))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Aetna
+#
+# Agency-level multi-agent file (one sheet, named after agency, e.g.
+# "Founders Insurance Agency, LLC_"). Column layout (0-indexed, verified
+# against fixture):
+#   0  Payment Date      1  Medicare Number (MBI)     2  Member ID
+#   4  Member Name       6  Sales Event               7  Product (MAPD/PDP)
+#   9  Plan ID           12 Effective Date            13 Term Date
+#   16 Writing Agent Name 20 Payee Amount
+#
+# Sales Event taxonomy:
+#   "Renewal"            -> RENEWAL
+#   "Pro-Rata Payment"   -> ENROLLMENT (new sale)
+#   "Pro-Rata Disenroll" or amount < 0 -> CHARGEBACK
+# Plan ID like "H3146-006" splits into contract="H3146", pbp="006".
+# ---------------------------------------------------------------------------
+def _split_plan_id(plan_id):
+    """'H3146-006' -> ('H3146', '006'); 'S5601-016' -> ('S5601','016')."""
+    s = str(plan_id or "").strip()
+    if "-" in s:
+        a, b = s.split("-", 1)
+        return a.strip() or None, b.strip() or None
+    return (s or None), None
+
+
+def _classify_aetna(sales_event, amount):
+    se = str(sales_event or "").lower()
+    if amount < 0 or "disenroll" in se:
+        return RowClass.CHARGEBACK
+    if "renewal" in se:
+        return RowClass.RENEWAL
+    if "pro-rata" in se or "new" in se:
+        return RowClass.ENROLLMENT
+    return RowClass.RENEWAL
+
+
+def normalize_aetna(sheets):
+    """Agency-level Aetna file: one sheet, named after the agency."""
+    if not sheets:
+        return []
+    first = next(iter(sheets.values()))
+    if not first:
+        return []
+    out = []
+    for idx, row in enumerate(first[1:], start=1):
+        if not any(row) or len(row) < 21:
+            continue
+        name = str(row[4] or "").strip()
+        if not name:
+            continue
+        amount = _to_float(row[20])
+        contract, pbp = _split_plan_id(row[9])
+        out.append(MemberFact(
+            carrier="Aetna",
+            full_name=name,
+            mbi=str(row[1] or "").strip() or None,
+            carrier_member_id=str(row[2] or "").strip() or None,
+            effective_date=_parse_date(row[12]),
+            term_date=_parse_date(row[13]),
+            plan_contract=contract,
+            plan_pbp=pbp,
+            plan_type=str(row[7] or "").strip() or None,
+            row_class=_classify_aetna(row[6], amount),
+            amount=amount,
+            writing_agent_raw=str(row[16] or "").strip(),
+            source_ref=f"aetna::0::{idx}",
+        ))
+    return out

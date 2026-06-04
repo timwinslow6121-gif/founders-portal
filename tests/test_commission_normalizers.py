@@ -157,3 +157,27 @@ def test_normalize_bcbs_skips_total_row():
     sheets = load_sheets(os.path.join(FIXTURES, "bcbs_sample.xlsx"))
     facts = normalize_bcbs(sheets)
     assert all("total" not in f.full_name.lower() for f in facts)
+
+
+def test_normalize_aetna_sales_events_and_mbi():
+    from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import normalize_aetna
+    from app.commission.member_fact import RowClass
+
+    sheets = load_sheets(os.path.join(FIXTURES, "aetna_sample.xlsx"))
+    facts = normalize_aetna(sheets)
+    assert facts
+    for f in facts:
+        assert f.carrier == "Aetna"
+
+    # BOBBY ADERHOLD (6CM1RV8NW05) Renewal 28.92
+    aderhold = [f for f in facts if f.mbi == "6CM1RV8NW05"]
+    assert len(aderhold) >= 1
+    assert aderhold[0].row_class == RowClass.RENEWAL
+    assert aderhold[0].plan_contract == "H3146"
+    assert aderhold[0].plan_pbp == "006"
+
+    # DAVID BURNER (1KR6UW2KP73) has a Pro-Rata Disenroll of -347 → chargeback
+    burner_cb = [f for f in facts if f.mbi == "1KR6UW2KP73" and f.amount < 0]
+    assert burner_cb
+    assert burner_cb[0].row_class == RowClass.CHARGEBACK

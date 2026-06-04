@@ -41,12 +41,20 @@ def get_customer_policies(customer):
     policies = []
     agency_id = customer.agency_id
 
-    if customer.mbi:
-        policies = Policy.query.filter_by(
-            mbi=customer.mbi, agency_id=agency_id
-        ).order_by(Policy.carrier).all()
+    # FK-first: policies explicitly linked to this customer (works for no-MBI carriers).
+    policies = Policy.query.filter_by(
+        customer_id=customer.id, agency_id=agency_id
+    ).order_by(Policy.carrier).all()
+    seen_ids = {p.id for p in policies}
 
-    # Collect carriers already found via MBI to avoid duplicates
+    # MBI join (legacy link) — add any not already found via FK.
+    if customer.mbi:
+        for p in Policy.query.filter_by(mbi=customer.mbi, agency_id=agency_id).all():
+            if p.id not in seen_ids:
+                policies.append(p)
+                seen_ids.add(p.id)
+
+    # Collect carriers already found via FK/MBI to avoid duplicate Humana queries
     found_carriers = {p.carrier for p in policies}
 
     # Humana fallback — Humana masks the MBI, match on phone + DOB
@@ -57,14 +65,20 @@ def get_customer_policies(customer):
                        dob=customer.dob, agency_id=agency_id)
             .all()
         )
-        policies.extend(humana_policies)
+        for p in humana_policies:
+            if p.id not in seen_ids:
+                policies.append(p)
+                seen_ids.add(p.id)
 
     # Also match by humana_id if available
     if customer.humana_id and "Humana" not in {p.carrier for p in policies}:
         humana_by_id = Policy.query.filter_by(
             carrier="Humana", member_id=customer.humana_id, agency_id=agency_id
         ).all()
-        policies.extend(humana_by_id)
+        for p in humana_by_id:
+            if p.id not in seen_ids:
+                policies.append(p)
+                seen_ids.add(p.id)
 
     # Sort: carrier then effective_date desc
     policies.sort(key=lambda p: (p.carrier, p.effective_date or ""))

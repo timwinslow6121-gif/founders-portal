@@ -256,3 +256,23 @@ def test_mbi_only_fact_is_idempotent_no_duplicate_policy(db_session, app, agency
         assert Policy.query.filter_by(agency_id=agency.id, carrier="UHC").count() == 1
         assert Customer.query.filter_by(agency_id=agency.id).count() == 1
         assert r2.policy.id == r1.policy.id
+
+
+def test_get_customer_policies_finds_fk_linked_bcbs_no_mbi(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.customers import get_customer_policies
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Sam", last_name="Newby",
+                     full_name="Sam Newby", mbi=None, stub=True,
+                     source="commission_import", primary_agent_id=agent_user.id)
+        db.session.add(c); db.session.flush()
+        p = Policy(agency_id=agency.id, carrier="BCBS", member_id="106999999",
+                   mbi=None, status="active", agent_id=agent_user.id, customer_id=c.id,
+                   full_name="Sam Newby")
+        db.session.add(p); db.session.commit()
+
+        policies = get_customer_policies(c)
+        assert any(pol.carrier == "BCBS" and pol.member_id == "106999999"
+                   for pol in policies)

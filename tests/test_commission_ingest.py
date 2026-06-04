@@ -75,3 +75,26 @@ def test_write_payment_flags_chargeback_on_negative(db_session, app, agency, age
         db.session.flush()
         assert p.paid_amount == -347.0
         assert p.is_chargeback is True
+
+
+def test_compute_fingerprint_is_stable_and_sensitive(db_session, app, agency):
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.ingest import compute_fingerprint
+
+    facts = [
+        MemberFact(carrier="Devoted", full_name="A B", carrier_member_id="1",
+                   row_class=RowClass.ENROLLMENT, amount=100.0),
+        MemberFact(carrier="Devoted", full_name="C D", carrier_member_id="2",
+                   row_class=RowClass.RENEWAL, amount=28.92),
+    ]
+    fp1 = compute_fingerprint("Devoted", "May 2026", facts)
+    fp2 = compute_fingerprint("Devoted", "May 2026", list(facts))
+    assert fp1 == fp2                       # stable / order-independent on same data
+
+    # A changed amount → different fingerprint
+    facts2 = [facts[0], MemberFact(carrier="Devoted", full_name="C D",
+              carrier_member_id="2", row_class=RowClass.RENEWAL, amount=99.99)]
+    assert compute_fingerprint("Devoted", "May 2026", facts2) != fp1
+
+    # A different period → different fingerprint
+    assert compute_fingerprint("Devoted", "June 2026", facts) != fp1

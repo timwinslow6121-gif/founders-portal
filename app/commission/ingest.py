@@ -10,6 +10,7 @@ See docs/superpowers/specs/2026-06-03-commission-customer-sync-design.md §4.
 """
 from dataclasses import dataclass, field
 from typing import List, Optional
+import hashlib
 
 from app.extensions import db
 from app.models import PolicyPayment
@@ -65,3 +66,15 @@ def write_payment_from_fact(fact: MemberFact, statement, policy, agency_id: int,
     existing.term_date = fact.term_date
     existing.plan_name = None
     return existing
+
+
+def compute_fingerprint(carrier: str, period_label: str, facts: List[MemberFact]) -> str:
+    """A stable, order-independent signature of a statement's content. Used to
+    detect an exact re-upload. Sensitive to row count, the set of member ids, and
+    the summed amount — so a corrected re-pull (different totals) is NOT mistaken
+    for an exact duplicate."""
+    total = round(sum(f.amount for f in facts), 2)
+    ids = sorted((f.carrier_member_id or f.mbi or _norm(f.full_name) or "") for f in facts)
+    h = hashlib.sha256()
+    h.update(f"{carrier}|{period_label}|{len(facts)}|{total}|{'|'.join(ids)}".encode())
+    return h.hexdigest()

@@ -1,0 +1,77 @@
+"""
+tests/test_commission_ingest.py
+
+Tests for the commission ingest pipeline: write payments from MemberFact (update-
+in-place), fingerprint, and the normalize→resolve→pay flow. SQLite in-memory.
+"""
+import os
+from datetime import date
+
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+
+
+def _statement(db, agency, carrier="Devoted"):
+    from app.models import CommissionStatement
+    s = CommissionStatement(agency_id=agency.id, carrier=carrier,
+                            statement_date=date(2026, 5, 1), period_label="May 2026")
+    db.session.add(s)
+    db.session.flush()
+    return s
+
+
+def test_write_payment_from_fact_inserts_then_updates(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy, PolicyPayment
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.ingest import write_payment_from_fact
+
+    with app.app_context():
+        stmt = _statement(db, agency)
+        cust = Customer(agency_id=agency.id, first_name="X", last_name="Y", full_name="X Y")
+        db.session.add(cust); db.session.flush()
+        pol = Policy(agency_id=agency.id, carrier="Devoted", member_id="DGFY27",
+                     status="active", customer_id=cust.id)
+        db.session.add(pol); db.session.flush()
+
+        fact = MemberFact(carrier="Devoted", full_name="Rene Barger", first_name="Rene",
+                          last_name="Barger", carrier_member_id="DGFY27",
+                          row_class=RowClass.ENROLLMENT, amount=260.25,
+                          effective_date=date(2026, 4, 1))
+
+        p1 = write_payment_from_fact(fact, stmt, pol, agency.id, agent_user.id)
+        db.session.flush()
+        assert p1.paid_amount == 260.25
+        assert p1.policy_id == pol.id
+        assert p1.is_chargeback is False
+        assert PolicyPayment.query.filter_by(statement_id=stmt.id).count() == 1
+
+        # Same fact again (re-upload) → UPDATE in place, not a 2nd row
+        fact.amount = 270.00
+        p2 = write_payment_from_fact(fact, stmt, pol, agency.id, agent_user.id)
+        db.session.flush()
+        assert p2.id == p1.id
+        assert p2.paid_amount == 270.00
+        assert PolicyPayment.query.filter_by(statement_id=stmt.id).count() == 1
+
+
+def test_write_payment_flags_chargeback_on_negative(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.ingest import write_payment_from_fact
+
+    with app.app_context():
+        stmt = _statement(db, agency)
+        cust = Customer(agency_id=agency.id, first_name="C", last_name="B", full_name="C B")
+        db.session.add(cust); db.session.flush()
+        pol = Policy(agency_id=agency.id, carrier="Devoted", member_id="DS97W3",
+                     status="active", customer_id=cust.id)
+        db.session.add(pol); db.session.flush()
+        fact = MemberFact(carrier="Devoted", full_name="Elizabeth Bolder",
+                          first_name="Elizabeth", last_name="Bolder",
+                          carrier_member_id="DS97W3", row_class=RowClass.CHARGEBACK,
+                          amount=-347.0)
+        p = write_payment_from_fact(fact, stmt, pol, agency.id, agent_user.id)
+        db.session.flush()
+        assert p.paid_amount == -347.0
+        assert p.is_chargeback is True

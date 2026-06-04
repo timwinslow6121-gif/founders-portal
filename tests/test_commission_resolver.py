@@ -230,3 +230,29 @@ def test_suggest_link_creates_stub_and_suggestion_no_automerge(db_session, app, 
         assert ms.suggested_customer_id == existing.id
         assert ms.stub_customer_id == r.customer.id
         assert ms.confidence == "name_dob"
+
+
+def test_mbi_only_fact_is_idempotent_no_duplicate_policy(db_session, app, agency, agent_user):
+    """An MBI-only fact (no carrier_member_id, e.g. UHC BOB row) must not create a
+    duplicate policy on re-upload — crosswalk must find the MBI-keyed policy."""
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        fact = MemberFact(
+            carrier="UHC", full_name="Jo Test", first_name="Jo", last_name="Test",
+            mbi="TESTMBI999", carrier_member_id=None,
+            row_class=RowClass.RENEWAL, amount=10.0, effective_date=date(2026, 1, 1),
+        )
+        r1 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                              source="bob")
+        db.session.commit()
+        r2 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                              source="bob")
+        db.session.commit()  # must NOT raise IntegrityError
+
+        assert Policy.query.filter_by(agency_id=agency.id, carrier="UHC").count() == 1
+        assert Customer.query.filter_by(agency_id=agency.id).count() == 1
+        assert r2.policy.id == r1.policy.id

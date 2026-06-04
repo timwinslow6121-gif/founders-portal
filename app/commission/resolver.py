@@ -29,8 +29,9 @@ class ResolveResult:
 
 
 def _crosswalk(fact: MemberFact, agency_id: int):
-    """Return existing Policy matched by (carrier, carrier_member_id), else None."""
-    cid = (fact.carrier_member_id or "").strip()
+    """Return existing Policy matched by (carrier, effective member_id), else None.
+    The effective member_id mirrors _attach_policy: carrier_member_id, else MBI."""
+    cid = (fact.carrier_member_id or fact.mbi or "").strip()
     if not cid:
         return None
     return (Policy.query
@@ -179,8 +180,12 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
     customer = _match_by_mbi(fact, agency_id)
     if customer is not None:
         result.customer = customer
-        result.policy = _attach_policy(fact, customer, agency_id, agent_id)
-        result.created_policy = True
+        existing = _crosswalk(fact, agency_id)
+        if existing is not None:
+            result.policy = existing
+        else:
+            result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+            result.created_policy = True
         result.match_path = "mbi"
         _apply_rapid_disenroll(result.policy, fact, result)
         _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)

@@ -205,3 +205,10 @@ def test_normalize_humana_txntype_taxonomy():
 
     # at least one ARCM renewal present
     assert any(f.row_class == RowClass.RENEWAL for f in facts)
+
+
+def test_normalizer_registry_dispatch():
+    from app.commission.normalizers import NORMALIZERS
+    for carrier in ("Healthspring", "Devoted", "BCBS", "Aetna", "Humana"):
+        assert carrier in NORMALIZERS
+        assert callable(NORMALIZERS[carrier])

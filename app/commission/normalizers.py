@@ -367,3 +367,15 @@ def normalize_humana(sheets):
             source_ref=f"humana::{name}::{idx}",
         ))
     return out
+
+
+# ── Carrier dispatch registry ──────────────────────────────────────────────────
+# UHC is intentionally absent — its lumped LOA split needs the provenance-style
+# inferred-split + AJ override, built last (Plan 6).
+NORMALIZERS = {
+    "Healthspring": normalize_healthspring,
+    "Devoted": normalize_devoted,
+    "BCBS": normalize_bcbs,
+    "Aetna": normalize_aetna,
+    "Humana": normalize_humana,
+}

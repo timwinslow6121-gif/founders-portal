@@ -67,3 +67,43 @@ def get_field(customer, field):
 def trust_of(customer, field):
     rec = get_field(customer, field)
     return rec.get("trust") if rec else None
+
+
+def _set_column(customer, field, value):
+    """Write the real typed column. dob is the only date field; others are strings."""
+    if field == "dob" and isinstance(value, str) and value:
+        try:
+            value = date.fromisoformat(value)
+        except ValueError:
+            pass
+    setattr(customer, field, value)
+
+
+def set_human_value(customer, field, value, user, note=None, verify=False):
+    """Apply a human edit (agent) or verification (verify=True -> AJ).
+
+    Writes the real column AND _meta, appends history, sets manually_edited=True.
+    `value` may be a scalar or a date; stored as a scalar in _meta.
+    """
+    if field not in PROVENANCE_FIELDS:
+        raise ValueError(f"{field} is not a provenance-tracked field")
+
+    _set_column(customer, field, value)
+    scalar = _to_scalar(value)
+
+    data = _load(customer)
+    meta = data.setdefault("_meta", {})
+    prev = meta.get(field, {}).get("value")
+    history = meta.get(field, {}).get("history", [])
+    history.append({"at": _now(), "by": getattr(user, "name", None),
+                    "from": prev, "to": scalar, "note": note})
+    meta[field] = {
+        "value": scalar,
+        "source": "aj_verified" if verify else "agent_edit",
+        "trust": "human_verified" if verify else "agent_entered",
+        "updated_at": _now(),
+        "updated_by": getattr(user, "name", None),
+        "history": history,
+    }
+    _save(customer, data)
+    customer.manually_edited = True

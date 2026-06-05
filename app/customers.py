@@ -134,19 +134,32 @@ def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_
             )
         )
     if f_carrier or f_plan_type:
-        policy_q = db.session.query(Policy.mbi).filter(
-            Policy.agency_id == current_user.agency_id,
-            Policy.mbi.isnot(None),
-        )
+        # Base policy filter (carrier / plan_type), scoped to agency.
+        base = Policy.query.filter(Policy.agency_id == current_user.agency_id)
         if f_carrier:
-            policy_q = policy_q.filter(Policy.carrier == f_carrier)
+            base = base.filter(Policy.carrier == f_carrier)
         if f_plan_type:
             # "all_ma" = any Medicare Advantage subtype; specific values filter exactly
             if f_plan_type == "all_ma":
-                policy_q = policy_q.filter(Policy.plan_type.in_(["MAPD", "MA", "DSNP", "CSNP"]))
+                base = base.filter(Policy.plan_type.in_(["MAPD", "MA", "DSNP", "CSNP"]))
             else:
-                policy_q = policy_q.filter(Policy.plan_type == f_plan_type)
-        query = query.filter(Customer.mbi.in_(policy_q.distinct()))
+                base = base.filter(Policy.plan_type == f_plan_type)
+
+        # FK-first: customer_ids directly linked to matching policies (works for
+        # no-MBI carriers like Humana/BCBS).
+        fk_ids = (base.filter(Policy.customer_id.isnot(None))
+                      .with_entities(Policy.customer_id).distinct())
+
+        # MBI fallback: customers whose MBI matches a matching policy's MBI
+        # (covers any policy whose customer_id FK was not backfilled).
+        mbi_subq = (base.filter(Policy.mbi.isnot(None))
+                        .with_entities(Policy.mbi).distinct())
+        mbi_ids = (db.session.query(Customer.id)
+                   .filter(Customer.agency_id == current_user.agency_id,
+                           Customer.mbi.isnot(None),
+                           Customer.mbi.in_(mbi_subq)))
+
+        query = query.filter(Customer.id.in_(fk_ids.union(mbi_ids)))
     if f_agent_id and current_user.is_admin:
         query = query.filter(Customer.primary_agent_id == f_agent_id)
     if f_medicaid:

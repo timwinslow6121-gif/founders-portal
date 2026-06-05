@@ -107,11 +107,11 @@ Key invariants:
 **Migration 022** — `customers.field_provenance` + `customers.has_unresolved_conflicts`, chained off 021.
 
 **`scripts/backfill_customer_provenance.py`** (run on VPS, idempotent — skips fields that already have provenance). Seeds provenance for the existing ~510 customers so the engine starts informed:
-- `manually_edited=True` customers → populated **contact** fields (phone_primary, phone_secondary, email, address1, city, state, zip_code, county) seeded as **`agent_entered`** (protects the corrections that flag was guarding); populated **identity** fields (mbi, humana_id, first_name, last_name, dob, gender, medicaid_*) seeded as **`carrier_import`**.
+- `manually_edited=True` customers → **all** populated tracked fields (identity AND contact) seeded as **`agent_entered`**. Rationale: any field on a human-touched customer is human-trusted truth — a mistyped MBI or DOB is precisely the case where a later carrier import should *flag a conflict for review* rather than silently keep the typo or silently overwrite it. Uniform "protect everything a human touched" rule, no contact/identity special-casing.
 - `manually_edited=False` customers → all populated tracked fields seeded as **`carrier_import`**.
 - `source` recorded from the customer's existing `source` column where present, else `bob`.
 
-Day-one result: human corrections protected, carrier data overwritable-by-newer-carrier, nothing falsely `human_verified`.
+Day-one result: every human correction (identity + contact) is protected and will flag a conflict if a carrier import disagrees (the typo-catcher); carrier-sourced data is overwritable-by-newer-carrier; nothing is falsely `human_verified`.
 
 ### Relationship to `manually_edited`
 
@@ -124,7 +124,7 @@ Local SQLite (conftest fixtures), mirroring `tests/test_plan_provenance.py`:
 - **Human writes** (`set_human_value`): sets column + agent_entered; verify=True→human_verified; appends history; sets manually_edited=True.
 - **Conflict lifecycle**: list_conflicts returns pending; resolve_conflict('keep_current') clears + keeps column; resolve_conflict('take_incoming') clears + writes column; has_unresolved_conflicts toggles.
 - **Round-trip**: write via engine → read real column directly → matches (column + metadata in sync).
-- **Backfill**: manually_edited=True customer's email → agent_entered; plain customer's zip → carrier_import; re-run is idempotent.
+- **Backfill**: manually_edited=True customer's email AND mbi both → agent_entered (all populated fields protected uniformly); plain customer's zip → carrier_import; re-run is idempotent.
 
 ## Boundaries (what Sub-project A is NOT)
 

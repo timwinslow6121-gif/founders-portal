@@ -81,3 +81,83 @@ def test_set_human_value_dob_serializes(db_session, app, agency, agent_user):
         db.session.flush()
         assert c.dob == date(1956, 8, 28)
         assert cp.get_field(c, "dob")["value"] == "1956-08-28"
+
+
+def _fresh(db, agency):
+    from app.models import Customer
+    c = Customer(agency_id=agency.id, first_name="A", last_name="B", full_name="A B")
+    db.session.add(c); db.session.flush()
+    return c
+
+
+def test_import_writes_empty_field(db_session, app, agency):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        action = cp.set_import_value(c, "zip_code", "28205", "bob_import")
+        db.session.flush()
+        assert action == "written"
+        assert c.zip_code == "28205"
+        assert cp.trust_of(c, "zip_code") == "carrier_import"
+
+
+def test_import_skips_blank_incoming(db_session, app, agency):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        assert cp.set_import_value(c, "zip_code", "", "bob_import") == "skipped"
+        assert cp.set_import_value(c, "zip_code", None, "bob_import") == "skipped"
+        assert c.zip_code is None
+        assert cp.get_field(c, "zip_code") is None
+
+
+def test_import_confirms_same_value(db_session, app, agency):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_import_value(c, "zip_code", "28205", "bob_import"); db.session.flush()
+        action = cp.set_import_value(c, "zip_code", "28205", "commission_import")
+        assert action == "confirmed"
+        assert c.zip_code == "28205"
+
+
+def test_import_overwrites_other_carrier_value(db_session, app, agency):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_import_value(c, "zip_code", "28205", "bob_import"); db.session.flush()
+        action = cp.set_import_value(c, "zip_code", "28202", "commission_import")
+        assert action == "written"
+        assert c.zip_code == "28202"
+
+
+def test_import_conflicts_with_agent_value(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "zip_code", "28205", agent_user); db.session.flush()
+        action = cp.set_import_value(c, "zip_code", "28202", "bob_import")
+        db.session.flush()
+        assert action == "conflict_flagged"
+        assert c.zip_code == "28205"
+        assert c.has_unresolved_conflicts is True
+        conflicts = cp.list_conflicts(c)
+        assert len(conflicts) == 1
+        assert conflicts[0]["field"] == "zip_code"
+        assert conflicts[0]["incoming"]["value"] == "28202"
+
+
+def test_import_conflict_is_idempotent(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "zip_code", "28205", agent_user); db.session.flush()
+        cp.set_import_value(c, "zip_code", "28202", "bob_import"); db.session.flush()
+        cp.set_import_value(c, "zip_code", "28202", "bob_import"); db.session.flush()
+        assert len(cp.list_conflicts(c)) == 1

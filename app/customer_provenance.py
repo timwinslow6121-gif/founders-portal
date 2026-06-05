@@ -107,3 +107,85 @@ def set_human_value(customer, field, value, user, note=None, verify=False):
     }
     _save(customer, data)
     customer.manually_edited = True
+
+
+def _is_blank(value):
+    return value is None or (isinstance(value, str) and value.strip() == "")
+
+
+def _flag_conflict(data, customer, field, existing, incoming_scalar, source):
+    """Append one open conflict per field (idempotent — mirrors plan_provenance)."""
+    conflicts = data.setdefault("_conflicts", [])
+    for c in conflicts:
+        if c["field"] == field and not c.get("resolved"):
+            return
+    conflicts.append({
+        "field": field,
+        "existing": {
+            "value": existing.get("value"),
+            "source": existing.get("source"),
+            "by": existing.get("updated_by"),
+            "at": existing.get("updated_at"),
+        },
+        "incoming": {"value": incoming_scalar, "source": source, "at": _now()},
+        "flagged_at": _now(),
+        "resolved": False, "resolved_by": None, "resolved_at": None, "resolution": None,
+    })
+
+
+def set_import_value(customer, field, value, source):
+    """Apply an import-sourced value using precedence. Returns:
+    'skipped' | 'written' | 'confirmed' | 'conflict_flagged'.
+
+    Never overwrites an agent_entered/human_verified value (flags a conflict).
+    A differing carrier-tier value is overwritten (newer carrier wins).
+    """
+    if field not in PROVENANCE_FIELDS:
+        raise ValueError(f"{field} is not a provenance-tracked field")
+    if _is_blank(value):
+        return "skipped"
+
+    scalar = _to_scalar(value)
+    data = _load(customer)
+    meta = data.setdefault("_meta", {})
+    existing = meta.get(field)
+
+    def _write(action, prev=None):
+        history = (existing or {}).get("history", [])
+        history.append({"at": _now(), "by": None, "from": prev, "to": scalar,
+                        "note": f"import:{source}"})
+        meta[field] = {
+            "value": scalar, "source": source, "trust": "carrier_import",
+            "updated_at": _now(), "updated_by": None, "history": history,
+        }
+        _set_column(customer, field, value)
+        _save(customer, data)
+        return action
+
+    if existing is None:
+        return _write("written")
+
+    prev = existing.get("value")
+    same = (prev == scalar)
+    trust = existing.get("trust")
+
+    if same:
+        existing["updated_at"] = _now()
+        _save(customer, data)
+        return "confirmed"
+
+    if trust in ("agent_entered", "human_verified"):
+        _flag_conflict(data, customer, field, existing, scalar, source)
+        _save(customer, data)
+        customer.has_unresolved_conflicts = True
+        return "conflict_flagged"
+
+    # carrier_import tier and differs -> newer carrier wins
+    return _write("written", prev=prev)
+
+
+def list_conflicts(customer, unresolved_only=True):
+    conflicts = _load(customer).get("_conflicts", [])
+    if unresolved_only:
+        return [c for c in conflicts if not c.get("resolved")]
+    return conflicts

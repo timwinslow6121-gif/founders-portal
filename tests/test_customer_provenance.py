@@ -161,3 +161,32 @@ def test_import_conflict_is_idempotent(db_session, app, agency, agent_user):
         cp.set_import_value(c, "zip_code", "28202", "bob_import"); db.session.flush()
         cp.set_import_value(c, "zip_code", "28202", "bob_import"); db.session.flush()
         assert len(cp.list_conflicts(c)) == 1
+
+
+def test_resolve_conflict_keep_current(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "zip_code", "28205", agent_user); db.session.flush()
+        cp.set_import_value(c, "zip_code", "28202", "bob_import"); db.session.flush()
+
+        cp.resolve_conflict(c, "zip_code", "keep_current", agent_user); db.session.flush()
+        assert c.zip_code == "28205"
+        assert cp.trust_of(c, "zip_code") == "human_verified"
+        assert c.has_unresolved_conflicts is False
+        assert cp.list_conflicts(c) == []
+
+
+def test_resolve_conflict_take_incoming(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "zip_code", "28205", agent_user); db.session.flush()
+        cp.set_import_value(c, "zip_code", "28202", "bob_import"); db.session.flush()
+
+        cp.resolve_conflict(c, "zip_code", "take_incoming", agent_user); db.session.flush()
+        assert c.zip_code == "28202"
+        assert cp.trust_of(c, "zip_code") == "human_verified"
+        assert c.has_unresolved_conflicts is False

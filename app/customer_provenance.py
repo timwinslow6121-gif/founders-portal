@@ -189,3 +189,45 @@ def list_conflicts(customer, unresolved_only=True):
     if unresolved_only:
         return [c for c in conflicts if not c.get("resolved")]
     return conflicts
+
+
+def resolve_conflict(customer, field, choose, user, note=None):
+    """Resolve a field conflict. choose in {'keep_current', 'take_incoming'}.
+
+    The surviving value is written as human_verified (a resolution is a human
+    decision). Marks the conflict resolved and recomputes has_unresolved_conflicts.
+    """
+    if choose not in ("keep_current", "take_incoming"):
+        raise ValueError("choose must be 'keep_current' or 'take_incoming'")
+
+    data = _load(customer)
+    meta = data.setdefault("_meta", {})
+    rec = meta.get(field, {})
+    current = rec.get("value")
+
+    conflict = next((c for c in data.get("_conflicts", [])
+                     if c["field"] == field and not c.get("resolved")), None)
+    incoming = conflict["incoming"]["value"] if conflict else None
+
+    surviving = current if choose == "keep_current" else incoming
+
+    history = rec.get("history", [])
+    history.append({"at": _now(), "by": getattr(user, "name", None),
+                    "from": current, "to": surviving,
+                    "note": note or f"conflict resolved ({choose})"})
+    meta[field] = {
+        "value": surviving, "source": "aj_verified", "trust": "human_verified",
+        "updated_at": _now(), "updated_by": getattr(user, "name", None),
+        "history": history,
+    }
+    _set_column(customer, field, surviving)
+
+    for c in data.get("_conflicts", []):
+        if c["field"] == field and not c.get("resolved"):
+            c["resolved"] = True
+            c["resolved_by"] = getattr(user, "name", None)
+            c["resolved_at"] = _now()
+            c["resolution"] = choose
+    _save(customer, data)
+    remaining = [c for c in data.get("_conflicts", []) if not c.get("resolved")]
+    customer.has_unresolved_conflicts = bool(remaining)

@@ -12,6 +12,11 @@ One-time, idempotent backfill seeding per-field provenance for existing customer
 
 Run on VPS:  ./venv/bin/python3 scripts/backfill_customer_provenance.py
 """
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app import customer_provenance as cp
 
 

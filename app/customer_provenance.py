@@ -28,6 +28,13 @@ PROVENANCE_FIELDS = [
 
 TRUST_ORDER = {"carrier_import": 1, "agent_entered": 2, "human_verified": 3}
 
+__all__ = [
+    "PROVENANCE_FIELDS", "TRUST_ORDER",
+    "get_field", "trust_of",
+    "set_human_value", "set_import_value",
+    "list_conflicts", "resolve_conflict",
+]
+
 # source strings (trust tier in parens): agent_edit(agent_entered),
 # aj_verified(human_verified), bob_import/commission_import/healthsherpa(carrier_import)
 

@@ -143,3 +143,29 @@ def test_aetna_extracts_payee_amount_rows():
     drafts = extract_lineitems_aetna(sheets, split_lookup=lambda raw: 0.55)
     assert drafts, "no Aetna line items extracted"
     assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_aetna(sheets), 2)
+
+
+def test_devoted_produces_override_agent_and_hra():
+    from app.commission.ledger import (extract_lineitems_devoted, money_rows_total_devoted,
+                                        FOUNDERS_OVERRIDE, AGENT_COMMISSION, HRA_BONUS)
+    sheets = _load_fixture("devoted_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    classes = {d.classification for d in drafts}
+    # Override must be present (the row the normalizer collapses away).
+    assert FOUNDERS_OVERRIDE in classes
+    assert AGENT_COMMISSION in classes
+    # HRA may or may not be in this fixture; if present it is hra_bonus with split.
+    for d in drafts:
+        if d.classification == HRA_BONUS:
+            assert d.split_rate == 0.55
+        if d.classification == FOUNDERS_OVERRIDE:
+            assert d.split_rate is None
+    assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_devoted(sheets), 2)
+
+
+def test_humana_classifies_and_totals():
+    from app.commission.ledger import extract_lineitems_humana, money_rows_total_humana
+    sheets = _load_fixture("humana_sample.xls")
+    drafts = extract_lineitems_humana(sheets, split_lookup=lambda raw: 0.55)
+    assert drafts, "no Humana line items extracted"
+    assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_humana(sheets), 2)

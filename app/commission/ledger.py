@@ -212,3 +212,172 @@ def money_rows_total_aetna(sheets) -> float:
             continue
         total += _to_float(row[20])
     return total
+
+
+def _devoted_sheet_rows(sheets, sheet_name):
+    return sheets.get(sheet_name, [])
+
+
+def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
+    out = []
+    # Agent Portion → agent_commission / chargeback
+    for idx, row in enumerate(_devoted_sheet_rows(sheets, "Agent Portion")[1:], start=1):
+        if not any(row) or len(row) <= 17:
+            continue
+        member_id = str(row[3] or "").strip()
+        if not member_id:
+            continue
+        amount = _to_float(row[17])
+        disen = _parse_date(row[10])
+        classification = CHARGEBACK if (amount < 0 or disen) else AGENT_COMMISSION
+        writing = str(row[2] or "").strip()
+        first = str(row[5] or "").strip()
+        last = str(row[6] or "").strip()
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::Agent Portion::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=split_lookup(writing),
+            payment_type=str(row[15] or "").strip().lower() or None,
+            member_name=f"{first} {last}".strip(),
+            mbi=str(row[4] or "").strip() or None,
+            carrier_member_id=member_id,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(row[9]),
+            term_date=disen,
+        ))
+    # Override → founders_override (no split)
+    for idx, row in enumerate(_devoted_sheet_rows(sheets, "Override")[1:], start=1):
+        if not any(row) or len(row) <= 17:
+            continue
+        member_id = str(row[3] or "").strip()
+        if not member_id:
+            continue
+        first = str(row[5] or "").strip()
+        last = str(row[6] or "").strip()
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::Override::{idx}",
+            raw_amount=_to_float(row[17]),
+            classification=FOUNDERS_OVERRIDE,
+            split_rate=None,
+            payment_type="override",
+            member_name=f"{first} {last}".strip(),
+            mbi=str(row[4] or "").strip() or None,
+            carrier_member_id=member_id,
+            writing_agent_raw=str(row[2] or "").strip(),
+        ))
+    # HRA → hra_bonus (split applies)
+    for idx, row in enumerate(_devoted_sheet_rows(sheets, "HRA")[1:], start=1):
+        if not any(row) or len(row) <= 3:
+            continue
+        rep = str(row[0] or "").strip()
+        amt = _to_float(row[2])
+        if not rep or amt == 0:
+            continue
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::HRA::{idx}",
+            raw_amount=amt,
+            classification=HRA_BONUS,
+            split_rate=split_lookup(rep),
+            payment_type="hra",
+            member_name=str(row[3] or "").strip() or "HRA Bonus",
+            writing_agent_raw=rep,
+        ))
+    return out
+
+
+def money_rows_total_devoted(sheets) -> float:
+    total = 0.0
+    for row in _devoted_sheet_rows(sheets, "Agent Portion")[1:]:
+        if not any(row) or len(row) <= 17 or not str(row[3] or "").strip():
+            continue
+        total += _to_float(row[17])
+    for row in _devoted_sheet_rows(sheets, "Override")[1:]:
+        if not any(row) or len(row) <= 17 or not str(row[3] or "").strip():
+            continue
+        total += _to_float(row[17])
+    for row in _devoted_sheet_rows(sheets, "HRA")[1:]:
+        if not any(row) or len(row) <= 3:
+            continue
+        if not str(row[0] or "").strip() or _to_float(row[2]) == 0:
+            continue
+        total += _to_float(row[2])
+    return total
+
+
+def _humana_cols(rows):
+    header = rows[0]
+    return {h: i for i, h in enumerate(header)}
+
+
+def extract_lineitems_humana(sheets, split_lookup) -> List[LineItemDraft]:
+    if not sheets:
+        return []
+    name = next((n for n in sheets if "CommissionData" in n), None) or next(iter(sheets))
+    rows = sheets.get(name, [])
+    if not rows:
+        return []
+    col = _humana_cols(rows)
+
+    def g(row, key):
+        i = col.get(key)
+        return row[i] if i is not None and i < len(row) else ""
+
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+        umid = str(g(row, "UMID") or "").strip()
+        grp = str(g(row, "GrpName") or "").strip()
+        if not umid and not grp:
+            continue
+        amount = _to_float(g(row, "PaidAmount"))
+        txn = str(g(row, "TxnTypeCd") or "").upper().strip()
+        if txn == "HRAP":
+            classification = HRA_BONUS
+        elif amount < 0:
+            classification = CHARGEBACK
+        else:
+            classification = AGENT_COMMISSION
+        writing = str(g(row, "WaName") or "").strip()
+        out.append(LineItemDraft(
+            carrier="Humana",
+            source_ref=f"humana::{name}::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=split_lookup(writing),
+            payment_type=txn.lower() or None,
+            member_name=grp,
+            mbi=umid or None,
+            carrier_member_id=str(g(row, "PID") or "").strip() or None,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(g(row, "EffDate")),
+        ))
+    return out
+
+
+def money_rows_total_humana(sheets) -> float:
+    if not sheets:
+        return 0.0
+    name = next((n for n in sheets if "CommissionData" in n), None) or next(iter(sheets))
+    rows = sheets.get(name, [])
+    if not rows:
+        return 0.0
+    col = _humana_cols(rows)
+    pi = col.get("PaidAmount")
+    ui = col.get("UMID")
+    gi = col.get("GrpName")
+    total = 0.0
+    for row in rows[1:]:
+        if not any(row):
+            continue
+        umid = str(row[ui] or "").strip() if ui is not None and ui < len(row) else ""
+        grp = str(row[gi] or "").strip() if gi is not None and gi < len(row) else ""
+        if not umid and not grp:
+            continue
+        if pi is not None and pi < len(row):
+            total += _to_float(row[pi])
+    return total

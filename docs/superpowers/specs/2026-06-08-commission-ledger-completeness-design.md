@@ -86,9 +86,15 @@ In the existing `_ingest_normalized_upload` path (the 5 clean carriers), in addi
 1. **Internal balance (by construction):** `Σ raw_amount == Σ agent_payout + Σ founders_keep`.
 2. **Completeness (the valuable check):** `Σ line-item raw_amount == the independent total of the carrier's money rows`, where "money rows" is defined per carrier as ALL the amount-bearing rows across the sheets the extractor is responsible for (e.g. Devoted = Agent Portion + Override + HRA sheets summed; Healthspring = every Detail row's Payment Amount incl. both Broker Level and Service Fee; BCBS = Commission column). This independent total is computed by a separate pass over the raw sheets (NOT from the line items), so a row the extractor dropped or mis-summed makes the two diverge → the check fails loudly, naming the statement. This is the "every cent tracked" guarantee made testable, and the guard that catches a future unhandled row type (the exact bug class that dropped the Founders overrides originally). Note: the per-carrier "money rows" definition lives next to each extractor so the two stay in sync.
 
-### Re-import backfill
+### Re-import backfill (RESOLVED → re-upload, no script)
 
-`scripts/backfill_commission_lineitems.py` (run on VPS) re-reads already-uploaded commission files and populates line items for existing statements, so AJ's current data is balance-ready. Idempotent / re-runnable. (Uses the same project-root `sys.path` bootstrap as other scripts.)
+Raw commission files are not persisted by the portal (uploads write to a
+discarded tempfile; only the filename string + derived PolicyPayment rows
+survive), so a script cannot re-read originals. Upload is already idempotent
+(keyed on source_ref + content fingerprint; replace clears stale rows), and
+prod is reproducible playground data. Backfill is therefore achieved by AJ
+re-uploading the 5 clean-carrier files through the existing admin upload — line
+items populate automatically (upload wiring). No backfill script.
 
 ## Testing
 

@@ -34,3 +34,4 @@ docs/.obsidian/workspace-mobile.json
 
 # Local git worktrees (isolated workspaces)
 .worktrees/
+.superpowers/

@@ -114,3 +114,37 @@ def test_resolve_conflict_route_former_aor_blocked(client, app, agency, db_sessi
     r = client.post(f"/customers/{cid}/resolve-conflict",
                     data={"field": "email", "choose": "keep_current"})
     assert r.status_code in (403, 404)
+
+
+def test_profile_renders_conflict_cell_and_editable_fields(client, app, agency, agent_user, db_session):
+    from app.extensions import db
+    from app.models import Customer
+    from app import customer_provenance as cp
+    with app.app_context():
+        c = _make_customer(db, agency, agent_user)
+        cp.set_human_value(c, "email", "m@old.com", agent_user)
+        cp.set_import_value(c, "email", "mark@gmail.com", "bob_import")
+        db.session.commit()
+        cid = c.id
+    _login(client, app, agent_user.id)
+    html = client.get(f"/customers/{cid}").data.decode()
+    assert "needs review" in html
+    assert "mark@gmail.com" in html
+    assert 'data-choose="keep_current"' in html
+    assert 'data-editable="1"' in html
+
+
+def test_profile_admin_sees_edit_controls(client, app, agency, db_session):
+    from app.extensions import db
+    from app.models import User, Customer
+    with app.app_context():
+        owner = User(email="o3@t.com", name="Owner3", agency_id=agency.id)
+        admin = User(email="adm3@t.com", name="Admin3", is_admin=True, agency_id=agency.id)
+        db.session.add_all([owner, admin]); db.session.flush()
+        c = Customer(agency_id=agency.id, first_name="A", last_name="B", full_name="A B",
+                     primary_agent_id=owner.id, source="bob")
+        db.session.add(c); db.session.commit()
+        cid = c.id; aid = admin.id
+    _login(client, app, aid)
+    html = client.get(f"/customers/{cid}").data.decode()
+    assert 'data-editable="1"' in html

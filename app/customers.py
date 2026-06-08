@@ -502,6 +502,9 @@ def customer_profile(customer_id):
                     .order_by(PolicyPayment.statement_date.desc())
                     .all())
 
+    can_edit = current_user.is_admin or _is_current_aor(customer)
+    field_conflicts = {c["field"]: c for c in cp.list_conflicts(customer)}
+
     return render_template(
         "customer_profile.html",
         customer=customer,
@@ -515,6 +518,8 @@ def customer_profile(customer_id):
         is_current_aor=is_current,
         former_end_date=former_end_date,
         payments=payments,
+        can_edit=can_edit,
+        field_conflicts=field_conflicts,
     )
 
 

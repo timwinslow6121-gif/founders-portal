@@ -202,3 +202,37 @@ def test_verify_statement_balance_fails_when_a_row_dropped():
     dropped = drafts[:-1]                 # simulate the extractor losing a row
     report = verify_statement_balance("BCBS", dropped, sheets)
     assert report.completeness_ok is False
+
+
+def test_persist_line_items_resolves_agent_and_is_idempotent(db_session, agency):
+    from app.models import CommissionLineItem, CommissionStatement, User
+    from app.commission.ledger import LineItemDraft, persist_line_items, AGENT_COMMISSION
+    from app.extensions import db
+    from datetime import date
+
+    agent = User(name="Justin Basinger", email="justin@x.com", agency_id=agency.id)
+    db.session.add(agent)
+    stmt = CommissionStatement(agency_id=agency.id, carrier="BCBS", agent_id=None,
+                               period_label="April 2026", filename="b.xlsx",
+                               statement_date=date(2026, 4, 1))
+    db.session.add(stmt)
+    db.session.flush()
+
+    drafts = [LineItemDraft(carrier="BCBS", source_ref="bcbs::Sheet1::1",
+                            raw_amount=28.91, split_rate=0.55,
+                            classification=AGENT_COMMISSION,
+                            writing_agent_raw="Basinger, Justin")]
+
+    def resolver(raw):
+        return agent.id if "basinger" in raw.lower() else None
+
+    n1 = persist_line_items("BCBS", drafts, stmt, agency.id, agent_resolver=resolver)
+    db.session.flush()
+    rows = CommissionLineItem.query.filter_by(statement_id=stmt.id).all()
+    assert n1 == 1 and len(rows) == 1
+    assert rows[0].agent_id == agent.id
+
+    # Re-run: same source_ref updates in place, no duplicate.
+    persist_line_items("BCBS", drafts, stmt, agency.id, agent_resolver=resolver)
+    db.session.flush()
+    assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == 1

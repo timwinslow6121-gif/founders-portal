@@ -60,6 +60,8 @@ def split_breakdown(line) -> Tuple[float, float]:
 
 
 from app.commission.payments import _parse_date
+from app.extensions import db
+from app.models import CommissionLineItem
 
 
 def _to_float(v):
@@ -436,3 +438,36 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
         carrier=carrier, lineitem_total=li_total, money_rows_total=money_total,
         agent_payout_total=payout_total, founders_keep_total=keep_total,
         internal_ok=internal_ok, completeness_ok=completeness_ok)
+
+
+def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=None) -> int:
+    """Insert/update CommissionLineItem rows for a statement, idempotent on
+    (statement_id, source_ref). agent_resolver(writing_agent_raw) -> user_id|None
+    resolves each draft's writing agent. Returns count written."""
+    count = 0
+    for d in drafts:
+        agent_id = None
+        if agent_resolver is not None and d.writing_agent_raw:
+            agent_id = agent_resolver(d.writing_agent_raw)
+        existing = (CommissionLineItem.query
+                    .filter_by(statement_id=statement.id, agency_id=agency_id,
+                               source_ref=d.source_ref)
+                    .first())
+        if existing is None:
+            existing = CommissionLineItem(
+                agency_id=agency_id, statement_id=statement.id,
+                source_ref=d.source_ref, carrier=carrier)
+            db.session.add(existing)
+        existing.carrier = carrier
+        existing.period_label = statement.period_label
+        existing.statement_date = statement.statement_date
+        existing.agent_id = agent_id
+        existing.member_name = d.member_name
+        existing.mbi = d.mbi
+        existing.carrier_member_id = d.carrier_member_id
+        existing.raw_amount = d.raw_amount
+        existing.split_rate = d.split_rate
+        existing.classification = d.classification
+        existing.payment_type = d.payment_type
+        count += 1
+    return count

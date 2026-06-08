@@ -110,6 +110,10 @@ Local SQLite + the real raw fixtures in `tests/fixtures/commission/` (`tests/tes
 - NOT touching Plan-1 normalizers or the customer-sync / `PolicyPayment` path (coexist).
 - Founders-override amounts are now captured, but no agency-P&L view yet (R3).
 
+### KNOWN LIMITATION — Devoted dual-file (deferred to R2/R3)
+
+Devoted ships TWO files per month (`Founders Devoted April 2026` + `20182775_Rebekah_Long`). A `CommissionStatement` is keyed on `(carrier, agent_id=NULL, period_label)`, so uploading the second Devoted file for the same period resolves to the **same** statement, and the replace-cleanup deletes the first file's line items before re-ingesting the second. Result: only one Devoted file's line items persist at a time, so the "every cent provable" balance is incomplete for Devoted specifically. This is a **pre-existing** limitation that `PolicyPayment` already shares (not introduced by R1); R1 is simply the first feature whose guarantee depends on both files coexisting. **Workaround until fixed:** combine the two Devoted files into one workbook (sheets side by side) before uploading. **True fix** (a per-file discriminator in the statement key or `source_ref`) is deferred to R2/R3, where AJ's actual monthly Devoted workflow is confronted directly.
+
 ## Deliverable
 
 `CommissionLineItem` model + migration 023, `app/commission/ledger.py` (5-carrier extractors + `split_breakdown` helper + `verify_statement_balance`), upload wiring, re-import backfill, full tests. Every cent from the 5 clean carriers tracked, attributed (carrier/agent/customer/payment-type/classification), and balance-verified — the foundation R2 and R3 build on.

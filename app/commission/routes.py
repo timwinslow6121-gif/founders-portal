@@ -907,6 +907,12 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
                 current_app.logger.warning(
                     "Commission ledger completeness check FAILED for "
                     f"{carrier} {period_label}: {report}")
+            if not report.internal_ok:
+                # internal balance is true by construction; a failure here means
+                # a float-precision or derivation bug — surface it loudly.
+                current_app.logger.warning(
+                    "Commission ledger INTERNAL balance failed (unexpected) for "
+                    f"{carrier} {period_label}: {report}")
 
         stmt.gross_amount = round(sum(f.amount for f in facts if f.amount > 0), 2)
         stmt.bonus_amount = 0.0

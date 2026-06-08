@@ -64,3 +64,53 @@ def test_former_aor_agent_cannot_save_field(client, app, agency, db_session):
     _login(client, app, other_id)
     r = client.post(f"/customers/{cid}/field", data={"field": "mbi", "value": "X"})
     assert r.status_code in (403, 404)
+
+
+def test_resolve_conflict_route_keep_current(client, app, agency, agent_user, db_session):
+    from app.extensions import db
+    from app.models import Customer
+    from app import customer_provenance as cp
+    with app.app_context():
+        c = _make_customer(db, agency, agent_user)
+        cp.set_human_value(c, "email", "m@old.com", agent_user)
+        cp.set_import_value(c, "email", "mark@gmail.com", "bob_import")
+        db.session.commit()
+        cid = c.id
+    _login(client, app, agent_user.id)
+    r = client.post(f"/customers/{cid}/resolve-conflict",
+                    data={"field": "email", "choose": "keep_current"})
+    assert r.status_code == 200
+    body = r.get_json()
+    assert body["ok"] is True
+    assert body["has_unresolved_conflicts"] is False
+    with app.app_context():
+        c = Customer.query.get(cid)
+        assert c.email == "m@old.com"
+        assert cp.list_conflicts(c) == []
+
+
+def test_resolve_conflict_route_bad_choice_400(client, app, agency, agent_user, db_session):
+    from app.extensions import db
+    with app.app_context():
+        c = _make_customer(db, agency, agent_user); cid = c.id
+    _login(client, app, agent_user.id)
+    r = client.post(f"/customers/{cid}/resolve-conflict",
+                    data={"field": "email", "choose": "bogus"})
+    assert r.status_code == 400
+
+
+def test_resolve_conflict_route_former_aor_blocked(client, app, agency, db_session):
+    from app.extensions import db
+    from app.models import User, Customer
+    with app.app_context():
+        owner = User(email="o2@t.com", name="Owner2", agency_id=agency.id)
+        other = User(email="x2@t.com", name="Other2", agency_id=agency.id)
+        db.session.add_all([owner, other]); db.session.flush()
+        c = Customer(agency_id=agency.id, first_name="A", last_name="B", full_name="A B",
+                     primary_agent_id=owner.id, source="bob")
+        db.session.add(c); db.session.commit()
+        cid = c.id; other_id = other.id
+    _login(client, app, other_id)
+    r = client.post(f"/customers/{cid}/resolve-conflict",
+                    data={"field": "email", "choose": "keep_current"})
+    assert r.status_code in (403, 404)

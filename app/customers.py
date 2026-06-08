@@ -647,6 +647,29 @@ def customer_set_field(customer_id):
                     "trust": cp.trust_of(customer, field)})
 
 
+@customers_bp.route("/customers/<int:customer_id>/resolve-conflict", methods=["POST"])
+@login_required
+def customer_resolve_conflict(customer_id):
+    """Resolve a field conflict (keep_current | take_incoming) via the engine."""
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not (current_user.is_admin or _is_current_aor(customer)):
+        return jsonify({"ok": False, "error": "not authorized"}), 403
+
+    field = (request.form.get("field") or "").strip()
+    choose = (request.form.get("choose") or "").strip()
+    if choose not in ("keep_current", "take_incoming"):
+        return jsonify({"ok": False, "error": "invalid choice"}), 400
+    if field not in cp.PROVENANCE_FIELDS:
+        return jsonify({"ok": False, "error": "invalid field"}), 400
+
+    cp.resolve_conflict(customer, field, choose, current_user)
+    db.session.commit()
+    val = getattr(customer, field)
+    return jsonify({"ok": True, "field": field,
+                    "value": val.isoformat() if isinstance(val, date) else val,
+                    "has_unresolved_conflicts": bool(customer.has_unresolved_conflicts)})
+
+
 # ---------------------------------------------------------------------------
 # Admin: deduplication
 # ---------------------------------------------------------------------------

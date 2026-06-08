@@ -1,6 +1,33 @@
 {% extends "base.html" %}
 {% block title %}{{ customer.display_name }} — Founders Portal{% endblock %}
 
+{% macro editable_field(customer, field, label, value, can_edit, field_conflicts) %}
+  {% set conflict = field_conflicts.get(field) %}
+  {% if conflict %}
+    <div class="detail-row conflict-cell" data-field="{{ field }}" style="display:block; background:color-mix(in srgb, #C0392B 12%, var(--surface)); border-left:4px solid #C0392B; border-radius:4px; padding:10px 12px; margin:6px 0; color:var(--ivory);">
+      <div style="color:#C0392B; font-weight:700;">&#9888; {{ label }} — needs review</div>
+      <div style="font-size:13px; margin-top:6px; color:var(--ivory);">
+        Your value: <b>{{ conflict.existing.value or '—' }}</b>
+        &nbsp;|&nbsp; {{ conflict.incoming.source }} says: <b>{{ conflict.incoming.value or '—' }}</b>
+      </div>
+      {% if can_edit %}
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button class="resolve-btn" data-field="{{ field }}" data-choose="keep_current"
+                style="font-size:12px; border:1px solid #C0392B; color:#C0392B; background:transparent; border-radius:6px; padding:3px 10px; cursor:pointer;">Keep mine</button>
+        <button class="resolve-btn" data-field="{{ field }}" data-choose="take_incoming"
+                style="font-size:12px; background:#C0392B; color:#fff; border:none; border-radius:6px; padding:3px 10px; cursor:pointer;">Use {{ conflict.incoming.source }}'s</button>
+      </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="detail-row">
+      <span class="detail-label">{{ label }}</span>
+      <span class="detail-value editable-field" data-field="{{ field }}"
+            {% if can_edit %}data-editable="1"{% endif %}>{{ value or '—' }}</span>
+    </div>
+  {% endif %}
+{% endmacro %}
+
 {% block styles %}
 /* ── Profile header ── */
 .profile-header {
@@ -309,17 +336,17 @@
         <span class="card-title">Contact Info</span>
       </div>
       <div class="card-body">
-        <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value">{{ customer.phone_primary or '—' }}</span></div>
-        {% if customer.phone_secondary %}
-        <div class="detail-row"><span class="detail-label">Alt phone</span><span class="detail-value">{{ customer.phone_secondary }}</span></div>
-        {% endif %}
-        <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">{{ customer.email or '—' }}</span></div>
-        <div class="detail-row"><span class="detail-label">Address</span><span class="detail-value">
-          {% if customer.address1 %}{{ customer.address1 }}, {{ customer.city }}, {{ customer.state }} {{ customer.zip_code }}
-          {% else %}—{% endif %}
-        </span></div>
-        <div class="detail-row"><span class="detail-label">County</span><span class="detail-value">{{ customer.county or '—' }}</span></div>
-        <div class="detail-row"><span class="detail-label">Medicaid</span><span class="detail-value">{{ customer.medicaid_level or '—' }}</span></div>
+        {{ editable_field(customer, "mbi", "MBI", customer.mbi, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "dob", "DOB", (customer.dob.isoformat() if customer.dob else ''), can_edit, field_conflicts) }}
+        {{ editable_field(customer, "phone_primary", "Phone", customer.phone_primary, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "phone_secondary", "Alt phone", customer.phone_secondary, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "email", "Email", customer.email, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "address1", "Address", customer.address1, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "city", "City", customer.city, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "state", "State", customer.state, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "zip_code", "ZIP", customer.zip_code, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "county", "County", customer.county, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "medicaid_level", "Medicaid", customer.medicaid_level, can_edit, field_conflicts) }}
         <div class="detail-row"><span class="detail-label">Lead source</span><span class="detail-value">{{ customer.lead_source or '—' }}</span></div>
         <div class="detail-row"><span class="detail-label">Pharmacy</span><span class="detail-value">
           {% if customer.pharmacy %}{{ customer.pharmacy.name }}
@@ -520,6 +547,52 @@ document.querySelectorAll('.comm-type-select').forEach(function(sel) {
           setTimeout(function(){ el.style.outline = ''; }, 1200);
         }
       });
+  });
+});
+
+// --- Inline field editing (click-to-edit, saves via set_human_value) ---
+function _flashEl(el, color) { el.style.outline = '2px solid ' + color; setTimeout(function(){ el.style.outline=''; }, 1200); }
+
+document.querySelectorAll('.editable-field[data-editable="1"]').forEach(function(span) {
+  span.style.cursor = 'pointer';
+  span.title = 'Click to edit';
+  span.addEventListener('click', function() {
+    if (span.querySelector('input')) return;
+    var field = span.dataset.field;
+    var current = (span.textContent || '').trim();
+    if (current === '—') current = '';
+    var input = document.createElement('input');
+    input.type = (field === 'dob') ? 'date' : 'text';
+    input.value = current;
+    input.style.width = '90%';
+    span.textContent = '';
+    span.appendChild(input);
+    input.focus();
+    var done = false;
+    function save() {
+      if (done) return; done = true;
+      var fd = new FormData();
+      fd.append('field', field);
+      fd.append('value', input.value);
+      fetch('{{ url_for("customers.customer_set_field", customer_id=customer.id) }}', {method:'POST', body:fd})
+        .then(function(r){ return r.json(); })
+        .then(function(j){ span.textContent = (j.ok && j.value) ? j.value : (current || '—'); _flashEl(span, j.ok ? 'var(--gold)' : '#C0392B'); })
+        .catch(function(){ span.textContent = current || '—'; });
+    }
+    input.addEventListener('blur', save);
+    input.addEventListener('keydown', function(e){ if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { done = true; span.textContent = current || '—'; } });
+  });
+});
+
+// --- Conflict resolution buttons ---
+document.querySelectorAll('.resolve-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var fd = new FormData();
+    fd.append('field', btn.dataset.field);
+    fd.append('choose', btn.dataset.choose);
+    fetch('{{ url_for("customers.customer_resolve_conflict", customer_id=customer.id) }}', {method:'POST', body:fd})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if (j.ok) window.location.reload(); });
   });
 });
 </script>

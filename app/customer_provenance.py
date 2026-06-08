@@ -111,6 +111,7 @@ def set_human_value(customer, field, value, user, note=None, verify=False):
         "updated_at": _now(),
         "updated_by": getattr(user, "name", None),
         "history": history,
+        "rejected_values": [],
     }
     _save(customer, data)
     customer.manually_edited = True
@@ -182,6 +183,13 @@ def set_import_value(customer, field, value, source):
         return "confirmed"
 
     if trust in ("agent_entered", "human_verified"):
+        rejected = existing.get("rejected_values", [])
+        if scalar in rejected:
+            existing.setdefault("history", []).append(
+                {"at": _now(), "by": None, "from": existing.get("value"),
+                 "to": scalar, "note": f"import:{source} suppressed (previously rejected)"})
+            _save(customer, data)
+            return "suppressed"
         _flag_conflict(data, customer, field, existing, scalar, source)
         _save(customer, data)
         customer.has_unresolved_conflicts = True
@@ -220,6 +228,10 @@ def resolve_conflict(customer, field, choose, user, note=None):
 
     surviving = current if choose == "keep_current" else incoming
 
+    prior_rejected = rec.get("rejected_values", [])
+    if choose == "keep_current" and incoming is not None and incoming not in prior_rejected:
+        prior_rejected = prior_rejected + [incoming]
+
     history = rec.get("history", [])
     history.append({"at": _now(), "by": getattr(user, "name", None),
                     "from": current, "to": surviving,
@@ -228,6 +240,7 @@ def resolve_conflict(customer, field, choose, user, note=None):
         "value": surviving, "source": "aj_verified", "trust": "human_verified",
         "updated_at": _now(), "updated_by": getattr(user, "name", None),
         "history": history,
+        "rejected_values": prior_rejected,
     }
     _set_column(customer, field, surviving)
 

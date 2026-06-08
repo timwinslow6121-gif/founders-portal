@@ -68,7 +68,7 @@ def agency(db_session, app):
 
 
 @pytest.fixture(scope="function")
-def admin_user(db_session, app):
+def admin_user(db_session, app, agency):
     """Create an admin User for testing."""
     from app.models import User
     from app.extensions import db
@@ -78,6 +78,7 @@ def admin_user(db_session, app):
             email="admin@test.com",
             name="Admin",
             is_admin=True,
+            agency_id=agency.id,
         )
         db.session.add(u)
         db.session.commit()
@@ -86,7 +87,7 @@ def admin_user(db_session, app):
 
 
 @pytest.fixture(scope="function")
-def agent_user(db_session, app):
+def agent_user(db_session, app, agency):
     """Create a non-admin agent User for testing."""
     from app.models import User
     from app.extensions import db
@@ -96,6 +97,7 @@ def agent_user(db_session, app):
             email="agent@test.com",
             name="Agent",
             is_admin=False,
+            agency_id=agency.id,
         )
         db.session.add(u)
         db.session.commit()
@@ -104,7 +106,7 @@ def agent_user(db_session, app):
 
 
 @pytest.fixture(scope="function")
-def customer(db_session, app):
+def customer(db_session, app, agency):
     """Create a test Customer record."""
     from app.models import Customer
     from app.extensions import db
@@ -116,6 +118,8 @@ def customer(db_session, app):
             full_name="John Doe",
             phone_primary="+17705551234",
             phone_secondary="+14045550001",
+            agency_id=agency.id,
+            source="test",
         )
         db.session.add(c)
         db.session.commit()

@@ -8,14 +8,15 @@ Agents see only their own customers; admins see all.
 import csv
 import io
 import json
-from datetime import datetime
+from datetime import datetime, date
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView
+from app import customer_provenance as cp
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -501,6 +502,9 @@ def customer_profile(customer_id):
                     .order_by(PolicyPayment.statement_date.desc())
                     .all())
 
+    can_edit = current_user.is_admin or _is_current_aor(customer)
+    field_conflicts = {c["field"]: c for c in cp.list_conflicts(customer)}
+
     return render_template(
         "customer_profile.html",
         customer=customer,
@@ -514,6 +518,8 @@ def customer_profile(customer_id):
         is_current_aor=is_current,
         former_end_date=former_end_date,
         payments=payments,
+        can_edit=can_edit,
+        field_conflicts=field_conflicts,
     )
 
 
@@ -619,6 +625,70 @@ def customer_toggle_sms_consent(customer_id):
         db.session.commit()
         flash("SMS consent revoked.", "success")
     return redirect(url_for("customers.customer_profile", customer_id=customer_id))
+
+
+# ---------------------------------------------------------------------------
+# Inline field editing
+# ---------------------------------------------------------------------------
+
+@customers_bp.route("/customers/<int:customer_id>/field", methods=["POST"])
+@login_required
+def customer_set_field(customer_id):
+    """Inline-save a single provenance-tracked field via the provenance engine."""
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not (current_user.is_admin or _is_current_aor(customer)):
+        return jsonify({"ok": False, "error": "not authorized to edit this customer"}), 403
+
+    field = (request.form.get("field") or "").strip()
+    if field not in cp.PROVENANCE_FIELDS:
+        return jsonify({"ok": False, "error": f"{field} is not an editable field"}), 400
+
+    value = (request.form.get("value") or "").strip() or None
+    if field == "dob" and value:
+        from datetime import date as _date
+        try:
+            _date.fromisoformat(value)
+        except ValueError:
+            return jsonify({"ok": False, "error": "invalid date (use YYYY-MM-DD)"}), 400
+    try:
+        cp.set_human_value(customer, field, value, current_user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"customer_set_field {customer_id}.{field}: {e}")
+        return jsonify({"ok": False, "error": "could not save"}), 400
+    val = getattr(customer, field)
+    return jsonify({"ok": True, "field": field,
+                    "value": val.isoformat() if isinstance(val, date) else val,
+                    "trust": cp.trust_of(customer, field)})
+
+
+@customers_bp.route("/customers/<int:customer_id>/resolve-conflict", methods=["POST"])
+@login_required
+def customer_resolve_conflict(customer_id):
+    """Resolve a field conflict (keep_current | take_incoming) via the engine."""
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not (current_user.is_admin or _is_current_aor(customer)):
+        return jsonify({"ok": False, "error": "not authorized"}), 403
+
+    field = (request.form.get("field") or "").strip()
+    choose = (request.form.get("choose") or "").strip()
+    if choose not in ("keep_current", "take_incoming"):
+        return jsonify({"ok": False, "error": "invalid choice"}), 400
+    if field not in cp.PROVENANCE_FIELDS:
+        return jsonify({"ok": False, "error": "invalid field"}), 400
+
+    try:
+        cp.resolve_conflict(customer, field, choose, current_user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"customer_resolve_conflict {customer_id}.{field}: {e}")
+        return jsonify({"ok": False, "error": "could not resolve"}), 400
+    val = getattr(customer, field)
+    return jsonify({"ok": True, "field": field,
+                    "value": val.isoformat() if isinstance(val, date) else val,
+                    "has_unresolved_conflicts": bool(customer.has_unresolved_conflicts)})
 
 
 # ---------------------------------------------------------------------------

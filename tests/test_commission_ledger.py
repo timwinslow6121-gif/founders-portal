@@ -45,3 +45,51 @@ def test_commission_lineitem_model_columns(db_session, agency):
     assert got.agent_id is None        # nullable
     assert got.customer_id is None     # nullable
     assert got.mbi is None             # nullable
+
+
+def test_split_breakdown_agent_commission():
+    from app.commission.ledger import split_breakdown, LineItemDraft
+
+    li = LineItemDraft(carrier="BCBS", source_ref="bcbs::Sheet1::1",
+                       raw_amount=28.91, split_rate=0.55,
+                       classification="agent_commission")
+    payout, keep = split_breakdown(li)
+    assert round(payout, 2) == 15.90      # 28.91 * 0.55
+    assert round(keep, 2) == 13.01        # 28.91 - 15.90
+    assert round(payout + keep, 2) == 28.91
+
+
+def test_split_breakdown_founders_override_keeps_all():
+    from app.commission.ledger import split_breakdown, LineItemDraft
+
+    li = LineItemDraft(carrier="Healthspring", source_ref="healthspring::Detail::2",
+                       raw_amount=100.0, split_rate=None,
+                       classification="founders_override")
+    payout, keep = split_breakdown(li)
+    assert payout == 0.0
+    assert keep == 100.0
+
+
+def test_split_breakdown_chargeback_negative():
+    from app.commission.ledger import split_breakdown, LineItemDraft
+
+    li = LineItemDraft(carrier="Devoted", source_ref="devoted::Agent Portion::5",
+                       raw_amount=-347.0, split_rate=0.55,
+                       classification="chargeback")
+    payout, keep = split_breakdown(li)
+    assert round(payout, 2) == -190.85    # -347 * 0.55
+    assert round(keep, 2) == -156.15
+    assert round(payout + keep, 2) == -347.0
+
+
+def test_split_breakdown_none_split_rate_treated_as_zero_payout():
+    # An agent_commission row whose agent had no contract (split_rate None):
+    # payout is 0, keep is the whole raw amount (Founders keeps it pending fix).
+    from app.commission.ledger import split_breakdown, LineItemDraft
+
+    li = LineItemDraft(carrier="BCBS", source_ref="bcbs::Sheet1::9",
+                       raw_amount=28.91, split_rate=None,
+                       classification="agent_commission")
+    payout, keep = split_breakdown(li)
+    assert payout == 0.0
+    assert keep == 28.91

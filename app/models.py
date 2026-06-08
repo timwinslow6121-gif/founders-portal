@@ -476,6 +476,9 @@ class Customer(db.Model):
 
     # Import guard — True = agent-edited fields won't be overwritten by BOB imports
     manually_edited   = db.Column(db.Boolean, default=False, nullable=False)
+    # Field-level provenance engine (migration 022) — see app/customer_provenance.py
+    field_provenance         = db.Column(db.Text)               # JSON: per-field _meta + _conflicts
+    has_unresolved_conflicts = db.Column(db.Boolean, default=False, nullable=False, index=True)
     # Commission-sync provenance (migration 020)
     stub              = db.Column(db.Boolean, default=False, nullable=False)
     source            = db.Column(db.String(32))   # commission_import | bob | healthsherpa | manual

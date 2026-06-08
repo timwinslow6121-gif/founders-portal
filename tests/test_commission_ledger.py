@@ -93,3 +93,34 @@ def test_split_breakdown_none_split_rate_treated_as_zero_payout():
     payout, keep = split_breakdown(li)
     assert payout == 0.0
     assert keep == 28.91
+
+
+def _load_fixture(name):
+    from app.commission.sheet_loader import load_sheets
+    return load_sheets(os.path.join(FIXTURES, name))
+
+
+def test_healthspring_keeps_both_broker_and_service_fee():
+    from app.commission.ledger import extract_lineitems_healthspring, FOUNDERS_OVERRIDE, AGENT_COMMISSION
+    sheets = _load_fixture("healthspring_sample.xlsx")
+
+    drafts = extract_lineitems_healthspring(sheets, split_lookup=lambda raw: 0.55)
+    classes = [d.classification for d in drafts]
+
+    # The override row that the normalizer DROPS must be present here.
+    assert FOUNDERS_OVERRIDE in classes, "Service Fee (Founders override) row was dropped"
+    assert AGENT_COMMISSION in classes, "Broker Level (agent commission) row missing"
+    # Override rows carry no split.
+    for d in drafts:
+        if d.classification == FOUNDERS_OVERRIDE:
+            assert d.split_rate is None
+        if d.classification == AGENT_COMMISSION:
+            assert d.split_rate == 0.55
+
+
+def test_healthspring_money_rows_total_equals_lineitem_sum():
+    from app.commission.ledger import (extract_lineitems_healthspring,
+                                        money_rows_total_healthspring)
+    sheets = _load_fixture("healthspring_sample.xlsx")
+    drafts = extract_lineitems_healthspring(sheets, split_lookup=lambda raw: 0.55)
+    assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_healthspring(sheets), 2)

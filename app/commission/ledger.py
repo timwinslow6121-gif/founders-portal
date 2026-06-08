@@ -57,3 +57,70 @@ def split_breakdown(line) -> Tuple[float, float]:
         return 0.0, raw
     payout = raw * rate
     return payout, raw - payout
+
+
+from app.commission.payments import _parse_date
+
+
+def _to_float(v):
+    try:
+        return float(str(v).replace("$", "").replace(",", "").strip() or 0)
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def _hs_classify(desc, amount):
+    d = str(desc or "").lower()
+    if "service fee" in d:
+        return FOUNDERS_OVERRIDE
+    if amount < 0:
+        return CHARGEBACK
+    return AGENT_COMMISSION
+
+
+def extract_lineitems_healthspring(sheets, split_lookup) -> List[LineItemDraft]:
+    """One LineItemDraft per Detail row (paired rows NOT collapsed).
+    split_lookup(writing_agent_raw) -> Optional[float] split rate for that agent."""
+    rows = sheets.get("Detail", [])
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row) or len(row) <= 21:
+            continue
+        member_id = str(row[8] or "").strip()
+        amount = _to_float(row[7])
+        desc = str(row[1] or "")
+        if not member_id and "service fee" not in desc.lower():
+            continue
+        classification = _hs_classify(desc, amount)
+        writing = str(row[3] or "").strip()
+        out.append(LineItemDraft(
+            carrier="Healthspring",
+            source_ref=f"healthspring::Detail::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=None if classification == FOUNDERS_OVERRIDE else split_lookup(writing),
+            payment_type=str(row[0] or "").strip().lower() or None,
+            member_name=str(row[10] or "").strip(),
+            mbi=str(row[9] or "").strip() or None,
+            carrier_member_id=member_id or None,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(row[12]),
+            term_date=_parse_date(row[13]),
+        ))
+    return out
+
+
+def money_rows_total_healthspring(sheets) -> float:
+    """Independent re-sum of EVERY Detail-row Payment Amount (col 7). Compared
+    against the line-item sum to catch a dropped/mis-summed row."""
+    rows = sheets.get("Detail", [])
+    total = 0.0
+    for row in rows[1:]:
+        if not any(row) or len(row) <= 21:
+            continue
+        member_id = str(row[8] or "").strip()
+        desc = str(row[1] or "")
+        if not member_id and "service fee" not in desc.lower():
+            continue
+        total += _to_float(row[7])
+    return total

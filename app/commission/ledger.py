@@ -124,3 +124,91 @@ def money_rows_total_healthspring(sheets) -> float:
             continue
         total += _to_float(row[7])
     return total
+
+
+def extract_lineitems_bcbs(sheets, split_lookup) -> List[LineItemDraft]:
+    rows = sheets.get("Sheet1", [])
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row) or len(row) <= 14:
+            continue
+        name = str(row[4] or "").strip()
+        customer_no = str(row[5] or "").strip()
+        if not name or not customer_no:        # skips Total: row
+            continue
+        amount = _to_float(row[14])            # Commission column, NOT Billed
+        gt = str(row[2] or "").upper().strip()
+        classification = CHARGEBACK if (amount < 0 or gt == "ADJUSTMENT") else AGENT_COMMISSION
+        writing = str(row[1] or "").strip()
+        out.append(LineItemDraft(
+            carrier="BCBS",
+            source_ref=f"bcbs::Sheet1::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=split_lookup(writing),
+            payment_type=gt.lower() or None,
+            member_name=name,
+            mbi=None,
+            carrier_member_id=customer_no,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(row[6]),
+            term_date=_parse_date(row[9]),
+        ))
+    return out
+
+
+def money_rows_total_bcbs(sheets) -> float:
+    rows = sheets.get("Sheet1", [])
+    total = 0.0
+    for row in rows[1:]:
+        if not any(row) or len(row) <= 14:
+            continue
+        if not str(row[4] or "").strip() or not str(row[5] or "").strip():
+            continue
+        total += _to_float(row[14])
+    return total
+
+
+def extract_lineitems_aetna(sheets, split_lookup) -> List[LineItemDraft]:
+    if not sheets:
+        return []
+    first = next(iter(sheets.values()))
+    out = []
+    for idx, row in enumerate(first[1:], start=1):
+        if not any(row) or len(row) < 21:
+            continue
+        name = str(row[4] or "").strip()
+        if not name:
+            continue
+        amount = _to_float(row[20])
+        classification = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+        writing = str(row[16] or "").strip()
+        out.append(LineItemDraft(
+            carrier="Aetna",
+            source_ref=f"aetna::0::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=split_lookup(writing),
+            payment_type=str(row[6] or "").strip().lower() or None,
+            member_name=name,
+            mbi=str(row[1] or "").strip() or None,
+            carrier_member_id=str(row[2] or "").strip() or None,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(row[12]),
+            term_date=_parse_date(row[13]),
+        ))
+    return out
+
+
+def money_rows_total_aetna(sheets) -> float:
+    if not sheets:
+        return 0.0
+    first = next(iter(sheets.values()))
+    total = 0.0
+    for row in first[1:]:
+        if not any(row) or len(row) < 21:
+            continue
+        if not str(row[4] or "").strip():
+            continue
+        total += _to_float(row[20])
+    return total

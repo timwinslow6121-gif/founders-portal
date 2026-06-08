@@ -124,3 +124,22 @@ def test_healthspring_money_rows_total_equals_lineitem_sum():
     sheets = _load_fixture("healthspring_sample.xlsx")
     drafts = extract_lineitems_healthspring(sheets, split_lookup=lambda raw: 0.55)
     assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_healthspring(sheets), 2)
+
+
+def test_bcbs_uses_commission_column_and_records_zero_rows():
+    from app.commission.ledger import extract_lineitems_bcbs, money_rows_total_bcbs, AGENT_COMMISSION, CHARGEBACK
+    sheets = _load_fixture("bcbs_sample.xlsx")
+    drafts = extract_lineitems_bcbs(sheets, split_lookup=lambda raw: 0.55)
+    assert drafts, "no BCBS line items extracted"
+    for d in drafts:
+        assert d.classification in (AGENT_COMMISSION, CHARGEBACK)
+        assert d.split_rate == 0.55
+    assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_bcbs(sheets), 2)
+
+
+def test_aetna_extracts_payee_amount_rows():
+    from app.commission.ledger import extract_lineitems_aetna, money_rows_total_aetna
+    sheets = _load_fixture("aetna_sample.xlsx")
+    drafts = extract_lineitems_aetna(sheets, split_lookup=lambda raw: 0.55)
+    assert drafts, "no Aetna line items extracted"
+    assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_aetna(sheets), 2)

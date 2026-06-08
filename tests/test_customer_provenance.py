@@ -212,3 +212,61 @@ def test_resolve_conflict_no_open_conflict_is_safe_noop(db_session, app, agency,
         assert c.zip_code == "28205"                       # unchanged
         assert cp.trust_of(c, "zip_code") == "agent_entered"
         assert c.has_unresolved_conflicts is False
+
+
+def test_keep_current_records_rejected_then_suppresses_reimport(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "email", "m@old.com", agent_user); db.session.flush()
+        cp.set_import_value(c, "email", "mark@gmail.com", "bob_import"); db.session.flush()
+        cp.resolve_conflict(c, "email", "keep_current", agent_user); db.session.flush()
+        action = cp.set_import_value(c, "email", "mark@gmail.com", "bob_import")
+        db.session.flush()
+        assert action == "suppressed"
+        assert cp.list_conflicts(c) == []
+        assert c.has_unresolved_conflicts is False
+        assert c.email == "m@old.com"
+
+
+def test_new_different_value_still_flags_after_rejection(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "email", "m@old.com", agent_user); db.session.flush()
+        cp.set_import_value(c, "email", "mark@gmail.com", "bob_import"); db.session.flush()
+        cp.resolve_conflict(c, "email", "keep_current", agent_user); db.session.flush()
+        action = cp.set_import_value(c, "email", "mark@newjob.com", "bob_import")
+        db.session.flush()
+        assert action == "conflict_flagged"
+        assert len(cp.list_conflicts(c)) == 1
+
+
+def test_take_incoming_records_no_rejection(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "email", "m@old.com", agent_user); db.session.flush()
+        cp.set_import_value(c, "email", "mark@gmail.com", "bob_import"); db.session.flush()
+        cp.resolve_conflict(c, "email", "take_incoming", agent_user); db.session.flush()
+        assert c.email == "mark@gmail.com"
+        rec = cp.get_field(c, "email")
+        assert rec.get("rejected_values", []) == []
+
+
+def test_fresh_human_edit_clears_rejected_values(db_session, app, agency, agent_user):
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "email", "m@old.com", agent_user); db.session.flush()
+        cp.set_import_value(c, "email", "mark@gmail.com", "bob_import"); db.session.flush()
+        cp.resolve_conflict(c, "email", "keep_current", agent_user); db.session.flush()
+        assert cp.get_field(c, "email").get("rejected_values") == ["mark@gmail.com"]
+        cp.set_human_value(c, "email", "m@new.com", agent_user); db.session.flush()
+        assert cp.get_field(c, "email").get("rejected_values", []) == []
+        action = cp.set_import_value(c, "email", "mark@gmail.com", "bob_import")
+        assert action == "conflict_flagged"

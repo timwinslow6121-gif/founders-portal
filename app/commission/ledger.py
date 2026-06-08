@@ -381,3 +381,58 @@ def money_rows_total_humana(sheets) -> float:
         if pi is not None and pi < len(row):
             total += _to_float(row[pi])
     return total
+
+
+from dataclasses import dataclass as _dc
+
+# (extractor, money_rows_total) per carrier. UHC deliberately absent (R4).
+EXTRACTORS = {
+    "Healthspring": (extract_lineitems_healthspring, money_rows_total_healthspring),
+    "Devoted": (extract_lineitems_devoted, money_rows_total_devoted),
+    "BCBS": (extract_lineitems_bcbs, money_rows_total_bcbs),
+    "Aetna": (extract_lineitems_aetna, money_rows_total_aetna),
+    "Humana": (extract_lineitems_humana, money_rows_total_humana),
+}
+
+
+@_dc
+class BalanceReport:
+    carrier: str
+    lineitem_total: float
+    money_rows_total: float
+    agent_payout_total: float
+    founders_keep_total: float
+    internal_ok: bool
+    completeness_ok: bool
+
+    def __str__(self):
+        return (f"<BalanceReport {self.carrier} li={self.lineitem_total} "
+                f"sheet={self.money_rows_total} payout={self.agent_payout_total} "
+                f"keep={self.founders_keep_total} internal_ok={self.internal_ok} "
+                f"completeness_ok={self.completeness_ok}>")
+
+
+def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceReport:
+    """Assert (1) internal balance: Σ raw == Σ payout + Σ keep (true by
+    construction), and (2) completeness: Σ line-item raw == independent re-sum of
+    the carrier's money rows from the raw sheets. A row the extractor dropped or
+    mis-summed makes the two diverge → completeness_ok=False, naming the carrier.
+    line_items may be LineItemDraft or persisted CommissionLineItem (both expose
+    raw_amount / split_rate / classification)."""
+    _, money_total_fn = EXTRACTORS[carrier]
+    li_total = round(sum((li.raw_amount or 0.0) for li in line_items), 2)
+    payout_total = 0.0
+    keep_total = 0.0
+    for li in line_items:
+        p, k = split_breakdown(li)
+        payout_total += p
+        keep_total += k
+    payout_total = round(payout_total, 2)
+    keep_total = round(keep_total, 2)
+    money_total = round(money_total_fn(sheets), 2)
+    internal_ok = abs(li_total - (payout_total + keep_total)) <= tol
+    completeness_ok = abs(li_total - money_total) <= tol
+    return BalanceReport(
+        carrier=carrier, lineitem_total=li_total, money_rows_total=money_total,
+        agent_payout_total=payout_total, founders_keep_total=keep_total,
+        internal_ok=internal_ok, completeness_ok=completeness_ok)

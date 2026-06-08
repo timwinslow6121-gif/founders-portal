@@ -169,3 +169,36 @@ def test_humana_classifies_and_totals():
     drafts = extract_lineitems_humana(sheets, split_lookup=lambda raw: 0.55)
     assert drafts, "no Humana line items extracted"
     assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_humana(sheets), 2)
+
+
+def test_registry_has_five_clean_carriers_not_uhc():
+    from app.commission.ledger import EXTRACTORS
+    assert set(EXTRACTORS) == {"Healthspring", "Devoted", "BCBS", "Aetna", "Humana"}
+    assert "UHC" not in EXTRACTORS
+
+
+def test_verify_statement_balance_internal_and_completeness():
+    # Build line items in-memory from a fixture, then verify against the sheets.
+    from app.commission.ledger import EXTRACTORS, verify_statement_balance, split_breakdown
+    sheets = _load_fixture("bcbs_sample.xlsx")
+    extractor, _money = EXTRACTORS["BCBS"]
+    drafts = extractor(sheets, split_lookup=lambda raw: 0.55)
+
+    report = verify_statement_balance("BCBS", drafts, sheets)
+    assert report.internal_ok, report
+    assert report.completeness_ok, report
+    # Internal balance: every draft's payout + keep == its raw.
+    for d in drafts:
+        p, k = split_breakdown(d)
+        assert round(p + k, 2) == round(d.raw_amount, 2)
+
+
+def test_verify_statement_balance_fails_when_a_row_dropped():
+    from app.commission.ledger import EXTRACTORS, verify_statement_balance
+    sheets = _load_fixture("bcbs_sample.xlsx")
+    extractor, _money = EXTRACTORS["BCBS"]
+    drafts = extractor(sheets, split_lookup=lambda raw: 0.55)
+    assert len(drafts) >= 2
+    dropped = drafts[:-1]                 # simulate the extractor losing a row
+    report = verify_statement_balance("BCBS", dropped, sheets)
+    assert report.completeness_ok is False

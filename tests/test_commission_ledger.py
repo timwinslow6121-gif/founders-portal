@@ -8,6 +8,8 @@ files in tests/fixtures/commission/. SQLite in-memory via conftest fixtures.
 import os
 from datetime import date
 
+import pytest
+
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
 
 
@@ -236,3 +238,21 @@ def test_persist_line_items_resolves_agent_and_is_idempotent(db_session, agency)
     persist_line_items("BCBS", drafts, stmt, agency.id, agent_resolver=resolver)
     db.session.flush()
     assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == 1
+
+
+@pytest.mark.parametrize("carrier,fixture", [
+    ("Healthspring", "healthspring_sample.xlsx"),
+    ("Devoted", "devoted_sample.xlsx"),
+    ("BCBS", "bcbs_sample.xlsx"),
+    ("Aetna", "aetna_sample.xlsx"),
+    ("Humana", "humana_sample.xls"),
+])
+def test_every_carrier_balances_and_is_complete(carrier, fixture):
+    from app.commission.ledger import EXTRACTORS, verify_statement_balance
+    sheets = _load_fixture(fixture)
+    extractor, _ = EXTRACTORS[carrier]
+    drafts = extractor(sheets, split_lookup=lambda raw: 0.55)
+    assert drafts, f"{carrier}: no line items extracted"
+    report = verify_statement_balance(carrier, drafts, sheets)
+    assert report.internal_ok, report
+    assert report.completeness_ok, report

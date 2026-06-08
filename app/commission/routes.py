@@ -12,11 +12,12 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from app.extensions import db
-from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment
+from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment, CommissionLineItem
 from app.commission import commission_bp
 from app.commission.payments import build_payments
 from app.commission.ingest import ingest_statement, compute_fingerprint
 from app.commission.normalizers import NORMALIZERS
+from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
 
 SPLIT_RATE = 0.55
 
@@ -636,6 +637,22 @@ _NICKNAMES = {
 }
 
 
+def _ledger_split_lookup(writing_agent_raw, carrier):
+    """Split rate for a writing agent on a carrier, snapshotted at import.
+    Falls back to any active contract for the carrier, then 0.55."""
+    agent_id = _match_agent_name(writing_agent_raw) if writing_agent_raw else None
+    contract = None
+    if agent_id:
+        contract = AgentCarrierContract.query.filter_by(
+            agent_id=agent_id, carrier=carrier, is_active=True,
+            agency_id=current_user.agency_id).first()
+    if contract is None:
+        contract = AgentCarrierContract.query.filter_by(
+            carrier=carrier, is_active=True,
+            agency_id=current_user.agency_id).first()
+    return contract.split_rate if contract else 0.55
+
+
 def _match_agent_name(agent_name_raw):
     """Match a raw 'Last, First' / 'First Last' agent name to a portal User id."""
 
@@ -868,11 +885,34 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         PolicyPayment.query.filter_by(
             statement_id=stmt.id, agency_id=current_user.agency_id
         ).delete(synchronize_session=False)
+        CommissionLineItem.query.filter_by(
+            statement_id=stmt.id, agency_id=current_user.agency_id
+        ).delete(synchronize_session=False)
         db.session.flush()
 
     try:
         ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets,
                                   agent_resolver=_match_agent_name)
+
+        # R1 ledger: persist EVERY sheet row (incl. Founders overrides the
+        # customer-sync normalizer collapses away) so the balance is provable.
+        extractor, _money = EXTRACTORS.get(carrier, (None, None))
+        if extractor is not None:
+            drafts = extractor(sheets, split_lookup=lambda raw, c=carrier: _ledger_split_lookup(raw, c))
+            persist_line_items(carrier, drafts, stmt, current_user.agency_id,
+                               agent_resolver=_match_agent_name)
+            db.session.flush()
+            report = verify_statement_balance(carrier, drafts, sheets)
+            if not report.completeness_ok:
+                current_app.logger.warning(
+                    "Commission ledger completeness check FAILED for "
+                    f"{carrier} {period_label}: {report}")
+            if not report.internal_ok:
+                # internal balance is true by construction; a failure here means
+                # a float-precision or derivation bug — surface it loudly.
+                current_app.logger.warning(
+                    "Commission ledger INTERNAL balance failed (unexpected) for "
+                    f"{carrier} {period_label}: {report}")
 
         stmt.gross_amount = round(sum(f.amount for f in facts if f.amount > 0), 2)
         stmt.bonus_amount = 0.0

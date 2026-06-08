@@ -738,6 +738,69 @@ class PolicyPayment(db.Model):
         return f"<PolicyPayment {self.carrier} {self.period_label} {self.member_name} ${self.paid_amount}>"
 
 
+class CommissionLineItem(db.Model):
+    """
+    R1 — Commission ledger completeness. A faithful 1:1 mirror of every
+    amount-bearing row across a carrier's commission sheets (the "money facts"
+    layer, alongside PolicyPayment's "customer facts" layer).
+
+    Unlike the customer-sync normalizers, the ledger extractors do NOT collapse
+    paired rows: the Founders-override / Service-Fee row is kept as its own line
+    item so that "Σ raw_amount = Σ agent_payout + Σ founders_keep" is provable.
+
+    agent_payout / founders_keep are DERIVED (never stored) via
+    app.commission.ledger.split_breakdown(line):
+      - agent_commission | hra_bonus | chargeback:
+          agent_payout  = raw_amount * split_rate
+          founders_keep = raw_amount - agent_payout
+      - founders_override:
+          agent_payout  = 0
+          founders_keep = raw_amount
+
+    classification is a plain string (no DB enum) for forward-compat:
+      'agent_commission' | 'founders_override' | 'hra_bonus' | 'chargeback'
+    """
+    __tablename__ = "commission_line_items"
+
+    id            = db.Column(db.Integer, primary_key=True)
+    agency_id     = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    statement_id  = db.Column(db.Integer, db.ForeignKey("commission_statements.id",
+                              ondelete="CASCADE"), nullable=False, index=True)
+    statement     = db.relationship("CommissionStatement", foreign_keys=[statement_id])
+
+    carrier       = db.Column(db.String(64), nullable=False, index=True)
+    period_label  = db.Column(db.String(32), index=True)
+    statement_date = db.Column(db.Date)
+
+    # Stable per-row key, e.g. "healthspring::Detail::7". Idempotent re-import.
+    source_ref    = db.Column(db.String(128), nullable=False, index=True)
+
+    # Resolved attribution (nullable: pure-Founders / member-less rows)
+    agent_id      = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    agent         = db.relationship("User", foreign_keys=[agent_id])
+    customer_id   = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True, index=True)
+
+    member_name   = db.Column(db.String(256))
+    mbi           = db.Column(db.String(20), index=True)
+    carrier_member_id = db.Column(db.String(128))
+
+    raw_amount    = db.Column(db.Float, nullable=False)   # exactly what the sheet shows; may be negative. The TRUTH.
+    split_rate    = db.Column(db.Float, nullable=True)    # snapshotted at import; NULL for founders_override
+
+    classification = db.Column(db.String(32), nullable=False, index=True)
+    payment_type   = db.Column(db.String(32))             # descriptive: renewal|initial|hra|override|...
+
+    created_at    = db.Column(db.DateTime, server_default=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint("statement_id", "source_ref",
+                            name="uq_lineitem_statement_source_ref"),
+    )
+
+    def __repr__(self):
+        return f"<CommissionLineItem {self.carrier} {self.classification} {self.raw_amount}>"
+
+
 class UnmatchedCall(db.Model):
     """
     Stores inbound calls/voicemails from phone numbers that could not be matched

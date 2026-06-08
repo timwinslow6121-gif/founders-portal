@@ -8,7 +8,7 @@ Agents see only their own customers; admins see all.
 import csv
 import io
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response
 from flask_login import login_required, current_user
@@ -16,6 +16,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView
+from app import customer_provenance as cp
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -619,6 +620,31 @@ def customer_toggle_sms_consent(customer_id):
         db.session.commit()
         flash("SMS consent revoked.", "success")
     return redirect(url_for("customers.customer_profile", customer_id=customer_id))
+
+
+# ---------------------------------------------------------------------------
+# Inline field editing
+# ---------------------------------------------------------------------------
+
+@customers_bp.route("/customers/<int:customer_id>/field", methods=["POST"])
+@login_required
+def customer_set_field(customer_id):
+    """Inline-save a single provenance-tracked field via the provenance engine."""
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not (current_user.is_admin or _is_current_aor(customer)):
+        return jsonify({"ok": False, "error": "not authorized to edit this customer"}), 403
+
+    field = (request.form.get("field") or "").strip()
+    if field not in cp.PROVENANCE_FIELDS:
+        return jsonify({"ok": False, "error": f"{field} is not an editable field"}), 400
+
+    value = (request.form.get("value") or "").strip() or None
+    cp.set_human_value(customer, field, value, current_user)
+    db.session.commit()
+    val = getattr(customer, field)
+    return jsonify({"ok": True, "field": field,
+                    "value": val.isoformat() if isinstance(val, date) else val,
+                    "trust": cp.trust_of(customer, field)})
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ balance/completeness self-check, idempotency. Fixtured from real raw commission
 files in tests/fixtures/commission/. SQLite in-memory via conftest fixtures.
 """
 import os
+from datetime import date
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
 
@@ -17,6 +18,7 @@ def test_commission_lineitem_model_columns(db_session, agency):
     stmt = CommissionStatement(
         agency_id=agency.id, carrier="BCBS", agent_id=None,
         period_label="April 2026", filename="x.xlsx",
+        statement_date=date(2026, 4, 1),
     )
     db.session.add(stmt)
     db.session.flush()

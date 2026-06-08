@@ -226,7 +226,7 @@ class CommissionStatement(db.Model):
     id             = db.Column(db.Integer, primary_key=True)
     agency_id      = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=True, index=True)
     carrier        = db.Column(db.String(64), nullable=False, index=True)
-    statement_date = db.Column(db.Date, nullable=True)
+    statement_date = db.Column(db.Date, nullable=False)
     period_label   = db.Column(db.String(32))                # e.g. "February 2026"
 
     # Agent linkage

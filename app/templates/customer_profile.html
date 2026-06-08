@@ -4,7 +4,7 @@
 {% macro editable_field(customer, field, label, value, can_edit, field_conflicts) %}
   {% set conflict = field_conflicts.get(field) %}
   {% if conflict %}
-    <div class="detail-row conflict-cell" data-field="{{ field }}" style="display:block; background:#FBE3E0; border-left:4px solid #C0392B; border-radius:4px; padding:10px 12px; margin:6px 0;">
+    <div class="detail-row conflict-cell" data-field="{{ field }}" style="display:block; background:color-mix(in srgb, #C0392B 12%, var(--surface)); border-left:4px solid #C0392B; border-radius:4px; padding:10px 12px; margin:6px 0; color:var(--ivory);">
       <div style="color:#C0392B; font-weight:700;">&#9888; {{ label }} — needs review</div>
       <div style="font-size:13px; margin-top:6px; color:var(--ivory);">
         Your value: <b>{{ conflict.existing.value or '—' }}</b>

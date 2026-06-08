@@ -10,7 +10,7 @@ import io
 import json
 from datetime import datetime, date
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -644,8 +644,19 @@ def customer_set_field(customer_id):
         return jsonify({"ok": False, "error": f"{field} is not an editable field"}), 400
 
     value = (request.form.get("value") or "").strip() or None
-    cp.set_human_value(customer, field, value, current_user)
-    db.session.commit()
+    if field == "dob" and value:
+        from datetime import date as _date
+        try:
+            _date.fromisoformat(value)
+        except ValueError:
+            return jsonify({"ok": False, "error": "invalid date (use YYYY-MM-DD)"}), 400
+    try:
+        cp.set_human_value(customer, field, value, current_user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"customer_set_field {customer_id}.{field}: {e}")
+        return jsonify({"ok": False, "error": "could not save"}), 400
     val = getattr(customer, field)
     return jsonify({"ok": True, "field": field,
                     "value": val.isoformat() if isinstance(val, date) else val,
@@ -667,8 +678,13 @@ def customer_resolve_conflict(customer_id):
     if field not in cp.PROVENANCE_FIELDS:
         return jsonify({"ok": False, "error": "invalid field"}), 400
 
-    cp.resolve_conflict(customer, field, choose, current_user)
-    db.session.commit()
+    try:
+        cp.resolve_conflict(customer, field, choose, current_user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"customer_resolve_conflict {customer_id}.{field}: {e}")
+        return jsonify({"ok": False, "error": "could not resolve"}), 400
     val = getattr(customer, field)
     return jsonify({"ok": True, "field": field,
                     "value": val.isoformat() if isinstance(val, date) else val,

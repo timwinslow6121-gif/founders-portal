@@ -148,3 +148,26 @@ def test_profile_admin_sees_edit_controls(client, app, agency, db_session):
     _login(client, app, aid)
     html = client.get(f"/customers/{cid}").data.decode()
     assert 'data-editable="1"' in html
+
+
+def test_save_field_invalid_dob_returns_400(client, app, agency, agent_user, db_session):
+    from app.extensions import db
+    with app.app_context():
+        c = _make_customer(db, agency, agent_user); cid = c.id
+    _login(client, app, agent_user.id)
+    r = client.post(f"/customers/{cid}/field", data={"field": "dob", "value": "not-a-date"})
+    assert r.status_code == 400
+    assert r.get_json()["ok"] is False
+
+
+def test_save_field_valid_dob_ok(client, app, agency, agent_user, db_session):
+    from app.extensions import db
+    from app.models import Customer
+    from datetime import date
+    with app.app_context():
+        c = _make_customer(db, agency, agent_user); cid = c.id
+    _login(client, app, agent_user.id)
+    r = client.post(f"/customers/{cid}/field", data={"field": "dob", "value": "1956-08-28"})
+    assert r.status_code == 200
+    with app.app_context():
+        assert Customer.query.get(cid).dob == date(1956, 8, 28)

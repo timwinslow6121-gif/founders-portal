@@ -190,3 +190,25 @@ def test_resolve_conflict_take_incoming(db_session, app, agency, agent_user):
         assert c.zip_code == "28202"
         assert cp.trust_of(c, "zip_code") == "human_verified"
         assert c.has_unresolved_conflicts is False
+
+
+def test_resolve_conflict_no_open_conflict_is_safe_noop(db_session, app, agency, agent_user):
+    """resolve_conflict with no open conflict must NOT null/overwrite the field
+    (guards against a stale/double-click in the future conflict-queue UI)."""
+    from app import customer_provenance as cp
+    from app.extensions import db
+    with app.app_context():
+        c = _fresh(db, agency)
+        cp.set_human_value(c, "zip_code", "28205", agent_user); db.session.flush()
+        # no conflict has been flagged on zip_code
+        assert cp.list_conflicts(c) == []
+
+        # both choices must be safe no-ops when there's nothing to resolve
+        cp.resolve_conflict(c, "zip_code", "take_incoming", agent_user); db.session.flush()
+        assert c.zip_code == "28205"                       # NOT nulled
+        assert cp.trust_of(c, "zip_code") == "agent_entered"
+
+        cp.resolve_conflict(c, "zip_code", "keep_current", agent_user); db.session.flush()
+        assert c.zip_code == "28205"                       # unchanged
+        assert cp.trust_of(c, "zip_code") == "agent_entered"
+        assert c.has_unresolved_conflicts is False

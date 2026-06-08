@@ -214,6 +214,8 @@ def resolve_conflict(customer, field, choose, user, note=None):
 
     conflict = next((c for c in data.get("_conflicts", [])
                      if c["field"] == field and not c.get("resolved")), None)
+    if conflict is None:
+        return  # nothing to resolve — safe no-op (don't write meta or touch the column)
     incoming = conflict["incoming"]["value"] if conflict else None
 
     surviving = current if choose == "keep_current" else incoming

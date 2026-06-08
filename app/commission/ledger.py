@@ -385,8 +385,6 @@ def money_rows_total_humana(sheets) -> float:
     return total
 
 
-from dataclasses import dataclass as _dc
-
 # (extractor, money_rows_total) per carrier. UHC deliberately absent (R4).
 EXTRACTORS = {
     "Healthspring": (extract_lineitems_healthspring, money_rows_total_healthspring),
@@ -397,7 +395,7 @@ EXTRACTORS = {
 }
 
 
-@_dc
+@dataclass
 class BalanceReport:
     carrier: str
     lineitem_total: float

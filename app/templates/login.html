@@ -10,34 +10,38 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── DESIGN TOKENS — always dark for login (brand moment) ── */
+    /* ── DESIGN TOKENS — dark-first brand moment, Founders palette ── */
     :root {
-      --ink:          #0A0A09;
-      --surface:      #131312;
-      --surface-low:  #1C1C1A;
-      --surface-mid:  #20201E;
-      --surface-high: #2A2A29;
-      --surface-top:  #353533;
-      --gold:         #DAC495;
-      --gold-dim:     #A08E71;
-      --gold-muted:   #9C8B6E;
-      --ivory:        #E5E2DF;
-      --ivory-bright: #F6F4EF;
-      --slate:        #6B665C;
-      --outline:      #989084;
-      --outline-var:  #4C463D;
+      --ink:          #0E1726;
+      --surface:      #172338;
+      --surface-low:  #1C2B44;
+      --surface-mid:  #20314D;
+      --surface-high: #283C5C;
+      --surface-top:  #314869;
+      --gold:         #4A9FD4;
+      --gold-dim:     #65BB84;
+      --gold-muted:   #5E8FB0;
+      --ivory:        #E2E8F0;
+      --ivory-bright: #F7FAFC;
+      --slate:        #718096;
+      --outline:      #9AA8BC;
+      --outline-var:  #2A3C56;
       --error:        #FFB4AB;
     }
-    /* Light mode: soften but keep the dark brand feel */
+    /* Light mode: Founders light palette */
     @media (prefers-color-scheme: light) {
       :root {
-        --ink:          #1A1917;
-        --surface:      #2A2A28;
-        --surface-low:  #232321;
-        --surface-mid:  #2E2E2C;
-        --ivory:        #E5E2DF;
-        --ivory-bright: #F6F4EF;
-        --error:        #E57373;
+        --ink:          #F7FAFC;
+        --surface:      #FFFFFF;
+        --surface-low:  #EDF2F7;
+        --surface-mid:  #E2E8F0;
+        --gold:         #266EA5;
+        --gold-dim:     #2F855A;
+        --ivory:        #1A202C;
+        --ivory-bright: #1A202C;
+        --slate:        #718096;
+        --outline:      #4A5568;
+        --error:        #C0392B;
       }
     }
 
@@ -127,7 +131,7 @@
     }
     .hero-headline em {
       font-style: italic;
-      background: linear-gradient(135deg, #DAC495 0%, #A08E71 100%);
+      background: linear-gradient(135deg, #266EA5 0%, #65BB84 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;

@@ -5,14 +5,19 @@
   {# NOTE: base.html wraps {% block styles %} inside its own <style> tag — do NOT
      add <style> here, or it nests and the browser discards these rules. #}
   /* ===== Agent Commission Recap (R2) — scoped to .recap-page ===== */
+  /* Recap tokens now REFERENCE the global theme tokens (base.html :root +
+     [data-theme]/dark), so the recap follows portal-wide light/dark automatically.
+     Carrier brand colors (JS CARRIER_BRAND) stay fixed hex — brand identity. */
   .recap-page{
-    --rc-blue:#266EA5; --rc-green:#65BB84; --rc-navy:#002E4D; --rc-ink:#2D3748;
-    --rc-slate:#3C4A5A; --rc-muted:#718096; --rc-border:#CBD5E0; --rc-blue-tint:#D5E4F6;
-    --rc-bg:#F7FAFC; --rc-card:#FFFFFF; --rc-success:#13612E; --rc-alert:#B82105;
-    --rc-r:20px;
-    --rc-shadow:0 6px 24px rgba(38,110,165,.10);
-    --rc-shadow-sm:0 2px 8px rgba(0,0,0,.05);
-    --rc-shadow-lg:0 10px 40px rgba(38,110,165,.18);
+    --rc-blue:var(--gold); --rc-green:var(--green); --rc-navy:var(--ivory-bright);
+    --rc-ink:var(--ivory); --rc-slate:var(--slate); --rc-muted:var(--slate);
+    --rc-border:var(--border); --rc-blue-tint:var(--surface-low);
+    --rc-bg:var(--ink); --rc-card:var(--surface);
+    --rc-success:var(--green-dim); --rc-alert:var(--status-error);
+    --rc-r:var(--radius);
+    --rc-shadow:var(--shadow);
+    --rc-shadow-sm:var(--shadow-sm);
+    --rc-shadow-lg:var(--shadow-float);
     font-family:'Plus Jakarta Sans',sans-serif;
     font-size:1.05rem;
     color:var(--rc-ink);
@@ -114,17 +119,17 @@
   .recap-page .dbody{padding:16px 18px 18px}
   .recap-page .dsearch{display:flex;gap:8px;margin-bottom:14px}
   .recap-page .dsearch input{flex:1;border:1px solid var(--rc-border);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:.9rem}
-  .recap-page .group{border:1px solid #E2ECF5;border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fff}
-  .recap-page .grp{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#FAFCFE;cursor:pointer;width:100%;border:none;font-family:inherit;font-size:1rem;text-align:left}
+  .recap-page .group{border:1px solid var(--rc-border);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--rc-card)}
+  .recap-page .grp{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--rc-blue-tint);cursor:pointer;width:100%;border:none;font-family:inherit;font-size:1rem;text-align:left;color:var(--rc-ink)}
   .recap-page .grp .amt{font-weight:800;color:var(--rc-navy)}
   .recap-page .grp .amt.neg{color:var(--rc-alert)}
   .recap-page .grp .chev{color:var(--rc-blue);font-weight:700;font-size:.82rem;margin-left:8px}
   .recap-page .grp-body[hidden]{display:none}
   .recap-page table{width:100%;border-collapse:collapse;font-size:.9rem}
-  .recap-page th{text-align:left;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--rc-muted);font-weight:700;padding:10px 14px;border-bottom:2px solid #EDF2F7;background:#FAFCFE}
+  .recap-page th{text-align:left;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--rc-muted);font-weight:700;padding:10px 14px;border-bottom:2px solid var(--rc-border);background:var(--rc-blue-tint)}
   .recap-page th.num,.recap-page td.num{text-align:right}
-  .recap-page td{padding:10px 14px;border-bottom:1px solid #F1F5F9}
-  .recap-page tr:hover td{background:#FAFCFE}
+  .recap-page td{padding:10px 14px;border-bottom:1px solid var(--rc-border);color:var(--rc-ink)}
+  .recap-page tr:hover td{background:var(--rc-blue-tint)}
   .recap-page .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px}
   .recap-page .pill.renewal{background:var(--rc-blue-tint);color:var(--rc-blue)}
   .recap-page .pill.new{background:#DCF3E4;color:var(--rc-success)}

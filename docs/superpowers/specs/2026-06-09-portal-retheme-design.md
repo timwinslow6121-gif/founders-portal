@@ -1,7 +1,7 @@
 # Portal Re-Theme — Founders Look, Light + Dark (Design Spec)
 
 **Date:** 2026-06-09
-**Status:** Approved (brainstorm complete) — ready for implementation planning
+**Status:** ✅ Implemented (on `feat/portal-retheme`)
 **Part of:** the post-R2 polish batch. This is **Phase A** (the global re-theme); the agent recap page is already the reference look. Features #1 (upload checklist), #2 (recap pills), #3 (agency totals view) are separate specs that build ON this.
 
 ## Goal

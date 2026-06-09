@@ -241,9 +241,9 @@
   {# Tier 1: headline KPIs #}
   <div class="kpis">
     <div class="kpi">
-      <div class="label">Total Paid to You</div>
+      <div class="label">Commissions Earned <span class="info" title="Your total commissions for the month before any chargebacks are subtracted.">ⓘ</span></div>
       <div class="big">${{ "{:,.2f}".format(recap.total_paid) }}</div>
-      <div class="sub">for {{ recap.period_label }}</div>
+      <div class="sub">for {{ recap.period_label }} · before chargebacks</div>
     </div>
     <div class="kpi gradient">
       <div class="label">New Members</div>
@@ -251,9 +251,9 @@
       <div class="sub">gained {{ recap.new_members }} · lost {{ recap.lost_members }} · net {% if recap.net_member_change >= 0 %}+{% endif %}{{ recap.net_member_change }}</div>
     </div>
     <div class="kpi">
-      <div class="label">After Chargebacks <span class="info" title="Money a carrier takes back when a member cancels or a payment is reversed.">ⓘ</span></div>
+      <div class="label">Take-Home Pay <span class="info" title="What you're actually paid: commissions earned minus any chargebacks the carrier took back.">ⓘ</span></div>
       <div class="big">${{ "{:,.2f}".format(recap.net_after_chargebacks) }}</div>
-      <div class="sub">your real take-home</div>
+      <div class="sub">after chargebacks · your real total</div>
     </div>
   </div>
 

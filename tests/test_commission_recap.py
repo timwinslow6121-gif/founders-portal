@@ -161,10 +161,12 @@ def test_build_recap_headline_and_ytd(db_session, agency):
     db.session.flush()
 
     r = build_recap(agent.id, agency.id, "May 2026")
-    # total = ledger payouts (440) + UHC manual (2000) = 2440
-    assert round(r.total_paid, 2) == 2440.00
-    # after chargebacks is the same total (chargebacks already netted into payouts)
+    # GROSS = before chargebacks: Devoted new 550 + UHC manual 2000 = 2550
+    assert round(r.total_paid, 2) == 2550.00
+    # NET after chargebacks: gross 2550 - 110 chargeback = 2440
     assert round(r.net_after_chargebacks, 2) == 2440.00
+    # they MUST differ when chargebacks exist
+    assert r.total_paid != r.net_after_chargebacks
     assert r.new_members == 1
     # carriers include both Devoted (ledger) and UHC (manual)
     names = {b.carrier for b in r.carriers}

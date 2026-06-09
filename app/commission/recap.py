@@ -223,7 +223,16 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
     for b in carriers:
         b.pct_of_book = round(100.0 * by_carrier_active.get(b.carrier, 0) / total_active, 1)
 
-    total_paid = round(sum(b.total_payout for b in carriers), 2)
+    # Net = chargeback-inclusive (each block.total_payout already nets negatives).
+    net_paid = round(sum(b.total_payout for b in carriers), 2)
+    # Gross = before chargebacks: sum every block total MINUS its Chargebacks group
+    # (a chargeback subtotal is negative, so subtracting it adds it back out).
+    chargeback_total = 0.0
+    for b in carriers:
+        for g in b.groups:
+            if g.kind == "Chargebacks":
+                chargeback_total += g.subtotal
+    gross_paid = round(net_paid - chargeback_total, 2)
     new_members = sum(b.new_members for b in carriers)
     lost_members = sum(lost.values())
 
@@ -248,7 +257,7 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
     return RecapView(
         agent_id=agent_id, agent_name=(agent.name if agent else "Agent"),
         period_label=period_label, status=(rp.status if rp else "draft"),
-        total_paid=total_paid, net_after_chargebacks=total_paid,
+        total_paid=gross_paid, net_after_chargebacks=net_paid,
         new_members=new_members, lost_members=lost_members,
         net_member_change=new_members - lost_members,
         carriers=carriers, ytd_current=ytd_current, ytd_prior=ytd_prior,

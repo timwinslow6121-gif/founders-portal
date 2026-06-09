@@ -1618,8 +1618,11 @@ def recap_carrier_detail():
         return {"carrier": carrier, "groups": []}
 
     def rowj(r):
+        # payout is already rounded to cents at the source (build_carrier_blocks);
+        # round raw for display too so the columns shown reconcile to the totals.
         return {"member": r.member_name, "customer_id": r.customer_id, "type": r.type_label,
-                "kind": r.type_kind, "raw": r.raw_amount, "split": r.split_rate, "payout": r.payout}
+                "kind": r.type_kind, "raw": round(r.raw_amount or 0.0, 2),
+                "split": r.split_rate, "payout": r.payout}
 
     groups = []
     for g in block.groups:

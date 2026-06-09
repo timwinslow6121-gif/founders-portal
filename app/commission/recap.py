@@ -94,9 +94,14 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
     for li in rows:
         payout, _ = split_breakdown(li)
         kind = _row_kind(li.carrier, li)
+        # Round each line's payout to cents AT THE SOURCE. Every aggregate below
+        # then sums these identical 2dp values, so the drill-down rows ALWAYS add
+        # up exactly to the group subtotal and the carrier total (no per-row-vs-
+        # per-total drift — the "✓ lines add up to $X" guarantee holds to the penny).
         lr = LineRow(member_name=li.member_name or "(unnamed)", customer_id=li.customer_id,
                      type_label=_TYPE_LABEL[kind], type_kind=kind,
-                     raw_amount=li.raw_amount, split_rate=li.split_rate, payout=payout)
+                     raw_amount=li.raw_amount, split_rate=li.split_rate,
+                     payout=round(payout, 2))
         by_carrier.setdefault(li.carrier, []).append(lr)
 
     blocks = []
@@ -106,8 +111,11 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
             g = groups.setdefault(lr.type_kind,
                                   CarrierGroup(kind=_GROUP_FOR[lr.type_kind], count=0, subtotal=0.0))
             g.count += 1
-            g.subtotal = round(g.subtotal + lr.payout, 2)
             g.rows.append(lr)
+        # Subtotals + total are sums of the already-rounded row payouts (round once
+        # more only to clear float addition noise like 0.1+0.2).
+        for g in groups.values():
+            g.subtotal = round(sum(r.payout for r in g.rows), 2)
         ordered = [groups[k] for k in ("new", "renewal", "chargeback") if k in groups]
         block = CarrierBlock(
             carrier=carrier,

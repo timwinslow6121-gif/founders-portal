@@ -288,3 +288,31 @@ def test_latest_period_with_data_uses_statement_date_chronology(db_session, agen
     # May has the later statement_date → it's the default, even though "April" < "May"
     # alphabetically would also work here, but Dec<Feb etc. would break alphabetical.
     assert latest_period_with_data(agency.id) == "May 2026"
+
+
+def test_carrier_block_rows_reconcile_to_total_exactly(db_session, agency):
+    """Fix #4: drill-down rows MUST sum to the carrier total to the penny — no
+    per-row vs per-total rounding drift (the $431.01 vs $430.99 bug). Uses amounts
+    whose raw×split has sub-cent tails that would drift if rounded inconsistently."""
+    from app.models import User
+    from app.extensions import db
+    from app.commission.recap import build_carrier_blocks
+    agent = User(name="Justin Basinger", email="recon@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+    # 100.05 * 0.525 = 52.52625 → row rounds to 52.53. Three of them:
+    #   OLD (sum-then-round): round(157.57875, 2) = 157.58  ← total
+    #   rows shown (each 52.53) sum to 157.59               ← MISMATCH (the bug)
+    #   NEW (round-then-sum): total = 157.59 = rows         ← reconciles
+    for i in range(3):
+        _mk_line(db, agency, agent, "BCBS", "agent_commission", "renew", 100.05, 0.525, f"M{i}")
+    db.session.flush()
+    blocks = build_carrier_blocks(agent.id, agency.id, "May 2026")
+    b = next(x for x in blocks if x.carrier == "BCBS")
+    all_rows = [r for g in b.groups for r in g.rows]
+    assert all(round(r.payout, 2) == r.payout for r in all_rows)   # every row 2dp
+    assert all_rows[0].payout == 52.53
+    # rows sum EXACTLY to the carrier total (the reconciliation guarantee)
+    assert round(sum(r.payout for r in all_rows), 2) == b.total_payout
+    assert b.total_payout == 157.59      # reconciled value, NOT the old drifted 157.58
+    # and to the sum of group subtotals
+    assert round(sum(g.subtotal for g in b.groups), 2) == b.total_payout

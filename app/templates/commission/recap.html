@@ -400,7 +400,15 @@
     var s = '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
     return neg ? '−' + s : s;
   }
-  function pct(rate){ return rate == null ? '' : '× ' + Math.round(rate * 100) + '%'; }
+  // Show the agent's TRUE split precision — never round a contract rate.
+  // 0.55 -> "55%", 0.525 -> "52.5%" (Mike's rate must NOT round to 53%).
+  function pct(rate){
+    if(rate == null) return '';
+    var p = rate * 100;
+    // up to 2 decimals, trim trailing zeros: 55, 52.5, 52.25
+    var s = (Math.round(p * 100) / 100).toString();
+    return '× ' + s + '%';
+  }
 
   function rowHtml(r){
     var pillCls = (r.kind === 'new') ? 'new' : (r.kind === 'chargeback' ? 'chargeback' : 'renewal');

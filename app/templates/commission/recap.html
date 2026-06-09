@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+{% if pending %}
+  <p>Your {{ period_label }} recap is not yet published — pending.</p>
+{% elif recap %}
+  <h1>{{ recap.agent_name }} — {{ recap.period_label }}</h1>
+  <p>Total Paid: ${{ "%.2f"|format(recap.total_paid) }}</p>
+  {% for b in recap.carriers %}
+    <div>{{ b.carrier }}: ${{ "%.2f"|format(b.total_payout) }} — {{ b.new_members }} new</div>
+  {% endfor %}
+{% endif %}
+{% endblock %}

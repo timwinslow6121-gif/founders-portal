@@ -218,3 +218,34 @@ def test_publish_workflow_and_visibility(db_session, agency, app, monkeypatch):
     R.publish_recap(p, published_by_id=admin.id, agent_email=agent.email,
                     total_paid=2440.0, base_url="http://x")
     assert len(calls) == 1
+
+
+def _login(client, app, user_id):
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(user_id)
+
+
+def test_agent_recap_route_hides_draft_shows_published(client, app, agency, db_session):
+    from app.models import User, AgentRecapPeriod
+    from app.extensions import db
+    agent = User(name="Tim", email="route@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+    _mk_line(db, agency, agent, "Devoted", "agent_commission", "renewal - monthly", 100.0, 0.55, "A")
+    db.session.add(AgentRecapPeriod(agency_id=agency.id, agent_id=agent.id,
+                                    period_label="May 2026", status="draft"))
+    db.session.commit()
+    agent_id = agent.id
+
+    _login(client, app, agent_id)
+    # draft → agent sees a "pending" state, not the numbers
+    resp = client.get("/commissions/recap?period=May+2026")
+    assert resp.status_code == 200
+    assert b"pending" in resp.data.lower() or b"not yet" in resp.data.lower()
+
+    # publish, then the total shows
+    with app.app_context():
+        p = AgentRecapPeriod.query.filter_by(agent_id=agent_id, period_label="May 2026").first()
+        p.status = "published"
+        db.session.commit()
+    resp2 = client.get("/commissions/recap?period=May+2026")
+    assert b"55" in resp2.data  # $55.00 payout appears

@@ -265,6 +265,38 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
         prior_year_known=prior_year_known)
 
 
+def latest_period_with_data(agency_id):
+    """The period_label of the most recently-dated commission statement in this
+    agency — used as the admin recap default so opening the page lands on the
+    period you just uploaded, not today's calendar month. Ordered by the real
+    statement_date (period_label sorts wrong: 'December' < 'February' alphabetically).
+    Returns None when no statements exist."""
+    from app.models import CommissionStatement
+    row = (CommissionStatement.query
+           .filter_by(agency_id=agency_id)
+           .filter(CommissionStatement.period_label.isnot(None))
+           .order_by(CommissionStatement.statement_date.desc())
+           .first())
+    return row.period_label if row else None
+
+
+def all_periods_with_data(agency_id):
+    """All distinct period_labels that have commission statements in this agency,
+    most-recent first (by statement_date). Powers the admin period dropdown."""
+    from app.models import CommissionStatement
+    rows = (CommissionStatement.query
+            .filter_by(agency_id=agency_id)
+            .filter(CommissionStatement.period_label.isnot(None))
+            .order_by(CommissionStatement.statement_date.desc())
+            .all())
+    seen, out = set(), []
+    for r in rows:
+        if r.period_label not in seen:
+            seen.add(r.period_label)
+            out.append(r.period_label)
+    return out
+
+
 def get_or_create_period(agent_id, agency_id, period_label):
     from app.models import AgentRecapPeriod
     p = (AgentRecapPeriod.query

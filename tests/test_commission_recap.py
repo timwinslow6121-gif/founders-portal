@@ -265,3 +265,26 @@ def test_agent_recap_route_hides_draft_shows_published(client, app, agency, db_s
         db.session.commit()
     resp2 = client.get("/commissions/recap?period=May+2026")
     assert b"55" in resp2.data  # $55.00 payout appears
+
+
+def test_latest_period_with_data_uses_statement_date_chronology(db_session, agency):
+    """Admin default = most recent period that has commission data, ordered by the
+    real statement_date (NOT alphabetical period_label). None when no data."""
+    from app.models import CommissionStatement
+    from app.extensions import db
+    from datetime import date
+    from app.commission.recap import latest_period_with_data
+
+    assert latest_period_with_data(agency.id) is None   # no data yet
+
+    # April uploaded after May chronologically? No — use statement_date as truth.
+    db.session.add(CommissionStatement(agency_id=agency.id, carrier="Devoted", agent_id=None,
+                                       period_label="April 2026", filename="a",
+                                       statement_date=date(2026, 4, 1)))
+    db.session.add(CommissionStatement(agency_id=agency.id, carrier="Humana", agent_id=None,
+                                       period_label="May 2026", filename="m",
+                                       statement_date=date(2026, 5, 1)))
+    db.session.flush()
+    # May has the later statement_date → it's the default, even though "April" < "May"
+    # alphabetically would also work here, but Dec<Feb etc. would break alphabetical.
+    assert latest_period_with_data(agency.id) == "May 2026"

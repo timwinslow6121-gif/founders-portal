@@ -19,7 +19,8 @@ from app.commission.ingest import ingest_statement, compute_fingerprint
 from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
 from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
-                                   publish_recap, build_carrier_blocks)
+                                   publish_recap, build_carrier_blocks, latest_period_with_data,
+                                   all_periods_with_data)
 
 SPLIT_RATE = 0.55
 
@@ -1551,13 +1552,18 @@ def admin_recap():
     if not current_user.is_admin:
         abort(403)
     agent_id = request.args.get("agent_id", type=int) or current_user.id
-    period = request.args.get("period") or date.today().strftime("%B %Y")
+    # Default to the most recent period that actually has commission data (so opening
+    # the page after an upload lands on that period), falling back to today's month.
+    period = (request.args.get("period")
+              or latest_period_with_data(current_user.agency_id)
+              or date.today().strftime("%B %Y"))
     rp = get_or_create_period(agent_id, current_user.agency_id, period)
     db.session.commit()
     recap = build_recap(agent_id, current_user.agency_id, period)
     agents = User.query.filter_by(agency_id=current_user.agency_id).order_by(User.name).all()
     return render_template("commission/recap.html", recap=recap, pending=False, admin_view=True,
                            period_label=period, recap_period=rp, agents=agents,
+                           periods=all_periods_with_data(current_user.agency_id),
                            selected_agent_id=agent_id, is_admin=True)
 
 

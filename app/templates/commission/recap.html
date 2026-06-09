@@ -1,12 +1,547 @@
 {% extends "base.html" %}
+{% block title %}My Commissions{% endblock %}
+
+{% block styles %}
+<style>
+  /* ===== Agent Commission Recap (R2) — scoped to .recap-page ===== */
+  .recap-page{
+    --rc-blue:#266EA5; --rc-green:#65BB84; --rc-navy:#002E4D; --rc-ink:#2D3748;
+    --rc-slate:#3C4A5A; --rc-muted:#718096; --rc-border:#CBD5E0; --rc-blue-tint:#D5E4F6;
+    --rc-bg:#F7FAFC; --rc-card:#FFFFFF; --rc-success:#13612E; --rc-alert:#B82105;
+    --rc-r:20px;
+    --rc-shadow:0 6px 24px rgba(38,110,165,.10);
+    --rc-shadow-sm:0 2px 8px rgba(0,0,0,.05);
+    --rc-shadow-lg:0 10px 40px rgba(38,110,165,.18);
+    font-family:'Plus Jakarta Sans',sans-serif;
+    font-size:1.05rem;
+    color:var(--rc-ink);
+    line-height:1.5;
+    max-width:1180px;
+    margin:0 auto;
+  }
+  .recap-page h1,.recap-page h2,.recap-page h3,.recap-page .serif{
+    font-family:'Merriweather',serif;color:var(--rc-navy);
+  }
+
+  /* topbar */
+  .recap-page .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .recap-page .topbar h1{font-size:1.6rem;font-weight:800}
+  .recap-page .topbar-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .recap-page select.period,.recap-page select.agent-sel{
+    font-family:'Plus Jakarta Sans';font-size:.9rem;font-weight:600;
+    background:var(--rc-card);border:1px solid var(--rc-border);border-radius:12px;
+    padding:8px 14px;color:var(--rc-slate);cursor:pointer;
+  }
+  .recap-page select.period:focus,.recap-page select.agent-sel:focus,
+  .recap-page .carrier:focus-visible,.recap-page .grp:focus-visible,
+  .recap-page input:focus-visible,.recap-page button:focus-visible{
+    outline:3px solid var(--rc-blue);outline-offset:2px;
+  }
+  .recap-page .label{font-family:'Plus Jakarta Sans';font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--rc-muted)}
+
+  /* pending card */
+  .recap-page .pending-card{
+    background:var(--rc-card);border:1px solid #EDF2F7;border-radius:var(--rc-r);
+    box-shadow:var(--rc-shadow);padding:48px 40px;text-align:center;max-width:560px;margin:40px auto;
+  }
+  .recap-page .pending-card .glyph{
+    width:64px;height:64px;border-radius:18px;margin:0 auto 18px;
+    background:var(--rc-blue-tint);color:var(--rc-blue);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .recap-page .pending-card h2{font-size:1.3rem;font-weight:800;margin-bottom:10px}
+  .recap-page .pending-card p{color:var(--rc-muted);font-size:1rem}
+
+  /* admin tools */
+  .recap-page .admin-tools{
+    background:#F0F7FC;border:1px solid #E2ECF5;border-radius:var(--rc-r);
+    padding:16px 18px;margin-bottom:22px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;
+  }
+  .recap-page .admin-tools form{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .recap-page .admin-tools .fld{display:flex;flex-direction:column;gap:4px}
+  .recap-page .admin-tools input[type=text]{
+    border:1px solid var(--rc-border);border-radius:10px;padding:8px 12px;
+    font-family:inherit;font-size:.9rem;min-width:140px;
+  }
+  .recap-page .btn{
+    font-family:'Plus Jakarta Sans';font-weight:700;font-size:.85rem;
+    border:none;border-radius:10px;padding:9px 16px;cursor:pointer;
+  }
+  .recap-page .btn-primary{background:var(--rc-blue);color:#fff}
+  .recap-page .btn-publish{background:var(--rc-green);color:#08361b}
+  .recap-page .admin-tag{font-size:.78rem;color:var(--rc-muted);align-self:center}
+
+  /* headline KPIs */
+  .recap-page .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:24px}
+  .recap-page .kpi{background:var(--rc-card);border-radius:var(--rc-r);box-shadow:var(--rc-shadow);padding:24px;text-align:center;border:1px solid #EDF2F7}
+  .recap-page .kpi .big{font-family:'Plus Jakarta Sans';font-size:2.7rem;font-weight:800;color:var(--rc-navy);line-height:1.05;margin:6px 0}
+  .recap-page .kpi.gradient{background:linear-gradient(135deg,var(--rc-blue),var(--rc-green));color:#fff;border:none}
+  .recap-page .kpi.gradient .big,.recap-page .kpi.gradient .label{color:#fff}
+  .recap-page .kpi .sub{font-size:.8rem;color:var(--rc-muted)}
+  .recap-page .kpi.gradient .sub{color:rgba(255,255,255,.92)}
+  .recap-page .info{border-bottom:1px dotted var(--rc-muted);cursor:help}
+
+  /* carrier grid */
+  .recap-page .sec-title{font-size:1.1rem;font-weight:700;margin-bottom:12px}
+  .recap-page .sec-title small{font-family:'Plus Jakarta Sans';font-size:.8rem;font-weight:500;color:var(--rc-muted)}
+  .recap-page .carriers{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+  .recap-page .carrier{background:var(--rc-card);border-radius:var(--rc-r);box-shadow:var(--rc-shadow-sm);overflow:hidden;border:1px solid #EDF2F7;cursor:pointer;transition:box-shadow .2s,transform .2s;text-align:left;width:100%;font-family:inherit;padding:0}
+  .recap-page .carrier:hover{box-shadow:var(--rc-shadow);transform:translateY(-2px)}
+  .recap-page .carrier .bar{height:6px}
+  .recap-page .carrier .body{padding:18px 18px 16px;text-align:center}
+  .recap-page .carrier .name{display:inline-flex;align-items:center;gap:8px;margin-bottom:6px}
+  .recap-page .chip{width:30px;height:30px;border-radius:9px;color:#fff;font-size:.8rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+  .recap-page .carrier .cname{font-size:.95rem;font-weight:700;color:var(--rc-navy)}
+  .recap-page .carrier .amt{font-family:'Plus Jakarta Sans';font-size:2rem;font-weight:800;color:var(--rc-navy);line-height:1.1}
+  .recap-page .carrier .added{font-size:.8rem;font-weight:600;color:var(--rc-success);margin-top:4px}
+  .recap-page .carrier .added.none{color:var(--rc-muted)}
+  .recap-page .carrier .meta{font-size:.75rem;color:var(--rc-muted);margin-top:2px}
+  .recap-page .aj-tag{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--rc-blue-tint);color:var(--rc-blue);border-radius:999px;padding:2px 9px;margin-top:6px}
+  .recap-page .aj-note{font-size:.72rem;color:var(--rc-muted);margin-top:4px;font-style:italic}
+
+  /* drill-down drawer */
+  .recap-page .drawer{background:var(--rc-card);border-radius:var(--rc-r);box-shadow:var(--rc-shadow-lg);overflow:hidden;border:1px solid #EDF2F7;margin:0 0 24px}
+  .recap-page .drawer[hidden]{display:none}
+  .recap-page .dhead{color:#fff;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .recap-page .dhead .l{display:flex;align-items:center;gap:10px}
+  .recap-page .dhead .chip{background:rgba(255,255,255,.2)}
+  .recap-page .dhead .cname{font-weight:700;font-size:1.05rem}
+  .recap-page .dhead .tot{text-align:right}
+  .recap-page .dhead .tot .big{font-size:1.6rem;font-weight:800}
+  .recap-page .dhead .tot small{opacity:.85;font-size:.75rem;display:block}
+  .recap-page .dclose{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:1rem;font-weight:700}
+  .recap-page .dbody{padding:16px 18px 18px}
+  .recap-page .dsearch{display:flex;gap:8px;margin-bottom:14px}
+  .recap-page .dsearch input{flex:1;border:1px solid var(--rc-border);border-radius:10px;padding:9px 12px;font-family:inherit;font-size:.9rem}
+  .recap-page .group{border:1px solid #E2ECF5;border-radius:12px;margin-bottom:10px;overflow:hidden;background:#fff}
+  .recap-page .grp{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#FAFCFE;cursor:pointer;width:100%;border:none;font-family:inherit;font-size:1rem;text-align:left}
+  .recap-page .grp .amt{font-weight:800;color:var(--rc-navy)}
+  .recap-page .grp .amt.neg{color:var(--rc-alert)}
+  .recap-page .grp .chev{color:var(--rc-blue);font-weight:700;font-size:.82rem;margin-left:8px}
+  .recap-page .grp-body[hidden]{display:none}
+  .recap-page table{width:100%;border-collapse:collapse;font-size:.9rem}
+  .recap-page th{text-align:left;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--rc-muted);font-weight:700;padding:10px 14px;border-bottom:2px solid #EDF2F7;background:#FAFCFE}
+  .recap-page th.num,.recap-page td.num{text-align:right}
+  .recap-page td{padding:10px 14px;border-bottom:1px solid #F1F5F9}
+  .recap-page tr:hover td{background:#FAFCFE}
+  .recap-page .pill{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px}
+  .recap-page .pill.renewal{background:var(--rc-blue-tint);color:var(--rc-blue)}
+  .recap-page .pill.new{background:#DCF3E4;color:var(--rc-success)}
+  .recap-page .pill.chargeback{background:#FCE4E0;color:var(--rc-alert)}
+  .recap-page .neg{color:var(--rc-alert)}
+  .recap-page .rate{color:var(--rc-muted);font-size:.82rem}
+  .recap-page a.member{color:var(--rc-blue);text-decoration:none;font-weight:600}
+  .recap-page a.member:hover{text-decoration:underline}
+  .recap-page .showall{background:none;border:none;color:var(--rc-blue);font-weight:700;font-size:.85rem;cursor:pointer;padding:10px 14px}
+  .recap-page .checkrow{display:flex;align-items:center;gap:8px;background:#F0FBF4;border:1px solid #C9ECD6;border-radius:12px;padding:10px 14px;margin-top:14px;font-size:.9rem;color:var(--rc-success);font-weight:600}
+  .recap-page .checkmark{flex:0 0 auto;font-weight:800}
+
+  /* YTD strip */
+  .recap-page .ytd{background:var(--rc-card);border-radius:var(--rc-r);box-shadow:var(--rc-shadow-sm);border:1px solid #EDF2F7;padding:18px 22px;display:flex;align-items:center;gap:30px;flex-wrap:wrap}
+  .recap-page .ytd .blk .v{font-family:'Plus Jakarta Sans';font-size:1.35rem;font-weight:800;color:var(--rc-navy)}
+  .recap-page .ytd .blk .v small{font-size:.8rem;font-weight:500;color:var(--rc-muted)}
+  .recap-page .down{color:var(--rc-alert)} .recap-page .up{color:var(--rc-success)}
+  .recap-page .spark{margin-left:auto;display:flex;align-items:flex-end;gap:5px;height:42px}
+  .recap-page .spark span{width:14px;background:var(--rc-blue-tint);border-radius:4px 4px 0 0;min-height:3px}
+  .recap-page .spark span.hot{background:var(--rc-blue)}
+
+  /* responsive 3 → 2 → 1 */
+  @media (max-width:880px){
+    .recap-page .kpis,.recap-page .carriers{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:560px){
+    .recap-page .kpis,.recap-page .carriers{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .recap-page .carrier{transition:none}
+    .recap-page .carrier:hover{transform:none}
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-{% if pending %}
-  <p>Your {{ period_label }} recap is not yet published — pending.</p>
-{% elif recap %}
-  <h1>{{ recap.agent_name }} — {{ recap.period_label }}</h1>
-  <p>Total Paid: ${{ "%.2f"|format(recap.total_paid) }}</p>
-  {% for b in recap.carriers %}
-    <div>{{ b.carrier }}: ${{ "%.2f"|format(b.total_payout) }} — {{ b.new_members }} new</div>
-  {% endfor %}
+<div class="recap-page">
+
+  {# ---------- topbar + period/agent selectors ---------- #}
+  <div class="topbar">
+    <h1>{% if recap %}{{ recap.agent_name }} — {% endif %}My Commission Recap</h1>
+    <div class="topbar-controls">
+      {% if admin_view and agents %}
+      <form method="get" action="{{ url_for('commission.admin_recap') }}" style="display:inline">
+        <input type="hidden" name="period" value="{{ period_label }}">
+        <select class="agent-sel" name="agent_id" onchange="this.form.submit()" aria-label="Choose agent">
+          {% for a in agents %}
+          <option value="{{ a.id }}" {% if a.id == selected_agent_id %}selected{% endif %}>{{ a.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      {% if periods %}
+      <form method="get" style="display:inline">
+        {% if admin_view and selected_agent_id %}<input type="hidden" name="agent_id" value="{{ selected_agent_id }}">{% endif %}
+        <select class="period" name="period" onchange="this.form.submit()" aria-label="Choose period">
+          {% for p in periods %}
+          <option value="{{ p }}" {% if p == period_label %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+          {% if period_label and period_label not in periods %}
+          <option value="{{ period_label }}" selected>{{ period_label }}</option>
+          {% endif %}
+        </select>
+      </form>
+      {% elif period_label %}
+      <span class="period">{{ period_label }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---------- admin tools (set UHC + publish) ---------- #}
+  {% if admin_view %}
+  <div class="admin-tools">
+    <form method="post" action="{{ url_for('commission.admin_recap_set_uhc') }}">
+      <input type="hidden" name="agent_id" value="{{ selected_agent_id }}">
+      <input type="hidden" name="period" value="{{ period_label }}">
+      <div class="fld">
+        <label class="label" for="uhc_amount">UHC commission (manual)</label>
+        <input type="text" id="uhc_amount" name="uhc_amount" placeholder="$0.00"
+               value="{% if recap_period and recap_period.uhc_manual_amount is not none %}{{ '%.2f'|format(recap_period.uhc_manual_amount) }}{% endif %}">
+      </div>
+      <div class="fld">
+        <label class="label" for="uhc_note">Note</label>
+        <input type="text" id="uhc_note" name="uhc_note" placeholder="e.g. AEP true-up incl."
+               value="{% if recap_period and recap_period.uhc_manual_note %}{{ recap_period.uhc_manual_note }}{% endif %}">
+      </div>
+      <button type="submit" class="btn btn-primary">Save UHC</button>
+    </form>
+    <form method="post" action="{{ url_for('commission.admin_recap_publish') }}">
+      <input type="hidden" name="agent_id" value="{{ selected_agent_id }}">
+      <input type="hidden" name="period" value="{{ period_label }}">
+      <button type="submit" class="btn btn-publish">Publish &amp; notify agent</button>
+    </form>
+    <span class="admin-tag">
+      {% if recap_period and recap_period.status == 'published' %}Published{% if recap_period.published_at %} · {{ recap_period.published_at.strftime('%b %d') }}{% endif %}{% else %}Draft (not visible to agent yet){% endif %}
+    </span>
+  </div>
+  {% endif %}
+
+  {# ---------- PENDING state ---------- #}
+  {% if pending %}
+  <div class="pending-card">
+    <div class="glyph" aria-hidden="true">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path>
+      </svg>
+    </div>
+    <h2>Your {{ period_label or 'latest' }} recap isn't published yet</h2>
+    <p>It's still pending — you'll be notified when it's ready.</p>
+  </div>
+
+  {# ---------- POPULATED state ---------- #}
+  {% elif recap %}
+
+  {# Tier 1: headline KPIs #}
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Total Paid to You</div>
+      <div class="big">${{ "{:,.2f}".format(recap.total_paid) }}</div>
+      <div class="sub">for {{ recap.period_label }}</div>
+    </div>
+    <div class="kpi gradient">
+      <div class="label">New Members</div>
+      <div class="big">+{{ recap.new_members }}</div>
+      <div class="sub">gained {{ recap.new_members }} · lost {{ recap.lost_members }} · net {% if recap.net_member_change >= 0 %}+{% endif %}{{ recap.net_member_change }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">After Chargebacks <span class="info" title="Money a carrier takes back when a member cancels or a payment is reversed.">ⓘ</span></div>
+      <div class="big">${{ "{:,.2f}".format(recap.net_after_chargebacks) }}</div>
+      <div class="sub">your real take-home</div>
+    </div>
+  </div>
+
+  {# Tier 2: carrier cards #}
+  <div class="sec-title">By Carrier <small>— tap any card to see the members behind the number</small></div>
+  <div class="carriers">
+    {% for b in recap.carriers %}
+    <button type="button" class="carrier"
+            data-carrier="{{ b.carrier }}"
+            aria-expanded="false"
+            onclick="recapOpenCarrier(this, '{{ b.carrier|e }}')">
+      <div class="bar js-bar" data-carrier="{{ b.carrier }}"></div>
+      <div class="body">
+        <div class="name">
+          <span class="chip js-chip" data-carrier="{{ b.carrier }}">{{ b.carrier[0]|upper }}</span>
+          <span class="cname">{{ b.carrier }}</span>
+        </div>
+        <div class="amt">${{ "{:,.2f}".format(b.total_payout) }}</div>
+        {% if b.new_members > 0 %}
+        <div class="added">+{{ b.new_members }} new members</div>
+        {% else %}
+        <div class="added none">no new members</div>
+        {% endif %}
+        <div class="meta">{{ b.pct_of_book }}% of your book · verify ›</div>
+        {% if b.source == 'manual' %}
+        <div class="aj-tag">entered by AJ</div>
+        {% if b.note %}<div class="aj-note">{{ b.note }}</div>{% endif %}
+        {% endif %}
+      </div>
+    </button>
+    {% else %}
+    <p style="color:var(--rc-muted)">No commission lines for this period yet.</p>
+    {% endfor %}
+  </div>
+
+  {# Tier 2b: drill-down drawer (one, reused) #}
+  <div class="drawer" id="recapDrawer" hidden>
+    <div class="dhead" id="recapDrawerHead">
+      <div class="l"><span class="chip" id="recapDrawerChip"></span><span class="cname" id="recapDrawerTitle"></span></div>
+      <div class="tot"><div class="big" id="recapDrawerTotal"></div><small id="recapDrawerSub"></small></div>
+      <button type="button" class="dclose" onclick="recapCloseDrawer()" aria-label="Close">✕</button>
+    </div>
+    <div class="dbody">
+      <div class="dsearch">
+        <input type="search" id="recapSearch" placeholder="Find a member…" aria-label="Find a member">
+      </div>
+      <div id="recapGroups"></div>
+      <div class="checkrow" id="recapCheckrow" hidden>
+        <span class="checkmark">✓</span><span id="recapCheckText"></span>
+      </div>
+    </div>
+  </div>
+
+  {# Tier 3: YTD strip #}
+  <div class="sec-title">Year to Date</div>
+  <div class="ytd">
+    <div class="blk">
+      <div class="label">This Year So Far</div>
+      <div class="v">${{ "{:,.2f}".format(recap.ytd_current) }}
+        {% if recap.prior_year_known and recap.ytd_prior is not none %}
+        <small>vs ${{ "{:,.2f}".format(recap.ytd_prior) }} last year</small>
+        {% else %}
+        <small>no prior-year data yet</small>
+        {% endif %}
+      </div>
+    </div>
+    <div class="blk">
+      <div class="label">Growth</div>
+      {% if recap.ytd_growth_pct is none %}
+      <div class="v">—</div>
+      {% elif recap.ytd_growth_pct >= 0 %}
+      <div class="v up">▲ {{ "%.0f"|format(recap.ytd_growth_pct) }}%</div>
+      {% else %}
+      <div class="v down">▼ {{ "%.0f"|format(recap.ytd_growth_pct|abs) }}%</div>
+      {% endif %}
+    </div>
+    <div class="blk">
+      <div class="label">On Pace For <span class="info" title="Estimated full-year total if the rest of the year continues at your current pace.">ⓘ</span></div>
+      <div class="v">~${{ "{:,.2f}".format(recap.run_rate) }}</div>
+    </div>
+    {% if recap.monthly_trend %}
+    {% set trend_max = (recap.monthly_trend | map(attribute=1) | max) or 1 %}
+    {% set last_i = recap.monthly_trend|length - 1 %}
+    <div class="spark" title="Monthly trend" aria-hidden="true">
+      {% for lbl, val in recap.monthly_trend %}
+      <span class="{% if loop.index0 == last_i %}hot{% endif %}"
+            style="height:{{ ((val / trend_max) * 100) if trend_max else 0 }}%"
+            title="{{ lbl }}: ${{ '{:,.2f}'.format(val) }}"></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if recap %}
+<script>
+(function(){
+  // Carrier brand colors (approximate). Default Founders blue.
+  var CARRIER_BRAND = {
+    "UnitedHealthcare":"#005A8C", "UHC":"#005A8C",
+    "Humana":"#8246AF",
+    "Devoted":"#65BB84", "Devoted Health":"#65BB84",
+    "BCBS":"#0066B3", "BCBS NC":"#0066B3",
+    "Aetna":"#7D2248",
+    "HealthSpring":"#F58220", "Healthspring":"#F58220"
+  };
+  var DEFAULT_BRAND = "#266EA5";
+  function brand(name){ return CARRIER_BRAND[name] || DEFAULT_BRAND; }
+
+  // Color the bars + chips from the brand map.
+  document.querySelectorAll('.recap-page .js-bar').forEach(function(el){
+    el.style.background = brand(el.getAttribute('data-carrier'));
+  });
+  document.querySelectorAll('.recap-page .js-chip').forEach(function(el){
+    el.style.background = brand(el.getAttribute('data-carrier'));
+  });
+
+  var period = {{ period_label|tojson }};
+  var agentId = {{ (selected_agent_id if selected_agent_id is defined and selected_agent_id else recap.agent_id)|tojson }};
+  var RENDER_CAP = 25;
+
+  var drawer    = document.getElementById('recapDrawer');
+  var dChip     = document.getElementById('recapDrawerChip');
+  var dTitle    = document.getElementById('recapDrawerTitle');
+  var dTotal    = document.getElementById('recapDrawerTotal');
+  var dSub      = document.getElementById('recapDrawerSub');
+  var dHead     = document.getElementById('recapDrawerHead');
+  var groupsEl  = document.getElementById('recapGroups');
+  var checkRow  = document.getElementById('recapCheckrow');
+  var checkText = document.getElementById('recapCheckText');
+  var searchEl  = document.getElementById('recapSearch');
+
+  var currentCarrier = null;
+  var currentBtn = null;
+  var searchTimer = null;
+
+  function money(n){
+    var neg = n < 0;
+    var s = '$' + Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return neg ? '−' + s : s;
+  }
+  function pct(rate){ return rate == null ? '' : '× ' + Math.round(rate * 100) + '%'; }
+
+  function rowHtml(r){
+    var pillCls = (r.kind === 'new') ? 'new' : (r.kind === 'chargeback' ? 'chargeback' : 'renewal');
+    var name = r.customer_id
+      ? '<a class="member" href="/customers/' + r.customer_id + '">' + escapeHtml(r.member) + '</a>'
+      : escapeHtml(r.member);
+    var rawCls = r.raw < 0 ? 'num neg' : 'num';
+    var payCls = r.payout < 0 ? 'num neg' : 'num';
+    return '<tr><td>' + name + '</td>'
+      + '<td><span class="pill ' + pillCls + '">' + escapeHtml(r.type) + '</span></td>'
+      + '<td class="' + rawCls + '">' + money(r.raw) + '</td>'
+      + '<td class="num rate">' + pct(r.split) + '</td>'
+      + '<td class="' + payCls + '">' + money(r.payout) + '</td></tr>';
+  }
+
+  function escapeHtml(s){
+    return (s == null ? '' : String(s)).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function renderGroups(data){
+    groupsEl.innerHTML = '';
+    if(!data.groups || !data.groups.length){
+      groupsEl.innerHTML = '<p style="color:var(--rc-muted);padding:8px 4px">No matching members.</p>';
+    }
+    data.groups.forEach(function(g, gi){
+      var wrap = document.createElement('div');
+      wrap.className = 'group';
+      var negCls = g.subtotal < 0 ? ' neg' : '';
+      var bodyId = 'recapGrp' + gi;
+      var head = document.createElement('button');
+      head.type = 'button';
+      head.className = 'grp';
+      head.setAttribute('aria-expanded', 'false');
+      head.setAttribute('aria-controls', bodyId);
+      head.innerHTML = '<span>' + escapeHtml(g.kind) + ' &nbsp;·&nbsp; ' + g.count + ' member' + (g.count === 1 ? '' : 's')
+        + '</span><span><span class="amt' + negCls + '">' + money(g.subtotal)
+        + '</span><span class="chev">show ›</span></span>';
+
+      var body = document.createElement('div');
+      body.className = 'grp-body';
+      body.id = bodyId;
+      body.hidden = true;
+
+      var rows = g.rows || [];
+      var capped = rows.length > RENDER_CAP;
+      var shown = capped ? rows.slice(0, RENDER_CAP) : rows;
+      var tableHtml = '<table><thead><tr>'
+        + '<th>Member</th><th>Type</th>'
+        + '<th class="num">Carrier Paid <span class="info" title="The full amount before your split.">ⓘ</span></th>'
+        + '<th class="num">Your Split</th><th class="num">Your Payout</th>'
+        + '</tr></thead><tbody>' + shown.map(rowHtml).join('') + '</tbody></table>';
+      body.innerHTML = tableHtml;
+
+      if(capped){
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'showall';
+        btn.textContent = 'show all ' + rows.length + ' ›';
+        btn.addEventListener('click', function(){
+          body.querySelector('tbody').innerHTML = rows.map(rowHtml).join('');
+          btn.remove();
+        });
+        body.appendChild(btn);
+      }
+
+      head.addEventListener('click', function(){
+        var open = body.hidden;
+        body.hidden = !open;
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        head.querySelector('.chev').textContent = open ? 'hide ›' : 'show ›';
+      });
+
+      wrap.appendChild(head);
+      wrap.appendChild(body);
+      groupsEl.appendChild(wrap);
+    });
+  }
+
+  function fetchDetail(carrier, q){
+    var url = '/commissions/recap/carrier?period=' + encodeURIComponent(period)
+            + '&carrier=' + encodeURIComponent(carrier)
+            + '&agent_id=' + encodeURIComponent(agentId);
+    if(q){ url += '&q=' + encodeURIComponent(q); }
+    fetch(url, {headers:{'Accept':'application/json'}})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        renderGroups(data);
+        if(typeof data.total === 'number'){
+          dTotal.textContent = money(data.total);
+          checkText.textContent = 'these lines add up to ' + money(data.total)
+            + ' — exactly what you were paid, straight from the carrier\'s file.';
+          checkRow.hidden = false;
+        } else {
+          checkRow.hidden = true;
+        }
+      });
+  }
+
+  window.recapOpenCarrier = function(btn, carrier){
+    // Toggle closed if clicking the same card.
+    if(currentCarrier === carrier && !drawer.hidden){
+      recapCloseDrawer();
+      return;
+    }
+    currentCarrier = carrier;
+    if(currentBtn){ currentBtn.setAttribute('aria-expanded','false'); }
+    currentBtn = btn;
+    btn.setAttribute('aria-expanded','true');
+
+    var color = (function(){
+      var m = {"UnitedHealthcare":"#005A8C","UHC":"#005A8C","Humana":"#8246AF","Devoted":"#65BB84","Devoted Health":"#65BB84","BCBS":"#0066B3","BCBS NC":"#0066B3","Aetna":"#7D2248","HealthSpring":"#F58220","Healthspring":"#F58220"};
+      return m[carrier] || "#266EA5";
+    })();
+    dHead.style.background = color;
+    dChip.textContent = carrier.charAt(0).toUpperCase();
+    dTitle.textContent = carrier + ' — ' + period;
+    dSub.textContent = 'your payout';
+    dTotal.textContent = '';
+    searchEl.value = '';
+    drawer.hidden = false;
+    // place drawer right under the card it belongs to
+    btn.closest('.carriers').after(drawer);
+    fetchDetail(carrier, '');
+    drawer.scrollIntoView({behavior:'smooth', block:'nearest'});
+  };
+
+  window.recapCloseDrawer = function(){
+    drawer.hidden = true;
+    if(currentBtn){ currentBtn.setAttribute('aria-expanded','false'); currentBtn.focus(); }
+    currentCarrier = null;
+  };
+
+  searchEl.addEventListener('input', function(){
+    clearTimeout(searchTimer);
+    var q = searchEl.value;
+    searchTimer = setTimeout(function(){
+      if(currentCarrier){ fetchDetail(currentCarrier, q); }
+    }, 220);
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

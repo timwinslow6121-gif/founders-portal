@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,300;0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -666,6 +667,10 @@
           <span class="nav-dot"></span>Upload Carrier Files
         </a>
         <div class="nav-section-label">Commissions</div>
+        <a href="{{ url_for('commission.admin_recap') }}"
+           class="nav-item {% if request.endpoint == 'commission.admin_recap' %}active{% endif %}">
+          <span class="nav-dot"></span>Agent Recaps
+        </a>
         <a href="{{ url_for('commission.commission_admin') }}"
            class="nav-item {% if request.path == '/admin/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit
@@ -719,6 +724,10 @@
           <span class="nav-dot"></span>Upcoming Terms
         </a>
         <div class="nav-section-label">Commissions</div>
+        <a href="{{ url_for('commission.agent_recap') }}"
+           class="nav-item {% if request.endpoint == 'commission.agent_recap' %}active{% endif %}">
+          <span class="nav-dot"></span>My Commissions
+        </a>
         <a href="{{ url_for('commission.commission_index') }}"
            class="nav-item {% if request.path == '/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit

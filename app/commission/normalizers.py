@@ -18,13 +18,20 @@ Healthspring Detail column layout (0-indexed, verified against fixture):
 """
 from app.commission.member_fact import MemberFact, RowClass
 from app.commission.payments import _parse_date
+from app.commission.ledger import _devoted_format, _devoted_filetoken
 
 
 def _to_float(v):
+    s = str(v).replace("$", "").replace(",", "").strip()
+    neg = False
+    if s.startswith("(") and s.endswith(")"):   # accounting-style negative
+        s = s[1:-1].strip()
+        neg = True
     try:
-        return float(str(v).replace("$", "").replace(",", "").strip() or 0)
+        n = float(s or 0)
     except (ValueError, TypeError):
         return 0.0
+    return -n if neg else n
 
 
 def _classify_healthspring(payment_type, amount):
@@ -115,6 +122,14 @@ def _classify_devoted(commission_type, amount, disenroll):
 
 
 def normalize_devoted(sheets):
+    fmt = _devoted_format(sheets)
+    filetoken = _devoted_filetoken(sheets)
+    if fmt == "statement":
+        return _normalize_devoted_statement(sheets, filetoken)
+    return _normalize_devoted_agency(sheets, filetoken)
+
+
+def _normalize_devoted_agency(sheets, filetoken):
     facts = {}        # member_id -> MemberFact (from Agent Portion)
     agency = {}       # member_id -> Override admin amount
 
@@ -144,7 +159,7 @@ def normalize_devoted(sheets):
             row_class=_classify_devoted(row[15], amount, disen),
             amount=amount,
             writing_agent_raw=str(row[2] or "").strip(),
-            source_ref=f"devoted::Agent Portion::{idx}",
+            source_ref=f"devoted::{filetoken}::Agent Portion::{idx}",
         )
 
     for idx, row in enumerate(sheets.get("Override", [])[1:], start=1):
@@ -176,7 +191,56 @@ def normalize_devoted(sheets):
             row_class=RowClass.NON_CUSTOMER,
             amount=amt,
             writing_agent_raw=rep,
-            source_ref=f"devoted::HRA::{idx}",
+            source_ref=f"devoted::{filetoken}::HRA::{idx}",
+        ))
+    return out
+
+
+def _normalize_devoted_statement(sheets, filetoken):
+    """Rebekah per-agent statement → MemberFacts. Detail rows are member
+    commissions; Misc rows are HRA (NON_CUSTOMER, often negative clawbacks).
+    Summary is ignored (prior-period carryforward)."""
+    out = []
+    for idx, row in enumerate(sheets.get("Detail", [])[1:], start=1):
+        if not any(row) or len(row) <= 17:
+            continue
+        member_id = str(row[3] or "").strip()
+        if not member_id:
+            continue
+        amount = _to_float(row[17])
+        first = str(row[5] or "").strip()
+        last = str(row[6] or "").strip()
+        disen = _parse_date(row[10])
+        out.append(MemberFact(
+            carrier="Devoted",
+            full_name=f"{first} {last}".strip(),
+            first_name=first,
+            last_name=last,
+            mbi=str(row[4] or "").strip() or None,
+            carrier_member_id=member_id,
+            effective_date=_parse_date(row[9]),
+            term_date=disen,
+            plan_contract=str(row[11] or "").strip() or None,
+            plan_pbp=str(row[12] or "").strip() or None,
+            row_class=_classify_devoted(row[15], amount, disen),
+            amount=amount,
+            writing_agent_raw=str(row[2] or "").strip(),
+            source_ref=f"devoted::{filetoken}::Detail::{idx}",
+        ))
+    for idx, row in enumerate(sheets.get("Misc", [])[1:], start=1):
+        if not any(row) or len(row) <= 3:
+            continue
+        rep = str(row[0] or "").strip()
+        amt = _to_float(row[2])
+        if not rep or amt == 0:
+            continue
+        out.append(MemberFact(
+            carrier="Devoted",
+            full_name=str(row[3] or "").strip() or "HRA",
+            row_class=RowClass.NON_CUSTOMER,
+            amount=amt,
+            writing_agent_raw=rep,
+            source_ref=f"devoted::{filetoken}::Misc::{idx}",
         ))
     return out
 

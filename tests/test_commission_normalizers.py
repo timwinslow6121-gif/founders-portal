@@ -217,3 +217,32 @@ def test_normalizer_registry_dispatch():
     for carrier in ("Healthspring", "Devoted", "BCBS", "Aetna", "Humana"):
         assert carrier in NORMALIZERS
         assert callable(NORMALIZERS[carrier])
+
+
+def test_normalize_devoted_statement_format():
+    import os
+    from app.commission.normalizers import normalize_devoted
+    from app.commission.member_fact import RowClass
+    from app.commission.sheet_loader import load_sheets
+    FIX = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+    sheets = load_sheets(os.path.join(FIX, "devoted_statement_sample.xlsx"))
+    facts = normalize_devoted(sheets)
+
+    detail = [f for f in facts if f.row_class in (RowClass.RENEWAL, RowClass.ENROLLMENT, RowClass.CHARGEBACK)
+              and f.carrier_member_id]
+    hra = [f for f in facts if f.row_class == RowClass.NON_CUSTOMER]
+    assert len(detail) == 2
+    assert len(hra) == 8
+    assert all(f.source_ref.startswith("devoted::npn20182775::") for f in facts)
+    assert all(f.amount < 0 for f in hra)   # negative HRA clawbacks
+
+
+def test_normalize_devoted_agency_source_refs_file_tagged():
+    import os
+    from app.commission.normalizers import normalize_devoted
+    from app.commission.sheet_loader import load_sheets
+    FIX = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
+    sheets = load_sheets(os.path.join(FIX, "devoted_sample.xlsx"))
+    facts = normalize_devoted(sheets)
+    assert facts
+    assert all(f.source_ref.startswith("devoted::agency::") for f in facts)

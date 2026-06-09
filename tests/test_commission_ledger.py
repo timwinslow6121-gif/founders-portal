@@ -256,3 +256,141 @@ def test_every_carrier_balances_and_is_complete(carrier, fixture):
     report = verify_statement_balance(carrier, drafts, sheets)
     assert report.internal_ok, report
     assert report.completeness_ok, report
+
+
+def test_devoted_format_detection():
+    from app.commission.ledger import _devoted_format
+    agency = _load_fixture("devoted_sample.xlsx")
+    statement = _load_fixture("devoted_statement_sample.xlsx")
+    assert _devoted_format(agency) == "agency"
+    assert _devoted_format(statement) == "statement"
+
+
+def test_devoted_format_unknown_raises():
+    import pytest
+    from app.commission.ledger import _devoted_format
+    with pytest.raises(ValueError):
+        _devoted_format({"Bogus": [["x"]]})
+
+
+def test_devoted_filetoken():
+    from app.commission.ledger import _devoted_filetoken
+    agency = _load_fixture("devoted_sample.xlsx")
+    statement = _load_fixture("devoted_statement_sample.xlsx")
+    assert _devoted_filetoken(agency) == "agency"
+    assert _devoted_filetoken(statement) == "npn20182775"
+
+
+def test_devoted_agency_source_refs_are_file_tagged():
+    from app.commission.ledger import extract_lineitems_devoted
+    sheets = _load_fixture("devoted_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    assert drafts
+    assert all(d.source_ref.startswith("devoted::agency::") for d in drafts)
+
+
+def test_devoted_negative_override_is_chargeback_with_null_split():
+    from app.commission.ledger import extract_lineitems_devoted, CHARGEBACK, FOUNDERS_OVERRIDE
+    sheets = _load_fixture("devoted_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    override_rows = [d for d in drafts if "::Override::" in d.source_ref]
+    assert override_rows
+    for d in override_rows:
+        if d.raw_amount < 0:
+            assert d.classification == CHARGEBACK
+            assert d.split_rate is None
+        else:
+            assert d.classification == FOUNDERS_OVERRIDE
+            assert d.split_rate is None
+
+
+def test_devoted_statement_extracts_detail_and_misc():
+    from app.commission.ledger import (extract_lineitems_devoted, AGENT_COMMISSION,
+                                        CHARGEBACK, HRA_BONUS)
+    sheets = _load_fixture("devoted_statement_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    detail = [d for d in drafts if "::Detail::" in d.source_ref]
+    misc = [d for d in drafts if "::Misc::" in d.source_ref]
+    assert len(detail) == 2
+    assert len(misc) == 8
+    assert all(d.classification == AGENT_COMMISSION for d in detail)
+    assert all(d.classification == CHARGEBACK for d in misc)
+    assert all(d.source_ref.startswith("devoted::npn20182775::") for d in drafts)
+    assert not any("Summary" in d.source_ref for d in drafts)
+    assert round(sum(d.raw_amount for d in drafts), 2) == -342.18
+
+
+def test_devoted_statement_misc_positive_is_hra_bonus():
+    from app.commission.ledger import _extract_devoted_statement, HRA_BONUS
+    sheets = {
+        "Summary": [["Description"]],
+        "Detail": [["Statement Date", "Agent NPN"], ["05/29/2026", "20182775"]],
+        "Misc": [["Rep Name", "Rep ID", "Amount", "Note"],
+                 ["Rebekah Long", "20182775", "$50.00", "HRA for member X"]],
+    }
+    drafts = _extract_devoted_statement(sheets, "npn20182775", lambda raw: 0.55)
+    misc = [d for d in drafts if "::Misc::" in d.source_ref]
+    assert len(misc) == 1
+    assert misc[0].classification == HRA_BONUS
+    assert misc[0].split_rate == 0.55
+
+
+def test_devoted_statement_money_rows_total():
+    from app.commission.ledger import money_rows_total_devoted
+    sheets = _load_fixture("devoted_statement_sample.xlsx")
+    assert round(money_rows_total_devoted(sheets), 2) == -342.18
+
+
+def test_devoted_two_files_coexist_and_file_scoped_replace(db_session, agency):
+    """Persist agency line items, then statement line items, under ONE statement.
+    Both coexist. Re-persisting the statement file replaces only its rows."""
+    from app.models import CommissionLineItem, CommissionStatement
+    from app.commission.ledger import (extract_lineitems_devoted, persist_line_items,
+                                        _devoted_filetoken)
+    from app.extensions import db
+    from datetime import date
+
+    stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted", agent_id=None,
+                               period_label="April 2026", filename="d.xlsx",
+                               statement_date=date(2026, 4, 1))
+    db.session.add(stmt)
+    db.session.flush()
+
+    agency_sheets = _load_fixture("devoted_sample.xlsx")
+    stmt_sheets = _load_fixture("devoted_statement_sample.xlsx")
+
+    a_drafts = extract_lineitems_devoted(agency_sheets, split_lookup=lambda raw: 0.55)
+    s_drafts = extract_lineitems_devoted(stmt_sheets, split_lookup=lambda raw: 0.55)
+
+    persist_line_items("Devoted", a_drafts, stmt, agency.id)
+    persist_line_items("Devoted", s_drafts, stmt, agency.id)
+    db.session.flush()
+
+    total = CommissionLineItem.query.filter_by(statement_id=stmt.id).count()
+    assert total == len(a_drafts) + len(s_drafts)   # both files coexist
+
+    token = _devoted_filetoken(stmt_sheets)          # "npn20182775"
+    (CommissionLineItem.query
+        .filter(CommissionLineItem.statement_id == stmt.id,
+                CommissionLineItem.source_ref.like(f"devoted::{token}::%"))
+        .delete(synchronize_session=False))
+    db.session.flush()
+    assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == len(a_drafts)
+
+    persist_line_items("Devoted", s_drafts, stmt, agency.id)
+    db.session.flush()
+    assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == len(a_drafts) + len(s_drafts)
+
+
+def test_devoted_both_files_each_balance_independently():
+    from app.commission.ledger import EXTRACTORS, verify_statement_balance
+    ext, _ = EXTRACTORS["Devoted"]
+    for fixture, expected in [("devoted_sample.xlsx", None),
+                              ("devoted_statement_sample.xlsx", -342.18)]:
+        sheets = _load_fixture(fixture)
+        drafts = ext(sheets, split_lookup=lambda raw: 0.55)
+        report = verify_statement_balance("Devoted", drafts, sheets)
+        assert report.internal_ok, report
+        assert report.completeness_ok, report
+        if expected is not None:
+            assert round(report.lineitem_total, 2) == expected

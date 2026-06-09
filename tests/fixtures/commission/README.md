@@ -10,3 +10,4 @@ column layouts. See `docs/superpowers/specs/2026-06-03-commission-customer-sync-
 - bcbs_sample.xlsx          — Brian Freeman BCBS (Sheet1; FY + RENEW + ADJUSTMENT group types)
 - aetna_sample.xlsx         — Aetna Founders May 2026 (agency-level multi-agent; Renewal + Pro-Rata)
 - humana_sample.xls         — CommissionData (5) (SpreadsheetML 2003 XML, broken `<xml version>` first line)
+- devoted_statement_sample.xlsx — Devoted per-agent STATEMENT format (Summary/Detail/Misc); synthetic, sanitized copy of 20182775_Rebekah_Long. Detail=2 renewals (+$57.82), Misc=8 HRA clawbacks (−$400); Summary carries a prior-period carryforward (Balance −$375.93). Built by scripts/make_devoted_statement_fixture.py.

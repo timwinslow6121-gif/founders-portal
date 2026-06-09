@@ -1,7 +1,7 @@
 # Devoted Two-File Support — Design Spec (R1.1)
 
 **Date:** 2026-06-08
-**Status:** Approved (brainstorm complete) — ready for implementation planning
+**Status:** ✅ Implemented (on `feat/devoted-two-file`)
 **Part of:** the Commission Balancing System. Follows R1 (commission ledger completeness), which is built + deployed. Promoted ahead of R2 at Tim's request.
 **Related:** [[commission-balancing-system]], [[devoted-dual-file-problem]], R1 spec `2026-06-08-commission-ledger-completeness-design.md`.
 

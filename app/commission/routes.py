@@ -823,6 +823,23 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
             "warning")
     period_label = stmt_date.strftime("%B %Y")
 
+    # Devoted ships two files per month under ONE (carrier, period) statement.
+    # They only coexist if both land in the SAME period_label. Rebekah's per-agent
+    # statement file has no month in its filename, so if AJ didn't set the
+    # Statement Month explicitly, warn to confirm it matches the agency file —
+    # otherwise the two files silently split into separate statements.
+    if carrier == "Devoted" and not form_month:
+        from app.commission.ledger import _devoted_format
+        try:
+            if _devoted_format(sheets) == "statement":
+                flash(
+                    f"This is Devoted's per-agent statement file. It was filed under "
+                    f"{period_label} (auto-detected). Confirm this matches the month "
+                    f"of the agency Devoted file — set 'Statement Month' on both uploads "
+                    f"so they combine into one statement.", "warning")
+        except ValueError:
+            pass
+
     # Agent + split. These carriers are often agency-level (multiple writing
     # agents in one file); attribute the statement to the first writing agent
     # found, but resolve the split from any active contract for the carrier.

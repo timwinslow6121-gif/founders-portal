@@ -355,17 +355,18 @@
 {% if recap %}
 <script>
 (function(){
-  // Carrier brand colors (approximate). Default Founders blue.
-  var CARRIER_BRAND = {
-    "UnitedHealthcare":"#005A8C", "UHC":"#005A8C",
-    "Humana":"#8246AF",
-    "Devoted":"#65BB84", "Devoted Health":"#65BB84",
-    "BCBS":"#0066B3", "BCBS NC":"#0066B3",
-    "Aetna":"#7D2248",
-    "HealthSpring":"#F58220", "Healthspring":"#F58220"
+  // Official carrier brand colors (exact, from each carrier's brand guidelines).
+  // Single source of truth — window-scoped so the drill-down code reuses it.
+  window.CARRIER_BRAND = {
+    "UnitedHealthcare":"#002677", "UHC":"#002677",
+    "Humana":"#5EA908",
+    "Devoted":"#FF4F00", "Devoted Health":"#FF4F00",
+    "BCBS":"#0080C7", "BCBS NC":"#0080C7",
+    "Aetna":"#7D3F98",
+    "HealthSpring":"#9E28B5", "Healthspring":"#9E28B5"
   };
   var DEFAULT_BRAND = "#266EA5";
-  function brand(name){ return CARRIER_BRAND[name] || DEFAULT_BRAND; }
+  function brand(name){ return window.CARRIER_BRAND[name] || DEFAULT_BRAND; }
 
   // Color the bars + chips from the brand map.
   document.querySelectorAll('.recap-page .js-bar').forEach(function(el){
@@ -511,10 +512,7 @@
     currentBtn = btn;
     btn.setAttribute('aria-expanded','true');
 
-    var color = (function(){
-      var m = {"UnitedHealthcare":"#005A8C","UHC":"#005A8C","Humana":"#8246AF","Devoted":"#65BB84","Devoted Health":"#65BB84","BCBS":"#0066B3","BCBS NC":"#0066B3","Aetna":"#7D2248","HealthSpring":"#F58220","Healthspring":"#F58220"};
-      return m[carrier] || "#266EA5";
-    })();
+    var color = (window.CARRIER_BRAND && window.CARRIER_BRAND[carrier]) || "#266EA5";
     dHead.style.background = color;
     dChip.textContent = carrier.charAt(0).toUpperCase();
     dTitle.textContent = carrier + ' — ' + period;

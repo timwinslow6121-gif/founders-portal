@@ -17,52 +17,59 @@
        prefers-color-scheme media query below.
        ════════════════════════════════════════ */
     :root {
-      /* Surfaces */
-      --ink:          #F5F4F2;
-      --surface:      #FFFFFF;
-      --surface-low:  #EEEDEB;
-      --surface-mid:  #E6E5E2;
-      --surface-high: #DDDBD8;
-      --surface-top:  #D4D2CE;
+      /* Surfaces (Founders light) */
+      --ink:          #F7FAFC;   /* page background */
+      --surface:      #FFFFFF;   /* card */
+      --surface-low:  #EEF3F8;
+      --surface-mid:  #E4ECF3;
+      --surface-high: #D9E4EF;
+      --surface-top:  #CBD5E0;
 
-      /* Gold — darker on light bg for contrast */
-      --gold:         #B8975A;
-      --gold-dim:     #8F7442;
-      --gold-muted:   #9A7E4F;
+      /* Accent — Founders blue (replaces gold; name kept for compat) */
+      --gold:         #266EA5;
+      --gold-dim:     #1F5A85;
+      --gold-muted:   #2B6CB0;
+
+      /* Green accent (positive / success) */
+      --green:        #65BB84;
+      --green-dim:    #13612E;
 
       /* Text */
-      --ivory:        #1A1917;
-      --ivory-bright: #0F0E0D;
-      --slate:        #6B6760;
+      --ivory:        #1A202C;   /* readable body text */
+      --ivory-bright: #002E4D;   /* navy — headings */
+      --slate:        #718096;   /* muted */
       --on-gold:      #FFFFFF;
 
       /* Structural */
-      --outline:      #9A9590;
-      --outline-var:  #C8C5C0;
-      --border:       rgba(26,25,23,0.10);
+      --outline:      #9AA7B5;
+      --outline-var:  #CBD5E0;
+      --border:       rgba(26,32,44,0.10);
 
-      /* Status — adjusted for light bg legibility */
-      --status-open:       #6B6760;
-      --status-progress:   #B8860B;
+      /* Status */
+      --status-open:       #718096;
+      --status-progress:   #F7630C;
       --status-waiting:    #5C4DB1;
-      --status-resolved:   #2E7D32;
-      --status-error:      #C0392B;
-      --status-error-bg:   rgba(192,57,43,0.06);
-      --status-error-text: #C0392B;
+      --status-resolved:   #13612E;
+      --status-error:      #B82105;
+      --status-error-bg:   rgba(184,33,5,0.06);
+      --status-error-text: #B82105;
 
-      /* Typography */
-      --font-serif: 'Noto Serif', Georgia, serif;
-      --font-sans:  'Inter', -apple-system, sans-serif;
+      /* Typography — Founders */
+      --font-serif: 'Merriweather', Georgia, serif;
+      --font-sans:  'Plus Jakarta Sans', -apple-system, sans-serif;
 
       /* Layout */
       --sidebar-w:  220px;
       --topbar-h:   52px;
 
-      /* Elevation */
-      --shadow-float: 0px 8px 32px rgba(0,0,0,0.10);
+      /* Elevation — soft, blue-tinted */
+      --shadow-float: 0px 8px 32px rgba(38,110,165,0.12);
+      --shadow:       0px 6px 24px rgba(38,110,165,0.10);
+      --shadow-sm:    0px 2px 8px rgba(0,0,0,0.05);
 
-      /* Radius */
-      --radius: 6px;
+      /* Radius — softer/airier */
+      --radius:    16px;
+      --radius-sm: 10px;
     }
 
     @media (prefers-color-scheme: dark) {

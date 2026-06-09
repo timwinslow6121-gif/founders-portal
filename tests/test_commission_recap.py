@@ -29,3 +29,22 @@ def test_is_new_enrollment_per_carrier():
     assert nu("Devoted", "hra_bonus", "hra") is False
     # Unknown carrier/type → conservative False
     assert nu("UHC", "agent_commission", "whatever") is False
+
+
+def test_agent_recap_period_model(db_session, agency):
+    from app.models import AgentRecapPeriod, User
+    from app.extensions import db
+
+    agent = User(name="Tim Winslow", email="tim@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+
+    p = AgentRecapPeriod(agency_id=agency.id, agent_id=agent.id,
+                         period_label="May 2026")
+    db.session.add(p); db.session.flush()
+
+    got = AgentRecapPeriod.query.filter_by(agent_id=agent.id,
+                                           period_label="May 2026").first()
+    assert got.status == "draft"          # default
+    assert got.uhc_manual_amount is None
+    assert got.prior_year_total is None
+    assert got.published_at is None

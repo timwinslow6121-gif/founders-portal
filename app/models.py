@@ -801,6 +801,46 @@ class CommissionLineItem(db.Model):
         return f"<CommissionLineItem {self.carrier} {self.classification} {self.raw_amount}>"
 
 
+class AgentRecapPeriod(db.Model):
+    """
+    R2 — workflow state for one agent's commission recap for one period.
+    Per-carrier figures and line items are DERIVED live from CommissionLineItem;
+    this row stores only: publish state, AJ's manual UHC figure (until R4
+    automates UHC), and an optional prior-year baseline for YoY.
+    """
+    __tablename__ = "agent_recap_periods"
+
+    id            = db.Column(db.Integer, primary_key=True)
+    agency_id     = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agent_id      = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    agent         = db.relationship("User", foreign_keys=[agent_id])
+    period_label  = db.Column(db.String(32), nullable=False, index=True)   # "May 2026"
+
+    status        = db.Column(db.String(16), nullable=False, default="draft")  # draft | published
+
+    # AJ's manual UHC commission figure for this agent/period (R4 will automate).
+    uhc_manual_amount = db.Column(db.Float)
+    uhc_manual_note   = db.Column(db.String(256))
+
+    # Optional manual prior-year total for YoY when last year's detail isn't loaded.
+    prior_year_total  = db.Column(db.Float)
+
+    published_at   = db.Column(db.DateTime)
+    published_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    notified_at    = db.Column(db.DateTime)
+
+    created_at     = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at     = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    __table_args__ = (
+        db.UniqueConstraint("agency_id", "agent_id", "period_label",
+                            name="uq_recap_agent_period"),
+    )
+
+    def __repr__(self):
+        return f"<AgentRecapPeriod agent={self.agent_id} {self.period_label} {self.status}>"
+
+
 class UnmatchedCall(db.Model):
     """
     Stores inbound calls/voicemails from phone numbers that could not be matched

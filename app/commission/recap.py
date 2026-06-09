@@ -153,3 +153,102 @@ def uhc_manual_block(recap_period) -> Optional[CarrierBlock]:
         return None
     return CarrierBlock(carrier="UHC", total_payout=round(amt, 2), new_members=0,
                         source="manual", note=getattr(recap_period, "uhc_manual_note", None))
+
+
+@dataclass
+class RecapView:
+    agent_id: int
+    agent_name: str
+    period_label: str
+    status: str
+    total_paid: float
+    net_after_chargebacks: float
+    new_members: int
+    lost_members: int
+    net_member_change: int
+    carriers: List[CarrierBlock]
+    ytd_current: float
+    ytd_prior: Optional[float]
+    ytd_growth_pct: Optional[float]
+    run_rate: float
+    monthly_trend: list           # [(month_label, payout), ...] current year
+    prior_year_known: bool
+
+
+def _ledger_ytd_total(agent_id, agency_id, year):
+    """Sum agent payouts across all periods in `year` from the ledger."""
+    rows = (CommissionLineItem.query
+            .filter_by(agent_id=agent_id, agency_id=agency_id)
+            .filter(CommissionLineItem.classification.in_(["agent_commission", "chargeback"]))
+            .all())
+    total = 0.0
+    months = {}
+    for li in rows:
+        try:
+            dt = datetime.strptime(li.period_label or "", "%B %Y")
+        except ValueError:
+            continue
+        if dt.year != year:
+            continue
+        payout, _ = split_breakdown(li)
+        total += payout
+        months[dt.month] = round(months.get(dt.month, 0.0) + payout, 2)
+    return round(total, 2), months
+
+
+def build_recap(agent_id, agency_id, period_label) -> RecapView:
+    from app.models import User, AgentRecapPeriod
+    agent = User.query.get(agent_id)
+    rp = (AgentRecapPeriod.query
+          .filter_by(agency_id=agency_id, agent_id=agent_id, period_label=period_label).first())
+
+    carriers = build_carrier_blocks(agent_id, agency_id, period_label)
+    uhc = uhc_manual_block(rp) if rp else None
+    if uhc:
+        carriers.append(uhc)
+        carriers.sort(key=lambda b: b.total_payout, reverse=True)
+
+    lost = lost_members_by_carrier(agent_id, agency_id, period_label)
+    for b in carriers:
+        b.lost_members = lost.get(b.carrier, 0)
+
+    # % of book: each carrier's active policy count / agent's total active policies
+    active = (Policy.query.filter_by(agent_id=agent_id, agency_id=agency_id, status="active").all())
+    by_carrier_active = {}
+    for p in active:
+        by_carrier_active[p.carrier] = by_carrier_active.get(p.carrier, 0) + 1
+    total_active = sum(by_carrier_active.values()) or 1
+    for b in carriers:
+        b.pct_of_book = round(100.0 * by_carrier_active.get(b.carrier, 0) / total_active, 1)
+
+    total_paid = round(sum(b.total_payout for b in carriers), 2)
+    new_members = sum(b.new_members for b in carriers)
+    lost_members = sum(lost.values())
+
+    # YTD + trend (current year from period_label)
+    cur_year = datetime.strptime(period_label, "%B %Y").year
+    ytd_current, months = _ledger_ytd_total(agent_id, agency_id, cur_year)
+    ytd_prior_ledger, _ = _ledger_ytd_total(agent_id, agency_id, cur_year - 1)
+    prior_year_known = ytd_prior_ledger != 0.0
+    ytd_prior = ytd_prior_ledger if prior_year_known else (rp.prior_year_total if rp else None)
+    if ytd_prior:
+        prior_year_known = True
+    growth = (round(100.0 * (ytd_current - ytd_prior) / ytd_prior, 1)
+              if ytd_prior else None)
+
+    months_elapsed = max((datetime.strptime(period_label, "%B %Y").month), 1)
+    run_rate = round(ytd_current / months_elapsed * 12, 2) if ytd_current else 0.0
+
+    import calendar
+    trend = [(calendar.month_abbr[m], months.get(m, 0.0)) for m in range(1, cur_year and 13 or 13)]
+    trend = [(lbl, v) for lbl, v in trend][: datetime.strptime(period_label, "%B %Y").month]
+
+    return RecapView(
+        agent_id=agent_id, agent_name=(agent.name if agent else "Agent"),
+        period_label=period_label, status=(rp.status if rp else "draft"),
+        total_paid=total_paid, net_after_chargebacks=total_paid,
+        new_members=new_members, lost_members=lost_members,
+        net_member_change=new_members - lost_members,
+        carriers=carriers, ytd_current=ytd_current, ytd_prior=ytd_prior,
+        ytd_growth_pct=growth, run_rate=run_rate, monthly_trend=trend,
+        prior_year_known=prior_year_known)

@@ -128,3 +128,35 @@ def test_lost_members_and_uhc_manual(db_session, agency):
     # No UHC figure → no block
     assert uhc_manual_block(AgentRecapPeriod(agency_id=agency.id, agent_id=agent.id,
                                              period_label="June 2026")) is None
+
+
+def test_build_recap_headline_and_ytd(db_session, agency):
+    from app.models import User, AgentRecapPeriod
+    from app.extensions import db
+    from app.commission.recap import build_recap
+
+    agent = User(name="Tim Winslow", email="t3@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+
+    # May: Devoted 1 new $1000 + 1 chargeback -$200 (payouts 550, -110) ; net 440
+    _mk_line(db, agency, agent, "Devoted", "agent_commission", "initial - new", 1000.0, 0.55, "A")
+    _mk_line(db, agency, agent, "Devoted", "chargeback", "initial - not new", -200.0, 0.55, "B")
+    # AJ entered UHC $2000
+    db.session.add(AgentRecapPeriod(agency_id=agency.id, agent_id=agent.id,
+                                    period_label="May 2026", uhc_manual_amount=2000.0))
+    db.session.flush()
+
+    r = build_recap(agent.id, agency.id, "May 2026")
+    # total = ledger payouts (440) + UHC manual (2000) = 2440
+    assert round(r.total_paid, 2) == 2440.00
+    # after chargebacks is the same total (chargebacks already netted into payouts)
+    assert round(r.net_after_chargebacks, 2) == 2440.00
+    assert r.new_members == 1
+    # carriers include both Devoted (ledger) and UHC (manual)
+    names = {b.carrier for b in r.carriers}
+    assert "Devoted" in names and "UHC" in names
+    uhc = next(b for b in r.carriers if b.carrier == "UHC")
+    assert uhc.source == "manual"
+    # pct_of_book sums to ~100 across carriers with members (UHC has 0 members here)
+    # run-rate is a positive projection from YTD
+    assert r.run_rate >= r.ytd_current

@@ -801,6 +801,11 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     fingerprint duplicate guard, statement upsert, ingest, and summary flash.
     Returns a redirect response. UHC never reaches here (not in NORMALIZERS).
     """
+    # Record the uploaded filename so multi-batch carriers (Healthspring) can derive
+    # a per-file token from it during normalize/extract (see ledger._healthspring_filetoken).
+    from app.commission.ledger import current_upload_filename
+    current_upload_filename.set(filename or "")
+
     facts = NORMALIZERS[carrier](sheets)
     if not facts:
         flash(f"No commission rows found in the {carrier} file.", "error")

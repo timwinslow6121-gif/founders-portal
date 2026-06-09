@@ -425,3 +425,30 @@ def test_bcbs_per_agent_filetoken_and_file_scoped_prefix():
     # agency-wide carriers have no file-scoped prefix (blanket replace)
     assert file_scoped_prefix("Humana", {}) is None
     assert file_scoped_prefix("Aetna", {}) is None
+
+
+def test_healthspring_multibatch_filetoken_from_filename():
+    """Healthspring ships multiple batch files/month (NN_NNNNNN.xlsx) with no batch
+    id in content — token comes from the filename via the ContextVar. Two batches
+    must get distinct tokens so uploading batch 67 doesn't wipe batch 66."""
+    from app.commission.ledger import (current_upload_filename, _healthspring_filetoken,
+                                        file_scoped_prefix, PER_AGENT_CARRIERS,
+                                        extract_lineitems_healthspring)
+    sheets = _load_fixture("healthspring_sample.xlsx")
+
+    current_upload_filename.set("66_481454.xlsx")
+    assert _healthspring_filetoken(sheets) == "b66_481454"
+    assert file_scoped_prefix("Healthspring", sheets) == "healthspring::b66_481454::%"
+    d66 = extract_lineitems_healthspring(sheets, split_lookup=lambda r: 0.55)
+    assert all(x.source_ref.startswith("healthspring::b66_481454::") for x in d66)
+
+    current_upload_filename.set("68_486966.xlsx")
+    assert _healthspring_filetoken(sheets) == "b68_486966"
+    d68 = extract_lineitems_healthspring(sheets, split_lookup=lambda r: 0.55)
+    assert all(x.source_ref.startswith("healthspring::b68_486966::") for x in d68)
+
+    # unknown / non-batch filename → safe fallback
+    current_upload_filename.set("")
+    assert _healthspring_filetoken(sheets) == "batch"
+
+    assert "Healthspring" in PER_AGENT_CARRIERS

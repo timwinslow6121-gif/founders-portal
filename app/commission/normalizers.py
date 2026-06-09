@@ -46,9 +46,11 @@ def _classify_healthspring(payment_type, amount):
 
 
 def normalize_healthspring(sheets):
+    from app.commission.ledger import _healthspring_filetoken
     rows = sheets.get("Detail", [])
     if not rows:
         return []
+    filetoken = _healthspring_filetoken(sheets)
     facts_by_member = {}     # member_id -> MemberFact (Broker Level row)
     agency_by_member = {}    # member_id -> agency share amount (Service Fee row)
 
@@ -83,7 +85,7 @@ def normalize_healthspring(sheets):
             row_class=_classify_healthspring(row[0], amount),
             amount=amount,
             writing_agent_raw=str(row[3] or "").strip(),
-            source_ref=f"healthspring::Detail::{idx}",
+            source_ref=f"healthspring::{filetoken}::Detail::{idx}",
         )
         facts_by_member[member_id] = fact
 

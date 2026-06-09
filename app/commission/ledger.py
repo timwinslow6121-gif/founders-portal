@@ -12,9 +12,15 @@ are always derived from raw_amount + split_rate + classification, never stored.
 
 See docs/superpowers/specs/2026-06-08-commission-ledger-completeness-design.md.
 """
+import contextvars
 from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional, Tuple
+
+# Set by the upload path to the original uploaded filename, so multi-batch carriers
+# (Healthspring) can derive a per-file token from it without threading it through
+# every extractor/normalizer signature. Thread-safe under gthread workers.
+current_upload_filename = contextvars.ContextVar("current_upload_filename", default="")
 
 # Classification constants (plain strings; no DB enum, forward-compat).
 AGENT_COMMISSION = "agent_commission"
@@ -86,10 +92,27 @@ def _hs_classify(desc, amount):
     return AGENT_COMMISSION
 
 
+def _healthspring_filetoken(sheets):
+    """Healthspring ships MULTIPLE statement-batch files per month (NN_NNNNNN.xlsx).
+    The files carry NO batch id in their content, so the per-file token comes from
+    the original FILENAME, provided by the upload path via current_upload_filename
+    (a ContextVar — keeps extractor/normalizer signatures uniform and is thread-safe
+    under gthread workers). Token = the 'NN_NNNNNN' batch stem, e.g. 'b68_486966'.
+    Falls back to 'batch' (single-batch / unknown filename) so behaviour is safe."""
+    import re, os
+    fname = str(current_upload_filename.get() or "")
+    stem = os.path.splitext(os.path.basename(fname))[0]
+    m = re.match(r"\d+_\d+", stem)
+    return f"b{m.group(0)}" if m else "batch"
+
+
 def extract_lineitems_healthspring(sheets, split_lookup) -> List[LineItemDraft]:
     """One LineItemDraft per Detail row (paired rows NOT collapsed).
-    split_lookup(writing_agent_raw) -> Optional[float] split rate for that agent."""
+    split_lookup(writing_agent_raw) -> Optional[float] split rate for that agent.
+    Healthspring is multi-batch: source_ref carries a per-file batch token so
+    re-uploading one batch replaces only its rows (file-scoped replace)."""
     rows = sheets.get("Detail", [])
+    filetoken = _healthspring_filetoken(sheets)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) <= 21:
@@ -103,7 +126,7 @@ def extract_lineitems_healthspring(sheets, split_lookup) -> List[LineItemDraft]:
         writing = str(row[3] or "").strip()
         out.append(LineItemDraft(
             carrier="Healthspring",
-            source_ref=f"healthspring::Detail::{idx}",
+            source_ref=f"healthspring::{filetoken}::Detail::{idx}",
             raw_amount=amount,
             classification=classification,
             split_rate=None if classification == FOUNDERS_OVERRIDE else split_lookup(writing),
@@ -529,8 +552,9 @@ EXTRACTORS = {
 # Agency-wide carriers (UHC/Humana/Aetna/Healthspring) ship ONE file and use the
 # default blanket replace. Map carrier -> (source_ref scheme prefix, token deriver).
 PER_AGENT_CARRIERS = {
-    "BCBS": ("bcbs", _bcbs_filetoken),
-    "Devoted": ("devoted", _devoted_filetoken),
+    "BCBS": ("bcbs", _bcbs_filetoken),            # one file per agent (token = P-Number)
+    "Devoted": ("devoted", _devoted_filetoken),   # agency + Rebekah (token = npn/agency)
+    "Healthspring": ("healthspring", _healthspring_filetoken),  # batch files (token = filename NN_NNNNNN)
 }
 
 

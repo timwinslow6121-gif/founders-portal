@@ -2,7 +2,8 @@
 {% block title %}My Commissions{% endblock %}
 
 {% block styles %}
-<style>
+  {# NOTE: base.html wraps {% block styles %} inside its own <style> tag — do NOT
+     add <style> here, or it nests and the browser discards these rules. #}
   /* ===== Agent Commission Recap (R2) — scoped to .recap-page ===== */
   .recap-page{
     --rc-blue:#266EA5; --rc-green:#65BB84; --rc-navy:#002E4D; --rc-ink:#2D3748;
@@ -156,7 +157,6 @@
     .recap-page .carrier{transition:none}
     .recap-page .carrier:hover{transform:none}
   }
-</style>
 {% endblock %}
 
 {% block content %}

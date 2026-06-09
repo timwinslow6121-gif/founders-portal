@@ -134,8 +134,23 @@ def money_rows_total_healthspring(sheets) -> float:
     return total
 
 
+def _bcbs_filetoken(sheets):
+    """BCBS ships ONE file per agent. The per-file token is the agent's BCBS
+    'P Number' (Agent #, column A) so each agent's file gets a distinct
+    source_ref prefix and a re-upload of one agent's file replaces only that
+    agent's rows (never another agent's). Falls back to 'unknown' if absent."""
+    rows = sheets.get("Sheet1", [])
+    for row in rows[1:]:
+        if any(row) and len(row) > 0:
+            pnum = str(row[0] or "").strip()
+            if pnum:
+                return f"p{pnum}"
+    return "punknown"
+
+
 def extract_lineitems_bcbs(sheets, split_lookup) -> List[LineItemDraft]:
     rows = sheets.get("Sheet1", [])
+    filetoken = _bcbs_filetoken(sheets)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) <= 14:
@@ -150,7 +165,7 @@ def extract_lineitems_bcbs(sheets, split_lookup) -> List[LineItemDraft]:
         writing = str(row[1] or "").strip()
         out.append(LineItemDraft(
             carrier="BCBS",
-            source_ref=f"bcbs::Sheet1::{idx}",
+            source_ref=f"bcbs::{filetoken}::Sheet1::{idx}",
             raw_amount=amount,
             classification=classification,
             split_rate=split_lookup(writing),
@@ -505,6 +520,30 @@ EXTRACTORS = {
     "Aetna": (extract_lineitems_aetna, money_rows_total_aetna),
     "Humana": (extract_lineitems_humana, money_rows_total_humana),
 }
+
+
+# Per-agent carriers ship MULTIPLE files per month under one (carrier, period)
+# statement — one file per agent (BCBS) or a mix (Devoted: agency file + Rebekah).
+# Their line items carry a per-file token in source_ref (carrier::<token>::...), so
+# re-uploading one file must delete ONLY that file's rows, never another agent's.
+# Agency-wide carriers (UHC/Humana/Aetna/Healthspring) ship ONE file and use the
+# default blanket replace. Map carrier -> (source_ref scheme prefix, token deriver).
+PER_AGENT_CARRIERS = {
+    "BCBS": ("bcbs", _bcbs_filetoken),
+    "Devoted": ("devoted", _devoted_filetoken),
+}
+
+
+def file_scoped_prefix(carrier, sheets):
+    """For a per-agent carrier, return the source_ref LIKE-prefix identifying ONLY
+    the uploaded file's rows (e.g. 'bcbs::p12345::%'), used to scope the
+    replace-on-reupload delete so other agents'/files' rows survive. Returns None
+    for agency-wide carriers (caller does a blanket replace)."""
+    entry = PER_AGENT_CARRIERS.get(carrier)
+    if not entry:
+        return None
+    scheme, token_fn = entry
+    return f"{scheme}::{token_fn(sheets)}::%"
 
 
 @dataclass

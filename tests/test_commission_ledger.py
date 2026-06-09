@@ -394,3 +394,34 @@ def test_devoted_both_files_each_balance_independently():
         assert report.completeness_ok, report
         if expected is not None:
             assert round(report.lineitem_total, 2) == expected
+
+
+def test_bcbs_per_agent_filetoken_and_file_scoped_prefix():
+    """BCBS ships one file per agent. Each file's rows must carry a per-agent
+    token (the P Number) so uploading agent B's file never wipes agent A's rows.
+    Regression guard for the silent multi-agent data-loss bug."""
+    from app.commission.ledger import (extract_lineitems_bcbs, _bcbs_filetoken,
+                                        file_scoped_prefix, PER_AGENT_CARRIERS)
+    # Two synthetic single-agent BCBS files with different P Numbers (col A).
+    hdr = ["Agent #","Agent Name","Group Type","Customer Type","Customer Name",
+           "Customer No","OrigEff","Product","CovFrom","CovTo","Period","OrigSub",
+           "RenewalDate","Billed","Commission"]
+    def f(pnum, name):
+        return {"Sheet1": [hdr,
+            [pnum, name, "RENEW", "MA", f"{name} Member", f"{pnum}-1",
+             "2025-01-01","MAPD","","","",1,"", 52.0, 28.91]]}
+    a = f("P0001", "ANJANA PATEL")
+    j = f("P0002", "JUSTIN BASINGER")
+    assert _bcbs_filetoken(a) == "pP0001"
+    assert _bcbs_filetoken(j) == "pP0002"
+    da = extract_lineitems_bcbs(a, split_lookup=lambda r: 0.55)
+    dj = extract_lineitems_bcbs(j, split_lookup=lambda r: 0.55)
+    assert all(x.source_ref.startswith("bcbs::pP0001::") for x in da)
+    assert all(x.source_ref.startswith("bcbs::pP0002::") for x in dj)
+    # tokens differ → file-scoped delete prefixes differ → no collision
+    assert file_scoped_prefix("BCBS", a) == "bcbs::pP0001::%"
+    assert file_scoped_prefix("BCBS", j) == "bcbs::pP0002::%"
+    assert "BCBS" in PER_AGENT_CARRIERS and "Devoted" in PER_AGENT_CARRIERS
+    # agency-wide carriers have no file-scoped prefix (blanket replace)
+    assert file_scoped_prefix("Humana", {}) is None
+    assert file_scoped_prefix("Aetna", {}) is None

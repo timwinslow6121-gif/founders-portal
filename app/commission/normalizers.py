@@ -272,9 +272,11 @@ def _classify_bcbs(group_type, amount):
 
 
 def normalize_bcbs(sheets):
+    from app.commission.ledger import _bcbs_filetoken
     rows = sheets.get("Sheet1", [])
     if not rows:
         return []
+    filetoken = _bcbs_filetoken(sheets)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row):
@@ -304,7 +306,7 @@ def normalize_bcbs(sheets):
             row_class=_classify_bcbs(row[2], amount),
             amount=amount,
             writing_agent_raw=str(row[1] or "").strip(),
-            source_ref=f"bcbs::Sheet1::{idx}",
+            source_ref=f"bcbs::{filetoken}::Sheet1::{idx}",
         ))
     return out
 

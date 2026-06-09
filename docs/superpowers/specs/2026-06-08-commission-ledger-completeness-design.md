@@ -1,7 +1,7 @@
 # Commission Ledger Completeness — Design Spec (R1)
 
 **Date:** 2026-06-08
-**Status:** Approved (brainstorm complete) — ready for implementation planning
+**Status:** ✅ Implemented + deployed (migration 023; `app/commission/ledger.py`)
 **Part of:** the Commission Balancing System. R1 is the data foundation.
 
 ## The larger goal (context)

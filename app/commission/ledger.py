@@ -220,6 +220,20 @@ def _devoted_sheet_rows(sheets, sheet_name):
     return sheets.get(sheet_name, [])
 
 
+def _devoted_format(sheets):
+    """Devoted ships two file shapes. Detect which by sheet names:
+      - "agency"    : the agency book-of-business (Total/Override/Agent Portion/HRA)
+      - "statement" : a per-agent statement (Summary/Detail/Misc)
+    Raises ValueError on an unrecognized shape (fail loud, never silently 0 rows)."""
+    if "Agent Portion" in sheets:
+        return "agency"
+    if "Detail" in sheets and "Misc" in sheets:
+        return "statement"
+    raise ValueError(
+        f"Unrecognized Devoted file shape; sheets={list(sheets)}. "
+        "Expected agency (Agent Portion) or statement (Detail+Misc).")
+
+
 def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
     out = []
     # Agent Portion → agent_commission / chargeback

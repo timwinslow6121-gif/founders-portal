@@ -256,3 +256,18 @@ def test_every_carrier_balances_and_is_complete(carrier, fixture):
     report = verify_statement_balance(carrier, drafts, sheets)
     assert report.internal_ok, report
     assert report.completeness_ok, report
+
+
+def test_devoted_format_detection():
+    from app.commission.ledger import _devoted_format
+    agency = _load_fixture("devoted_sample.xlsx")
+    statement = _load_fixture("devoted_statement_sample.xlsx")
+    assert _devoted_format(agency) == "agency"
+    assert _devoted_format(statement) == "statement"
+
+
+def test_devoted_format_unknown_raises():
+    import pytest
+    from app.commission.ledger import _devoted_format
+    with pytest.raises(ValueError):
+        _devoted_format({"Bogus": [["x"]]})

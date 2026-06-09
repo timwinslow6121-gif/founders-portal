@@ -302,3 +302,40 @@ def test_devoted_negative_override_is_chargeback_with_null_split():
         else:
             assert d.classification == FOUNDERS_OVERRIDE
             assert d.split_rate is None
+
+
+def test_devoted_statement_extracts_detail_and_misc():
+    from app.commission.ledger import (extract_lineitems_devoted, AGENT_COMMISSION,
+                                        CHARGEBACK, HRA_BONUS)
+    sheets = _load_fixture("devoted_statement_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    detail = [d for d in drafts if "::Detail::" in d.source_ref]
+    misc = [d for d in drafts if "::Misc::" in d.source_ref]
+    assert len(detail) == 2
+    assert len(misc) == 8
+    assert all(d.classification == AGENT_COMMISSION for d in detail)
+    assert all(d.classification == CHARGEBACK for d in misc)
+    assert all(d.source_ref.startswith("devoted::npn20182775::") for d in drafts)
+    assert not any("Summary" in d.source_ref for d in drafts)
+    assert round(sum(d.raw_amount for d in drafts), 2) == -342.18
+
+
+def test_devoted_statement_misc_positive_is_hra_bonus():
+    from app.commission.ledger import _extract_devoted_statement, HRA_BONUS
+    sheets = {
+        "Summary": [["Description"]],
+        "Detail": [["Statement Date", "Agent NPN"], ["05/29/2026", "20182775"]],
+        "Misc": [["Rep Name", "Rep ID", "Amount", "Note"],
+                 ["Rebekah Long", "20182775", "$50.00", "HRA for member X"]],
+    }
+    drafts = _extract_devoted_statement(sheets, "npn20182775", lambda raw: 0.55)
+    misc = [d for d in drafts if "::Misc::" in d.source_ref]
+    assert len(misc) == 1
+    assert misc[0].classification == HRA_BONUS
+    assert misc[0].split_rate == 0.55
+
+
+def test_devoted_statement_money_rows_total():
+    from app.commission.ledger import money_rows_total_devoted
+    sheets = _load_fixture("devoted_statement_sample.xlsx")
+    assert round(money_rows_total_devoted(sheets), 2) == -342.18

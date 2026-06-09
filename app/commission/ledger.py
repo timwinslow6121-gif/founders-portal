@@ -65,10 +65,16 @@ from app.models import CommissionLineItem
 
 
 def _to_float(v):
+    s = str(v).replace("$", "").replace(",", "").strip()
+    neg = False
+    if s.startswith("(") and s.endswith(")"):   # accounting-style negative
+        s = s[1:-1].strip()
+        neg = True
     try:
-        return float(str(v).replace("$", "").replace(",", "").strip() or 0)
+        n = float(s or 0)
     except (ValueError, TypeError):
         return 0.0
+    return -n if neg else n
 
 
 def _hs_classify(desc, amount):
@@ -252,7 +258,7 @@ def _devoted_filetoken(sheets):
     return f"npn{npn}" if npn else "npn_unknown"
 
 
-def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
+def _extract_devoted_agency(sheets, filetoken, split_lookup) -> List[LineItemDraft]:
     out = []
     # Agent Portion → agent_commission / chargeback
     for idx, row in enumerate(_devoted_sheet_rows(sheets, "Agent Portion")[1:], start=1):
@@ -269,7 +275,7 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
         last = str(row[6] or "").strip()
         out.append(LineItemDraft(
             carrier="Devoted",
-            source_ref=f"devoted::agency::Agent Portion::{idx}",
+            source_ref=f"devoted::{filetoken}::Agent Portion::{idx}",
             raw_amount=amount,
             classification=classification,
             split_rate=split_lookup(writing),
@@ -294,7 +300,7 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
         last = str(row[6] or "").strip()
         out.append(LineItemDraft(
             carrier="Devoted",
-            source_ref=f"devoted::agency::Override::{idx}",
+            source_ref=f"devoted::{filetoken}::Override::{idx}",
             raw_amount=amount,
             classification=CHARGEBACK if amount < 0 else FOUNDERS_OVERRIDE,
             split_rate=None,
@@ -314,7 +320,7 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
             continue
         out.append(LineItemDraft(
             carrier="Devoted",
-            source_ref=f"devoted::agency::HRA::{idx}",
+            source_ref=f"devoted::{filetoken}::HRA::{idx}",
             raw_amount=amt,
             classification=HRA_BONUS,
             split_rate=split_lookup(rep),
@@ -325,8 +331,80 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
     return out
 
 
+def _extract_devoted_statement(sheets, filetoken, split_lookup) -> List[LineItemDraft]:
+    """Rebekah per-agent statement: Detail (member commissions) + Misc (HRA, often
+    clawbacks). Summary is NOT extracted (its Balance is a prior-period carryforward
+    that would double-count). Detail columns match the agency Agent Portion layout."""
+    out = []
+    for idx, row in enumerate(_devoted_sheet_rows(sheets, "Detail")[1:], start=1):
+        if not any(row) or len(row) <= 17:
+            continue
+        member_id = str(row[3] or "").strip()
+        if not member_id:
+            continue
+        amount = _to_float(row[17])
+        disen = _parse_date(row[10])
+        classification = CHARGEBACK if (amount < 0 or disen) else AGENT_COMMISSION
+        writing = str(row[2] or "").strip()
+        first = str(row[5] or "").strip()
+        last = str(row[6] or "").strip()
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::{filetoken}::Detail::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=split_lookup(writing),
+            payment_type=str(row[15] or "").strip().lower() or None,
+            member_name=f"{first} {last}".strip(),
+            mbi=str(row[4] or "").strip() or None,
+            carrier_member_id=member_id,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(row[9]),
+            term_date=disen,
+        ))
+    for idx, row in enumerate(_devoted_sheet_rows(sheets, "Misc")[1:], start=1):
+        if not any(row) or len(row) <= 3:
+            continue
+        rep = str(row[0] or "").strip()
+        amt = _to_float(row[2])
+        if not rep or amt == 0:
+            continue
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::{filetoken}::Misc::{idx}",
+            raw_amount=amt,
+            classification=CHARGEBACK if amt < 0 else HRA_BONUS,
+            split_rate=split_lookup(rep),
+            payment_type="hra",
+            member_name=str(row[3] or "").strip() or "HRA",
+            writing_agent_raw=rep,
+        ))
+    return out
+
+
+def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
+    fmt = _devoted_format(sheets)
+    filetoken = _devoted_filetoken(sheets)
+    if fmt == "statement":
+        return _extract_devoted_statement(sheets, filetoken, split_lookup)
+    return _extract_devoted_agency(sheets, filetoken, split_lookup)
+
+
 def money_rows_total_devoted(sheets) -> float:
+    fmt = _devoted_format(sheets)
     total = 0.0
+    if fmt == "statement":
+        for row in _devoted_sheet_rows(sheets, "Detail")[1:]:
+            if not any(row) or len(row) <= 17 or not str(row[3] or "").strip():
+                continue
+            total += _to_float(row[17])
+        for row in _devoted_sheet_rows(sheets, "Misc")[1:]:
+            if not any(row) or len(row) <= 3:
+                continue
+            if not str(row[0] or "").strip() or _to_float(row[2]) == 0:
+                continue
+            total += _to_float(row[2])
+        return total
     for row in _devoted_sheet_rows(sheets, "Agent Portion")[1:]:
         if not any(row) or len(row) <= 17 or not str(row[3] or "").strip():
             continue

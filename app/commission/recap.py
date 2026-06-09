@@ -116,3 +116,40 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
         blocks.append(block)
     blocks.sort(key=lambda b: b.total_payout, reverse=True)
     return blocks
+
+
+from datetime import datetime
+from app.models import Policy
+
+
+def _period_bounds(period_label):
+    """'May 2026' -> (date(2026,5,1), date(2026,5,31)). Returns (start, end)."""
+    import calendar
+    dt = datetime.strptime(period_label, "%B %Y")
+    last = calendar.monthrange(dt.year, dt.month)[1]
+    from datetime import date
+    return date(dt.year, dt.month, 1), date(dt.year, dt.month, last)
+
+
+def lost_members_by_carrier(agent_id, agency_id, period_label) -> dict:
+    """Count this period's terminations per carrier for policies the agent owns.
+    Lost = Policy.status termed with term_date inside the period month."""
+    start, end = _period_bounds(period_label)
+    rows = (Policy.query
+            .filter_by(agent_id=agent_id, agency_id=agency_id, status="termed")
+            .filter(Policy.term_date >= start, Policy.term_date <= end)
+            .all())
+    out = {}
+    for p in rows:
+        out[p.carrier] = out.get(p.carrier, 0) + 1
+    return out
+
+
+def uhc_manual_block(recap_period) -> Optional[CarrierBlock]:
+    """Build the UHC carrier block from AJ's manually entered figure (no ledger
+    extractor for UHC until R4). Returns None when AJ hasn't entered one."""
+    amt = getattr(recap_period, "uhc_manual_amount", None)
+    if amt is None:
+        return None
+    return CarrierBlock(carrier="UHC", total_payout=round(amt, 2), new_members=0,
+                        source="manual", note=getattr(recap_period, "uhc_manual_note", None))

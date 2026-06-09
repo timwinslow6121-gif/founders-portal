@@ -93,3 +93,38 @@ def test_build_carrier_blocks_reconciles_and_counts(db_session, agency):
     # each line carries raw, split, payout that reconciles
     allrows = [r for g in dev.groups for r in g.rows]
     assert round(sum(r.payout for r in allrows), 2) == round(dev.total_payout, 2)
+
+
+def test_lost_members_and_uhc_manual(db_session, agency):
+    from app.models import User, Policy, AgentRecapPeriod
+    from app.extensions import db
+    from datetime import date
+    from app.commission.recap import lost_members_by_carrier, uhc_manual_block
+
+    agent = User(name="Tim Winslow", email="t2@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+
+    # 2 Devoted policies termed in May 2026, 1 active (not counted), 1 termed wrong month
+    for i, (status, td) in enumerate([("termed", date(2026,5,10)), ("termed", date(2026,5,20)),
+                                      ("active", None), ("termed", date(2026,4,2))]):
+        db.session.add(Policy(agency_id=agency.id, carrier="Devoted", member_id=f"D{i}",
+                              agent_id=agent.id, status=status, term_date=td))
+    db.session.flush()
+
+    lost = lost_members_by_carrier(agent.id, agency.id, "May 2026")
+    assert lost.get("Devoted") == 2
+
+    # UHC manual block from AgentRecapPeriod
+    p = AgentRecapPeriod(agency_id=agency.id, agent_id=agent.id, period_label="May 2026",
+                         uhc_manual_amount=4375.68, uhc_manual_note="AEP true-up incl.")
+    db.session.add(p); db.session.flush()
+    blk = uhc_manual_block(p)
+    assert blk is not None
+    assert blk.carrier == "UHC"
+    assert blk.total_payout == 4375.68
+    assert blk.source == "manual"
+    assert blk.note == "AEP true-up incl."
+
+    # No UHC figure → no block
+    assert uhc_manual_block(AgentRecapPeriod(agency_id=agency.id, agent_id=agent.id,
+                                             period_label="June 2026")) is None

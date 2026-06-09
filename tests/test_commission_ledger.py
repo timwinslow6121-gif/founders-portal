@@ -271,3 +271,34 @@ def test_devoted_format_unknown_raises():
     from app.commission.ledger import _devoted_format
     with pytest.raises(ValueError):
         _devoted_format({"Bogus": [["x"]]})
+
+
+def test_devoted_filetoken():
+    from app.commission.ledger import _devoted_filetoken
+    agency = _load_fixture("devoted_sample.xlsx")
+    statement = _load_fixture("devoted_statement_sample.xlsx")
+    assert _devoted_filetoken(agency) == "agency"
+    assert _devoted_filetoken(statement) == "npn20182775"
+
+
+def test_devoted_agency_source_refs_are_file_tagged():
+    from app.commission.ledger import extract_lineitems_devoted
+    sheets = _load_fixture("devoted_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    assert drafts
+    assert all(d.source_ref.startswith("devoted::agency::") for d in drafts)
+
+
+def test_devoted_negative_override_is_chargeback_with_null_split():
+    from app.commission.ledger import extract_lineitems_devoted, CHARGEBACK, FOUNDERS_OVERRIDE
+    sheets = _load_fixture("devoted_sample.xlsx")
+    drafts = extract_lineitems_devoted(sheets, split_lookup=lambda raw: 0.55)
+    override_rows = [d for d in drafts if "::Override::" in d.source_ref]
+    assert override_rows
+    for d in override_rows:
+        if d.raw_amount < 0:
+            assert d.classification == CHARGEBACK
+            assert d.split_rate is None
+        else:
+            assert d.classification == FOUNDERS_OVERRIDE
+            assert d.split_rate is None

@@ -234,6 +234,24 @@ def _devoted_format(sheets):
         "Expected agency (Agent Portion) or statement (Detail+Misc).")
 
 
+def _devoted_filetoken(sheets):
+    """Stable per-file token so the two Devoted files coexist under one statement.
+      - agency    → "agency"
+      - statement → "npn" + the Agent NPN from the Detail sheet (col 1)
+    """
+    fmt = _devoted_format(sheets)
+    if fmt == "agency":
+        return "agency"
+    detail = sheets.get("Detail", [])
+    npn = ""
+    for row in detail[1:]:
+        if any(row) and len(row) > 1:
+            npn = str(row[1] or "").strip()
+            if npn:
+                break
+    return f"npn{npn}" if npn else "npn_unknown"
+
+
 def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
     out = []
     # Agent Portion → agent_commission / chargeback
@@ -251,7 +269,7 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
         last = str(row[6] or "").strip()
         out.append(LineItemDraft(
             carrier="Devoted",
-            source_ref=f"devoted::Agent Portion::{idx}",
+            source_ref=f"devoted::agency::Agent Portion::{idx}",
             raw_amount=amount,
             classification=classification,
             split_rate=split_lookup(writing),
@@ -263,20 +281,22 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
             effective_date=_parse_date(row[9]),
             term_date=disen,
         ))
-    # Override → founders_override (no split)
+    # Override → founders_override (positive) / chargeback (negative clawback).
+    # Either way no agent split: split_rate=None means Founders keeps/absorbs all.
     for idx, row in enumerate(_devoted_sheet_rows(sheets, "Override")[1:], start=1):
         if not any(row) or len(row) <= 17:
             continue
         member_id = str(row[3] or "").strip()
         if not member_id:
             continue
+        amount = _to_float(row[17])
         first = str(row[5] or "").strip()
         last = str(row[6] or "").strip()
         out.append(LineItemDraft(
             carrier="Devoted",
-            source_ref=f"devoted::Override::{idx}",
-            raw_amount=_to_float(row[17]),
-            classification=FOUNDERS_OVERRIDE,
+            source_ref=f"devoted::agency::Override::{idx}",
+            raw_amount=amount,
+            classification=CHARGEBACK if amount < 0 else FOUNDERS_OVERRIDE,
             split_rate=None,
             payment_type="override",
             member_name=f"{first} {last}".strip(),
@@ -294,7 +314,7 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
             continue
         out.append(LineItemDraft(
             carrier="Devoted",
-            source_ref=f"devoted::HRA::{idx}",
+            source_ref=f"devoted::agency::HRA::{idx}",
             raw_amount=amt,
             classification=HRA_BONUS,
             split_rate=split_lookup(rep),

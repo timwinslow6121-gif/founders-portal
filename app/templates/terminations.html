@@ -17,7 +17,7 @@
 
 .carrier-select {
   padding: 7px 10px; background: var(--surface); border: 1px solid var(--border);
-  color: var(--ink); font-family: var(--font-sans); font-size: 13px; cursor: pointer; border-radius: var(--radius);
+  color: var(--ivory); font-family: var(--font-sans); font-size: 13px; cursor: pointer; border-radius: var(--radius);
 }
 
 .summary-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 24px; }
@@ -28,7 +28,7 @@
 .summary-label { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
 .summary-card.s-high  .summary-label { color: var(--status-error); }
 .summary-card.s-low   .summary-label { color: var(--status-resolved); }
-.summary-value { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 300; color: var(--ink); line-height: 1; }
+.summary-value { font-family: var(--font-serif); font-size: 1.9rem; font-weight: 300; color: var(--ivory-bright); line-height: 1; }
 .summary-sub { font-size: 12px; color: var(--slate); margin-top: 6px; }
 
 /* Priority row accents */
@@ -43,11 +43,11 @@ tr.row-death:hover td { background: color-mix(in srgb, var(--slate) 9%, transpar
 .reason-cell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .reason-select {
   padding: 4px 6px; font-size: 12px; background: var(--surface); border: 1px solid var(--border);
-  color: var(--ink); border-radius: 3px; cursor: pointer; max-width: 160px;
+  color: var(--ivory); border-radius: 3px; cursor: pointer; max-width: 160px;
 }
 .new-plan-input {
   padding: 4px 6px; font-size: 12px; background: var(--surface); border: 1px solid var(--border);
-  color: var(--ink); border-radius: 3px; width: 130px;
+  color: var(--ivory); border-radius: 3px; width: 130px;
 }
 .new-plan-group { display: none; align-items: center; gap: 4px; }
 .new-plan-group.visible { display: flex; }
@@ -74,9 +74,9 @@ tr.row-death:hover td { background: color-mix(in srgb, var(--slate) 9%, transpar
   color: var(--slate); border: 1px solid color-mix(in srgb, var(--slate) 20%, transparent);
 }
 
-.member-link { color: var(--ink); text-decoration: none; font-weight: 600; }
+.member-link { color: var(--ivory); text-decoration: none; font-weight: 600; }
 .member-link:hover { color: var(--gold); text-decoration: underline; }
-.member-no-link { font-weight: 600; color: var(--ink); }
+.member-no-link { font-weight: 600; color: var(--ivory); }
 
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .empty-state { padding: 48px 20px; text-align: center; color: var(--slate); font-size: 13px; }

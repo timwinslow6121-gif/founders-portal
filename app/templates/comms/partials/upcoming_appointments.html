@@ -73,11 +73,11 @@
 
                   {% if open_tasks %}
                   <div>
-                    <span style="font-weight:500;color:#A32D2D;font-size:11px;text-transform:uppercase;letter-spacing:.04em;">
+                    <span style="font-weight:500;color:var(--status-error);font-size:11px;text-transform:uppercase;letter-spacing:.04em;">
                       Open Tasks ({{ open_tasks|length }})
                     </span>
                     {% for task in open_tasks %}
-                    <div style="padding:2px 0;color:#4A5568;">
+                    <div style="padding:2px 0;color:var(--slate);">
                       &bull; {{ task.note_text[:80] ~ ('…' if task.note_text and task.note_text|length > 80 else '') if task.note_text else '(no description)' }}
                     </div>
                     {% endfor %}

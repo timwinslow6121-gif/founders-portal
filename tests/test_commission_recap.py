@@ -160,3 +160,28 @@ def test_build_recap_headline_and_ytd(db_session, agency):
     # pct_of_book sums to ~100 across carriers with members (UHC has 0 members here)
     # run-rate is a positive projection from YTD
     assert r.run_rate >= r.ytd_current
+
+
+def test_send_email_builds_message(monkeypatch, app):
+    from app import mailer
+    sent = {}
+
+    class FakeSG:
+        def __init__(self, key): sent["key"] = key
+        def send(self, message): sent["message"] = message
+
+    monkeypatch.setattr(mailer, "SendGridAPIClient", FakeSG)
+    with app.app_context():
+        app.config["SENDGRID_API_KEY"] = "k"
+        app.config["LABELS_FROM_EMAIL"] = "from@x.com"
+        ok = mailer.send_email("to@x.com", "Subj", "hello body")
+    assert ok is True
+    assert sent["key"] == "k"
+    assert sent["message"] is not None
+
+
+def test_send_email_no_key_returns_false(app):
+    from app import mailer
+    with app.app_context():
+        app.config["SENDGRID_API_KEY"] = ""
+        assert mailer.send_email("to@x.com", "S", "b") is False

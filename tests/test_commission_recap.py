@@ -48,3 +48,48 @@ def test_agent_recap_period_model(db_session, agency):
     assert got.uhc_manual_amount is None
     assert got.prior_year_total is None
     assert got.published_at is None
+
+
+def _mk_line(db, agency, agent, carrier, cls, ptype, raw, split, name, period="May 2026"):
+    from app.models import CommissionLineItem, CommissionStatement
+    from datetime import date
+    stmt = (CommissionStatement.query
+            .filter_by(agency_id=agency.id, carrier=carrier, period_label=period).first())
+    if stmt is None:
+        stmt = CommissionStatement(agency_id=agency.id, carrier=carrier, agent_id=None,
+                                   period_label=period, filename="f.xlsx",
+                                   statement_date=date(2026, 5, 1))
+        db.session.add(stmt); db.session.flush()
+    li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier=carrier,
+                            period_label=period, source_ref=f"{carrier}::{name}::{raw}",
+                            agent_id=agent.id, member_name=name, raw_amount=raw,
+                            split_rate=split, classification=cls, payment_type=ptype)
+    db.session.add(li); db.session.flush()
+    return li
+
+
+def test_build_carrier_blocks_reconciles_and_counts(db_session, agency):
+    from app.models import User
+    from app.extensions import db
+    from app.commission.recap import build_carrier_blocks
+
+    agent = User(name="Tim Winslow", email="t@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+
+    # Devoted: 1 new (initial-new), 1 renewal, 1 chargeback
+    _mk_line(db, agency, agent, "Devoted", "agent_commission", "initial - new", 1000.0, 0.55, "Alice")
+    _mk_line(db, agency, agent, "Devoted", "agent_commission", "renewal - monthly", 100.0, 0.55, "Bob")
+    _mk_line(db, agency, agent, "Devoted", "chargeback", "initial - not new", -200.0, 0.55, "Cara")
+    db.session.flush()
+
+    blocks = build_carrier_blocks(agent.id, agency.id, "May 2026")
+    dev = next(b for b in blocks if b.carrier == "Devoted")
+    # payout = 1000*.55 + 100*.55 - 200*.55 = 550 + 55 - 110 = 495
+    assert round(dev.total_payout, 2) == 495.00
+    assert dev.new_members == 1            # only the initial-new agent_commission
+    # groups present
+    kinds = {g.kind for g in dev.groups}
+    assert kinds == {"New enrollments", "Renewals", "Chargebacks"}
+    # each line carries raw, split, payout that reconciles
+    allrows = [r for g in dev.groups for r in g.rows]
+    assert round(sum(r.payout for r in allrows), 2) == round(dev.total_payout, 2)

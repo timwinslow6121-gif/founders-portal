@@ -35,6 +35,7 @@ def is_new_enrollment(carrier, classification, payment_type) -> bool:
 from app.extensions import db
 from app.models import CommissionLineItem
 from app.commission.ledger import split_breakdown
+from app.mailer import send_email
 
 
 @dataclass
@@ -252,3 +253,33 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
         carriers=carriers, ytd_current=ytd_current, ytd_prior=ytd_prior,
         ytd_growth_pct=growth, run_rate=run_rate, monthly_trend=trend,
         prior_year_known=prior_year_known)
+
+
+def get_or_create_period(agent_id, agency_id, period_label):
+    from app.models import AgentRecapPeriod
+    p = (AgentRecapPeriod.query
+         .filter_by(agency_id=agency_id, agent_id=agent_id, period_label=period_label).first())
+    if p is None:
+        p = AgentRecapPeriod(agency_id=agency_id, agent_id=agent_id,
+                             period_label=period_label, status="draft")
+        db.session.add(p); db.session.flush()
+    return p
+
+
+def is_visible_to_agent(recap_period) -> bool:
+    return recap_period is not None and recap_period.status == "published"
+
+
+def publish_recap(recap_period, published_by_id, agent_email, total_paid, base_url) -> None:
+    """Flip a recap period to published, stamp it, and notify the agent ONCE."""
+    recap_period.status = "published"
+    if recap_period.published_at is None:
+        recap_period.published_at = datetime.utcnow()
+    recap_period.published_by_id = published_by_id
+    if recap_period.notified_at is None and agent_email:
+        subject = f"Your {recap_period.period_label} commission recap is ready"
+        link = f"{base_url}/commissions/recap?period={recap_period.period_label}"
+        body = (f"Your {recap_period.period_label} commission recap is ready — "
+                f"${total_paid:,.2f}.\n\nView it here: {link}")
+        if send_email(agent_email, subject, body):
+            recap_period.notified_at = datetime.utcnow()

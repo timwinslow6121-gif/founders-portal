@@ -185,3 +185,36 @@ def test_send_email_no_key_returns_false(app):
     with app.app_context():
         app.config["SENDGRID_API_KEY"] = ""
         assert mailer.send_email("to@x.com", "S", "b") is False
+
+
+def test_publish_workflow_and_visibility(db_session, agency, app, monkeypatch):
+    from app.models import User, AgentRecapPeriod
+    from app.extensions import db
+    from app.commission import recap as R
+
+    agent = User(name="Tim", email="pub@x.com", agency_id=agency.id)
+    admin = User(name="AJ", email="aj@x.com", agency_id=agency.id, is_admin=True)
+    db.session.add_all([agent, admin]); db.session.flush()
+
+    # draft created on demand, not visible to agent
+    p = R.get_or_create_period(agent.id, agency.id, "May 2026")
+    assert p.status == "draft"
+    assert R.is_visible_to_agent(p) is False
+
+    # publish notifies once
+    calls = []
+    monkeypatch.setattr(R, "send_email", lambda *a, **k: calls.append(a) or True)
+    with app.app_context():
+        R.publish_recap(p, published_by_id=admin.id, agent_email=agent.email,
+                        total_paid=2440.0, base_url="http://x")
+    db.session.flush()
+    assert p.status == "published"
+    assert p.published_at is not None
+    assert p.notified_at is not None
+    assert R.is_visible_to_agent(p) is True
+    assert len(calls) == 1
+
+    # re-publish does not re-notify
+    R.publish_recap(p, published_by_id=admin.id, agent_email=agent.email,
+                    total_paid=2440.0, base_url="http://x")
+    assert len(calls) == 1

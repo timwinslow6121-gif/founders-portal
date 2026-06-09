@@ -902,18 +902,19 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     # If replacing, clear stale ledger rows so re-ingest doesn't double-count
     # rows that no longer appear in the file.
     if existing:
-        # Default: blanket replace of the statement's rows (single-file carriers).
-        # Devoted ships two files per month under one statement — scope the delete
-        # to JUST the uploaded file's rows (by source_ref filetoken) so the other
-        # file's line items survive a re-upload.
+        # Replace-on-reupload. Agency-wide carriers (one file/month) blanket-delete
+        # the statement's rows. Per-agent carriers (BCBS = one file per agent;
+        # Devoted = agency + Rebekah) ship MULTIPLE files under one statement — scope
+        # the delete to JUST the uploaded file's rows (by source_ref token) so the
+        # other agents'/files' line items survive. Otherwise uploading agent B's
+        # file silently wipes agent A's data.
+        from app.commission.ledger import file_scoped_prefix
         pp_q = PolicyPayment.query.filter_by(
             statement_id=stmt.id, agency_id=current_user.agency_id)
         li_q = CommissionLineItem.query.filter_by(
             statement_id=stmt.id, agency_id=current_user.agency_id)
-        if carrier == "Devoted":
-            from app.commission.ledger import _devoted_filetoken
-            token = _devoted_filetoken(sheets)
-            prefix = f"devoted::{token}::%"
+        prefix = file_scoped_prefix(carrier, sheets)
+        if prefix is not None:
             pp_q = pp_q.filter(PolicyPayment.source_ref.like(prefix))
             li_q = li_q.filter(CommissionLineItem.source_ref.like(prefix))
         pp_q.delete(synchronize_session=False)

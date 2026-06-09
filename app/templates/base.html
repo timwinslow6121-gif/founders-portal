@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // Apply saved theme before first paint to avoid a light→dark flash.
+    (function(){
+      try {
+        var t = localStorage.getItem('fp-theme');
+        if (t === 'light' || t === 'dark') {
+          document.documentElement.setAttribute('data-theme', t);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Founders Portal{% endblock %}</title>
@@ -109,6 +120,34 @@
         --shadow:       0px 8px 28px rgba(0,0,0,0.45);
         --shadow-sm:    0px 2px 8px rgba(0,0,0,0.4);
       }
+    }
+
+    /* Manual override: data-theme on <html> wins over the OS media query. */
+    :root[data-theme="light"] {
+      --ink:#F7FAFC; --surface:#FFFFFF; --surface-low:#EEF3F8; --surface-mid:#E4ECF3;
+      --surface-high:#D9E4EF; --surface-top:#CBD5E0;
+      --gold:#266EA5; --gold-dim:#1F5A85; --gold-muted:#2B6CB0;
+      --green:#65BB84; --green-dim:#13612E;
+      --ivory:#1A202C; --ivory-bright:#002E4D; --slate:#718096; --on-gold:#FFFFFF;
+      --outline:#9AA7B5; --outline-var:#CBD5E0; --border:rgba(26,32,44,0.10);
+      --status-open:#718096; --status-progress:#F7630C; --status-waiting:#5C4DB1;
+      --status-resolved:#13612E; --status-error:#B82105;
+      --status-error-bg:rgba(184,33,5,0.06); --status-error-text:#B82105;
+      --shadow-float:0px 8px 32px rgba(38,110,165,0.12);
+      --shadow:0px 6px 24px rgba(38,110,165,0.10); --shadow-sm:0px 2px 8px rgba(0,0,0,0.05);
+    }
+    :root[data-theme="dark"] {
+      --ink:#0E1726; --surface:#172338; --surface-low:#1E2C44; --surface-mid:#243353;
+      --surface-high:#2B3D60; --surface-top:#324872;
+      --gold:#4A9FD4; --gold-dim:#3E86B8; --gold-muted:#2E6E9E;
+      --green:#7BD49B; --green-dim:#3E8E63;
+      --ivory:#E2E8F0; --ivory-bright:#F5F8FB; --slate:#8AA0B8; --on-gold:#04243B;
+      --outline:#3C4A5E; --outline-var:#24344D; --border:#24344D;
+      --status-open:#8AA0B8; --status-progress:#F7A35C; --status-waiting:#9D8DF1;
+      --status-resolved:#7BD49B; --status-error:#FFB4AB;
+      --status-error-bg:rgba(255,180,171,0.08); --status-error-text:#FFB4AB;
+      --shadow-float:0px 24px 48px rgba(0,0,0,0.5);
+      --shadow:0px 8px 28px rgba(0,0,0,0.45); --shadow-sm:0px 2px 8px rgba(0,0,0,0.4);
     }
 
     @keyframes fadeInLayout {

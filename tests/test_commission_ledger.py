@@ -380,3 +380,17 @@ def test_devoted_two_files_coexist_and_file_scoped_replace(db_session, agency):
     persist_line_items("Devoted", s_drafts, stmt, agency.id)
     db.session.flush()
     assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == len(a_drafts) + len(s_drafts)
+
+
+def test_devoted_both_files_each_balance_independently():
+    from app.commission.ledger import EXTRACTORS, verify_statement_balance
+    ext, _ = EXTRACTORS["Devoted"]
+    for fixture, expected in [("devoted_sample.xlsx", None),
+                              ("devoted_statement_sample.xlsx", -342.18)]:
+        sheets = _load_fixture(fixture)
+        drafts = ext(sheets, split_lookup=lambda raw: 0.55)
+        report = verify_statement_balance("Devoted", drafts, sheets)
+        assert report.internal_ok, report
+        assert report.completeness_ok, report
+        if expected is not None:
+            assert round(report.lineitem_total, 2) == expected

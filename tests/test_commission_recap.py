@@ -29,6 +29,20 @@ def test_is_new_enrollment_per_carrier():
     assert nu("Devoted", "hra_bonus", "hra") is False
     # Unknown carrier/type → conservative False
     assert nu("UHC", "agent_commission", "whatever") is False
+    # Healthspring: key MUST match the ledger's exact carrier literal ("Healthspring",
+    # lowercase s). Regression guard for the HealthSpring/Healthspring mismatch.
+    assert nu("Healthspring", "agent_commission", "initial") is True
+    assert nu("Healthspring", "agent_commission", "initial - new") is True
+
+
+def test_new_payment_type_keys_match_ledger_carrier_literals():
+    """Every _NEW_PAYMENT_TYPES key must be a real carrier literal the ledger
+    extractors actually emit — else is_new_enrollment silently never matches."""
+    from app.commission.recap import _NEW_PAYMENT_TYPES
+    from app.commission.ledger import EXTRACTORS
+    ledger_carriers = set(EXTRACTORS.keys())   # exact literals used on CommissionLineItem.carrier
+    for key in _NEW_PAYMENT_TYPES:
+        assert key in ledger_carriers, f"{key!r} not a ledger carrier literal {ledger_carriers}"
 
 
 def test_agent_recap_period_model(db_session, agency):

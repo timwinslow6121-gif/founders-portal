@@ -18,7 +18,8 @@ _NEW_PAYMENT_TYPES = {
     "Humana": {"arcf", "med2", "iccf", "icfa"},        # first-year txn codes
     "BCBS": {"fy", "new"},
     "Aetna": {"pro-rata payment", "new"},
-    "HealthSpring": {"initial", "initial - new", "initial - not new"},
+    # NB: ledger stores this carrier as "Healthspring" (lowercase s) — key MUST match.
+    "Healthspring": {"initial", "initial - new", "initial - not new"},
 }
 
 

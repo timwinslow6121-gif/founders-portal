@@ -339,3 +339,44 @@ def test_devoted_statement_money_rows_total():
     from app.commission.ledger import money_rows_total_devoted
     sheets = _load_fixture("devoted_statement_sample.xlsx")
     assert round(money_rows_total_devoted(sheets), 2) == -342.18
+
+
+def test_devoted_two_files_coexist_and_file_scoped_replace(db_session, agency):
+    """Persist agency line items, then statement line items, under ONE statement.
+    Both coexist. Re-persisting the statement file replaces only its rows."""
+    from app.models import CommissionLineItem, CommissionStatement
+    from app.commission.ledger import (extract_lineitems_devoted, persist_line_items,
+                                        _devoted_filetoken)
+    from app.extensions import db
+    from datetime import date
+
+    stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted", agent_id=None,
+                               period_label="April 2026", filename="d.xlsx",
+                               statement_date=date(2026, 4, 1))
+    db.session.add(stmt)
+    db.session.flush()
+
+    agency_sheets = _load_fixture("devoted_sample.xlsx")
+    stmt_sheets = _load_fixture("devoted_statement_sample.xlsx")
+
+    a_drafts = extract_lineitems_devoted(agency_sheets, split_lookup=lambda raw: 0.55)
+    s_drafts = extract_lineitems_devoted(stmt_sheets, split_lookup=lambda raw: 0.55)
+
+    persist_line_items("Devoted", a_drafts, stmt, agency.id)
+    persist_line_items("Devoted", s_drafts, stmt, agency.id)
+    db.session.flush()
+
+    total = CommissionLineItem.query.filter_by(statement_id=stmt.id).count()
+    assert total == len(a_drafts) + len(s_drafts)   # both files coexist
+
+    token = _devoted_filetoken(stmt_sheets)          # "npn20182775"
+    (CommissionLineItem.query
+        .filter(CommissionLineItem.statement_id == stmt.id,
+                CommissionLineItem.source_ref.like(f"devoted::{token}::%"))
+        .delete(synchronize_session=False))
+    db.session.flush()
+    assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == len(a_drafts)
+
+    persist_line_items("Devoted", s_drafts, stmt, agency.id)
+    db.session.flush()
+    assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == len(a_drafts) + len(s_drafts)

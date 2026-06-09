@@ -882,12 +882,22 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     # If replacing, clear stale ledger rows so re-ingest doesn't double-count
     # rows that no longer appear in the file.
     if existing:
-        PolicyPayment.query.filter_by(
-            statement_id=stmt.id, agency_id=current_user.agency_id
-        ).delete(synchronize_session=False)
-        CommissionLineItem.query.filter_by(
-            statement_id=stmt.id, agency_id=current_user.agency_id
-        ).delete(synchronize_session=False)
+        # Default: blanket replace of the statement's rows (single-file carriers).
+        # Devoted ships two files per month under one statement — scope the delete
+        # to JUST the uploaded file's rows (by source_ref filetoken) so the other
+        # file's line items survive a re-upload.
+        pp_q = PolicyPayment.query.filter_by(
+            statement_id=stmt.id, agency_id=current_user.agency_id)
+        li_q = CommissionLineItem.query.filter_by(
+            statement_id=stmt.id, agency_id=current_user.agency_id)
+        if carrier == "Devoted":
+            from app.commission.ledger import _devoted_filetoken
+            token = _devoted_filetoken(sheets)
+            prefix = f"devoted::{token}::%"
+            pp_q = pp_q.filter(PolicyPayment.source_ref.like(prefix))
+            li_q = li_q.filter(CommissionLineItem.source_ref.like(prefix))
+        pp_q.delete(synchronize_session=False)
+        li_q.delete(synchronize_session=False)
         db.session.flush()
 
     try:

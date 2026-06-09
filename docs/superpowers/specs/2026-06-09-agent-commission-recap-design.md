@@ -1,7 +1,7 @@
 # Agent Commission Recap (R2) — Design Spec
 
 **Date:** 2026-06-09
-**Status:** Approved (brainstorm complete) — ready for implementation planning
+**Status:** ✅ Implemented (on `feat/agent-recap`)
 **Part of:** the Commission Balancing System. Built on R1 (commission ledger, deployed) + R1.1 (Devoted two-file, deployed). This is the agent-facing payout view, with verifiability baked in.
 **Related:** [[commission-balancing-system]], R1 spec `2026-06-08-commission-ledger-completeness-design.md`.
 

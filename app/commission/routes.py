@@ -12,12 +12,14 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from app.extensions import db
-from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment, CommissionLineItem
+from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment, CommissionLineItem, AgentRecapPeriod
 from app.commission import commission_bp
 from app.commission.payments import build_payments
 from app.commission.ingest import ingest_statement, compute_fingerprint
 from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
+from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
+                                   publish_recap, build_carrier_blocks)
 
 SPLIT_RATE = 0.55
 
@@ -1509,3 +1511,111 @@ def admin_reconciliation_view():
         is_admin=True,
         agents=agents,
         selected_agent_id=selected_agent_id)
+
+
+# ---------------------------------------------------------------------------
+# R2 — Agent Commission Recap routes
+# ---------------------------------------------------------------------------
+
+def _published_periods(agent_id, agency_id):
+    rows = (AgentRecapPeriod.query
+            .filter_by(agency_id=agency_id, agent_id=agent_id, status="published")
+            .order_by(AgentRecapPeriod.published_at.desc()).all())
+    return [r.period_label for r in rows]
+
+
+def _latest_published_period(agent_id, agency_id):
+    ps = _published_periods(agent_id, agency_id)
+    return ps[0] if ps else None
+
+
+@commission_bp.route("/commissions/recap")
+@login_required
+def agent_recap():
+    period = request.args.get("period") or _latest_published_period(current_user.id, current_user.agency_id)
+    rp = AgentRecapPeriod.query.filter_by(
+        agency_id=current_user.agency_id, agent_id=current_user.id, period_label=period).first() if period else None
+    if not period or not is_visible_to_agent(rp):
+        return render_template("commission/recap.html", recap=None, pending=True,
+                               period_label=period, is_admin=current_user.is_admin,
+                               periods=_published_periods(current_user.id, current_user.agency_id))
+    recap = build_recap(current_user.id, current_user.agency_id, period)
+    return render_template("commission/recap.html", recap=recap, pending=False,
+                           period_label=period, is_admin=current_user.is_admin,
+                           periods=_published_periods(current_user.id, current_user.agency_id))
+
+
+@commission_bp.route("/admin/commissions/recap")
+@login_required
+def admin_recap():
+    if not current_user.is_admin:
+        abort(403)
+    agent_id = request.args.get("agent_id", type=int) or current_user.id
+    period = request.args.get("period") or date.today().strftime("%B %Y")
+    rp = get_or_create_period(agent_id, current_user.agency_id, period)
+    db.session.commit()
+    recap = build_recap(agent_id, current_user.agency_id, period)
+    agents = User.query.filter_by(agency_id=current_user.agency_id).order_by(User.name).all()
+    return render_template("commission/recap.html", recap=recap, pending=False, admin_view=True,
+                           period_label=period, recap_period=rp, agents=agents,
+                           selected_agent_id=agent_id, is_admin=True)
+
+
+@commission_bp.route("/admin/commissions/recap/publish", methods=["POST"])
+@login_required
+def admin_recap_publish():
+    if not current_user.is_admin:
+        abort(403)
+    agent_id = request.form.get("agent_id", type=int)
+    period = request.form.get("period")
+    rp = get_or_create_period(agent_id, current_user.agency_id, period)
+    recap = build_recap(agent_id, current_user.agency_id, period)
+    agent = User.query.get(agent_id)
+    publish_recap(rp, published_by_id=current_user.id,
+                  agent_email=(agent.email if agent else None),
+                  total_paid=recap.total_paid, base_url=request.url_root.rstrip("/"))
+    db.session.commit()
+    flash(f"Published {period} recap for {agent.name if agent else agent_id}.", "success")
+    return redirect(url_for("commission.admin_recap", agent_id=agent_id, period=period))
+
+
+@commission_bp.route("/admin/commissions/recap/set-uhc", methods=["POST"])
+@login_required
+def admin_recap_set_uhc():
+    if not current_user.is_admin:
+        abort(403)
+    agent_id = request.form.get("agent_id", type=int)
+    period = request.form.get("period")
+    rp = get_or_create_period(agent_id, current_user.agency_id, period)
+    raw = (request.form.get("uhc_amount") or "").replace("$", "").replace(",", "").strip()
+    rp.uhc_manual_amount = float(raw) if raw else None
+    rp.uhc_manual_note = (request.form.get("uhc_note") or "").strip() or None
+    db.session.commit()
+    flash("UHC figure updated.", "success")
+    return redirect(url_for("commission.admin_recap", agent_id=agent_id, period=period))
+
+
+@commission_bp.route("/commissions/recap/carrier")
+@login_required
+def recap_carrier_detail():
+    """JSON: the grouped line items for one carrier (lazy-loaded drill-down + search)."""
+    agent_id = request.args.get("agent_id", type=int) or current_user.id
+    if agent_id != current_user.id and not current_user.is_admin:
+        abort(403)
+    period = request.args.get("period")
+    carrier = request.args.get("carrier")
+    q = (request.args.get("q") or "").strip().lower()
+    blocks = build_carrier_blocks(agent_id, current_user.agency_id, period)
+    block = next((b for b in blocks if b.carrier == carrier), None)
+    if block is None:
+        return {"carrier": carrier, "groups": []}
+
+    def rowj(r):
+        return {"member": r.member_name, "customer_id": r.customer_id, "type": r.type_label,
+                "kind": r.type_kind, "raw": r.raw_amount, "split": r.split_rate, "payout": r.payout}
+
+    groups = []
+    for g in block.groups:
+        rows = [rowj(r) for r in g.rows if not q or q in (r.member_name or "").lower()]
+        groups.append({"kind": g.kind, "count": g.count, "subtotal": g.subtotal, "rows": rows})
+    return {"carrier": carrier, "total": block.total_payout, "groups": groups}

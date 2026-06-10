@@ -9,6 +9,8 @@ import os
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
+from datetime import timedelta
+
 import pytest
 
 
@@ -48,3 +50,21 @@ def test_hsts_absent_over_http():
     client = app.test_client()
     resp = client.get("/auth/login", base_url="http://localhost")
     assert "Strict-Transport-Security" not in resp.headers
+
+
+def test_session_lifetime_is_12h():
+    app = _make_app(RATELIMIT_ENABLED=False)
+    assert app.config["PERMANENT_SESSION_LIFETIME"] == timedelta(hours=12)
+    assert app.config["REMEMBER_COOKIE_DURATION"] == timedelta(hours=12)
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+    assert app.config["SESSION_COOKIE_HTTPONLY"] is True
+    assert app.config["SESSION_COOKIE_SAMESITE"] == "Lax"
+
+
+def test_callback_sets_session_permanent():
+    """The OAuth callback must mark the session permanent so the 12h timeout
+    applies. We assert the source calls session.permanent = True."""
+    import inspect
+    import app.auth as auth_mod
+    src = inspect.getsource(auth_mod.callback)
+    assert "session.permanent = True" in src

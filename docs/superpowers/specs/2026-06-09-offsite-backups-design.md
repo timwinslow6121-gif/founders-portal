@@ -1,7 +1,7 @@
 # Off-Site Automated Backups (S0) — Design Spec
 
 **Date:** 2026-06-09
-**Status:** Approved (brainstorm complete) — ready for implementation planning
+**Status:** ✅ Implemented + deployed (2026-06-09). Backups live + cron installed + round-trip verified (restore counts matched prod exactly: customers 1025, policies 1046, line_items 591). CAVEAT: failure/health EMAIL alerts are blocked by "SendGrid: Maximum credits exceeded" (account-level — also affects recap-notify + birthday-label emails); backups still run + are recoverable, just no email until SendGrid credits restored.
 **Part of:** Milestone 1 — Security & Resilience. S0 is the FIRST pillar (the safety net under everything else). See [[roadmap-2026-06-09]]. Pillars S1 (access hardening), S2 (audit/alert), S3 (encryption-at-rest), S4 (pentest) are separate specs.
 
 ## Goal

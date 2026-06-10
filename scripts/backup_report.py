@@ -6,8 +6,8 @@ Two modes (cron-invoked):
   failure  : send an immediate failure email (called by the cron wrapper when backup.sh exits != 0)
   health   : weekly summary — last good backup + retained count on Drive
 
-Standalone: reads SENDGRID_API_KEY / LABELS_FROM_EMAIL / BACKUP_ALERT_EMAIL / BACKUP_RCLONE_REMOTE
-from the portal .env. No app import (cron-safe).
+Standalone: reads BREVO_API_KEY / MAIL_FROM / BACKUP_ALERT_EMAIL / BACKUP_RCLONE_REMOTE
+from the portal .env (Brevo transactional API). No app import (cron-safe).
 """
 import os, sys, subprocess, datetime
 

@@ -68,3 +68,33 @@ def test_callback_sets_session_permanent():
     import app.auth as auth_mod
     src = inspect.getsource(auth_mod.callback)
     assert "session.permanent = True" in src
+
+
+def test_rate_limit_key_anonymous_uses_ip():
+    """Anonymous request → key is the client IP."""
+    app = _make_app(RATELIMIT_ENABLED=False)
+    from app.security import rate_limit_key
+    with app.test_request_context("/", environ_base={"REMOTE_ADDR": "1.2.3.4"}):
+        assert rate_limit_key() == "1.2.3.4"
+
+
+def test_rate_limit_key_authenticated_uses_user(monkeypatch):
+    """Authenticated request → key is user:<id>, NOT the IP (office-NAT fix)."""
+    app = _make_app(RATELIMIT_ENABLED=False)
+    from app import security as sec
+
+    class _FakeUser:
+        is_authenticated = True
+        id = 42
+
+    monkeypatch.setattr(sec, "current_user", _FakeUser())
+    with app.test_request_context("/", environ_base={"REMOTE_ADDR": "1.2.3.4"}):
+        assert sec.rate_limit_key() == "user:42"
+
+
+def test_auth_google_rate_limited():
+    """11th+ hit on /auth/google within a minute → 429."""
+    app = _make_app(RATELIMIT_ENABLED=True)
+    client = app.test_client()
+    statuses = [client.get("/auth/google").status_code for _ in range(12)]
+    assert 429 in statuses

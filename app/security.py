@@ -11,6 +11,9 @@ See docs/superpowers/specs/2026-06-10-s1-access-hardening-design.md
 """
 from flask import request
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_login import current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Permissive-but-real CSP: keeps existing inline JS/CSS working ('unsafe-inline')
 # but locks down origins. Single-line header value.
@@ -24,6 +27,25 @@ _CSP = (
     "frame-ancestors 'none'; "
     "base-uri 'self'; "
     "form-action 'self' https://accounts.google.com"
+)
+
+
+def rate_limit_key():
+    """Two-tier key: per-agent when logged in (so office-mates sharing one
+    NAT IP get independent buckets), per-IP when anonymous."""
+    try:
+        if current_user.is_authenticated:
+            return f"user:{current_user.id}"
+    except Exception:
+        pass
+    return get_remote_address()
+
+
+# Module-level limiter; attached to the app in init_security().
+limiter = Limiter(
+    key_func=rate_limit_key,
+    default_limits=["600 per hour"],
+    storage_uri="memory://",
 )
 
 
@@ -51,3 +73,29 @@ def init_security(app):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_for=1)
 
     app.after_request(add_security_headers)
+
+    # Rate limiting. Disabled in tests/dev via config; on in production.
+    limiter.enabled = app.config.get("RATELIMIT_ENABLED", True)
+    limiter.init_app(app)
+
+    # Decorate already-registered views imperatively. limiter.limit() returns
+    # a WRAPPED view function that performs the in-request limit check; we must
+    # write that wrapper back into app.view_functions or the limit is recorded
+    # but never enforced (the before_request middleware path does not evaluate
+    # decorated per-view limits).
+    def _apply_limit(endpoint, spec):
+        vf = app.view_functions.get(endpoint)
+        if vf:
+            app.view_functions[endpoint] = limiter.limit(spec)(vf)
+
+    # Tight limits on the unauthenticated auth endpoints (per-IP via key_func,
+    # since the user isn't logged in yet at these routes).
+    _apply_limit("auth.google_login", "10 per minute")
+    _apply_limit("auth.callback", "10 per minute")
+
+    # Webhook limit on the three known inbound webhook view functions.
+    # Convention: future inbound webhooks live at /comms/webhook/<name> and
+    # should be added here.
+    for ep in ("comms.quo_webhook", "comms.calendly_webhook",
+               "comms.healthsherpa_webhook"):
+        _apply_limit(ep, "60 per minute")

@@ -1,14 +1,11 @@
 import csv
 import io
-import base64
 from datetime import date
 from flask import Blueprint, Response, flash, redirect, render_template, request, url_for, current_app
 from flask_login import current_user, login_required
 from sqlalchemy import extract
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Attachment, FileContent, FileName, FileType, Disposition
 from app.extensions import db
 from app.models import Policy
 
@@ -133,9 +130,7 @@ def _build_pdf(policies, month_name):
 
 
 def _send_labels_email(pdf_bytes, month_name, label_count, no_address_policies, agent_email):
-    api_key    = current_app.config.get("SENDGRID_API_KEY")
-    to_email   = current_app.config.get("LABELS_EMAIL")
-    from_email = current_app.config.get("LABELS_FROM_EMAIL")
+    to_email   = current_app.config.get("LABELS_EMAIL") or agent_email
     year       = date.today().year
     skipped    = len(no_address_policies)
 
@@ -163,25 +158,14 @@ def _send_labels_email(pdf_bytes, month_name, label_count, no_address_policies, 
             dob  = p.dob.strftime('%-m/%-d/%Y') if p.dob else "unknown"
             body_lines.append(f"  - {name} ({p.carrier}) — DOB: {dob}")
 
-    message = Mail(
-        from_email=from_email,
-        to_emails=to_email,
-        subject=subject,
-        plain_text_content="\n".join(body_lines),
+    filename = f"birthday_labels_{month_name.lower()}_{year}.pdf"
+    from app.mailer import send_email
+    return send_email(
+        to_email,
+        subject,
+        "\n".join(body_lines),
+        attachment={"content": pdf_bytes, "name": filename},
     )
-
-    encoded    = base64.b64encode(pdf_bytes).decode()
-    filename   = f"birthday_labels_{month_name.lower()}_{year}.pdf"
-    attachment = Attachment(
-        FileContent(encoded),
-        FileName(filename),
-        FileType("application/pdf"),
-        Disposition("attachment"),
-    )
-    message.attachment = attachment
-
-    sg = SendGridAPIClient(api_key)
-    sg.send(message)
 
 
 @labels_bp.route("/birthday-labels")

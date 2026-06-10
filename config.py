@@ -27,3 +27,13 @@ class Config:
     TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER", "")
     # Agency ID for single-tenant webhook fallback (used when agent lookup fails)
     DEFAULT_AGENCY_ID = int(os.environ.get("DEFAULT_AGENCY_ID", "1"))
+
+    # Email (transactional, via Brevo) — single path through app/mailer.py.
+    # NOTE: previously SendGrid keys were read straight from current_app.config but
+    # were never loaded here (always None) — fixed by loading them now. Brevo replaces
+    # SendGrid (free tier lapsed 2026-06-09).
+    BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
+    MAIL_FROM = os.environ.get("MAIL_FROM") or os.environ.get("LABELS_FROM_EMAIL", "")
+    MAIL_FROM_NAME = os.environ.get("MAIL_FROM_NAME", "Founders Insurance Agency")
+    LABELS_FROM_EMAIL = os.environ.get("LABELS_FROM_EMAIL", "")   # legacy fallback
+    LABELS_EMAIL = os.environ.get("LABELS_EMAIL", "")             # birthday-labels recipient

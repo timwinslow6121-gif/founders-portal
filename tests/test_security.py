@@ -30,3 +30,21 @@ def test_security_headers_present():
     csp = resp.headers.get("Content-Security-Policy", "")
     assert "default-src 'self'" in csp
     assert "frame-ancestors 'none'" in csp
+
+
+def test_hsts_present_over_https():
+    app = _make_app(RATELIMIT_ENABLED=False)
+    client = app.test_client()
+    resp = client.get(
+        "/auth/login",
+        headers={"X-Forwarded-Proto": "https"},
+        base_url="https://portal.foundersinsuranceagency.com",
+    )
+    assert "Strict-Transport-Security" in resp.headers
+
+
+def test_hsts_absent_over_http():
+    app = _make_app(RATELIMIT_ENABLED=False)
+    client = app.test_client()
+    resp = client.get("/auth/login", base_url="http://localhost")
+    assert "Strict-Transport-Security" not in resp.headers

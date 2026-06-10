@@ -40,3 +40,49 @@ def test_log_event_writes_row_with_context(app, db, monkeypatch):
     assert r.ip_address == "9.9.9.9"
     assert r.user_agent == "TestBrowser/1.0"
     assert r.detail == "viewed #5"
+
+
+def test_nondomain_login_alerts(app, db, monkeypatch):
+    from app import audit
+    sent = []
+    monkeypatch.setattr("app.alerts.send_email",
+                        lambda to, subject, text, **k: sent.append((subject, text)) or True)
+    with app.test_request_context("/", environ_base={"REMOTE_ADDR": "5.5.5.5"}):
+        audit.log_event("login_nondomain", category="auth",
+                        detail="attempted evil@gmail.com", agency_id_override=1)
+    assert len(sent) == 1
+    assert "Security Alert" in sent[0][0]
+
+
+def test_export_does_not_alert(app, db, monkeypatch):
+    from app import audit
+    sent = []
+    monkeypatch.setattr("app.alerts.send_email",
+                        lambda to, subject, text, **k: sent.append(1) or True)
+    with app.test_request_context("/", environ_base={"REMOTE_ADDR": "5.5.5.5"}):
+        audit.log_event("customer_export_csv", category="export",
+                        detail="exported book", record_count=5000, agency_id_override=1)
+    assert sent == []
+
+
+def test_429_flood_throttled_to_one_email(app, db, monkeypatch):
+    from app import audit, alerts
+    alerts._reset_throttle()
+    sent = []
+    monkeypatch.setattr("app.alerts.send_email",
+                        lambda to, subject, text, **k: sent.append(1) or True)
+    with app.test_request_context("/", environ_base={"REMOTE_ADDR": "7.7.7.7"}):
+        for _ in range(10):
+            audit.log_event("rate_limit_blocked", category="security",
+                            detail="429 on /auth/google", agency_id_override=1)
+    assert len(sent) == 1
+
+
+def test_login_success_does_not_alert(app, db, monkeypatch):
+    from app import audit
+    sent = []
+    monkeypatch.setattr("app.alerts.send_email",
+                        lambda to, subject, text, **k: sent.append(1) or True)
+    with app.test_request_context("/", environ_base={"REMOTE_ADDR": "5.5.5.5"}):
+        audit.log_event("login_success", category="auth", agency_id_override=1)
+    assert sent == []

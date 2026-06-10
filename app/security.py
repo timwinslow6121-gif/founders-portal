@@ -44,7 +44,10 @@ def add_security_headers(resp):
 
 def init_security(app):
     """Wire all S1 protections onto the app. Call once from create_app()."""
-    # Trust one hop of nginx for scheme + client IP.
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_for=1)
+    # Trust one hop of nginx for scheme + client IP. Guard against double-wrap:
+    # stacking ProxyFix would consume an extra forwarded hop and misread the
+    # client IP (which would then corrupt per-IP rate-limit keying).
+    if not isinstance(app.wsgi_app, ProxyFix):
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_for=1)
 
     app.after_request(add_security_headers)

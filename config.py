@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -37,3 +38,18 @@ class Config:
     MAIL_FROM_NAME = os.environ.get("MAIL_FROM_NAME", "Founders Insurance Agency")
     LABELS_FROM_EMAIL = os.environ.get("LABELS_FROM_EMAIL", "")   # legacy fallback
     LABELS_EMAIL = os.environ.get("LABELS_EMAIL", "")             # birthday-labels recipient
+
+    # --- S1: Access hardening / session security ---
+    # 12h absolute session timeout, matching Google Workspace's 12h reauth.
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=12)
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_DURATION = timedelta(hours=12)   # cap remember-me to 12h
+    REMEMBER_COOKIE_SECURE = True
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
+
+    # Rate limiting (Flask-Limiter). Disabled in tests/dev via env so the shared
+    # test app and local http dev aren't throttled. Enabled in production.
+    RATELIMIT_ENABLED = os.environ.get("RATELIMIT_ENABLED", "1") == "1"

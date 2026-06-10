@@ -1,0 +1,5 @@
+# Founders Portal off-site backups (S0). Installed at /etc/cron.d/founders-backup.
+# Nightly 3:15 AM: run backup; on failure, send the failure alert.
+15 3 * * * root /var/www/founders-portal/scripts/backup.sh >> /var/log/founders-backup.log 2>&1 || /usr/bin/python3 /var/www/founders-portal/scripts/backup_report.py failure
+# Weekly health summary, Monday 8:00 AM.
+0 8 * * 1 root /usr/bin/python3 /var/www/founders-portal/scripts/backup_report.py health >> /var/log/founders-backup.log 2>&1

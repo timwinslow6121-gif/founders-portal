@@ -28,17 +28,29 @@ def load_env():
 
 
 def send(subject, body, env):
-    key = env.get("SENDGRID_API_KEY"); frm = env.get("LABELS_FROM_EMAIL") or env.get("MAIL_FROM")
+    # Brevo transactional API (standalone — mirrors app/mailer.py; cron has no Flask app).
+    key = env.get("BREVO_API_KEY")
+    frm = env.get("MAIL_FROM") or env.get("LABELS_FROM_EMAIL")
     to = env.get("BACKUP_ALERT_EMAIL")
     if not (key and frm and to):
-        print("backup_report: SendGrid not configured (key/from/to) — skipping email", file=sys.stderr)
+        print("backup_report: Brevo not configured (BREVO_API_KEY/MAIL_FROM/BACKUP_ALERT_EMAIL) — skipping email", file=sys.stderr)
         return False
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
+    import json, urllib.request, urllib.error
+    payload = json.dumps({
+        "sender": {"email": frm, "name": "Founders Insurance Agency"},
+        "to": [{"email": to}],
+        "subject": subject,
+        "textContent": body,
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email", data=payload,
+        headers={"api-key": key, "content-type": "application/json", "accept": "application/json"})
     try:
-        SendGridAPIClient(key).send(Mail(from_email=frm, to_emails=to,
-                                         subject=subject, plain_text_content=body))
+        urllib.request.urlopen(req, timeout=20)
         return True
+    except urllib.error.HTTPError as e:
+        print(f"backup_report: Brevo send failed HTTP {e.code}: {e.read().decode()[:300]}", file=sys.stderr)
+        return False
     except Exception as e:
         print(f"backup_report: send failed: {e}", file=sys.stderr); return False
 

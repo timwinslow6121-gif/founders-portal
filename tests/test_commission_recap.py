@@ -178,28 +178,57 @@ def test_build_recap_headline_and_ytd(db_session, agency):
     assert r.run_rate >= r.ytd_current
 
 
-def test_send_email_builds_message(monkeypatch, app):
+def test_send_email_builds_brevo_payload(monkeypatch, app):
     from app import mailer
-    sent = {}
+    captured = {}
 
-    class FakeSG:
-        def __init__(self, key): sent["key"] = key
-        def send(self, message): sent["message"] = message
+    class FakeResp:
+        status_code = 201
+        text = ""
 
-    monkeypatch.setattr(mailer, "SendGridAPIClient", FakeSG)
+    def fake_post(url, json=None, headers=None, timeout=None):
+        captured["url"] = url; captured["json"] = json; captured["headers"] = headers
+        return FakeResp()
+
+    monkeypatch.setattr(mailer, "requests", type("R", (), {"post": staticmethod(fake_post)}))
     with app.app_context():
-        app.config["SENDGRID_API_KEY"] = "k"
-        app.config["LABELS_FROM_EMAIL"] = "from@x.com"
+        app.config["BREVO_API_KEY"] = "k"
+        app.config["MAIL_FROM"] = "from@x.com"
         ok = mailer.send_email("to@x.com", "Subj", "hello body")
     assert ok is True
-    assert sent["key"] == "k"
-    assert sent["message"] is not None
+    assert captured["url"].endswith("/v3/smtp/email")
+    assert captured["headers"]["api-key"] == "k"
+    assert captured["json"]["sender"]["email"] == "from@x.com"
+    assert captured["json"]["to"] == [{"email": "to@x.com"}]
+    assert captured["json"]["subject"] == "Subj"
+    assert captured["json"]["textContent"] == "hello body"
+
+
+def test_send_email_with_attachment(monkeypatch, app):
+    import base64
+    from app import mailer
+    captured = {}
+
+    class FakeResp:
+        status_code = 202; text = ""
+
+    monkeypatch.setattr(mailer, "requests",
+                        type("R", (), {"post": staticmethod(lambda url, json=None, headers=None, timeout=None: (captured.update(json=json) or FakeResp()))}))
+    with app.app_context():
+        app.config["BREVO_API_KEY"] = "k"; app.config["MAIL_FROM"] = "from@x.com"
+        ok = mailer.send_email("to@x.com", "S", "b",
+                               attachment={"content": b"PDFBYTES", "name": "labels.pdf"})
+    assert ok is True
+    att = captured["json"]["attachment"][0]
+    assert att["name"] == "labels.pdf"
+    assert base64.b64decode(att["content"]) == b"PDFBYTES"
 
 
 def test_send_email_no_key_returns_false(app):
     from app import mailer
     with app.app_context():
-        app.config["SENDGRID_API_KEY"] = ""
+        app.config["BREVO_API_KEY"] = ""
+        app.config["MAIL_FROM"] = "from@x.com"
         assert mailer.send_email("to@x.com", "S", "b") is False
 
 

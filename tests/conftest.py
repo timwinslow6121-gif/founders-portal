@@ -28,7 +28,14 @@ def app():
         WTF_CSRF_ENABLED=False,
         SECRET_KEY="test",
         SERVER_NAME=None,
+        RATELIMIT_ENABLED=False,
     )
+    # The module-level Flask-Limiter singleton had `enabled` set from this app's
+    # config during create_app() -> init_security(), BEFORE the override above.
+    # Re-apply it so the shared session app is genuinely un-throttled and other
+    # tests using this fixture never hit a 429.
+    from app.security import limiter
+    limiter.enabled = False
     return flask_app
 
 

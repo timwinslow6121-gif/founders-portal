@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-10
 **Milestone:** 1 (Security & Resilience) — pillar 2 of 5 (S0 backups ✅ done; this is S1)
-**Status:** Design — approved, pending spec review → writing-plans
+**Status:** ✅ Implemented (local, branch `feat/s1-access-hardening`, 188 tests pass) — pending VPS deploy + verification
 **Author:** brainstormed with Tim 2026-06-10
 
 ---

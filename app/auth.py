@@ -114,6 +114,7 @@ def callback():
         user.is_admin   = email in ADMIN_EMAILS
 
     db.session.commit()
+    session.permanent = True   # S1: engage the 12h PERMANENT_SESSION_LIFETIME
     login_user(user, remember=True)
 
     if user.is_admin:

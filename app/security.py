@@ -5,7 +5,11 @@ Single entry point init_security(app), called once from create_app(). Wires:
   - ProxyFix (trust nginx X-Forwarded-Proto/-For)
   - session/cookie hardening (config is set in config.py; ProxyFix here)
   - HTTP security headers (after_request)
-  - Flask-Limiter rate limiting (two-tier key: per-agent / per-IP)  [added in a later task]
+  - Flask-Limiter rate limiting (two-tier key: per-agent / per-IP)
+
+The module-level `limiter` uses in-memory storage, which is per-process; this
+relies on one app per gunicorn worker in production (true here). Disabled in
+tests/dev via RATELIMIT_ENABLED so the shared test app isn't throttled.
 
 See docs/superpowers/specs/2026-06-10-s1-access-hardening-design.md
 """

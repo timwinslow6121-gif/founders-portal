@@ -1,5 +1,23 @@
 # Founders Insurance Agency — Agent Portal
 
+<!-- ════════════════════════════════════════════════════════════════════
+     START HERE (new session) — keep this block current at every session end.
+     ════════════════════════════════════════════════════════════════════ -->
+## 🧭 START HERE — current state (updated 2026-06-09)
+
+**FIRST ACTION each new session:** read these memory files before doing work — they hold current state that this file summarizes:
+1. `memory/roadmap-2026-06-09.md` — the active roadmap + what's next.
+2. the latest `memory/session-handoff-*.md` — where we left off, gotchas.
+Then skim the relevant spec/plan in `docs/superpowers/` for whatever we're building.
+
+**Where we are (2026-06-09):**
+- ✅ Shipped & deployed: commission **R1** (ledger), **R1.1** (Devoted two-file), **R2** (agent recap + new Founders blue/green theme), multi-file **data-loss fix** (BCBS/Healthspring/Devoted), rounding fixes, **portal re-theme** (light+dark + toggle), **S0 off-site backups** (nightly→Google Drive, verified), **email migrated SendGrid→Brevo** (working).
+- 🔜 NEXT: **S1 — Access hardening + lockout** (Milestone 1 / Security pillar 2). Then S2 audit/alert, S3 encryption-at-rest, S4 pentest. Then Milestone 2 (UI/IA: text contrast + sidebar/module rework + mobile + login speed), Milestone 3 (#6 name normalization + clickable names).
+- ⚙️ Working method (keep doing): brainstorm → spec (`docs/superpowers/specs/`) → writing-plans → subagent-driven build → VERIFY against rendered output/real data (not just green tests) → merge to main → deploy to VPS. Tests: `python3 -m pytest -q` (180 passing). Deploy: ssh root@23.187.248.100, git pull, (flask db upgrade if migration), restart. Backup DB first if migration.
+- 📌 Repo: on `main`, synced with origin. Migration head 024. Email = Brevo (raw `xkeysib-` key). DNS = nixihost.com (NOT cPanel).
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+
 Flask CRM/portal for a Medicare insurance agency. 8 agents, 524 real policies across 5 carriers (UHC 287, Humana 196, BCBS 28, Aetna 11, Healthspring 2). 510 customers (25 shell customers deleted 2026-05-08). All seeded/fake data deleted 2026-05-07.
 
 ## Stack
@@ -8,7 +26,7 @@ Flask CRM/portal for a Medicare insurance agency. 8 agents, 524 real policies ac
 - Nginx + Gunicorn on Ubuntu VPS (23.187.248.100)
 - Google OAuth 2.0 — restricted to @foundersinsuranceagency.com
 - Vanilla JS only — no React/Vue. Jinja2 templates extending base.html.
-- SendGrid for email, **Quo (formerly OpenPhone)** (primary VoIP) + **Retell AI** (missed call AI callbacks via Twilio SIP) + **Twilio** (SIP trunk for Retell AI + SMS blasts)
+- **Brevo** for transactional email (via `app/mailer.py`; migrated off SendGrid 2026-06-09), **Quo (formerly OpenPhone)** (primary VoIP) + **Retell AI** (missed call AI callbacks via Twilio SIP) + **Twilio** (SIP trunk for Retell AI + SMS blasts)
 
 ## Git Workflow
 Local Crostini is the dev machine. Commit and push from local. VPS pulls.
@@ -344,5 +362,10 @@ In the dual-palette theme, token meanings flip between modes:
 - **Rule:** Any `color:` property for text must use `var(--ivory)` or `var(--slate)`, never `var(--ink)`.
 
 ## Session Protocol
-At the end of every session (or after any push), update CLAUDE.md to reflect
-what was completed. Commit the update. Do not leave decisions undocumented.
+At the end of every session (or after any push):
+1. Update the **🧭 START HERE block at the top of this file** — current state + what's NEXT (this is what auto-loads into a fresh session, so it's the #1 thing that stops Tim having to re-explain).
+2. Update the latest `memory/session-handoff-*.md` (where we left off) and `memory/roadmap-*.md` if priorities changed; keep the ⭐ lines in `memory/MEMORY.md` accurate.
+3. Update the relevant Build Status entry below + any spec Status.
+4. Commit. Do not leave decisions undocumented.
+
+**At the START of a session:** read the two ⭐ memory files (roadmap + latest session-handoff) named in the START HERE block before doing work — don't wait to "need" them.

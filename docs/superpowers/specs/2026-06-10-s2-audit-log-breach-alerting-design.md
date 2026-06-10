@@ -29,11 +29,12 @@ S2 turns that into a real security audit trail + a tightly-scoped alerting layer
 S2 has TWO separate streams, and only ONE may interrupt Tim:
 - **Audit log (DB):** the quiet, complete record. Captures security + sensitive-
   data events for later investigation. Tim never has to read it day-to-day.
-- **Alerts (email):** the loud stream. Fires ONLY on three outsider-flavored
-  triggers that basically never happen during honest 9–5 agent work.
+- **Alerts (email):** the loud stream. Fires ONLY on two outsider-flavored
+  triggers that basically never happen during legitimate agent work (at ANY
+  hour — Founders agents work all hours, so the triggers are time-independent).
 
 **Log everything (in scope); alert on almost nothing.** Drowning in noise is
-prevented by construction: noise goes silently to the log; only the three
+prevented by construction: noise goes silently to the log; only the two
 anomalous triggers reach the inbox, and even those are de-duplicated.
 
 ---
@@ -54,12 +55,30 @@ viewer/filters/alert rules agree): `login_success`, `login_failed`,
 - Admin: role/contract changes (agent settings).
 - Business: the 2 existing carrier-upload logs (migrated to the new helper).
 
-**Alert triggers — three only** (Tim deliberately EXCLUDED "new device/new
-location" as too noisy — agents travel/switch networks; insider-flavored = false
-positives):
+**Alert triggers — TWO only** (Tim, 2026-06-10):
 1. Non-domain / failed login attempt.
-2. Off-hours bulk export (CSV/PDF outside normal work hours).
-3. Repeated rate-limit hits (429 flood) from one source.
+2. Repeated rate-limit hits (429 flood) from one source.
+
+Tim deliberately EXCLUDED two candidate triggers:
+- **"New device/new location"** — too noisy; agents travel/switch networks
+  (insider-flavored = false positives).
+- **"Off-hours export"** — REMOVED because it does not fit Founders' work
+  pattern. Agents legitimately work all hours: AJ has no set schedule and often
+  works at 3 AM; during AEP most agents work 7 AM until midnight+. A time-of-day
+  rule would fire constantly on legitimate work — manufacturing exactly the noise
+  Tim wants to avoid AND breeding false confidence. Time-of-day does not separate
+  "agent working hard" from "attacker exfiltrating" here. Also: an agent
+  exporting their entire book is normal/expected, so volume alone isn't
+  suspicious either at a known threshold yet.
+
+**Exports are LOG-ONLY (no alert).** Tim's decision: he doesn't yet know what
+"suspicious" looks like for the agency, so S2 should be a *measurement
+instrument first*. Every export is logged with full detail — who, what,
+**how-much (record/row count)**, when, from which IP/device — and reviewable in
+`/admin/audit-log`. Tim judges suspiciousness himself from the accumulated
+record. Once a real baseline/pattern is visible, a volume-threshold export alert
+can be added later as a one-line rule in `alerts.py` (the design keeps that door
+open). This removes ALL business-hours / timezone logic from S2.
 
 **Alert channel — email via Brevo** (existing `app/mailer.py`; zero new infra).
 
@@ -108,11 +127,11 @@ eventually forget the IP — and that is the row you need during a breach.
 ### 3.2 `app/alerts.py` — the alert rules + email
 ```python
 def maybe_alert(audit_row):
-    """Apply the 3 trigger rules; on a match, compose + send a de-duped,
+    """Apply the 2 trigger rules; on a match, compose + send a de-duped,
     plain-English email via app.mailer.send_email."""
 ```
 Responsibilities:
-- Decide whether `audit_row` matches one of the three triggers (§5).
+- Decide whether `audit_row` matches one of the two triggers (§5).
 - **De-duplicate / throttle:** one summary email per (trigger, source) per time
   window (default 5 min) — a 429 flood yields ONE email with a count, not N.
   Throttle state is a simple in-process dict keyed by (trigger, ip/user),
@@ -144,6 +163,7 @@ all nullable so the existing two upload-log writes keep working:
 | `agency_id` | `Integer`, FK→agencies.id, indexed | Multi-tenant scoping — the audit log must be scoped like every other table. |
 | `category` | `String(32)`, indexed | `auth` \| `data_access` \| `export` \| `admin` \| `security` \| `business`. Drives viewer + alert filtering. |
 | `severity` | `String(16)` | `info` \| `warning` \| `alert`. `alert` = an alert email fired for this row. |
+| `record_count` | `Integer`, nullable | "How much" for exports — number of customers/rows in a CSV/PDF export. NULL for non-export events. This is the field Tim browses to judge export size ("Betty exported 87" vs "someone exported all 5,000"). |
 
 **`user_id` stays nullable — deliberately.** The most important auth events have
 NO valid user: an outsider trying `attacker@gmail.com`, or a failed attempt.
@@ -156,11 +176,12 @@ nothing in the codebase UPDATEs or DELETEs audit rows; the viewer is read-only.
 An audit log an attacker can edit is worthless. (DB-level immutability triggers
 are an S3/S4 concern; the S2 commitment is convention + no-mutation code.)
 
-`created_at` is used as the event timestamp; "off-hours" is computed from it (§5).
+`created_at` is the event timestamp shown in the viewer and the alert email. No
+time-of-day logic is derived from it (off-hours alerting was removed — §2).
 
 ---
 
-## 5. Alert trigger rules (the three)
+## 5. Alert trigger rules (the two)
 
 Evaluated in `maybe_alert(row)`:
 
@@ -168,25 +189,26 @@ Evaluated in `maybe_alert(row)`:
    ("login_failed", "login_nondomain")`. Severity `alert`. Always alerts (rare,
    outsider-flavored). `login_success`/`logout` are logged but never alert.
 
-2. **Off-hours bulk export** — `category == "export"` AND `created_at` (in the
-   agency's local timezone, **America/New_York** — Founders is western NC) falls
-   OUTSIDE business hours. Business hours default: **Mon–Fri 7:00 AM–7:00 PM
-   ET**; anything else (nights, weekends) is off-hours. Severity escalated to
-   `alert` for the email; the underlying export row is still logged `info`
-   regardless of time.
+2. **429 flood** — `category == "security"` (a `rate_limit_blocked` event) where
+   the same source (ip or user key) has produced ≥ N 429s within the window
+   (default **N=5 in 5 min**). Severity `alert`. De-dup ensures ONE summary email
+   per source per window, carrying the count.
 
-3. **429 flood** — `category == "security"` (a 429 hit) where the same source
-   (ip or user key) has produced ≥ N 429s within the window (default **N=5 in
-   5 min**). Severity `alert`. De-dup ensures ONE summary email per source per
-   window, carrying the count.
+**Exports do NOT alert** (Tim's decision — see §2). Every export is logged
+(`category == "export"`, `severity == "info"`, with `record_count`) but
+`maybe_alert` returns without sending for export rows. No time-of-day logic
+exists anywhere in S2. A volume-threshold export alert can be added later as a
+third rule once a baseline is observed.
 
-**De-dup/throttle (applies to all three):** one email per (trigger, source-key)
-per 5-min window. This is the single most important anti-noise rule — the
-429-flood trigger by definition produces a burst, and must page Tim a handful of
-times with a count, never hundreds of times.
+**De-dup/throttle:** one email per (trigger, source-key) per 5-min window. This
+is the single most important anti-noise rule — the 429-flood trigger by
+definition produces a burst, and must page Tim a handful of times with a count,
+never hundreds of times. (The login trigger rarely repeats, but the same
+throttle applies uniformly.)
 
-Thresholds (`OFF_HOURS_*`, `FLOOD_COUNT`, `FLOOD_WINDOW`, `ALERT_THROTTLE_WINDOW`)
-are module constants in `alerts.py` so they're tunable in one place.
+Thresholds (`FLOOD_COUNT`, `FLOOD_WINDOW`, `ALERT_THROTTLE_WINDOW`) are module
+constants in `alerts.py` so they're tunable in one place. No off-hours/timezone
+constants — removed.
 
 ---
 
@@ -201,7 +223,7 @@ person acts immediately:
 What happened:  Someone tried to log in with a non-Founders Google account.
 Who / where:    attempted randomguy@gmail.com — from IP 203.0.113.9 —
                 Chrome on Windows.
-When:           2026-06-10 at 11:42 PM ET (off-hours).
+When:           2026-06-10 at 11:42 PM ET.
 Access granted? NO — the portal blocked it (only @foundersinsuranceagency.com
                 can get in).
 What it means & what to do:  An outsider may be probing the login. No action
@@ -218,14 +240,14 @@ Design rules that keep alerts actionable, not alarming:
   links to the runbook for the act-now cases.
 - **De-duped** so a flood is one summary email, not a hundred.
 
-The three messages:
+The two messages:
 1. Non-domain/failed login → "outsider tried to get in; was blocked" (or "a
    teammate's login failed").
-2. Off-hours export → "a CSV/PDF export of customer data happened at [time]
-   outside work hours by [agent] from [IP] — if that was them, fine; if not,
-   their account may be compromised → runbook."
-3. 429 flood → "one source is hammering the portal (possible bot/attack); S1 is
+2. 429 flood → "one source is hammering the portal (possible bot/attack); S1 is
    auto-blocking it; here's the IP and count → runbook if it persists."
+
+(Exports send no email — they are recorded in the log with size for Tim's own
+review, not pushed to him.)
 
 ---
 
@@ -251,8 +273,11 @@ The three messages:
   `data_access`/info, with `customer_id` (log once per page load, after access
   is granted — both current-AOR and former-AOR reads count; do NOT log the
   POST sub-routes like /notes, /field separately); CSV export at
-  `/customers/export`, action `customer_export_csv`, `export`/info.
-- `app/labels.py`: PDF download at `/birthday-labels/download` (`export`/info).
+  `/customers/export`, action `customer_export_csv`, `export`/info, **with
+  `record_count`** = number of customers in the export (log-only, never alerts).
+- `app/labels.py`: PDF download at `/birthday-labels/download`, action
+  `labels_pdf_download`, `export`/info, **with `record_count`** = number of
+  labels/customers (log-only, never alerts).
 - `app/agent_settings.py`: role/contract change (`admin`/warning).
 - `app/upload.py`: migrate the 2 existing `AuditLog(...)` writes to
   `log_event(action="carrier_upload", category="business", ...)`.
@@ -265,8 +290,9 @@ makes the system worth having.
 ### 7.3 Testing — `tests/test_audit.py` (SQLite in-memory, mailer mocked)
 - `log_event()` writes a row capturing ip/user_agent/agency_id/category/severity.
 - Failed/non-domain login → row with null `user_id` + attempted email in detail.
-- Off-hours export → alert fires; business-hours export → NO alert (mock the
-  clock / pass a fixed timestamp).
+- Export logged with `record_count` set; `maybe_alert` sends NO email for an
+  export row (assert mailer NOT called) — regardless of timestamp (there is no
+  time logic to test).
 - 429 flood → throttled to ONE alert across N events (assert mailer call count).
 - Non-domain login → alert fires.
 - Viewer: admin → 200 + filters narrow results; non-admin → 403.
@@ -299,6 +325,9 @@ This runbook is the written form of the "what to do" each alert links to.
 
 - "New device / new location" alert trigger (Tim excluded — too noisy now; the
   audit log will accumulate the IP/UA history that could make it smarter later).
+- **Volume-threshold export alert** (Tim chose log-only exports for now; once the
+  `record_count` history reveals a normal baseline, a "huge export" alert becomes
+  a one-line rule in `alerts.py` — the schema already carries the count).
 - SMS alerts (email-only now; `app/alerts.py`'s single dispatch point makes an
   SMS channel a clean future add).
 - Per-customer "who viewed this" trail on the profile page (viewer page covers
@@ -311,13 +340,13 @@ This runbook is the written form of the "what to do" each alert links to.
 
 ## 10. Summary of changes
 
-- **New:** `app/audit.py` (`log_event` seam), `app/alerts.py` (3 rules +
+- **New:** `app/audit.py` (`log_event` seam), `app/alerts.py` (2 rules +
   de-duped plain-English email), `tests/test_audit.py`,
   `docs/INCIDENT_RESPONSE_RUNBOOK.md`.
 - **New:** `/admin/audit-log` viewer route + template (admin blueprint /
   `routes.py` pattern) + nav entry (admin only).
 - **Migration 025:** extend `audit_logs` with ip_address, user_agent, agency_id,
-  category, severity.
+  category, severity, record_count.
 - **Edit:** `app/auth.py`, `app/security.py`, `app/customers.py`,
   `app/labels.py`, `app/agent_settings.py` — thin `log_event(...)` hooks;
   `app/upload.py` — migrate 2 existing writes.

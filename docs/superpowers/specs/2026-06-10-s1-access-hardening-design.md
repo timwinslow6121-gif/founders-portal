@@ -203,18 +203,67 @@ harmless on them, so the handler applies globally with no exemption.
 
 ## 6. Rate limiting (Flask-Limiter, in-memory)
 
-A `Limiter` instance in `app/security.py`, keyed by client IP (read correctly
-through nginx via ProxyFix), protecting **only the doors that don't require a
-login** — a logged-in agent never sees a limit during normal work.
+A `Limiter` instance in `app/security.py`, protecting **only the doors that
+don't require a login** plus a generous per-agent backstop. A logged-in agent
+never sees a limit during normal work — see the two-tier keying below, which
+specifically handles the shared-office-IP case.
 
-| Target | Limit | Rationale |
-|---|---|---|
-| Global default (all routes) | `200/hour` per IP | Backstop so no single IP can hammer the app. One agent browsing all day stays far under; a script does not. |
-| `/auth/google` (start login) | `10/minute` | No human clicks "login" 10×/min. Stops OAuth-start spam. |
-| `/auth/callback` (OAuth return) | `10/minute` | Throttles replaying/fuzzing the callback (e.g. hammering with non-Founders Google accounts). |
-| **`/comms/webhook/*`** paths | `60/minute` | High enough for real carrier/VoIP bursts, low enough to blunt a flood. These already verify HMAC signatures — this is a second layer. |
+| Target | Limit | Keyed on | Rationale |
+|---|---|---|---|
+| Global default — **authenticated** traffic | `600/hour` | **logged-in agent** (`current_user.id`) | Everything an agent does once logged in (browse, send SMS, submit app). ~1 action / 6s sustained — far beyond real human pace. Per-agent keying means 4 agents in one office get **4 independent buckets**, not one shared bucket. |
+| Global default — **unauthenticated** traffic | `200/hour` | client IP | Backstop for anonymous requests (pre-login). A script can't hammer the app; a human reaching the login page never approaches it. |
+| `/auth/google` (start login) | `10/minute` | client IP | No human clicks "login" 10×/min. Stops OAuth-start spam. |
+| `/auth/callback` (OAuth return) | `10/minute` | client IP | Throttles replaying/fuzzing the callback (e.g. hammering with non-Founders Google accounts). |
+| **`/comms/webhook/*`** paths | `60/minute` | client IP | High enough for real carrier/VoIP bursts, low enough to blunt a flood. These already verify HMAC signatures — this is a second layer. (Webhooks are unauthenticated by nature, so IP-keyed is correct.) |
 
 On limit exceedance Flask-Limiter returns a clean **HTTP 429** automatically.
+
+### Two-tier key function (the shared-office-IP fix)
+
+Rate limits are keyed by **a `key_func`**. The naive choice — always key on
+client IP — has a real-world failure mode at Founders: most agents work alone in
+their own office (own IP), but on some days **up to 4 agents share one office's
+public IP** (NAT). A pure IP-keyed global limit would treat those 4 agents as a
+**single user** and could throttle a legitimately busy AEP day.
+
+The fix (a strict improvement, no security trade-off): a **two-tier
+`key_func`** —
+
+```python
+def rate_limit_key():
+    # Authenticated agent: key per-user so office-mates don't share a bucket.
+    if current_user.is_authenticated:
+        return f"user:{current_user.id}"
+    # Pre-login / anonymous: IP is the only identity we have (and the abuse surface).
+    return get_remote_address()
+```
+
+Result:
+- **Authenticated traffic** is keyed per agent → 4 office-mates = 4 independent
+  `600/hour` buckets; they can never starve each other, and no normal day comes
+  near the ceiling.
+- **Unauthenticated traffic** (`/auth/*`, `/comms/webhook/*`) stays IP-keyed —
+  there is no logged-in identity there yet, and those are the actual abuse
+  surface.
+
+### Why legitimate agent activity is never slowed, missed, or interrupted
+
+Agent actions and webhook traffic flow in **opposite directions**, so agent
+actions are never on the throttled webhook path:
+
+| Agent action | Actual request | Limit that applies |
+|---|---|---|
+| Sends an SMS | browser → `POST /comms/sms/send` (authenticated) → Twilio outbound | `600/hour` per-agent |
+| Sends email | portal → Brevo (outbound API) | **none** (outbound) |
+| Logs / takes a call | call *event* later arrives Quo → `POST /comms/webhook/quo` (Quo's server, not the agent) | `60/min` IP — never the agent |
+| Submits an app | browser → authenticated portal route | `600/hour` per-agent |
+| Browses customers all day | authenticated page loads | `600/hour` per-agent |
+
+A 429 is only ever returned to whoever *exceeds* a limit; the limits are sized
+so that is only ever an abusive script, never a human. Inbound webhooks that
+arrive are **processed** — a limit cannot cause a webhook to be silently
+dropped from the agent's perspective; it can only 429 a flood from one source
+IP (and §6 "Tuning guard" says raise it if a real carrier burst ever 429s).
 
 ### Webhook rate-limit targeting — by URL path prefix, NOT by blueprint
 
@@ -253,16 +302,18 @@ routes. Consequences:
 
 ### In-memory storage caveats (stated honestly)
 - In-memory = **per-worker** and **resets on restart**. With 2 Gunicorn workers
-  the *effective* limit is ~2× the stated number (each worker counts its own IPs
-  separately). Acceptable: these limits are abuse/DoS-blunting, not precise
-  quotas.
+  the *effective* limit is ~2× the stated number (each worker counts its own
+  buckets separately). This only makes the limits **more lenient**, never
+  stricter — so it cannot cause a false throttle of an agent. Acceptable: these
+  limits are abuse/DoS-blunting, not precise quotas.
 - **Upgrade path:** swap the Limiter storage backend to Redis if exact,
   cross-worker limits are ever required. No code change beyond the storage URI.
 - **Tuning guard:** `60/min` per source IP is comfortably above real
   Quo/Twilio/Calendly rates, but if a legitimate carrier burst ever 429s, raise
   it — never silently drop a commission/voice webhook. Likewise raise the
-  `200/hour` global if real admin usage (overview + ledgers + recaps in one
-  session) approaches it. Protecting agent workflow wins over a tighter number.
+  per-agent `600/hour` if real usage (an admin loading overview + ledgers +
+  recaps in one busy session) ever approaches it. Protecting agent workflow
+  always wins over a tighter number.
 
 ---
 
@@ -278,6 +329,10 @@ routes. Consequences:
 - **HSTS conditional:** HSTS present on an `https`-scheme request, absent on a
   plain `http` request.
 - **Rate limit 429:** hammering `/auth/google` past `10/minute` yields HTTP 429.
+- **Per-agent keying:** the `key_func` returns `user:<id>` for an authenticated
+  request and the IP for an anonymous one — assert both branches (the
+  shared-office-IP fix; ensures two different logged-in agents don't share a
+  bucket even from the same IP).
 - **Session permanence:** `PERMANENT_SESSION_LIFETIME` is configured to 12h and
   the callback marks the session permanent (assert via app.config + a login
   flow check or a unit check on the config values).

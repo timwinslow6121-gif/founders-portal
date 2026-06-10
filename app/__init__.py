@@ -35,6 +35,9 @@ def create_app():
     app.register_blueprint(carriers_bp)
     app.register_blueprint(comms_bp)
 
+    from app.security import init_security
+    init_security(app)
+
     @app.context_processor
     def inject_duplicate_count():
         if not current_user.is_authenticated:

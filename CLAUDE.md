@@ -3,12 +3,14 @@
 <!-- ════════════════════════════════════════════════════════════════════
      START HERE (new session) — keep this block current at every session end.
      ════════════════════════════════════════════════════════════════════ -->
-## 🧭 START HERE — current state (updated 2026-06-09)
+## 🧭 START HERE — current state (updated 2026-06-10)
 
 **FIRST ACTION each new session:** read these memory files before doing work — they hold current state that this file summarizes:
-1. `memory/roadmap-2026-06-09.md` — the active roadmap + what's next.
-2. the latest `memory/session-handoff-*.md` — where we left off, gotchas.
-Then skim the relevant spec/plan in `docs/superpowers/` for whatever we're building.
+1. `memory/session-handoff-2026-06-10-m2.md` — NEWEST: where we left off (Milestone 2 UI; login DESIGNED+LOCKED not built).
+2. `memory/roadmap-2026-06-09.md` — the active roadmap.
+Then skim the relevant spec/plan in `docs/superpowers/` for whatever we're building (for the login: `docs/superpowers/specs/login-redesign-LOCKED-2026-06-10.md` + `docs/login-assets/`).
+
+**Where we are (2026-06-10 end):** Security milestone substantially done — **S0 backups ✅, S1 access hardening ✅, S2 audit+alerting ✅** all deployed+verified; **S3 encryption ⛔ deferred** (trigger=white-labeling); S4 pentest optional. Now in **Milestone 2 — UI/UX refinement**, decomposed: Phase 1 = define the design SYSTEM in base.html (type scale 15px/12px-min, radius 14/8/full LOCKED, + spacing/component rules TBD) then apply to chrome + the new login; Phase 2+ = refine each page top-down. **The LOGIN REDESIGN is fully designed + LOCKED + Tim loves it but NOT built** — frosted-glass card on an animated waving blue→green gradient, big "FOUNDERS / Agent Portal" title (white + navy glow), and an animated logo whose **pestle perpetually compounds** (the Cannon Pharmacy origin). Spec `docs/superpowers/specs/login-redesign-LOCKED-2026-06-10.md`, assets `docs/login-assets/` (open `login-prototype-FINAL.html` in a browser to see it). **NEXT: finish Phase 1 system decisions → spec → writing-plans → subagent build → verify in browser (light+dark).**
 
 **Where we are (2026-06-10):**
 - ✅ Shipped & deployed: commission **R1** (ledger), **R1.1** (Devoted two-file), **R2** (agent recap + new Founders blue/green theme), multi-file **data-loss fix** (BCBS/Healthspring/Devoted), rounding fixes, **portal re-theme** (light+dark + toggle), **S0 off-site backups** (nightly→Google Drive, verified), **email migrated SendGrid→Brevo** (working).

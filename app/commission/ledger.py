@@ -27,6 +27,7 @@ AGENT_COMMISSION = "agent_commission"
 FOUNDERS_OVERRIDE = "founders_override"
 HRA_BONUS = "hra_bonus"
 CHARGEBACK = "chargeback"
+NEEDS_MANUAL_REVIEW = "needs_manual_review"  # UHC HA-bonus / DVH / garbage rows AJ handles by hand
 
 
 @dataclass
@@ -535,7 +536,123 @@ def money_rows_total_humana(sheets) -> float:
     return total
 
 
-# (extractor, money_rows_total) per carrier. UHC deliberately absent (R4).
+# ──────────────────────────────────────────────────────────────────────────
+# UHC — RAW carrier statement (R4 partial). ⚠⚠ WIP — TOTALS NOT YET CORRECT ⚠⚠
+# NOT registered for live upload (deliberately omitted from the upload dispatch).
+# Validation 2026-06-11 vs AJ's answer-key files caught that this version
+# OVERPAYS agents: UHC has TWO money components per member — the agent renewal
+# ($28.92, SPLIT 55/45) AND the Founders override ($4.59, 100% Founders, NO
+# split) — and the raw file sometimes COMBINES them into one $33.51 line. This
+# extractor currently treats the whole amount as splittable agent_commission,
+# so Tim's easy total came out $7,707 vs AJ's correct $6,586 (+17%).
+# THE FIX (next session, see spec §3): classify the $4.59 override portion as
+# FOUNDERS_OVERRIDE (split_rate=None) and DECOMPOSE the combined $33.51 rows into
+# renewal+override, then re-validate to ≈$6,586. DO NOT trust these numbers or
+# wire into upload until reconciled. Structure/classification scaffolding is
+# correct; the override decomposition is the remaining work.
+# See docs/superpowers/specs/2026-06-11-uhc-raw-parser-design.md
+# ──────────────────────────────────────────────────────────────────────────
+_UHC_SHEET = "Commission Transactions"
+# RAW file columns (0-indexed, header=row 0), verified against real statement:
+_UHC_AGENT = 5      # Writing Agent Name "LAST, FIRST ..."
+_UHC_MEMBER = 7     # Member Name
+_UHC_MBI = 8        # MedicareID
+_UHC_ACTION = 19    # Commission Action (the classifier)
+_UHC_AMOUNT = 23    # Commission ($)
+_UHC_EFFDATE = 11
+# Clean actions whose whole amount is a normal commission we can auto-split.
+_UHC_CLEAN_ACTIONS = {"renewal", "new", "new chargeback", "renewal chargeback"}
+
+
+def _uhc_rows(sheets):
+    """The raw UHC data lives in the 'Commission Transactions' sheet. Skip
+    'Commission Summary' (payment totals) and 'Held Transactions' (not yet paid)."""
+    rows = sheets.get(_UHC_SHEET)
+    if rows is None:
+        # fall back to the first sheet only if it has the UHC header shape
+        rows = next(iter(sheets.values())) if sheets else []
+    return rows or []
+
+
+def _uhc_is_hard(action_lower):
+    """A row needing manual review: HA bonuses/chargebacks (paid in full to a
+    specific agent ID embedded in text), DVH manual payments, or free-text junk.
+    Anything not in the known clean set is treated as hard (safe default)."""
+    return action_lower not in _UHC_CLEAN_ACTIONS
+
+
+def extract_lineitems_uhc(sheets, split_lookup) -> List[LineItemDraft]:
+    rows = _uhc_rows(sheets)
+    if not rows:
+        return []
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row) or len(row) <= _UHC_AMOUNT:
+            continue
+        amount = _to_float(row[_UHC_AMOUNT])
+        if amount == 0:
+            continue  # no money on this row
+        action = str(row[_UHC_ACTION] or "").strip()
+        action_l = action.lower()
+        writing = str(row[_UHC_AGENT] or "").strip()
+        member = str(row[_UHC_MEMBER] or "").strip()
+        mbi = str(row[_UHC_MBI] or "").strip() or None
+
+        if _uhc_is_hard(action_l):
+            # QUARANTINE: keep the raw amount but no split — AJ handles manually.
+            # split_rate=None so split_breakdown leaves payout undetermined; the
+            # full action text is preserved in payment_type for AJ's review.
+            out.append(LineItemDraft(
+                carrier="UHC",
+                source_ref=f"uhc::0::{idx}",
+                raw_amount=amount,
+                classification=NEEDS_MANUAL_REVIEW,
+                split_rate=None,
+                payment_type=(action[:120] or None),
+                member_name=member,
+                mbi=mbi,
+                writing_agent_raw=writing,
+                effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
+            ))
+            continue
+
+        # EASY: whole amount is a normal commission → split by agent contract rate.
+        classification = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+        out.append(LineItemDraft(
+            carrier="UHC",
+            source_ref=f"uhc::0::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=split_lookup(writing),
+            payment_type=action_l or None,
+            member_name=member,
+            mbi=mbi,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
+        ))
+    return out
+
+
+def money_rows_total_uhc(sheets) -> float:
+    """Independent re-sum of every amount-bearing UHC row (for the completeness
+    check). Sums ALL non-zero Commission cells incl. hard rows."""
+    rows = _uhc_rows(sheets)
+    total = 0.0
+    for row in rows[1:]:
+        if not any(row) or len(row) <= _UHC_AMOUNT:
+            continue
+        total += _to_float(row[_UHC_AMOUNT])
+    return total
+
+
+# (extractor, money_rows_total) per carrier.
+# ⚠ UHC is deliberately NOT registered here yet — its extractor exists
+# (extract_lineitems_uhc / money_rows_total_uhc above) but is WIP with KNOWN-WRONG
+# totals (override-decomposition not done; see the big warning above + spec).
+# Registering it would expose it to the live upload dispatch (routes.py:935). Add
+# the "UHC" entry ONLY after the override split is fixed and re-validated against
+# AJ's answer-key files. Until then: import the functions directly in a script for
+# offline testing, never through upload.
 EXTRACTORS = {
     "Healthspring": (extract_lineitems_healthspring, money_rows_total_healthspring),
     "Devoted": (extract_lineitems_devoted, money_rows_total_devoted),

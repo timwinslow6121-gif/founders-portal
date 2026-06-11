@@ -56,6 +56,10 @@ def maybe_alert(row):
         hits.append(now)
         while hits and now - hits[0] > FLOOD_WINDOW:
             hits.popleft()
+        if not hits:
+            # Dead source key — drop it so per-IP state doesn't grow unbounded
+            # in a long-running worker.
+            _flood_hits.pop(key, None)
         if len(hits) >= FLOOD_COUNT:
             _send("flood", row, _compose_flood(row, len(hits)))
         return

@@ -40,6 +40,11 @@ def log_event(action, *, category, detail=None, user=None, customer_id=None,
     if agency_id is None:
         agency_id = getattr(acting, "agency_id", None)
 
+    # Fold customer_id into detail so the "which record was accessed" fact is
+    # never silently lost (no dedicated column on AuditLog). PHI accountability.
+    if customer_id is not None:
+        detail = f"{detail} [customer #{customer_id}]" if detail else f"[customer #{customer_id}]"
+
     row = AuditLog(
         user_id=user_id,
         action=action,
@@ -51,8 +56,15 @@ def log_event(action, *, category, detail=None, user=None, customer_id=None,
         user_agent=ua,
         agency_id=agency_id,
     )
-    db.session.add(row)
-    db.session.commit()
+    # Best-effort forensic write: a logging failure must NEVER raise into the
+    # caller's request (spec invariant). Roll back so the session stays usable.
+    try:
+        db.session.add(row)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        _log.exception("audit log_event commit failed: action=%s", action)
+        return None
 
     try:
         maybe_alert(row)

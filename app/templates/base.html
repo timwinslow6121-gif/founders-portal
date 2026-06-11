@@ -77,9 +77,24 @@
       --shadow:       0px 6px 24px rgba(38,110,165,0.10);
       --shadow-sm:    0px 2px 8px rgba(0,0,0,0.05);
 
-      /* Radius — softer/airier */
-      --radius:    16px;
-      --radius-sm: 10px;
+      /* Radius scale (M2 Phase 1) */
+      --radius:      14px;   /* cards, panels (was 16) */
+      --radius-sm:   8px;    /* buttons, inputs, controls (was 10) */
+      --radius-pill: 999px;  /* badges, tabs, chips */
+
+      /* Type scale (M2 Phase 1) — 12px hard floor, 15px body */
+      --fs-display: 30px;  /* big numbers, hero */
+      --fs-h1:      24px;
+      --fs-h2:      19px;
+      --fs-h3:      17px;
+      --fs-body:    15px;  /* default body */
+      --fs-sm:      13px;  /* secondary / labels */
+      --fs-xs:      12px;  /* smallest meta — FLOOR */
+      --lh:         1.5;
+
+      /* Spacing scale (M2 Phase 1) — 4px grid */
+      --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -158,7 +173,8 @@
     html, body { margin: 0; height: 100%; }
     body {
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: var(--fs-body);
+      line-height: var(--lh);
       color: var(--ivory);
       background: var(--ink);
       -webkit-font-smoothing: antialiased;

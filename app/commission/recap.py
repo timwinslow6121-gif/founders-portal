@@ -70,13 +70,20 @@ class CarrierBlock:
     groups: List[CarrierGroup] = field(default_factory=list)
 
 
-_GROUP_FOR = {"new": "New enrollments", "renewal": "Renewals", "chargeback": "Chargebacks"}
-_TYPE_LABEL = {"new": "New enrollment", "renewal": "Renewal", "chargeback": "Chargeback"}
+_GROUP_FOR = {"new": "New enrollments", "renewal": "Renewals",
+              "bonus": "Bonuses", "chargeback": "Chargebacks"}
+_TYPE_LABEL = {"new": "New enrollment", "renewal": "Renewal",
+               "bonus": "Bonus", "chargeback": "Chargeback"}
 
 
 def _row_kind(carrier, li):
     if li.classification == "chargeback":
         return "chargeback"
+    # HRA bonuses are agent commission (they split to the agent), but they are
+    # not enrollments — own group so they're counted in payout yet never inflate
+    # the new-member count.
+    if li.classification == "hra_bonus":
+        return "bonus"
     if is_new_enrollment(carrier, li.classification, li.payment_type):
         return "new"
     return "renewal"
@@ -84,11 +91,13 @@ def _row_kind(carrier, li):
 
 def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock]:
     """One CarrierBlock per carrier the agent has ledger rows for, grouped into
-    New / Renewals / Chargebacks. founders_override/hra_bonus rows are excluded
-    (they are not the agent's commission). Totals reconcile to Σ split_breakdown."""
+    New / Renewals / Bonuses / Chargebacks. hra_bonus IS the agent's commission
+    (it splits to them) so it's included; only founders_override (100% Founders)
+    is excluded. Totals reconcile to Σ split_breakdown."""
     rows = (CommissionLineItem.query
             .filter_by(agent_id=agent_id, agency_id=agency_id, period_label=period_label)
-            .filter(CommissionLineItem.classification.in_(["agent_commission", "chargeback"]))
+            .filter(CommissionLineItem.classification.in_(
+                ["agent_commission", "hra_bonus", "chargeback"]))
             .all())
     by_carrier = {}
     for li in rows:
@@ -116,7 +125,7 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
         # more only to clear float addition noise like 0.1+0.2).
         for g in groups.values():
             g.subtotal = round(sum(r.payout for r in g.rows), 2)
-        ordered = [groups[k] for k in ("new", "renewal", "chargeback") if k in groups]
+        ordered = [groups[k] for k in ("new", "renewal", "bonus", "chargeback") if k in groups]
         block = CarrierBlock(
             carrier=carrier,
             total_payout=round(sum(lr.payout for lr in lrs), 2),

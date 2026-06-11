@@ -109,6 +109,35 @@ def test_build_carrier_blocks_reconciles_and_counts(db_session, agency):
     assert round(sum(r.payout for r in allrows), 2) == round(dev.total_payout, 2)
 
 
+def test_hra_bonus_is_included_in_agent_payout(db_session, agency):
+    """HRA bonuses ARE agent commission (they split to the agent). The recap must
+    count them in total_payout — they were wrongly excluded, making each agent's
+    Devoted total short by the HRA amount (the live $50 Brian discrepancy)."""
+    from app.models import User
+    from app.extensions import db
+    from app.commission.recap import build_carrier_blocks
+
+    agent = User(name="Tim Winslow", email="hra@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+
+    # Devoted: 1 renewal $100 + 1 HRA bonus $50, both split 0.50
+    _mk_line(db, agency, agent, "Devoted", "agent_commission", "renewal - monthly", 100.0, 0.50, "Bob")
+    _mk_line(db, agency, agent, "Devoted", "hra_bonus", "hra", 50.0, 0.50, "Bob")
+    db.session.flush()
+
+    blocks = build_carrier_blocks(agent.id, agency.id, "May 2026")
+    dev = next(b for b in blocks if b.carrier == "Devoted")
+    # payout = 100*.50 (renewal) + 50*.50 (HRA) = 50 + 25 = 75
+    assert round(dev.total_payout, 2) == 75.00
+    # HRA shows in its own group, NOT counted as a new member
+    assert dev.new_members == 0
+    kinds = {g.kind for g in dev.groups}
+    assert "Bonuses" in kinds
+    # drill-down still reconciles to the total exactly
+    allrows = [r for g in dev.groups for r in g.rows]
+    assert round(sum(r.payout for r in allrows), 2) == round(dev.total_payout, 2)
+
+
 def test_lost_members_and_uhc_manual(db_session, agency):
     from app.models import User, Policy, AgentRecapPeriod
     from app.extensions import db

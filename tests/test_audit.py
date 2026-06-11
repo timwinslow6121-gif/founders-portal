@@ -120,3 +120,32 @@ def test_security_429_handler_logs():
     import inspect
     import app.security as sec
     assert "rate_limit_blocked" in inspect.getsource(sec)
+
+
+def _login(client, app, db, is_admin):
+    """Create a user + log them in via Flask-Login session."""
+    from app.models import User, Agency
+    from app.extensions import db as _db
+    with app.app_context():
+        ag = Agency(name="T"); _db.session.add(ag); _db.session.commit()
+        u = User(email="x@foundersinsuranceagency.com", name="X",
+                 is_admin=is_admin, agency_id=ag.id)
+        _db.session.add(u); _db.session.commit()
+        uid = u.id
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(uid)
+    return uid
+
+
+def test_audit_viewer_admin_200(app, db):
+    client = app.test_client()
+    _login(client, app, db, is_admin=True)
+    resp = client.get("/admin/audit-log")
+    assert resp.status_code == 200
+
+
+def test_audit_viewer_nonadmin_403(app, db):
+    client = app.test_client()
+    _login(client, app, db, is_admin=False)
+    resp = client.get("/admin/audit-log")
+    assert resp.status_code == 403

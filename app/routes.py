@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, abort, request,
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
-from app.models import Customer, CustomerNote, Policy, ImportBatch, User
+from app.models import Customer, CustomerNote, Policy, ImportBatch, User, AuditLog
 
 main = Blueprint('main', __name__)
 
@@ -143,6 +143,24 @@ def agent_detail(agent_id):
     today = date.today()
     ctx   = _build_dashboard_context(agent_id, today, current_user.agency_id)
     return render_template('dashboard.html', viewing_agent=agent, **ctx)
+
+
+@main.route("/admin/audit-log")
+@login_required
+def admin_audit_log():
+    if not current_user.is_admin:
+        abort(403)
+    q = AuditLog.query.filter_by(agency_id=current_user.agency_id)
+    cat = request.args.get("category")
+    sev = request.args.get("severity")
+    if cat:
+        q = q.filter(AuditLog.category == cat)
+    if sev:
+        q = q.filter(AuditLog.severity == sev)
+    page = request.args.get("page", 1, type=int)
+    logs = q.order_by(AuditLog.created_at.desc()).paginate(
+        page=page, per_page=50, error_out=False)
+    return render_template("audit_log.html", logs=logs, cat=cat, sev=sev)
 
 
 @main.route('/admin')

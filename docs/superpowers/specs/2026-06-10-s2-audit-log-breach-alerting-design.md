@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-10
 **Milestone:** 1 (Security & Resilience) — pillar 3 of 5 (S0 backups ✅, S1 access hardening ✅; this is S2)
-**Status:** Design — approved, pending spec review → writing-plans
+**Status:** ✅ Implemented (local, branch `feat/s2-audit-alerting`, 198 tests pass) — pending VPS deploy + verification
 **Author:** brainstormed with Tim 2026-06-10
 
 ---

@@ -722,6 +722,9 @@
         <a href="/admin/agent-settings" class="nav-item {% if '/agent-settings' in request.path %}active{% endif %}">
           <span class="nav-dot"></span>Agent Settings
         </a>
+        <a href="{{ url_for('main.admin_audit_log') }}" class="nav-item {% if request.endpoint == 'main.admin_audit_log' %}active{% endif %}">
+          <span class="nav-dot"></span>Audit Log
+        </a>
         <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
           <span class="nav-dot"></span>Upload Carrier Files
         </a>

@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-11
 **Milestone:** 2 (UI/UX refinement) — Phase 1 of N (the foundation; pages = Phase 2+)
-**Status:** Design — approved, pending spec review → writing-plans
+**Status:** ✅ Implemented (Phase 1A system + 1B login, branch `feat/m2-phase1-design-system`, 198 tests green, headless-render verified) — pending VPS deploy + live browser verify (light/dark)
 **Author:** brainstormed with Tim 2026-06-10/11
 
 ---
@@ -160,6 +160,14 @@ Verification is rendered-output inspection:
   recap) — flagged for the commission-cluster page phase.
 - Mobile responsiveness (U2) and login speed (U3).
 - `labels.html` stays excluded (print utility, hardcoded light colors).
+- **Focus-ring on form inputs (Phase 2 page cleanup):** the global
+  `:focus-visible` ring added in Phase 1A works on links/buttons, but ~7 page
+  templates (pharmacy_form, customer_profile, customer_new, plan_form, plan_list,
+  agent_settings_detail, customers_list search) declare their own
+  `input:focus { outline:none }` in their `{% block styles %}`, which (equal
+  specificity, later in cascade) suppresses the global ring on those inputs. Drop
+  those `outline:none` overrides when refining each page in Phase 2 so the a11y
+  ring is live everywhere. (Found in 1A code review — low severity, deferred.)
 
 ## 8. Summary of changes
 - **`app/templates/base.html`:** add type/radius/spacing tokens to `:root` (+ dark

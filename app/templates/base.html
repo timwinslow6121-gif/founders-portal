@@ -77,9 +77,24 @@
       --shadow:       0px 6px 24px rgba(38,110,165,0.10);
       --shadow-sm:    0px 2px 8px rgba(0,0,0,0.05);
 
-      /* Radius — softer/airier */
-      --radius:    16px;
-      --radius-sm: 10px;
+      /* Radius scale (M2 Phase 1) */
+      --radius:      14px;   /* cards, panels (was 16) */
+      --radius-sm:   8px;    /* buttons, inputs, controls (was 10) */
+      --radius-pill: 999px;  /* badges, tabs, chips */
+
+      /* Type scale (M2 Phase 1) — 12px hard floor, 15px body */
+      --fs-display: 30px;  /* big numbers, hero */
+      --fs-h1:      24px;
+      --fs-h2:      19px;
+      --fs-h3:      17px;
+      --fs-body:    15px;  /* default body */
+      --fs-sm:      13px;  /* secondary / labels */
+      --fs-xs:      12px;  /* smallest meta — FLOOR */
+      --lh:         1.5;
+
+      /* Spacing scale (M2 Phase 1) — 4px grid */
+      --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+      --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -158,7 +173,8 @@
     html, body { margin: 0; height: 100%; }
     body {
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: var(--fs-body);
+      line-height: var(--lh);
       color: var(--ivory);
       background: var(--ink);
       -webkit-font-smoothing: antialiased;
@@ -223,7 +239,7 @@
       line-height: 1.3;
     }
     .sidebar-logo-sub {
-      font-size: 9px;
+      font-size: var(--fs-xs);
       font-weight: 500;
       letter-spacing: 0.25em;
       text-transform: uppercase;
@@ -236,7 +252,7 @@
     .sidebar-nav { flex: 1; padding: 8px 0 16px; }
 
     .nav-section-label {
-      font-size: 10px;
+      font-size: var(--fs-xs);
       font-weight: 600;
       color: var(--slate);
       text-transform: uppercase;
@@ -287,7 +303,7 @@
 
     .nav-badge {
       margin-left: auto;
-      font-size: 9px;
+      font-size: var(--fs-xs);
       font-weight: 600;
       letter-spacing: 0.05em;
       padding: 2px 7px;
@@ -327,7 +343,7 @@
       white-space: nowrap;
     }
     .sidebar-signout {
-      font-size: 9px;
+      font-size: var(--fs-xs);
       font-weight: 400;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -416,14 +432,15 @@
        CARDS
        ════════════════════════════════════════ */
     .card {
-      background: var(--surface-low);
+      background: var(--surface);
       overflow: hidden;
       border-radius: var(--radius);
       border: 1px solid var(--border);
-      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
     .card:hover {
-      transform: translateY(-2px);
+      transform: translateY(-1px);
       box-shadow: var(--shadow-float);
     }
     .card-header {
@@ -437,22 +454,23 @@
     }
     .card-title {
       font-family: var(--font-serif);
-      font-size: 14px;
-      font-weight: 400;
+      font-size: var(--fs-h3);
+      font-weight: 700;
       color: var(--ivory-bright);
       letter-spacing: 0.01em;
     }
-    .card-body { padding: 20px 24px; }
+    .card-body { padding: var(--sp-5) var(--sp-6); }
 
     /* ════════════════════════════════════════
        BADGES
        ════════════════════════════════════════ */
     .badge {
-      font-size: 9px;
+      font-size: var(--fs-xs);
       font-weight: 600;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      padding: 3px 8px;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: var(--radius-pill);
       display: inline-block;
     }
     .badge-red     { background: color-mix(in srgb, var(--status-error-text) 12%, transparent);    color: var(--status-error-text); }
@@ -471,12 +489,12 @@
       background: var(--gold);
       color: var(--on-gold);
       border: none;
-      padding: 10px 20px;
+      padding: var(--sp-3) var(--sp-5);
+      border-radius: var(--radius-sm);
       font-family: var(--font-sans);
-      font-size: 10px;
+      font-size: var(--fs-sm);
       font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      letter-spacing: 0.04em;
       cursor: pointer;
       text-decoration: none;
       display: inline-block;
@@ -497,12 +515,12 @@
       background: transparent;
       color: var(--ivory);
       border: 1px solid var(--border);
-      padding: 10px 20px;
+      padding: var(--sp-3) var(--sp-5);
+      border-radius: var(--radius-sm);
       font-family: var(--font-sans);
-      font-size: 10px;
+      font-size: var(--fs-sm);
       font-weight: 500;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      letter-spacing: 0.04em;
       cursor: pointer;
       text-decoration: none;
       display: inline-block;
@@ -518,6 +536,14 @@
     .btn-secondary:active {
       transform: translateY(0) scale(0.96);
       box-shadow: none;
+    }
+
+    /* Accessibility: visible focus ring on interactive elements (M2 Phase 1) */
+    a:focus-visible, button:focus-visible, input:focus-visible,
+    select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
     }
 
     /* ════════════════════════════════════════
@@ -541,7 +567,7 @@
     .data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: var(--fs-sm);
       table-layout: fixed;
     }
     .data-table th {
@@ -601,7 +627,7 @@
       color: var(--slate);
     }
     label {
-      font-size: 9px;
+      font-size: var(--fs-xs);
       font-weight: 600;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -636,7 +662,7 @@
       margin: 0 0 6px;
     }
     .page-sub {
-      font-size: 10px;
+      font-size: var(--fs-xs);
       font-weight: 400;
       letter-spacing: 0.1em;
       text-transform: uppercase;

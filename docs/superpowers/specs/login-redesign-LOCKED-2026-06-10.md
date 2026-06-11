@@ -1,5 +1,7 @@
 # Founders Login Redesign — LOCKED design (2026-06-10)
 
+**STATUS: ✅ BUILT 2026-06-11** — `app/templates/login.html` rebuilt to this design on branch `feat/m2-phase1-design-system` (commit 7bb00ff). Headless-render verified (reduced-motion fallback shows the full card; gradient pans blue→green across the wave cycle). Pending live browser verify at deploy. Reusable mark extracted to `app/static/img/founders-mark.svg`.
+
 Designed via visual-companion prototyping with Tim. **Final prototype:** `.superpowers/brainstorm/27364-1781142680/content/login-v5.html` (+ color/glow tuners). This file records the locked DECISIONS so the production `app/templates/login.html` build is faithful. This is part of Milestone 2 / Phase 1 (design system); the login is the system's "character" showpiece.
 
 ## Concept

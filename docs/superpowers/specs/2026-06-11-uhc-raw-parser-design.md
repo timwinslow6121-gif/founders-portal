@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-11
 **Goal:** Let AJ upload the RAW UHC carrier statement and have the portal auto-split the easy ~90% of lines (agent pay vs Founders override) into the R1 commission ledger, quarantining the hard 5-10% for manual review. Saves AJ hours/month.
-**Status:** Design — building this session (time-boxed; "partial" = easy rows auto, hard rows flagged).
+**Status:** ✅ Implemented + validated (97.7% auto, all agents balance to the penny). NOT yet wired to live upload (pending "New" enrollments + AJ review). 2026-06-11.
 
 ---
 
@@ -29,11 +29,20 @@ Folder: `docs/Commission DL/Raw commissions docs from AJ/UHC/`
 
 **Verified in the raw data (statement May 2026):** distinct renewal amounts = $28.92 (1057×, the split renewal), $4.59 (1087×, the standalone override), $33.51 (824×, the combined). ADAMS DARRELL shows the two-line form ($28.92 + $4.59, DSNP/H5253). So both forms (separate + combined) occur and net to the same agency economics.
 
-**REMAINING WORK (next session — this is the intricate part):**
-1. A per-plan override table: MAPD/DSNP/CSNP override = $4.59/mo (confirm exact per plan-type; PDP/other differ). Source: CLAUDE.md commission notes "override_renewal_annual/12, $55/yr for MAPD".
-2. Decompose combined rows: if amount ≈ (renewal_pmpm + override_pmpm) for that plan, split into two line items. If amount is a standalone override ($4.59) → founders_override. If standalone renewal ($28.92) → agent_commission split.
-3. The small/odd amounts ($0.26, $30.68, $25.21, partial-month, comp_type=I new-enrollment proration) → still HARD/quarantine until per-plan-per-comp-type rates are tabled.
-4. RE-VALIDATE: parser's per-agent agent_commission sum (× rate) + founders_override sum must reconcile to AJ's `UHC - <agent>` and `UHC - Founders` files. Tim's target: easy raw ≈ $6,586 (not $7,707).
+**✅ IMPLEMENTED + VALIDATED 2026-06-11.** The full rule set (all from Tim, all confirmed in data) is now coded in `extract_lineitems_uhc`:
+- **Override = flat $4.59/mo** on every override-bearing family (MA *and* Part D — same amount). 100% Founders, no split.
+- **Combined decomposition:** $33.51 (HMO) → $28.92 renewal + $4.59 override; $30.68 (non-SNP PPO) → $26.09 renewal + $4.59 override. ($26.09 = the PPO renewal, splits like a normal renewal.)
+- **Med-Supp (AARPMODMEDSUP):** premium-based, paired per member → larger line = renewal (splits), smaller = Founders override. Only for the LOA agents who write it (Tim/Chris/Justin/Michael/Don); others' Med-Supp → quarantine (rule unconfirmed, small BOBs).
+- **HA payments ($50):** split agent%/Founders%, NO override (corrected — earlier draft wrongly quarantined them).
+- **PARTD "dust" (<$1, e.g. $0.26):** quarantine (AJ drops these from renewal totals).
+- **"New" enrollments:** QUARANTINE — genuinely complex (Tim: cols L/T/AA/AB interact, proration by months-remaining); the one piece NOT auto-handled yet.
+
+**VALIDATION = the completeness invariant (the real ground truth):** every agent's line-item total sums EXACTLY to the raw file's per-agent total — every dollar reclassified, none lost/created (all 11 agents balance to the penny). Tim's renewal-only reconciles to his AJ file ($6,549.05 exact); Michael's renewal+override reconciles to his ($9,751.81 exact). KEY LESSON: AJ's per-agent files are INCONSISTENT (some keep $33.51 combined, some pre-split), so "match AJ's renewal sum" is NOT a clean validation target — the per-agent completeness balance is. **Result: 97.7% of lines auto-classified, only 2.3% (89/3944) quarantined.**
+
+**REMAINING before wiring live (next session):**
+1. **"New" enrollments** — the deep cols L/T/AA/AB analysis (months-remaining proration for new MA/PPO). The last meaningful chunk.
+2. Confirm Med-Supp larger=renewal/smaller=override across a few months (Tim ~80% sure; needs more statements).
+3. Wire into upload: add "UHC" to `EXTRACTORS` + a detection fingerprint (sheet "Commission Transactions" + headers Writing Agent Name/Commission Action/MedicareID), then have AJ review a real run before it's system-of-record.
 - **SUM-THEN-SPLIT (sig-fig rule):** the agent's payout = (Σ all their easy raw_amounts) × rate, applied ONCE at the end, NOT line-by-line — avoids per-line rounding drift (same rule R1 `split_breakdown` already uses: store raw_amount per line, derive split, reconcile at total). Tim flagged: significant figures matter; never round mid-calc.
 - **HARD rows** (the ~5-10%, QUARANTINE for manual review — do NOT auto-calc):
   - `HA payment for agent ID NNNN for member ...` / `HA payment for solicitor agent ID ...` — $50 Health-Assessment bonuses paid in FULL to a specific agent identified by ID embedded in the text (no split). Needs name↔agent-ID resolution.

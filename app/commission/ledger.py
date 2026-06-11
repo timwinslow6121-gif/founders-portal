@@ -13,6 +13,7 @@ are always derived from raw_amount + split_rate + classification, never stored.
 See docs/superpowers/specs/2026-06-08-commission-ledger-completeness-design.md.
 """
 import contextvars
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional, Tuple
@@ -537,31 +538,66 @@ def money_rows_total_humana(sheets) -> float:
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# UHC — RAW carrier statement (R4 partial). ⚠⚠ WIP — TOTALS NOT YET CORRECT ⚠⚠
-# NOT registered for live upload (deliberately omitted from the upload dispatch).
-# Validation 2026-06-11 vs AJ's answer-key files caught that this version
-# OVERPAYS agents: UHC has TWO money components per member — the agent renewal
-# ($28.92, SPLIT 55/45) AND the Founders override ($4.59, 100% Founders, NO
-# split) — and the raw file sometimes COMBINES them into one $33.51 line. This
-# extractor currently treats the whole amount as splittable agent_commission,
-# so Tim's easy total came out $7,707 vs AJ's correct $6,586 (+17%).
-# THE FIX (next session, see spec §3): classify the $4.59 override portion as
-# FOUNDERS_OVERRIDE (split_rate=None) and DECOMPOSE the combined $33.51 rows into
-# renewal+override, then re-validate to ≈$6,586. DO NOT trust these numbers or
-# wire into upload until reconciled. Structure/classification scaffolding is
-# correct; the override decomposition is the remaining work.
-# See docs/superpowers/specs/2026-06-11-uhc-raw-parser-design.md
+# UHC — RAW carrier statement parser (R4, ~98% auto). Ingests the raw
+# `statement-NNNN-YYYYMMDD.xlsx` (sheet "Commission Transactions"), auto-splits
+# the routine rows, and QUARANTINES the genuinely-hard few for AJ. Saves AJ from
+# hand-splitting ~3,100 lines/month (only ~2% need manual review now).
+#
+# THE MODEL (confirmed with Tim + VALIDATED against AJ's per-agent files,
+# 2026-06-11): every payment is ONE of two money types —
+#   • RENEWAL          → agent_commission, SPLITS agent%/Founders% (split_rate)
+#   • FOUNDERS OVERRIDE → founders_override, 100% Founders, NO split (rate=None)
+# The override is a flat $4.59/mo on every override-bearing family (MA + Part D).
+# The raw file emits the pair as TWO lines ($28.92 + $4.59) OR ONE combined line
+# ($33.51 = 28.92+4.59 for HMO; $30.68 = 26.09+4.59 for non-SNP PPO) — combined
+# lines are DECOMPOSED. Med-Supp (AARPMODMEDSUP) pays premium-based amounts as a
+# PAIRED renewal+override per member (override = the smaller line), only for the
+# LOA agents who write it. HA payments ($50) → split, no override. PARTD "dust"
+# (<$1, e.g. $0.26) → quarantine (AJ drops these). "New" enrollments (complex
+# cols L/T/AA/AB) → quarantine pending deeper analysis.
+#
+# VALIDATION (the real invariant): line items per agent sum EXACTLY to the raw
+# file's per-agent total — every dollar reclassified, none lost/created (all 11
+# agents balance to the penny; see verify_statement_balance completeness check).
+# Tim's renewal-only reconciles to his AJ file ($6,549.05 exact). NOTE: AJ's
+# per-agent files are inconsistent (some keep $33.51 combined, some pre-split to
+# $28.92+$4.59), so "match AJ's renewal sum" is NOT a clean target — the per-agent
+# completeness balance is the ground truth. Spec:
+# docs/superpowers/specs/2026-06-11-uhc-raw-parser-design.md
 # ──────────────────────────────────────────────────────────────────────────
 _UHC_SHEET = "Commission Transactions"
 # RAW file columns (0-indexed, header=row 0), verified against real statement:
 _UHC_AGENT = 5      # Writing Agent Name "LAST, FIRST ..."
 _UHC_MEMBER = 7     # Member Name
 _UHC_MBI = 8        # MedicareID
-_UHC_ACTION = 19    # Commission Action (the classifier)
+_UHC_PLANTYPE = 12  # Plan Type (MAPD/DSNP/CSNP/MA = MA family; PARTD/AARP... = other)
+_UHC_ACTION = 19    # Commission Action
 _UHC_AMOUNT = 23    # Commission ($)
 _UHC_EFFDATE = 11
-# Clean actions whose whole amount is a normal commission we can auto-split.
-_UHC_CLEAN_ACTIONS = {"renewal", "new", "new chargeback", "renewal chargeback"}
+
+# UHC per-member money constants (monthly), confirmed with Tim + the data.
+# Two money types only: a "renewal" (SPLITS agent%/Founders%) and a fixed
+# "Founders override" (100% Founders, NO split). The override is a flat $4.59 on
+# every override-bearing plan family (MA AND Part D). The raw file emits the pair
+# as two lines OR one combined line; combined lines are decomposed.
+_UHC_OVERRIDE = 4.59    # ~$55/yr ÷ 12 — the Founders override (no split), all families
+_UHC_RENEWAL_HMO = 28.92   # standard HMO MA renewal ($347/yr ÷ 12) — splits
+_UHC_RENEWAL_PPO = 26.09   # non-SNP PPO renewal (different comp) — splits
+_UHC_COMBINED_HMO = round(_UHC_RENEWAL_HMO + _UHC_OVERRIDE, 2)  # 33.51 = 28.92+4.59
+_UHC_COMBINED_PPO = round(_UHC_RENEWAL_PPO + _UHC_OVERRIDE, 2)  # 30.68 = 26.09+4.59
+# (renewal, combined) pairs to test for decomposition, in match order.
+_UHC_COMBINED_PAIRS = [(_UHC_RENEWAL_HMO, _UHC_COMBINED_HMO),
+                       (_UHC_RENEWAL_PPO, _UHC_COMBINED_PPO)]
+# Plan families that carry the $4.59 Founders override (MA + Part D).
+_UHC_OVERRIDE_FAMILY = {"MAPD", "DSNP", "CSNP", "MA", "PARTD"}
+_UHC_MEDSUPP = {"AARPMODMEDSUP"}   # premium-based; renewal+override PAIRED per member
+# Med-Supp pairing applies to the LOA agents who write Med-Supp; others' Med-Supp
+# → quarantine (small BOBs, rule unconfirmed — Tim 2026-06-11; needs a few months
+# of statements to nail down). Matched by surname substring in the "LAST, FIRST"
+# writing-agent name. (Rebekah's UHC business isn't in this statement under her
+# name — likely under the agency entity — so she's not listed here yet.)
+_UHC_MEDSUPP_AGENTS = ("WINSLOW", "FOSTER", "BASINGER", "LAUZURIQUE", "LONG, DON")
+_CENT = 0.005  # match tolerance for the fixed amounts
 
 
 def _uhc_rows(sheets):
@@ -569,67 +605,128 @@ def _uhc_rows(sheets):
     'Commission Summary' (payment totals) and 'Held Transactions' (not yet paid)."""
     rows = sheets.get(_UHC_SHEET)
     if rows is None:
-        # fall back to the first sheet only if it has the UHC header shape
         rows = next(iter(sheets.values())) if sheets else []
     return rows or []
 
 
-def _uhc_is_hard(action_lower):
-    """A row needing manual review: HA bonuses/chargebacks (paid in full to a
-    specific agent ID embedded in text), DVH manual payments, or free-text junk.
-    Anything not in the known clean set is treated as hard (safe default)."""
-    return action_lower not in _UHC_CLEAN_ACTIONS
+def _near(a, b):
+    return abs(a - b) < _CENT
+
+
+def _uhc_medsupp_overrides(rows):
+    """Med-Supp pays per-member as TWO lines (premium-based): a larger renewal
+    (splits) + a smaller Founders override (no split). Pre-pass to identify, per
+    (member, agent), which Med-Supp amount is the override (the SMALLER of the
+    pair) so the main loop can classify each line. Only for the LOA agents who
+    write Med-Supp; others' Med-Supp is quarantined. Returns a set of
+    (member, agent, amount) tuples that are OVERRIDE lines."""
+    by_member = defaultdict(list)
+    for row in rows[1:]:
+        if not any(row) or len(row) <= _UHC_AMOUNT:
+            continue
+        plan = str(row[_UHC_PLANTYPE] or "").strip().upper()
+        if plan not in _UHC_MEDSUPP:
+            continue
+        writing = str(row[_UHC_AGENT] or "").strip().upper()
+        if not any(a in writing for a in _UHC_MEDSUPP_AGENTS):
+            continue
+        amt = round(_to_float(row[_UHC_AMOUNT]), 2)
+        if amt == 0:
+            continue
+        member = str(row[_UHC_MEMBER] or "").strip()
+        by_member[(member, writing)].append(amt)
+    overrides = set()
+    for (member, writing), amts in by_member.items():
+        if len(amts) >= 2:
+            smaller = min(amts, key=abs)   # the override is the smaller line
+            overrides.add((member, writing, smaller))
+    return overrides
 
 
 def extract_lineitems_uhc(sheets, split_lookup) -> List[LineItemDraft]:
     rows = _uhc_rows(sheets)
     if not rows:
         return []
+    medsupp_overrides = _uhc_medsupp_overrides(rows)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) <= _UHC_AMOUNT:
             continue
-        amount = _to_float(row[_UHC_AMOUNT])
+        amount = round(_to_float(row[_UHC_AMOUNT]), 2)
         if amount == 0:
-            continue  # no money on this row
+            continue
         action = str(row[_UHC_ACTION] or "").strip()
         action_l = action.lower()
+        plan = str(row[_UHC_PLANTYPE] or "").strip().upper()
         writing = str(row[_UHC_AGENT] or "").strip()
         member = str(row[_UHC_MEMBER] or "").strip()
         mbi = str(row[_UHC_MBI] or "").strip() or None
+        eff = _parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None
+        sref = f"uhc::0::{idx}"
+        rate = split_lookup(writing)
 
-        if _uhc_is_hard(action_l):
-            # QUARANTINE: keep the raw amount but no split — AJ handles manually.
-            # split_rate=None so split_breakdown leaves payout undetermined; the
-            # full action text is preserved in payment_type for AJ's review.
-            out.append(LineItemDraft(
-                carrier="UHC",
-                source_ref=f"uhc::0::{idx}",
-                raw_amount=amount,
-                classification=NEEDS_MANUAL_REVIEW,
-                split_rate=None,
-                payment_type=(action[:120] or None),
-                member_name=member,
-                mbi=mbi,
-                writing_agent_raw=writing,
-                effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
-            ))
+        def draft(raw, cls, srate, ref, ptype=None):
+            return LineItemDraft(
+                carrier="UHC", source_ref=ref, raw_amount=raw, classification=cls,
+                split_rate=srate, payment_type=(ptype or action_l or None),
+                member_name=member, mbi=mbi, writing_agent_raw=writing,
+                effective_date=eff)
+
+        # ── HA payment/chargeback ($50): no override, but DOES split agent/Founders.
+        if action_l.startswith("ha payment") or action_l.startswith("ha chargeback"):
+            cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+            out.append(draft(amount, cls, rate, sref, ptype="ha"))
             continue
 
-        # EASY: whole amount is a normal commission → split by agent contract rate.
-        classification = CHARGEBACK if amount < 0 else AGENT_COMMISSION
-        out.append(LineItemDraft(
-            carrier="UHC",
-            source_ref=f"uhc::0::{idx}",
-            raw_amount=amount,
-            classification=classification,
-            split_rate=split_lookup(writing),
-            payment_type=action_l or None,
-            member_name=member,
-            mbi=mbi,
-            writing_agent_raw=writing,
-            effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
-        ))
+        is_renewal = "renewal" in action_l
+        in_override_family = plan in _UHC_OVERRIDE_FAMILY
+
+        # ── Sub-threshold PARTD "dust" ($0.26 etc): AJ drops these from agent
+        #    renewal totals. Quarantine (don't split) so we reconcile to his books.
+        if is_renewal and plan == "PARTD" and abs(amount) < 1.00 \
+                and not _near(amount, _UHC_OVERRIDE):
+            out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref, ptype="partd dust"))
+            continue
+
+        # ── MA / Part D renewals: override-aware (the $4.59 / combined logic).
+        if is_renewal and in_override_family:
+            if _near(amount, _UHC_OVERRIDE):
+                out.append(draft(_UHC_OVERRIDE, FOUNDERS_OVERRIDE, None, sref))
+                continue
+            if _near(amount, -_UHC_OVERRIDE):
+                out.append(draft(-_UHC_OVERRIDE, FOUNDERS_OVERRIDE, None, sref))
+                continue
+            decomposed = False
+            for renewal_amt, combined_amt in _UHC_COMBINED_PAIRS:
+                if _near(amount, combined_amt):          # e.g. 33.51 or 30.68
+                    out.append(draft(renewal_amt, AGENT_COMMISSION, rate, sref + "::r"))
+                    out.append(draft(_UHC_OVERRIDE, FOUNDERS_OVERRIDE, None, sref + "::o"))
+                    decomposed = True; break
+                if _near(amount, -combined_amt):
+                    out.append(draft(-renewal_amt, CHARGEBACK, rate, sref + "::r"))
+                    out.append(draft(-_UHC_OVERRIDE, FOUNDERS_OVERRIDE, None, sref + "::o"))
+                    decomposed = True; break
+            if decomposed:
+                continue
+            # any other amount = a plain renewal (incl. partial-month proration).
+            cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+            out.append(draft(amount, cls, rate, sref))
+            continue
+
+        # ── Med-Supp renewals (paired per member; LOA agents only).
+        if is_renewal and plan in _UHC_MEDSUPP and \
+                any(a in writing.upper() for a in _UHC_MEDSUPP_AGENTS):
+            if (member, writing.upper(), amount) in medsupp_overrides:
+                out.append(draft(amount, FOUNDERS_OVERRIDE, None, sref))   # smaller = override
+            else:
+                cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+                out.append(draft(amount, cls, rate, sref))                 # larger = renewal split
+            continue
+
+        # ── Everything else: "New" enrollments (complex cols L/T/AA/AB — analyze
+        #    later), other-agent Med-Supp, PDP edge cases, DVH manual, garbage.
+        out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref,
+                         ptype=(action[:120] or None)))
     return out
 
 

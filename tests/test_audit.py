@@ -95,3 +95,12 @@ def test_login_success_does_not_alert(app, db, monkeypatch):
     with app.test_request_context("/", environ_base={"REMOTE_ADDR": "5.5.5.5"}):
         audit.log_event("login_success", category="auth", agency_id_override=1)
     assert sent == []
+
+
+def test_auth_callback_logs_nondomain():
+    import inspect
+    import app.auth as auth_mod
+    cb = inspect.getsource(auth_mod.callback)
+    assert 'log_event("login_nondomain"' in cb or "log_event('login_nondomain'" in cb
+    assert "login_success" in cb
+    assert "log_event" in inspect.getsource(auth_mod.logout)

@@ -468,6 +468,10 @@ def build_payments(statement, carrier, agent_id, agency_id, ws):
     def _resolve_agent_id(raw_name):
         if not raw_name:
             return agent_id
+        # Retired-agent rollup: Cyndi/Don Aetna/UHC business → Brian (keeps the
+        # Payment Ledger consistent with the CommissionLineItem attribution).
+        from app.commission.rollup import apply_rollup
+        raw_name = apply_rollup(raw_name, carrier)
         if raw_name in _agent_name_cache:
             return _agent_name_cache[raw_name]
         norm = _norm(raw_name)

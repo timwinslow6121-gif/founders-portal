@@ -21,6 +21,7 @@ from app.commission.ledger import EXTRACTORS, persist_line_items, verify_stateme
 from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
                                    publish_recap, build_carrier_blocks, latest_period_with_data,
                                    all_periods_with_data)
+from app.commission.rollup import apply_rollup
 
 SPLIT_RATE = 0.55
 
@@ -642,7 +643,10 @@ _NICKNAMES = {
 
 def _ledger_split_lookup(writing_agent_raw, carrier):
     """Split rate for a writing agent on a carrier, snapshotted at import.
-    Falls back to any active contract for the carrier, then 0.55."""
+    Retired-agent (Cyndi/Don) Aetna/UHC business rolls up to Brian first, so the
+    rate comes from Brian's 0.50 contract. Falls back to any active contract for
+    the carrier, then 0.55."""
+    writing_agent_raw = apply_rollup(writing_agent_raw, carrier)
     agent_id = _match_agent_name(writing_agent_raw) if writing_agent_raw else None
     contract = None
     if agent_id:
@@ -926,9 +930,14 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         li_q.delete(synchronize_session=False)
         db.session.flush()
 
+    # Resolve writing-agent names to portal users AFTER retired-agent rollup, so
+    # Cyndi/Don Aetna/UHC rows attribute to Brian (matching the split-rate seam).
+    def _rollup_resolver(raw, c=carrier):
+        return _match_agent_name(apply_rollup(raw, c))
+
     try:
         ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets,
-                                  agent_resolver=_match_agent_name)
+                                  agent_resolver=_rollup_resolver)
 
         # R1 ledger: persist EVERY sheet row (incl. Founders overrides the
         # customer-sync normalizer collapses away) so the balance is provable.
@@ -936,7 +945,7 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         if extractor is not None:
             drafts = extractor(sheets, split_lookup=lambda raw, c=carrier: _ledger_split_lookup(raw, c))
             persist_line_items(carrier, drafts, stmt, current_user.agency_id,
-                               agent_resolver=_match_agent_name)
+                               agent_resolver=_rollup_resolver)
             db.session.flush()
             report = verify_statement_balance(carrier, drafts, sheets)
             if not report.completeness_ok:

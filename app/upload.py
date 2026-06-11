@@ -15,7 +15,8 @@ from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 
 from datetime import datetime
-from app.models import db, Policy, ImportBatch, AuditLog, Customer, CustomerAorHistory, Plan
+from app.models import db, Policy, ImportBatch, Customer, CustomerAorHistory, Plan
+from app.audit import log_event
 from app.parsers import parse_carrier_file, SUPPORTED_CARRIERS
 from app.commission.resolver import resolve_customer, member_fact_from_bob_rec
 
@@ -293,13 +294,9 @@ def process_upload():
     batch.status = "success"
 
     # Audit log
-    log = AuditLog(
-        user_id=current_user.id,
-        action="carrier_upload",
-        detail=f"{carrier} | {filename} | {len(records)} records ({new_count} new, {updated_count} updated)",
-    )
-    db.session.add(log)
     db.session.commit()
+    log_event("carrier_upload", category="business",
+              detail=f"{carrier} | {filename} | {len(records)} records ({new_count} new, {updated_count} updated)")
 
     flash(
         f"{carrier} upload complete — {len(records)} active members "
@@ -767,11 +764,9 @@ def bulk_upload():
         batch.new_count = new_count
         batch.updated_count = updated_count
         batch.status = "success"
-        db.session.add(AuditLog(
-            user_id=current_user.id, action="carrier_upload",
-            detail=f"{carrier} | {filename} | {len(records)} records ({new_count} new, {updated_count} updated)"
-        ))
         db.session.commit()
+        log_event("carrier_upload", category="business",
+                  detail=f"{carrier} | {filename} | {len(records)} records ({new_count} new, {updated_count} updated)")
         results.append(f"{carrier}: {len(records)} records")
 
     msg_parts = []

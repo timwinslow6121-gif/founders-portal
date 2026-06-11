@@ -104,3 +104,19 @@ def test_auth_callback_logs_nondomain():
     assert 'log_event("login_nondomain"' in cb or "log_event('login_nondomain'" in cb
     assert "login_success" in cb
     assert "log_event" in inspect.getsource(auth_mod.logout)
+
+
+def test_hooks_present_in_routes():
+    import inspect
+    import app.customers as c, app.labels as l, app.agent_settings as s, app.upload as u
+    assert "customer_view" in inspect.getsource(c)
+    assert "customer_export_csv" in inspect.getsource(c)
+    assert "labels_pdf_download" in inspect.getsource(l)
+    assert "agent_role_change" in inspect.getsource(s)
+    assert "log_event" in inspect.getsource(u)
+
+
+def test_security_429_handler_logs():
+    import inspect
+    import app.security as sec
+    assert "rate_limit_blocked" in inspect.getsource(sec)

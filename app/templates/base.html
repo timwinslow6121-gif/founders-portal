@@ -465,11 +465,12 @@
        BADGES
        ════════════════════════════════════════ */
     .badge {
-      font-size: 9px;
+      font-size: var(--fs-xs);
       font-weight: 600;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      padding: 3px 8px;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: var(--radius-pill);
       display: inline-block;
     }
     .badge-red     { background: color-mix(in srgb, var(--status-error-text) 12%, transparent);    color: var(--status-error-text); }
@@ -488,12 +489,12 @@
       background: var(--gold);
       color: var(--on-gold);
       border: none;
-      padding: 10px 20px;
+      padding: var(--sp-3) var(--sp-5);
+      border-radius: var(--radius-sm);
       font-family: var(--font-sans);
-      font-size: 10px;
+      font-size: var(--fs-sm);
       font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      letter-spacing: 0.04em;
       cursor: pointer;
       text-decoration: none;
       display: inline-block;
@@ -514,12 +515,12 @@
       background: transparent;
       color: var(--ivory);
       border: 1px solid var(--border);
-      padding: 10px 20px;
+      padding: var(--sp-3) var(--sp-5);
+      border-radius: var(--radius-sm);
       font-family: var(--font-sans);
-      font-size: 10px;
+      font-size: var(--fs-sm);
       font-weight: 500;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
+      letter-spacing: 0.04em;
       cursor: pointer;
       text-decoration: none;
       display: inline-block;

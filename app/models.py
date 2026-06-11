@@ -210,6 +210,12 @@ class AuditLog(db.Model):
     user = db.relationship("User")
     action = db.Column(db.String(128), nullable=False)
     detail = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(256))
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), index=True)
+    category = db.Column(db.String(32), index=True)
+    severity = db.Column(db.String(16), default="info")
+    record_count = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     def __repr__(self):

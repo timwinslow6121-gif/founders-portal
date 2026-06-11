@@ -7,6 +7,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for,
 from flask_login import current_user, login_required
 from app.extensions import db
 from app.models import User, AgentCarrierContract, Pharmacy
+from app.audit import log_event
 
 settings_bp = Blueprint("settings", __name__)
 
@@ -105,6 +106,8 @@ def settings_agent(agent_id):
                 )
                 db.session.add(contract)
 
+        log_event("agent_role_change", category="admin", severity="warning",
+                  detail=f"updated settings/contracts for {agent.display_name} (#{agent.id})")
         db.session.commit()
         flash(f"✓ Settings saved for {agent.display_name}.", "success")
         return redirect(url_for("settings.settings_agent", agent_id=agent_id))

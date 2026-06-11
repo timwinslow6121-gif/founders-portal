@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from app.extensions import db
 from app.models import Policy
+from app.audit import log_event
 
 labels_bp = Blueprint("labels", __name__)
 
@@ -206,6 +207,8 @@ def labels_download():
 
     pdf_bytes = _build_pdf(policies, month_name)
     filename  = f"birthday_labels_{month_name.lower()}_{date.today().year}.pdf"
+    log_event("labels_pdf_download", category="export",
+              detail="birthday labels PDF", record_count=len(policies))
     return Response(
         pdf_bytes,
         mimetype="application/pdf",

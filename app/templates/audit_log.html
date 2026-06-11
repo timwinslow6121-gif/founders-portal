@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1 style="color:var(--ivory-bright)">Audit Log</h1>
+  <form method="get" style="display:flex;gap:12px;margin:16px 0;">
+    <select name="category" onchange="this.form.submit()">
+      <option value="">All categories</option>
+      {% for c in ["auth","data_access","export","admin","security","business"] %}
+        <option value="{{ c }}" {{ 'selected' if cat==c }}>{{ c }}</option>
+      {% endfor %}
+    </select>
+    <select name="severity" onchange="this.form.submit()">
+      <option value="">All severities</option>
+      {% for s in ["info","warning","alert"] %}
+        <option value="{{ s }}" {{ 'selected' if sev==s }}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  <table class="data-table">
+    <thead><tr>
+      <th>Time (UTC)</th><th>User</th><th>Action</th><th>Category</th>
+      <th>Severity</th><th>IP</th><th>Detail</th><th>Count</th>
+    </tr></thead>
+    <tbody>
+      {% for r in logs.items %}
+      <tr {% if r.severity=='alert' %}style="background:color-mix(in srgb, var(--gold) 12%, transparent)"{% endif %}>
+        <td>{{ r.created_at }}</td>
+        <td>{{ r.user.display_name if r.user else '—' }}</td>
+        <td>{{ r.action }}</td>
+        <td>{{ r.category or '' }}</td>
+        <td>{{ r.severity or '' }}</td>
+        <td>{{ r.ip_address or '' }}</td>
+        <td style="max-width:340px">{{ r.detail or '' }}</td>
+        <td>{{ r.record_count if r.record_count is not none else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if logs.pages > 1 %}
+  <div style="margin-top:12px;">
+    {% if logs.has_prev %}<a href="?page={{ logs.prev_num }}&category={{ cat or '' }}&severity={{ sev or '' }}">← Prev</a>{% endif %}
+    <span style="margin:0 12px">Page {{ logs.page }} / {{ logs.pages }}</span>
+    {% if logs.has_next %}<a href="?page={{ logs.next_num }}&category={{ cat or '' }}&severity={{ sev or '' }}">Next →</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

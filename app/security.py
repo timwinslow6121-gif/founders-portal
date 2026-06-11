@@ -82,6 +82,16 @@ def init_security(app):
     limiter.enabled = app.config.get("RATELIMIT_ENABLED", True)
     limiter.init_app(app)
 
+    @app.errorhandler(429)
+    def _ratelimit_logged(e):
+        try:
+            from app.audit import log_event
+            log_event("rate_limit_blocked", category="security", severity="warning",
+                      detail=f"429 on {request.path}", agency_id_override=1)
+        except Exception:
+            pass
+        return ("Too Many Requests", 429)
+
     # Decorate already-registered views imperatively. limiter.limit() returns
     # a WRAPPED view function that performs the in-request limit check; we must
     # write that wrapper back into app.view_functions or the limit is recorded

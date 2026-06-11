@@ -1,12 +1,13 @@
 import os
 import json
 from flask import Blueprint, redirect, url_for, session, request, render_template
-from flask_login import login_user, logout_user, login_required
+from flask_login import login_user, logout_user, login_required, current_user
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
 from google.auth.transport import requests as google_requests
 from app.models import User
 from app.extensions import db, login_manager
+from app.audit import log_event
 from datetime import datetime
 @login_manager.user_loader
 def load_user(user_id):
@@ -98,6 +99,8 @@ def callback():
     domain = email.split('@')[-1] if '@' in email else ''
 
     if domain != ALLOWED_DOMAIN:
+        log_event("login_nondomain", category="auth", severity="alert",
+                  detail=f"attempted {email}", agency_id_override=1)
         return render_template('login.html',
             error='Access restricted to @foundersinsuranceagency.com accounts.')
 
@@ -116,6 +119,7 @@ def callback():
     db.session.commit()
     session.permanent = True   # S1: engage the 12h PERMANENT_SESSION_LIFETIME
     login_user(user, remember=True)
+    log_event("login_success", category="auth", user=user)
 
     if user.is_admin:
         return redirect(url_for('main.admin_overview'))
@@ -124,5 +128,6 @@ def callback():
 @auth.route('/logout')
 @login_required
 def logout():
+    log_event("logout", category="auth", user=current_user)
     logout_user()
     return redirect(url_for('auth.login'))

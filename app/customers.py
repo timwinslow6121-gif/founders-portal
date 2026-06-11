@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView
 from app import customer_provenance as cp
+from app.audit import log_event
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -329,6 +330,8 @@ def customers_export():
 
     output = buf.getvalue()
     filename = f"customers_export_{datetime.today().strftime('%Y%m%d')}.csv"
+    log_event("customer_export_csv", category="export",
+              detail="customer CSV export", record_count=len(rows))
     return Response(
         output,
         mimetype="text/csv",
@@ -504,6 +507,9 @@ def customer_profile(customer_id):
 
     can_edit = current_user.is_admin or _is_current_aor(customer)
     field_conflicts = {c["field"]: c for c in cp.list_conflicts(customer)}
+
+    log_event("customer_view", category="data_access",
+              detail="viewed customer profile", customer_id=customer.id)
 
     return render_template(
         "customer_profile.html",

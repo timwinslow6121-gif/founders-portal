@@ -538,6 +538,14 @@
       box-shadow: none;
     }
 
+    /* Accessibility: visible focus ring on interactive elements (M2 Phase 1) */
+    a:focus-visible, button:focus-visible, input:focus-visible,
+    select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+
     /* ════════════════════════════════════════
        ALERTS
        ════════════════════════════════════════ */
@@ -559,7 +567,7 @@
     .data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: var(--fs-sm);
       table-layout: fixed;
     }
     .data-table th {

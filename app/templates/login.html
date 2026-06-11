@@ -72,7 +72,14 @@
         text-decoration:none;box-shadow:0 6px 18px rgba(0,20,40,.25);transition:box-shadow .2s,transform .2s;
         opacity:0;animation:fadeUp .5s ease forwards 1.2s}
   .gbtn:hover{box-shadow:0 10px 26px rgba(0,20,40,.34);transform:translateY(-2px)}
+  .gbtn.loading{pointer-events:none;opacity:1;color:#5f6368}
   .gicon{width:19px;height:19px}
+  /* OAuth-wait spinner (the 3-5s Google round-trip is unavoidable; this covers it) */
+  .gspin{width:18px;height:18px;border:2px solid #dadce0;border-top-color:#266EA5;border-radius:50%;
+         display:none;animation:gspin .7s linear infinite}
+  .gbtn.loading .gspin{display:inline-block}
+  .gbtn.loading .gicon{display:none}
+  @keyframes gspin{to{transform:rotate(360deg)}}
   .fine{margin-top:24px;color:rgba(255,255,255,.78);font-size:11.5px;line-height:1.5;
     opacity:0;animation:fadeUp .5s ease forwards 1.3s}
 
@@ -101,8 +108,8 @@
     <div class="login-error">{{ error }}</div>
     {% endif %}
 
-    <a href="/auth/google" class="gbtn">
-      <svg class="gicon" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.8-6.8C35.6 2.4 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.3 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.1-3.8 6.5-9.4 6.5-16z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.6 2.1-7.9 2.1-6.3 0-11.6-3.8-13.5-9.3l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>Sign in with Google</a>
+    <a href="/auth/google" class="gbtn" onclick="this.classList.add('loading');this.querySelector('.glabel').textContent='Connecting to Google…';">
+      <span class="gspin"></span><svg class="gicon" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.8-6.8C35.6 2.4 30.1 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.3 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.4c-.5 2.9-2.1 5.3-4.6 7l7.1 5.5c4.1-3.8 6.5-9.4 6.5-16z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.3.8-4.7l-7.9-6.1C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.1 0 11.3-2 15-5.5l-7.1-5.5c-2 1.3-4.6 2.1-7.9 2.1-6.3 0-11.6-3.8-13.5-9.3l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg><span class="glabel">Sign in with Google</span></a>
     <div class="fine">Restricted to @foundersinsuranceagency.com accounts.</div>
   </div>
 </body>

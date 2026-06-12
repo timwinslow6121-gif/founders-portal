@@ -506,10 +506,13 @@ def test_build_aggregate_matrix_payout_keep_and_totals(db_session, agency):
     assert "UHC" in carriers and "Devoted" in carriers
     cell = {(r["agent_name"], c): r["cells"].get(c) for r in m["rows"] for c in carriers}
 
-    # Tim UHC payout = 55 - 20 adjustment = 35 ; keep = 45 + 4.59 override = 49.59
+    # Tim UHC payout = 55 - 20 adjustment = 35.
+    # keep splits into Founders' split-share (45 from the renewal) + override (4.59).
     tim_uhc = cell[("Tim Winslow", "UHC")]
     assert round(tim_uhc["payout"], 2) == 35.00
-    assert round(tim_uhc["keep"], 2) == 49.59
+    assert round(tim_uhc["keep"], 2) == 49.59             # total keep (back-compat)
+    assert round(tim_uhc["split_keep"], 2) == 45.00       # Founders' share of the split
+    assert round(tim_uhc["override"], 2) == 4.59          # pure override lines
     # Rebekah UHC payout 110
     assert round(cell[("Rebekah Long", "UHC")]["payout"], 2) == 110.00
     # column total UHC payout = 35 + 110 = 145

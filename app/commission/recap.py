@@ -276,17 +276,27 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
         rows_q = rows_q.filter_by(period_label=period_label)
     lis = [li for li in rows_q.all() if _in_scope(li)]
 
-    # accumulate payout + keep per (agent_id, carrier)
-    pay = defaultdict(float)   # (agent_id, carrier) -> payout
-    keep = defaultdict(float)  # (agent_id, carrier) -> founders keep
+    # accumulate per (agent_id, carrier): agent payout, plus Founders keep split
+    # into its TWO sources — Founders' share of split commissions vs pure override
+    # lines — so the matrix can label them separately.
+    pay = defaultdict(float)          # agent take-home
+    split_keep = defaultdict(float)   # Founders' share of split (agent_commission/hra/chargeback)
+    override = defaultdict(float)     # pure founders_override lines (100% Founders)
     carriers, agents_with_data = set(), set()
     for li in lis:
         p, k = split_breakdown(li)
         carriers.add(li.carrier)
         agents_with_data.add(li.agent_id)
-        if li.classification in PAYOUT_CLASSES:
-            pay[(li.agent_id, li.carrier)] += p
-        keep[(li.agent_id, li.carrier)] += k
+        key = (li.agent_id, li.carrier)
+        if li.classification == "founders_override":
+            override[key] += k
+        elif li.classification in PAYOUT_CLASSES:
+            pay[key] += p
+            split_keep[key] += k
+        else:
+            # quarantine / unsplit rows: split_rate None → keep, but it's "pending",
+            # not Founders' true share. Park it in split_keep so totals still close.
+            split_keep[key] += k
 
     # adjustments fold into payout (per agent+carrier; scope-filtered)
     adj_q = CommissionAdjustment.query.filter_by(agency_id=agency_id)
@@ -311,22 +321,31 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
         name = users.get(aid, "(unattributed)") if aid else "(unattributed)"
         cells = {}
         for c in carriers:
-            pv, kv = round(pay.get((aid, c), 0.0), 2), round(keep.get((aid, c), 0.0), 2)
-            if pv or kv:
-                cells[c] = {"payout": pv, "keep": kv}
+            pv = round(pay.get((aid, c), 0.0), 2)
+            sk = round(split_keep.get((aid, c), 0.0), 2)
+            ov = round(override.get((aid, c), 0.0), 2)
+            if pv or sk or ov:
+                cells[c] = {"payout": pv, "split_keep": sk, "override": ov,
+                            "keep": round(sk + ov, 2)}
         rows.append({
             "agent_id": aid, "agent_name": name, "cells": cells,
             "payout_total": round(sum(v["payout"] for v in cells.values()), 2),
+            "split_keep_total": round(sum(v["split_keep"] for v in cells.values()), 2),
+            "override_total": round(sum(v["override"] for v in cells.values()), 2),
             "keep_total": round(sum(v["keep"] for v in cells.values()), 2),
         })
     rows.sort(key=lambda r: r["payout_total"], reverse=True)
 
-    carrier_totals = {c: {
-        "payout": round(sum(r["cells"].get(c, {}).get("payout", 0.0) for r in rows), 2),
-        "keep": round(sum(r["cells"].get(c, {}).get("keep", 0.0) for r in rows), 2),
-    } for c in carriers}
+    def _coltot(c, field):
+        return round(sum(r["cells"].get(c, {}).get(field, 0.0) for r in rows), 2)
+    carrier_totals = {c: {"payout": _coltot(c, "payout"),
+                          "split_keep": _coltot(c, "split_keep"),
+                          "override": _coltot(c, "override"),
+                          "keep": _coltot(c, "keep")} for c in carriers}
     grand = {
         "payout": round(sum(r["payout_total"] for r in rows), 2),
+        "split_keep": round(sum(r["split_keep_total"] for r in rows), 2),
+        "override": round(sum(r["override_total"] for r in rows), 2),
         "keep": round(sum(r["keep_total"] for r in rows), 2),
     }
     return {"scope": scope, "period_label": period_label, "year": year,

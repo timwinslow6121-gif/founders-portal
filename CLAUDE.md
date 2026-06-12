@@ -6,7 +6,7 @@
 ## 🧭 START HERE — current state (updated 2026-06-11)
 
 **FIRST ACTION each new session:** read these memory files before doing work — they hold current state that this file summarizes:
-1. `memory/session-handoff-2026-06-11-commissions.md` — NEWEST: where we left off (COMMISSION carrier work — ALL 6 carriers reconcile; UHC SHIPPED+IMPORTED live (stmt 55) w/ 2 prod hotfixes (migration 026 + no_autoflush); Devoted/Aetna ✅ done; Aetna Medigap supplement deferred; NEXT = AJ's UHC sign-off).
+1. `memory/session-handoff-2026-06-12-aggregate-ui.md` — NEWEST: where we left off (commission UI/aggregate session — All-Commissions matrix #6 shipped+polished, carrier-period status, Founders Agency override row, Rebekah/Betty attribution fixes, M3 spec WRITTEN awaiting review; migration head 028). Prev: `session-handoff-2026-06-11-commissions.md` (the carrier-parser work).
 2. `memory/uhc-parser-resume.md` — UHC parser details + resume.
 3. `memory/m2-phase2-resume-point.md` — M2 UI Phase 2 resume (Phase 1 shipped: design system + login + spinner all live).
 4. `memory/roadmap-2026-06-09.md` — the active roadmap.

@@ -244,6 +244,39 @@ def test_persist_line_items_resolves_agent_and_is_idempotent(db_session, agency)
     assert CommissionLineItem.query.filter_by(statement_id=stmt.id).count() == 1
 
 
+def test_persist_line_items_backlinks_customer_id_by_mbi(db_session, agency):
+    """Line items must carry customer_id (by MBI) so the recap can hyperlink the
+    member name to their profile. The customer already exists (the ingest resolver
+    created/matched it before persist_line_items runs)."""
+    from app.models import CommissionLineItem, CommissionStatement, Customer
+    from app.commission.ledger import LineItemDraft, persist_line_items, AGENT_COMMISSION
+    from app.extensions import db
+    from datetime import date
+
+    cust = Customer(agency_id=agency.id, first_name="Jane", last_name="Doe",
+                    full_name="Jane Doe", mbi="1AB2CD3EF45", source="bob")
+    db.session.add(cust)
+    stmt = CommissionStatement(agency_id=agency.id, carrier="UHC", agent_id=None,
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+
+    drafts = [
+        LineItemDraft(carrier="UHC", source_ref="uhc::0::1", raw_amount=28.92,
+                      split_rate=0.55, classification=AGENT_COMMISSION,
+                      mbi="1AB2CD3EF45", member_name="DOE, JANE"),
+        LineItemDraft(carrier="UHC", source_ref="uhc::0::2", raw_amount=4.59,
+                      split_rate=None, classification="founders_override",
+                      mbi="NOSUCHMBI99", member_name="GHOST, NO"),
+    ]
+    persist_line_items("UHC", drafts, stmt, agency.id)
+    db.session.flush()
+
+    rows = {li.source_ref: li for li in CommissionLineItem.query.filter_by(statement_id=stmt.id)}
+    assert rows["uhc::0::1"].customer_id == cust.id    # matched by MBI
+    assert rows["uhc::0::2"].customer_id is None        # no matching customer
+
+
 @pytest.mark.parametrize("carrier,fixture", [
     ("Healthspring", "healthspring_sample.xlsx"),
     ("Devoted", "devoted_sample.xlsx"),

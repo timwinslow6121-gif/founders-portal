@@ -849,7 +849,20 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
 def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=None) -> int:
     """Insert/update CommissionLineItem rows for a statement, idempotent on
     (statement_id, source_ref). agent_resolver(writing_agent_raw) -> user_id|None
-    resolves each draft's writing agent. Returns count written."""
+    resolves each draft's writing agent. Each row is also back-linked to its
+    Customer by MBI (the ingest resolver already created/matched the customer), so
+    the recap can hyperlink the member name to their profile. Returns count written."""
+    from app.models import Customer
+    # One query for all MBIs in this batch → customer_id map (cheap; customers
+    # already exist post-ingest). Humana keys on humana_id, not mbi.
+    mbis = {(d.mbi or "").strip() for d in drafts if (d.mbi or "").strip()}
+    cust_by_mbi = {}
+    if mbis:
+        col = Customer.humana_id if carrier == "Humana" else Customer.mbi
+        for cid, key in (db.session.query(Customer.id, col)
+                         .filter(Customer.agency_id == agency_id, col.in_(mbis)).all()):
+            if key:
+                cust_by_mbi[key] = cid
     count = 0
     for d in drafts:
         agent_id = None
@@ -868,6 +881,7 @@ def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=Non
         existing.period_label = statement.period_label
         existing.statement_date = statement.statement_date
         existing.agent_id = agent_id
+        existing.customer_id = cust_by_mbi.get((d.mbi or "").strip())
         existing.member_name = d.member_name
         existing.mbi = d.mbi
         existing.carrier_member_id = d.carrier_member_id

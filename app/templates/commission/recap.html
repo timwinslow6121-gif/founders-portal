@@ -119,6 +119,9 @@
   .recap-page .carrier .meta{font-size:.75rem;color:var(--rc-muted);margin-top:2px}
   .recap-page .aj-tag{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;background:var(--rc-blue-tint);color:var(--rc-blue);border-radius:999px;padding:2px 9px;margin-top:6px}
   .recap-page .aj-note{font-size:.72rem;color:var(--rc-muted);margin-top:4px;font-style:italic}
+  .recap-page .cstatus{font-size:.72rem;margin-top:2px}
+  .recap-page .cstatus.pending{color:#C2701A}
+  .recap-page .cstatus.zero{color:var(--rc-muted)}
 
   /* drill-down drawer */
   .recap-page .drawer{background:var(--rc-card);border-radius:var(--rc-r);box-shadow:var(--rc-shadow-lg);overflow:hidden;border:1px solid #EDF2F7;margin:0 0 24px}
@@ -330,7 +333,15 @@
           <span class="cname">{{ b.carrier }}</span>
         </div>
         <div class="amt">${{ "{:,.2f}".format(b.total_payout) }}</div>
-        {% if b.new_members > 0 %}
+        {% if b.total_payout == 0 and not b.groups %}
+          {% if b.status == 'pending' %}
+          <div class="cstatus pending">⏳ statement not uploaded yet</div>
+          {% elif b.status == 'confirmed_zero' %}
+          <div class="cstatus zero">✓ confirmed — no business</div>
+          {% else %}
+          <div class="cstatus zero">✓ no business this period</div>
+          {% endif %}
+        {% elif b.new_members > 0 %}
         <div class="added">+{{ b.new_members }} new members</div>
         {% else %}
         <div class="added none">no new members</div>

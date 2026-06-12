@@ -568,3 +568,64 @@ def test_admin_aggregate_blocks_non_admin(app, db_session, agency):
     with c.session_transaction() as sess:
         sess["_user_id"] = str(na_id)
     assert c.get("/admin/commissions/aggregate").status_code == 403
+
+
+# ── #4 carrier-period status (received / confirmed_zero / pending) ────────
+
+def test_carrier_period_status(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionStatement, CarrierPeriodConfirmation
+    from app.commission.recap import carrier_period_status
+    from datetime import date
+
+    with app.app_context():
+        # BCBS uploaded for May -> received
+        db.session.add(CommissionStatement(agency_id=agency.id, carrier="BCBS", agent_id=None,
+                       period_label="May 2026", filename="b.xlsx", statement_date=date(2026,5,1)))
+        # Aetna: no statement, but AJ confirmed $0 -> confirmed_zero
+        db.session.add(CarrierPeriodConfirmation(agency_id=agency.id, carrier="Aetna",
+                       period_label="May 2026", note="no Aetna business"))
+        db.session.commit()
+
+        st = carrier_period_status(agency.id, "May 2026")
+        assert st["BCBS"] == "received"
+        assert st["Aetna"] == "confirmed_zero"
+        # UHC: neither -> pending
+        assert st.get("UHC", "pending") == "pending"
+        assert carrier_period_status(agency.id, "May 2026", "UHC") == "pending"
+
+
+def test_recap_shows_contracted_carriers_at_zero_with_status(db_session, app, agency):
+    """An agent's recap shows EVERY carrier they're contracted with, even at $0,
+    tagged with the period's data status (received / confirmed_zero / pending)."""
+    from app.extensions import db
+    from app.models import (User, AgentCarrierContract, CommissionStatement,
+                            CarrierPeriodConfirmation)
+    from app.commission.recap import build_recap
+    from datetime import date
+
+    with app.app_context():
+        agent = User(name="Tim Winslow", email="contracted@x.com", agency_id=agency.id)
+        db.session.add(agent); db.session.flush()
+        # contracted with UHC, Aetna, BCBS
+        for c in ("UHC", "Aetna", "BCBS"):
+            db.session.add(AgentCarrierContract(agency_id=agency.id, agent_id=agent.id,
+                           carrier=c, is_active=True, split_rate=0.55))
+        # UHC has actual business; BCBS statement uploaded (but $0 for Tim);
+        # Aetna no statement but AJ confirmed $0.
+        _mk_line(db, agency, agent, "UHC", "agent_commission", "renewal", 100.0, 0.55, "A")
+        db.session.add(CommissionStatement(agency_id=agency.id, carrier="BCBS", agent_id=None,
+                       period_label="May 2026", filename="b.xlsx", statement_date=date(2026,5,1)))
+        db.session.add(CarrierPeriodConfirmation(agency_id=agency.id, carrier="Aetna",
+                       period_label="May 2026"))
+        db.session.commit()
+
+        recap = build_recap(agent.id, agency.id, "May 2026")
+        by_carrier = {b.carrier: b for b in recap.carriers}
+        assert set(by_carrier) >= {"UHC", "Aetna", "BCBS"}        # all contracted shown
+        assert round(by_carrier["UHC"].total_payout, 2) == 55.00
+        assert by_carrier["UHC"].status == "received"
+        assert by_carrier["BCBS"].total_payout == 0.0
+        assert by_carrier["BCBS"].status == "received"            # statement uploaded
+        assert by_carrier["Aetna"].total_payout == 0.0
+        assert by_carrier["Aetna"].status == "confirmed_zero"     # AJ confirmed no business

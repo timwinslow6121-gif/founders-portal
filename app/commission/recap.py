@@ -68,6 +68,7 @@ class CarrierBlock:
     pct_of_book: float = 0.0
     source: str = "ledger"   # "ledger" | "manual" (UHC)
     note: Optional[str] = None
+    status: str = "received"  # received | confirmed_zero | pending (data status this period)
     groups: List[CarrierGroup] = field(default_factory=list)
 
 
@@ -250,6 +251,30 @@ def _ledger_ytd_total(agent_id, agency_id, year):
     return round(total, 2), months
 
 
+def carrier_period_status(agency_id, period_label, carrier=None):
+    """Per-(carrier, period) data status for the agency:
+      'received'       — a CommissionStatement was uploaded for this carrier+period
+      'confirmed_zero' — no statement, but AJ confirmed there was no business
+      'pending'        — neither: the statement hasn't been uploaded yet
+    Returns a {carrier: status} dict, or a single status string if `carrier` given."""
+    from app.models import CommissionStatement, CarrierPeriodConfirmation
+    received = {c for (c,) in db.session.query(CommissionStatement.carrier)
+                .filter_by(agency_id=agency_id, period_label=period_label).distinct()}
+    confirmed = {c for (c,) in db.session.query(CarrierPeriodConfirmation.carrier)
+                 .filter_by(agency_id=agency_id, period_label=period_label).distinct()}
+
+    def _status(c):
+        if c in received:
+            return "received"
+        if c in confirmed:
+            return "confirmed_zero"
+        return "pending"
+
+    if carrier is not None:
+        return _status(carrier)
+    return {c: "received" for c in received} | {c: "confirmed_zero" for c in confirmed if c not in received}
+
+
 def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=None):
     """Admin all-agents × all-carriers matrix (#6, Option A). One cell per
     (agent, carrier) with agent `payout` (take-home, incl. adjustments — matches
@@ -375,7 +400,22 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
     uhc = (uhc_manual_block(rp) if rp else None) if not has_ledger_uhc else None
     if uhc:
         carriers.append(uhc)
-        carriers.sort(key=lambda b: b.total_payout, reverse=True)
+
+    # Persistent carrier containers: show EVERY carrier this agent is contracted
+    # with, even at $0, so a carrier never silently disappears. Tag each with its
+    # data status (received / confirmed_zero / pending) so $0 from "no business
+    # confirmed" is distinguishable from "statement not uploaded yet".
+    from app.models import AgentCarrierContract
+    status_map = carrier_period_status(agency_id, period_label)
+    contracted = {c.carrier for c in AgentCarrierContract.query
+                  .filter_by(agent_id=agent_id, agency_id=agency_id, is_active=True).all()}
+    present = {b.carrier for b in carriers}
+    for carrier in contracted - present:
+        carriers.append(CarrierBlock(carrier=carrier, total_payout=0.0, new_members=0,
+                                     status=status_map.get(carrier, "pending")))
+    for b in carriers:
+        b.status = status_map.get(b.carrier, "received" if b.groups else "pending")
+    carriers.sort(key=lambda b: b.total_payout, reverse=True)
 
     lost = lost_members_by_carrier(agent_id, agency_id, period_label)
     for b in carriers:

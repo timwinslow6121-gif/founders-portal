@@ -875,6 +875,32 @@ class CommissionAdjustment(db.Model):
         return f"<CommissionAdjustment agent={self.agent_id} {self.carrier} {self.period_label} {self.amount}>"
 
 
+class CarrierPeriodConfirmation(db.Model):
+    """AJ's explicit confirmation that a carrier had NO business for a period
+    (genuine $0), as opposed to 'statement not uploaded yet'. One row per
+    (agency, carrier, period). When a statement IS uploaded the status is derived
+    from that; this row only matters for carriers with no statement that period.
+    """
+    __tablename__ = "carrier_period_confirmations"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    agency_id    = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    carrier      = db.Column(db.String(64), nullable=False, index=True)
+    period_label = db.Column(db.String(32), nullable=False, index=True)   # "May 2026"
+
+    confirmed_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    confirmed_at    = db.Column(db.DateTime, server_default=db.func.now())
+    note            = db.Column(db.String(256))
+
+    __table_args__ = (
+        db.UniqueConstraint("agency_id", "carrier", "period_label",
+                            name="uq_carrier_period_confirm"),
+    )
+
+    def __repr__(self):
+        return f"<CarrierPeriodConfirmation {self.carrier} {self.period_label}>"
+
+
 class UnmatchedCall(db.Model):
     """
     Stores inbound calls/voicemails from phone numbers that could not be matched

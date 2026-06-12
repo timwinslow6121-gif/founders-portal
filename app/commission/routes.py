@@ -1622,10 +1622,42 @@ def admin_aggregate():
         year = date.today().year
     matrix = build_aggregate_matrix(current_user.agency_id, scope=scope,
                                     period_label=period, year=year)
+    # Per-carrier data status for the period (received / confirmed_zero / pending),
+    # so a column header shows whether that carrier's statement is in yet.
+    from app.commission.recap import carrier_period_status
+    statuses = ({c: carrier_period_status(current_user.agency_id, period, c)
+                 for c in matrix["carriers"]} if scope == "month" else {})
     return render_template("commission/aggregate.html", matrix=matrix, scope=scope,
-                           period_label=period, year=year,
+                           period_label=period, year=year, carrier_status=statuses,
                            periods=all_periods_with_data(current_user.agency_id),
                            is_admin=True)
+
+
+@commission_bp.route("/admin/commissions/confirm-zero", methods=["POST"])
+@login_required
+def admin_confirm_zero():
+    """AJ confirms a carrier had NO business for a period (genuine $0), so a blank
+    cell reads 'confirmed $0' instead of 'statement not uploaded yet'."""
+    if not current_user.is_admin:
+        abort(403)
+    from app.models import CarrierPeriodConfirmation, CommissionStatement
+    carrier = (request.form.get("carrier") or "").strip()
+    period = (request.form.get("period") or "").strip()
+    note = (request.form.get("note") or "").strip() or None
+    if not (carrier and period):
+        flash("Carrier and period required.", "error")
+        return redirect(url_for("commission.admin_aggregate", period=period))
+    # If a statement already exists for this carrier+period it's already 'received';
+    # confirming zero is only meaningful when there's no statement.
+    existing = CarrierPeriodConfirmation.query.filter_by(
+        agency_id=current_user.agency_id, carrier=carrier, period_label=period).first()
+    if not existing:
+        db.session.add(CarrierPeriodConfirmation(
+            agency_id=current_user.agency_id, carrier=carrier, period_label=period,
+            confirmed_by_id=current_user.id, note=note))
+        db.session.commit()
+    flash(f"Confirmed $0 for {carrier} — {period}.", "success")
+    return redirect(url_for("commission.admin_aggregate", period=period))
 
 
 @commission_bp.route("/admin/commissions/recap")

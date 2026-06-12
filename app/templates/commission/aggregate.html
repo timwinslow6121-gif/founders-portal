@@ -27,6 +27,11 @@
   .m3switch input:checked + .m3track{ background:var(--a-blue); border-color:var(--a-blue); }
   .m3switch input:checked + .m3track .m3thumb{ transform:translateX(18px); width:16px; height:16px; top:2px; left:2px; background:#fff; }
   .m3switch input:focus-visible + .m3track{ outline:2px solid var(--a-blue); outline-offset:2px; }
+  .cdot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-left:5px; vertical-align:middle; }
+  .cdot.ok{ background:var(--a-green); }
+  .cdot.zero{ background:var(--a-muted); }
+  .cdot-btn{ background:none; border:1px solid #C2701A; color:#C2701A; border-radius:999px; font-size:.6rem; padding:1px 6px; margin-left:5px; cursor:pointer; text-transform:none; letter-spacing:0; }
+  .cdot-btn:hover{ background:color-mix(in srgb,#C2701A 12%,transparent); }
   .agg-card{ background:var(--a-card); border:1px solid var(--a-border); border-radius:var(--radius); box-shadow:var(--shadow); padding:8px; overflow-x:auto; }
   table.agg{ width:100%; border-collapse:collapse; font-size:.86rem; }
   table.agg th, table.agg td{ padding:9px 10px; border-bottom:1px solid var(--a-border); white-space:nowrap; }
@@ -88,7 +93,21 @@
       <thead>
         <tr>
           <th>Agent</th>
-          {% for c in matrix.carriers %}<th>{{ c }}</th>{% endfor %}
+          {% for c in matrix.carriers %}
+          <th>{{ c }}
+            {% set st = (carrier_status or {}).get(c) %}
+            {% if st == 'received' %}<span class="cdot ok" title="Statement received"></span>
+            {% elif st == 'confirmed_zero' %}<span class="cdot zero" title="AJ confirmed $0 — no business"></span>
+            {% elif st == 'pending' %}
+              <form method="post" action="{{ url_for('commission.admin_confirm_zero') }}" style="display:inline"
+                    onsubmit="return confirm('Confirm {{ c }} had NO business for {{ period_label }}?')">
+                <input type="hidden" name="carrier" value="{{ c }}">
+                <input type="hidden" name="period" value="{{ period_label }}">
+                <button type="submit" class="cdot-btn" title="Statement not uploaded — click to confirm $0">⏳ confirm $0</button>
+              </form>
+            {% endif %}
+          </th>
+          {% endfor %}
           <th>Payout</th>
           <th class="keepcol" title="Founders' share of split commissions">F. split</th>
           <th class="keepcol" title="Pure Founders-override lines (100% Founders)">Override</th>

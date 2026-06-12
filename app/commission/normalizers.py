@@ -406,6 +406,77 @@ def _humana_name(grp_name):
     return s, "", s
 
 
+# ── UHC (raw 'Commission Transactions' sheet) ─────────────────────────────
+# Customer-sync normalizer for the raw UHC statement. Reduces each member row to
+# ONE MemberFact (the ledger extractor in ledger.py handles the override SPLIT
+# separately — different purpose). Column indices reuse the ledger's constants.
+from app.commission.ledger import (
+    _UHC_SHEET, _UHC_AGENT, _UHC_MEMBER, _UHC_MBI, _UHC_PLANTYPE,
+    _UHC_ACTION, _UHC_AMOUNT, _UHC_EFFDATE, _UHC_OVERRIDE, _near,
+)
+
+_UHC_CONTRACT = 13
+_UHC_PBP = 14
+
+
+def _classify_uhc(action, amount, plan_type):
+    """Map a UHC row to the 4-value RowClass taxonomy for customer sync.
+
+    HA bonuses, pure Founders-override rows ($4.59), and sub-$1 PARTD "dust" are
+    real payments but NOT a member enrollment/renewal — NON_CUSTOMER so they
+    write a payment without spawning a junk stub customer. (The ledger extractor
+    separately decides their split.)"""
+    a = str(action or "").lower()
+    plan = str(plan_type or "").upper().strip()
+
+    if a.startswith("ha payment") or a.startswith("ha chargeback"):
+        return RowClass.NON_CUSTOMER
+    # pure override-only row (the flat $4.59, either sign)
+    if _near(abs(amount), _UHC_OVERRIDE):
+        return RowClass.NON_CUSTOMER
+    # PARTD dust AJ drops (sub-$1, not the override)
+    if plan == "PARTD" and abs(amount) < 1.00:
+        return RowClass.NON_CUSTOMER
+
+    if amount < 0 or "chargeback" in a:
+        return RowClass.CHARGEBACK
+    if a.startswith("new"):
+        return RowClass.ENROLLMENT
+    return RowClass.RENEWAL
+
+
+def normalize_uhc(sheets):
+    """Agency-level raw UHC file: data on the 'Commission Transactions' sheet."""
+    rows = sheets.get(_UHC_SHEET) if sheets else None
+    if not rows:
+        return []
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row) or len(row) <= _UHC_AMOUNT:
+            continue
+        amount = round(_to_float(row[_UHC_AMOUNT]), 2)
+        if amount == 0:
+            continue
+        member = str(row[_UHC_MEMBER] or "").strip()
+        agent = str(row[_UHC_AGENT] or "").strip()
+        plan_type = str(row[_UHC_PLANTYPE] or "").strip() or None
+        action = str(row[_UHC_ACTION] or "").strip()
+        out.append(MemberFact(
+            carrier="UHC",
+            full_name=member,
+            mbi=str(row[_UHC_MBI] or "").strip() or None,
+            effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
+            plan_contract=str(row[_UHC_CONTRACT] or "").strip() or None,
+            plan_pbp=str(row[_UHC_PBP] or "").strip() or None,
+            plan_type=plan_type,
+            row_class=_classify_uhc(action, amount, plan_type),
+            amount=amount,
+            writing_agent_raw=agent,
+            source_ref=f"uhc::0::{idx}",
+        ))
+    return out
+
+
 def normalize_humana(sheets):
     if not sheets:
         return []
@@ -456,4 +527,5 @@ NORMALIZERS = {
     "BCBS": normalize_bcbs,
     "Aetna": normalize_aetna,
     "Humana": normalize_humana,
+    "UHC": normalize_uhc,
 }

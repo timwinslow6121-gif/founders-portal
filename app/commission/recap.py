@@ -137,6 +137,25 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
     return blocks
 
 
+def quarantined_line_items(statement_id, agency_id):
+    """The needs_manual_review line items for a statement (UHC's ~2.3% the parser
+    can't auto-split: 'New' enrollment proration, PARTD dust, other-agent
+    Med-Supp). These are recorded but NOT split (split_rate NULL → payout 0), so
+    nothing is silently dropped — AJ hand-splits them from the quarantine tab.
+    Returns {count, total, rows:[{member_name, mbi, amount, action}]}."""
+    items = (CommissionLineItem.query
+             .filter_by(statement_id=statement_id, agency_id=agency_id,
+                        classification="needs_manual_review")
+             .order_by(CommissionLineItem.member_name)
+             .all())
+    rows = [{"member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
+             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or ""}
+            for li in items]
+    return {"count": len(rows),
+            "total": round(sum(r["amount"] for r in rows), 2),
+            "rows": rows}
+
+
 from datetime import datetime
 from app.models import Policy
 

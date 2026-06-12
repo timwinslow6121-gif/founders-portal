@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Quarantine — {{ stmt.carrier }} {{ stmt.period_label }}{% endblock %}
+
+{% block styles %}
+<style>
+  .quar-wrap { max-width: 980px; margin: 0 auto; }
+  .quar-head { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:8px; }
+  .quar-sub { color: var(--slate); font-size: 13px; margin-bottom: 20px; }
+  .quar-summary { display:flex; gap:24px; margin: 16px 0 24px; }
+  .quar-stat { background: var(--surface); border:1px solid var(--border); border-radius: var(--radius-sm, 8px);
+               padding:14px 18px; }
+  .quar-stat .n { font-size: 22px; font-weight: 700; color: var(--ivory-bright); }
+  .quar-stat .l { font-size: 12px; color: var(--slate); text-transform: uppercase; letter-spacing: .04em; }
+  table.quar-table { width:100%; border-collapse: collapse; font-size: 14px; }
+  table.quar-table th { text-align:left; padding:8px 10px; border-bottom:2px solid var(--border);
+                        color: var(--slate); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  table.quar-table td { padding:8px 10px; border-bottom:1px solid var(--border); }
+  table.quar-table td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  td.num.neg { color: var(--status-error); }
+  .quar-empty { background: var(--surface); border:1px solid var(--border); border-radius:8px;
+                padding:32px; text-align:center; color: var(--slate); }
+  .back-link { color: var(--gold); font-size:13px; text-decoration:none; }
+  .help-note { background: color-mix(in srgb, var(--status-waiting) 8%, transparent);
+               border:1px solid color-mix(in srgb, var(--status-waiting) 30%, transparent);
+               border-radius:8px; padding:12px 16px; font-size:13px; color: var(--ivory);
+               margin-bottom:20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="quar-wrap">
+  <a class="back-link" href="{{ url_for('commission.commission_admin') }}">← Commission Audit</a>
+
+  <div class="quar-head" style="margin-top:12px;">
+    <h1 style="margin:0;">Quarantine — {{ stmt.carrier }} {{ stmt.period_label }}</h1>
+  </div>
+  <div class="quar-sub">
+    Lines the parser could not auto-split. They are recorded (nothing is dropped) but
+    <strong>not</strong> attributed to an agent's payout — review and split these by hand.
+  </div>
+
+  {% if quar.count %}
+    <div class="help-note">
+      These are typically “New” enrollments (proration math), sub-$1 Part D dust, or
+      other-agent Med-Supp rows. Their total is shown so you can reconcile the statement;
+      enter the splits in your usual workflow.
+    </div>
+
+    <div class="quar-summary">
+      <div class="quar-stat"><div class="n">{{ quar.count }}</div><div class="l">Lines</div></div>
+      <div class="quar-stat"><div class="n">${{ '%.2f'|format(quar.total) }}</div><div class="l">Total</div></div>
+    </div>
+
+    <table class="quar-table">
+      <thead>
+        <tr><th>Member</th><th>MBI</th><th>Action</th><th style="text-align:right;">Amount</th></tr>
+      </thead>
+      <tbody>
+        {% for r in quar.rows %}
+        <tr>
+          <td>{{ r.member_name }}</td>
+          <td style="font-variant-numeric:tabular-nums;color:var(--slate);">{{ r.mbi or '—' }}</td>
+          <td>{{ r.action or '—' }}</td>
+          <td class="num{{ ' neg' if r.amount < 0 else '' }}">${{ '%.2f'|format(r.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="quar-empty">
+      ✓ No quarantined lines — every row on this statement was auto-split into the ledger.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

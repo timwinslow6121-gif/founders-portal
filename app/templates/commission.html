@@ -453,6 +453,12 @@
               {% elif s.status == 'pending_review' %}<span class="badge" style="background:color-mix(in srgb, var(--status-waiting) 12%, transparent);color:var(--status-waiting);">Review</span>
               {% elif s.status == 'disputed' %}<span class="badge badge-orange">Disputed</span>
               {% else %}<span class="badge badge-gold">—</span>{% endif %}
+              {% set qn = quar_counts.get(s.id, 0) if quar_counts is defined else 0 %}
+              {% if qn %}
+                <a href="{{ url_for('commission.commission_quarantine', stmt_id=s.id) }}"
+                   class="badge badge-orange" style="text-decoration:none;margin-left:6px;"
+                   title="{{ qn }} line(s) need manual review">⚠ {{ qn }} review</a>
+              {% endif %}
             </td>
             <td style="text-align:right;padding-right:12px;">
               <form method="POST" action="{{ url_for('commission.commission_delete', stmt_id=s.id) }}"

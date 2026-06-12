@@ -26,9 +26,12 @@ def test_donald_long_uhc_rolls_to_brian():
 
 
 def test_cyndi_mortimer_rolls_to_brian_on_both_carriers():
+    """Her LEGAL name on the carrier files is 'MORTIMER, CYNTHIA WALKUP' (NOT
+    'Cyndi') — the real-file form must roll up."""
     from app.commission.rollup import apply_rollup
-    assert apply_rollup("Mortimer, Cyndi", "Aetna") == "Brian Freeman"
-    assert apply_rollup("Cyndi Mortimer", "UHC") == "Brian Freeman"
+    assert apply_rollup("MORTIMER, CYNTHIA WALKUP", "Aetna") == "Brian Freeman"
+    assert apply_rollup("MORTIMER, CYNTHIA WALKUP", "UHC") == "Brian Freeman"
+    assert apply_rollup("Cynthia Mortimer", "UHC") == "Brian Freeman"
 
 
 def test_rollup_is_scoped_to_aetna_and_uhc_only():
@@ -36,7 +39,7 @@ def test_rollup_is_scoped_to_aetna_and_uhc_only():
     per AJ). The name passes through unchanged."""
     from app.commission.rollup import apply_rollup
     assert apply_rollup("Long, Donald", "Devoted") == "Long, Donald"
-    assert apply_rollup("Mortimer, Cyndi", "BCBS") == "Mortimer, Cyndi"
+    assert apply_rollup("MORTIMER, CYNTHIA WALKUP", "BCBS") == "MORTIMER, CYNTHIA WALKUP"
 
 
 def test_active_agents_pass_through_unchanged():

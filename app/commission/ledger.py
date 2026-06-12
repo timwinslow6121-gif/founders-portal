@@ -743,19 +743,17 @@ def money_rows_total_uhc(sheets) -> float:
 
 
 # (extractor, money_rows_total) per carrier.
-# ⚠ UHC is deliberately NOT registered here yet — its extractor exists
-# (extract_lineitems_uhc / money_rows_total_uhc above) but is WIP with KNOWN-WRONG
-# totals (override-decomposition not done; see the big warning above + spec).
-# Registering it would expose it to the live upload dispatch (routes.py:935). Add
-# the "UHC" entry ONLY after the override split is fixed and re-validated against
-# AJ's answer-key files. Until then: import the functions directly in a script for
-# offline testing, never through upload.
+# UHC was validated 2026-06-11 (97.7% auto-split, every agent balances to the
+# penny; the ~2.3% it can't auto-split — "New" enrollment proration, PARTD dust,
+# other-agent Med-Supp — are tagged NEEDS_MANUAL_REVIEW and surfaced in the
+# upload's quarantine tab for AJ). Now live through the normalized upload path.
 EXTRACTORS = {
     "Healthspring": (extract_lineitems_healthspring, money_rows_total_healthspring),
     "Devoted": (extract_lineitems_devoted, money_rows_total_devoted),
     "BCBS": (extract_lineitems_bcbs, money_rows_total_bcbs),
     "Aetna": (extract_lineitems_aetna, money_rows_total_aetna),
     "Humana": (extract_lineitems_humana, money_rows_total_humana),
+    "UHC": (extract_lineitems_uhc, money_rows_total_uhc),
 }
 
 

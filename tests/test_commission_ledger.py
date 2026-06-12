@@ -173,10 +173,14 @@ def test_humana_classifies_and_totals():
     assert round(sum(d.raw_amount for d in drafts), 2) == round(money_rows_total_humana(sheets), 2)
 
 
-def test_registry_has_five_clean_carriers_not_uhc():
+def test_registry_has_all_six_carriers_including_uhc():
+    """UHC went live 2026-06-11 (validated raw parser). All six carriers are now
+    registered in both the ledger EXTRACTORS and the NORMALIZERS pipeline."""
     from app.commission.ledger import EXTRACTORS
-    assert set(EXTRACTORS) == {"Healthspring", "Devoted", "BCBS", "Aetna", "Humana"}
-    assert "UHC" not in EXTRACTORS
+    from app.commission.normalizers import NORMALIZERS
+    expected = {"Healthspring", "Devoted", "BCBS", "Aetna", "Humana", "UHC"}
+    assert set(EXTRACTORS) == expected
+    assert set(NORMALIZERS) == expected
 
 
 def test_verify_statement_balance_internal_and_completeness():

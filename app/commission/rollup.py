@@ -28,7 +28,9 @@ _ROLLUP_CARRIERS = {"aetna", "uhc"}
 # (a DIFFERENT, active agent) normalizes to "rebekah long" and is untouched.
 _RETIRED_ROLLUPS = {
     "donald long": "Brian Freeman",
-    "cyndi mortimer": "Brian Freeman",
+    # Cyndi's legal name on the carrier files is "MORTIMER, CYNTHIA WALKUP", which
+    # _normalize_name reduces to "cynthia mortimer" (NOT "cyndi mortimer").
+    "cynthia mortimer": "Brian Freeman",
 }
 
 

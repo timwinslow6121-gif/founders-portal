@@ -20,7 +20,7 @@ from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
 from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
                                    publish_recap, build_carrier_blocks, latest_period_with_data,
-                                   all_periods_with_data)
+                                   all_periods_with_data, quarantined_line_items)
 from app.commission.rollup import apply_rollup
 
 SPLIT_RATE = 0.55
@@ -660,6 +660,14 @@ def _ledger_split_lookup(writing_agent_raw, carrier):
     return contract.split_rate if contract else 0.55
 
 
+# Maiden-/legal-name aliases that the last-name fuzzy matcher can't bridge.
+# Keyed on _normalize_name() output ("first last"). Betty Marlowe writes some
+# carrier business under her legal name "RIDDLE, BETTY B" → "betty riddle".
+_NAME_ALIASES = {
+    "betty riddle": "betty marlowe",
+}
+
+
 def _match_agent_name(agent_name_raw):
     """Match a raw 'Last, First' / 'First Last' agent name to a portal User id."""
 
@@ -674,6 +682,8 @@ def _match_agent_name(agent_name_raw):
         Returns the user id, or None on no match / ambiguity."""
         if not normalized:
             return None
+        # Maiden-/legal-name alias (e.g. "betty riddle" → "betty marlowe").
+        normalized = _NAME_ALIASES.get(normalized, normalized)
         # Exact match after normalisation
         for user in users:
             if _normalize_name(user.name) == normalized:
@@ -793,8 +803,18 @@ def commission_admin():
               .filter_by(agency_id=agency_id)
               .order_by(CommissionStatement.upload_date.desc())
               .limit(20).all())
+    # Quarantine counts per recent statement (one grouped query) → tab badge.
+    quar_counts = {}
+    if recent:
+        rows = (db.session.query(CommissionLineItem.statement_id,
+                                 db.func.count(CommissionLineItem.id))
+                .filter(CommissionLineItem.agency_id == agency_id,
+                        CommissionLineItem.classification == "needs_manual_review",
+                        CommissionLineItem.statement_id.in_([s.id for s in recent]))
+                .group_by(CommissionLineItem.statement_id).all())
+        quar_counts = {sid: n for sid, n in rows}
     return render_template("commission.html",
-        agent_summaries=agent_summaries, recent=recent,
+        agent_summaries=agent_summaries, recent=recent, quar_counts=quar_counts,
         is_admin=True, viewing_agent=None)
 
 
@@ -978,6 +998,15 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         f"({ingest.stubs_created} stubs), {ingest.chargebacks} chargebacks"
         + (f", {ingest.match_suggestions} match suggestions" if ingest.match_suggestions else "")
         + ".", "success")
+
+    # Surface quarantined rows (UHC's needs-manual-review lines) so nothing is
+    # silently dropped — AJ hand-splits them from the statement's Quarantine tab.
+    quar = quarantined_line_items(stmt.id, current_user.agency_id)
+    if quar["count"]:
+        flash(
+            f"⚠ {quar['count']} {carrier} line(s) totaling ${quar['total']:,.2f} "
+            f"need manual review — open the statement's Quarantine tab to split them.",
+            "warning")
     return redirect(url_for("commission.commission_admin"))
 
 
@@ -1159,6 +1188,19 @@ def commission_delete(stmt_id):
     db.session.commit()
     flash(f"{label} statement deleted.", "success")
     return redirect(url_for("commission.commission_admin"))
+
+
+@commission_bp.route("/admin/commissions/<int:stmt_id>/quarantine")
+@login_required
+def commission_quarantine(stmt_id):
+    """The needs-manual-review lines for a statement (UHC's ~2.3% the parser can't
+    auto-split). AJ reviews them here and hand-splits in his own workflow."""
+    if not current_user.is_admin:
+        abort(403)
+    stmt = CommissionStatement.query.filter_by(
+        id=stmt_id, agency_id=current_user.agency_id).first_or_404()
+    quar = quarantined_line_items(stmt.id, current_user.agency_id)
+    return render_template("commission_quarantine.html", stmt=stmt, quar=quar)
 
 
 @commission_bp.route("/admin/commissions/agent/<int:agent_id>")

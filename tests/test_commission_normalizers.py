@@ -246,3 +246,99 @@ def test_normalize_devoted_agency_source_refs_file_tagged():
     facts = normalize_devoted(sheets)
     assert facts
     assert all(f.source_ref.startswith("devoted::agency::") for f in facts)
+
+
+# ── UHC normalizer (raw 'Commission Transactions' sheet) ──────────────────
+
+# Column layout of the raw UHC statement (verified against the real file):
+#  5 Writing Agent Name | 7 Member Name | 8 MedicareID | 11 Orig Eff Date
+#  12 Plan Type | 13 Contract | 14 PBP | 19 Commission Action | 23 Commission
+_UHC_HEADER = (
+    ["Party ID", "Agent Name", "Agent ID", "Statement Date", "Writing Agent ID",
+     "Writing Agent Name", "Client Reference #", "Member Name", "MedicareID",
+     "AARP Member ID", "Policy Number", "Original Effective Date", "Plan Type",
+     "Contract", "PBP", "Plan Code", "Member State", "Area ID", "Member County",
+     "Commission Action", "Payment Period", "Prem Amount", "UAD Activity", "Commission"]
+)
+
+
+def _uhc_row(agent="WINSLOW, TIMOTHY", member="DOE, JANE", mbi="1AB2CD3EF45",
+             plan_type="MAPD", contract="H5253", pbp="037", action="Renewal",
+             amount=33.51, eff="2025-01-01"):
+    r = [""] * 24
+    r[5] = agent; r[7] = member; r[8] = mbi; r[11] = eff
+    r[12] = plan_type; r[13] = contract; r[14] = pbp
+    r[19] = action; r[23] = amount
+    return r
+
+
+def test_classify_uhc_chargeback_renewal_enrollment():
+    from app.commission.normalizers import _classify_uhc
+    from app.commission.member_fact import RowClass
+    assert _classify_uhc("New Chargeback", -268.0, "MAPD") == RowClass.CHARGEBACK
+    assert _classify_uhc("Renewal", 33.51, "MAPD") == RowClass.RENEWAL
+    assert _classify_uhc("New", 250.0, "MAPD") == RowClass.ENROLLMENT
+    # any negative is a chargeback even if action says otherwise
+    assert _classify_uhc("Renewal", -33.51, "MAPD") == RowClass.CHARGEBACK
+
+
+def test_classify_uhc_ha_and_override_and_dust_are_non_customer():
+    """HA bonus, pure override ($4.59), and PARTD dust must NOT create customers."""
+    from app.commission.normalizers import _classify_uhc
+    from app.commission.member_fact import RowClass
+    assert _classify_uhc("HA Payment", 50.0, "MAPD") == RowClass.NON_CUSTOMER
+    assert _classify_uhc("Renewal", 4.59, "MAPD") == RowClass.NON_CUSTOMER   # override-only
+    assert _classify_uhc("Renewal", 0.26, "PARTD") == RowClass.NON_CUSTOMER  # dust
+
+
+def test_normalize_uhc_reduces_sheet_to_member_facts():
+    from app.commission.normalizers import normalize_uhc
+    from app.commission.member_fact import RowClass
+    sheets = {"Commission Transactions": [
+        _UHC_HEADER,
+        _uhc_row(agent="WINSLOW, TIMOTHY", member="DOE, JANE", mbi="1AB2CD3EF45",
+                 action="Renewal", amount=33.51),
+        _uhc_row(agent="FREEMAN, BRIAN LEE", member="SMITH, BOB", mbi="9ZZ8YY7XX66",
+                 action="New", amount=250.0, plan_type="DSNP"),
+        _uhc_row(agent="WINSLOW, TIMOTHY", member="LEE, ANN", mbi="2BC3DE4FG56",
+                 action="New Chargeback", amount=-268.0),
+    ]}
+    facts = normalize_uhc(sheets)
+    assert len(facts) == 3
+    assert all(f.carrier == "UHC" for f in facts)
+    assert all(f.source_ref.startswith("uhc::0::") for f in facts)
+    by_member = {f.full_name: f for f in facts}
+    assert by_member["DOE, JANE"].row_class == RowClass.RENEWAL
+    assert by_member["DOE, JANE"].mbi == "1AB2CD3EF45"
+    assert by_member["DOE, JANE"].writing_agent_raw == "WINSLOW, TIMOTHY"
+    assert by_member["SMITH, BOB"].row_class == RowClass.ENROLLMENT
+    assert by_member["LEE, ANN"].row_class == RowClass.CHARGEBACK
+    assert by_member["LEE, ANN"].amount == -268.0
+
+
+def test_normalize_uhc_skips_zero_and_empty_rows():
+    from app.commission.normalizers import normalize_uhc
+    sheets = {"Commission Transactions": [
+        _UHC_HEADER,
+        _uhc_row(amount=0.0),         # zero -> skip
+        [""] * 24,                    # empty -> skip
+        _uhc_row(member="REAL, ONE", amount=28.92),
+    ]}
+    facts = normalize_uhc(sheets)
+    assert len(facts) == 1
+    assert facts[0].full_name == "REAL, ONE"
+
+
+def test_normalize_uhc_override_and_ha_are_non_customer():
+    from app.commission.normalizers import normalize_uhc
+    from app.commission.member_fact import RowClass
+    sheets = {"Commission Transactions": [
+        _UHC_HEADER,
+        _uhc_row(member="OVR, ONLY", action="Renewal", amount=4.59),   # override-only
+        _uhc_row(member="HA, BONUS", action="HA Payment", amount=50.0),
+    ]}
+    facts = normalize_uhc(sheets)
+    assert {f.full_name: f.row_class for f in facts} == {
+        "OVR, ONLY": RowClass.NON_CUSTOMER,
+        "HA, BONUS": RowClass.NON_CUSTOMER,
+    }

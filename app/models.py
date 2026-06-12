@@ -794,7 +794,7 @@ class CommissionLineItem(db.Model):
     split_rate    = db.Column(db.Float, nullable=True)    # snapshotted at import; NULL for founders_override
 
     classification = db.Column(db.String(32), nullable=False, index=True)
-    payment_type   = db.Column(db.String(32))             # descriptive: renewal|initial|hra|override|...
+    payment_type   = db.Column(db.String(256))            # descriptive: renewal|initial|hra|override|... (UHC quarantine rows store the full action string for AJ's triage)
 
     created_at    = db.Column(db.DateTime, server_default=db.func.now())
 

@@ -88,6 +88,27 @@ def test_quarantine_page_renders_for_admin(db_session, app, client, agency):
     assert "Quarantine" in body
 
 
+def test_long_quarantine_action_string_persists(db_session, app, agency):
+    """A real UHC quarantine row stores the full Commission Action description
+    (~95 chars). It must persist (the column was VARCHAR(32) and broke uploads
+    with StringDataRightTruncation — regression guard for migration 026)."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+
+    long_action = ("New, DVH Manual Payment, DVH 1000 Plan, 09/01/2025 eff, "
+                   "Policy 450396656, written by 6435806 for JANA BENSON, State: NC,")
+    assert len(long_action) > 32
+
+    with app.app_context():
+        stmt = _mk_stmt(db, agency)
+        _mk_li(db, agency, stmt, cls="needs_manual_review", raw=29.53,
+               name="BENSON, JANA", ptype=long_action, ref="uhc::0::30")
+        db.session.commit()  # MUST NOT raise StringDataRightTruncation
+
+        li = CommissionLineItem.query.filter_by(statement_id=stmt.id).first()
+        assert li.payment_type == long_action  # stored in full, not truncated
+
+
 def test_betty_riddle_legal_name_resolves_to_betty_marlowe(db_session, app, agency):
     """Betty writes some UHC business under her legal name 'RIDDLE, BETTY B'. It
     must resolve to her portal user (Betty Marlowe), not fall through unmatched."""

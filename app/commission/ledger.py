@@ -725,8 +725,11 @@ def extract_lineitems_uhc(sheets, split_lookup) -> List[LineItemDraft]:
 
         # ── Everything else: "New" enrollments (complex cols L/T/AA/AB — analyze
         #    later), other-agent Med-Supp, PDP edge cases, DVH manual, garbage.
+        #    Keep the full action string (AJ reads it in the quarantine tab) but
+        #    cap to the payment_type column width (256) so an upload can never
+        #    fail on a long description.
         out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref,
-                         ptype=(action[:120] or None)))
+                         ptype=(action[:256] or None)))
     return out
 
 

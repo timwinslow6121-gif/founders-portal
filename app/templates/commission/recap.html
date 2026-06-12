@@ -605,6 +605,15 @@
       if(currentCarrier){ fetchDetail(currentCarrier, q); }
     }, 220);
   });
+
+  // Auto-open a carrier's drill-down when arriving with ?carrier=… (e.g. from the
+  // All-Commissions matrix, so the box AJ clicked is already open here).
+  (function(){
+    var want = new URLSearchParams(window.location.search).get('carrier');
+    if(!want) return;
+    var btn = document.querySelector('button.carrier[data-carrier="' + (window.CSS && CSS.escape ? CSS.escape(want) : want) + '"]');
+    if(btn){ window.recapOpenCarrier(btn, want); }
+  })();
 })();
 </script>
 {% endif %}

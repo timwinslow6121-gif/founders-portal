@@ -9,13 +9,24 @@
     max-width:1180px; margin:0 auto; }
   .agg-page h1{ color:var(--a-navy); margin:0 0 4px; }
   .agg-lead{ color:var(--a-muted); font-size:.86rem; margin:0 0 18px; }
-  .agg-toolbar{ display:flex; gap:10px; align-items:center; margin:0 0 16px; flex-wrap:wrap; }
-  .agg-toggle{ display:inline-flex; border:1px solid var(--a-border); border-radius:999px; overflow:hidden; background:var(--a-card); }
-  .agg-toggle a{ padding:7px 16px; text-decoration:none; color:var(--a-muted); font-size:.85rem; }
+  /* one contained control bar */
+  .agg-toolbar{ display:flex; gap:14px; align-items:center; margin:0 0 16px; flex-wrap:wrap;
+    background:var(--a-card); border:1px solid var(--a-border); border-radius:14px;
+    box-shadow:var(--shadow); padding:10px 14px; }
+  .agg-toggle{ display:inline-flex; border:1px solid var(--a-border); border-radius:999px; overflow:hidden; background:var(--a-bg); }
+  .agg-toggle a{ padding:6px 14px; text-decoration:none; color:var(--a-muted); font-size:.82rem; }
   .agg-toggle a.on{ background:var(--a-blue); color:#fff; }
-  .agg-toolbar select{ padding:7px 12px; border:1px solid var(--a-border); border-radius:10px; background:var(--a-card); color:var(--a-ink); font:inherit; }
-  .agg-legend{ margin-left:auto; color:var(--a-muted); font-size:.78rem; }
-  .agg-legend .k{ color:var(--a-green); }
+  .agg-toolbar select{ padding:6px 12px; border:1px solid var(--a-border); border-radius:10px; background:var(--a-bg); color:var(--a-ink); font:inherit; font-size:.82rem; }
+  /* Material-3 on/off switch */
+  .m3switch{ display:inline-flex; align-items:center; gap:9px; font-size:.82rem; color:var(--a-ink); cursor:pointer; user-select:none; }
+  .m3switch input{ position:absolute; opacity:0; width:0; height:0; }
+  .m3track{ position:relative; width:42px; height:24px; border-radius:999px; background:var(--a-bg);
+    border:2px solid var(--a-muted); transition:background .18s, border-color .18s; flex:none; }
+  .m3thumb{ position:absolute; top:4px; left:4px; width:12px; height:12px; border-radius:50%;
+    background:var(--a-muted); transition:transform .18s, width .18s, height .18s, top .18s, left .18s, background .18s; }
+  .m3switch input:checked + .m3track{ background:var(--a-blue); border-color:var(--a-blue); }
+  .m3switch input:checked + .m3track .m3thumb{ transform:translateX(18px); width:16px; height:16px; top:2px; left:2px; background:#fff; }
+  .m3switch input:focus-visible + .m3track{ outline:2px solid var(--a-blue); outline-offset:2px; }
   .agg-card{ background:var(--a-card); border:1px solid var(--a-border); border-radius:var(--radius); box-shadow:var(--shadow); padding:8px; overflow-x:auto; }
   table.agg{ width:100%; border-collapse:collapse; font-size:.86rem; }
   table.agg th, table.agg td{ padding:9px 10px; border-bottom:1px solid var(--a-border); white-space:nowrap; }
@@ -59,12 +70,14 @@
       <option value="{{ p }}" {{ 'selected' if p == period_label else '' }}>{{ p }}</option>
       {% endfor %}
     </select>
-    <label class="agg-keepswitch">
-      <input type="checkbox" id="aggKeepToggle"> Show Founders keep
+    <label class="m3switch" title="Show Founders' keep (split-share + override) per cell">
+      <input type="checkbox" id="aggKeepToggle">
+      <span class="m3track"><span class="m3thumb"></span></span>
+      Founders keep
     </label>
     {% if matrix.grand.pending %}
     <span class="agg-pending" title="Unsplit 'New' enrollments etc. awaiting manual review — not yet attributed">
-      ⚠ ${{ '{:,.0f}'.format(matrix.grand.pending) }} pending review
+      ⚠ ${{ '{:,.2f}'.format(matrix.grand.pending) }} pending review
     </span>
     {% endif %}
   </div>
@@ -91,35 +104,35 @@
             <td class="cell">
               {% if r.agent_id and scope == 'month' %}
               <a class="{{ 'neg' if cell.payout < 0 else '' }}"
-                 href="{{ url_for('commission.admin_recap', agent_id=r.agent_id, period=period_label) }}"
+                 href="{{ url_for('commission.admin_recap', agent_id=r.agent_id, period=period_label, carrier=c) }}"
                  title="{{ r.agent_name }} · {{ c }} — payout ${{ '%.2f'|format(cell.payout) }} · Founders split-share ${{ '%.2f'|format(cell.split_keep) }} · override ${{ '%.2f'|format(cell.override) }}{% if cell.pending %} · pending ${{ '%.2f'|format(cell.pending) }}{% endif %}">
-                {{ '{:,.0f}'.format(cell.payout) }}
-                <span class="sub keep-only">split {{ '{:,.0f}'.format(cell.split_keep) }} · ovr {{ '{:,.0f}'.format(cell.override) }}</span>
+                {{ '${:,.2f}'.format(cell.payout) }}
+                <span class="sub keep-only">split {{ '${:,.0f}'.format(cell.split_keep) }} · ovr {{ '${:,.0f}'.format(cell.override) }}</span>
               </a>
               {% else %}
-              <span class="{{ 'neg' if cell.payout < 0 else '' }}">{{ '{:,.0f}'.format(cell.payout) }}</span>
-              <span class="sub keep-only">split {{ '{:,.0f}'.format(cell.split_keep) }} · ovr {{ '{:,.0f}'.format(cell.override) }}</span>
+              <span class="{{ 'neg' if cell.payout < 0 else '' }}">{{ '${:,.2f}'.format(cell.payout) }}</span>
+              <span class="sub keep-only">split {{ '${:,.0f}'.format(cell.split_keep) }} · ovr {{ '${:,.0f}'.format(cell.override) }}</span>
               {% endif %}
             </td>
             {% else %}
             <td class="empty">—</td>
             {% endif %}
           {% endfor %}
-          <td class="pt {{ 'neg' if r.payout_total < 0 else '' }}">{{ '{:,.0f}'.format(r.payout_total) }}</td>
-          <td class="kt keepcol">{{ '{:,.0f}'.format(r.split_keep_total) }}</td>
-          <td class="kt keepcol">{{ '{:,.0f}'.format(r.override_total) }}</td>
+          <td class="pt {{ 'neg' if r.payout_total < 0 else '' }}">{{ '${:,.2f}'.format(r.payout_total) }}</td>
+          <td class="kt keepcol">{{ '${:,.2f}'.format(r.split_keep_total) }}</td>
+          <td class="kt keepcol">{{ '${:,.2f}'.format(r.override_total) }}</td>
         </tr>
         {% endfor %}
         <tr class="total">
           <td>TOTAL</td>
           {% for c in matrix.carriers %}
-          <td class="cell">{{ '{:,.0f}'.format(matrix.carrier_totals[c].payout) }}
-            <span class="sub keep-only">split {{ '{:,.0f}'.format(matrix.carrier_totals[c].split_keep) }} · ovr {{ '{:,.0f}'.format(matrix.carrier_totals[c].override) }}</span>
+          <td class="cell">{{ '${:,.2f}'.format(matrix.carrier_totals[c].payout) }}
+            <span class="sub keep-only">split {{ '${:,.0f}'.format(matrix.carrier_totals[c].split_keep) }} · ovr {{ '${:,.0f}'.format(matrix.carrier_totals[c].override) }}</span>
           </td>
           {% endfor %}
-          <td class="grand">{{ '{:,.0f}'.format(matrix.grand.payout) }}</td>
-          <td class="kt keepcol">{{ '{:,.0f}'.format(matrix.grand.split_keep) }}</td>
-          <td class="kt keepcol">{{ '{:,.0f}'.format(matrix.grand.override) }}</td>
+          <td class="grand">{{ '${:,.2f}'.format(matrix.grand.payout) }}</td>
+          <td class="kt keepcol">{{ '${:,.2f}'.format(matrix.grand.split_keep) }}</td>
+          <td class="kt keepcol">{{ '${:,.2f}'.format(matrix.grand.override) }}</td>
         </tr>
       </tbody>
     </table>

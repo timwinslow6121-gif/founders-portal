@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Aggregate Commissions — layout mockups</title>
+<style>
+  :root{
+    --blue:#266EA5; --green:#65BB84; --navy:#002E4D; --ink:#1A202C; --slate:#718096;
+    --bg:#F7FAFC; --surface:#FFFFFF; --border:#E2E8F0; --radius:16px;
+    --shadow:0 2px 8px rgba(38,110,165,.06), 0 8px 24px rgba(38,110,165,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Plus Jakarta Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px}
+  h1{font-family:Merriweather,Georgia,serif;color:var(--navy);font-size:1.5rem;margin:0 0 4px}
+  h2{font-family:Merriweather,Georgia,serif;color:var(--navy);font-size:1.05rem;margin:0}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 80px}
+  .lead{color:var(--slate);margin:0 0 24px}
+  .toolbar{display:flex;gap:10px;align-items:center;margin:0 0 16px;flex-wrap:wrap}
+  .toggle{display:inline-flex;border:1px solid var(--border);border-radius:999px;overflow:hidden;background:var(--surface)}
+  .toggle button{border:none;background:none;padding:7px 16px;font:inherit;cursor:pointer;color:var(--slate)}
+  .toggle button.on{background:var(--blue);color:#fff}
+  select{padding:7px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);font:inherit}
+  .variant{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:22px;margin:0 0 34px}
+  .vtag{display:inline-block;background:var(--navy);color:#fff;border-radius:999px;font-size:.72rem;
+    padding:3px 12px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}
+  .num{font-variant-numeric:tabular-nums;text-align:right}
+  .neg{color:#C0392B}
+  .muted{color:var(--slate)}
+  /* ---- A: matrix ---- */
+  table.mx{width:100%;border-collapse:collapse;font-size:.88rem}
+  table.mx th,table.mx td{padding:9px 10px;border-bottom:1px solid var(--border)}
+  table.mx thead th{color:var(--slate);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;text-align:right}
+  table.mx thead th:first-child{text-align:left}
+  table.mx td:first-child{font-weight:600}
+  table.mx td.cell{text-align:right;font-variant-numeric:tabular-nums;cursor:pointer;border-radius:6px}
+  table.mx td.cell:hover{background:color-mix(in srgb,var(--blue) 9%,transparent)}
+  table.mx tr.total td{font-weight:700;border-top:2px solid var(--navy);border-bottom:none;color:var(--navy)}
+  table.mx td.grand{color:var(--blue);font-weight:700}
+  .keepcol{color:var(--green)}
+  /* ---- B: carrier blocks ---- */
+  .cblock{margin:0 0 18px}
+  .cbar{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:2px solid var(--blue)}
+  .cbar .ct{font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums}
+  .crow{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:7px 4px;border-bottom:1px solid var(--border);font-size:.9rem}
+  .crow .k{color:var(--green);font-variant-numeric:tabular-nums;text-align:right;min-width:90px}
+  .crow .p{font-variant-numeric:tabular-nums;text-align:right;min-width:90px;font-weight:600}
+  .colhead{display:grid;grid-template-columns:1fr auto auto;gap:14px;padding:2px 4px;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--slate)}
+  .colhead .k,.colhead .p{text-align:right;min-width:90px}
+  /* ---- C: agent cards ---- */
+  .acard{border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin:0 0 12px}
+  .ahead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .ahead .at{font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums}
+  .pills{display:flex;flex-wrap:wrap;gap:6px}
+  .pill{background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:3px 11px;font-size:.82rem}
+  .pill b{font-variant-numeric:tabular-nums}
+</style></head>
+<body><div class="wrap">
+<h1>Admin — All Commissions</h1>
+<p class="lead">Three layout options for AJ's all-agents / all-carriers view (real May 2026 numbers).
+Pick one — the toolbar (month/YTD toggle + period picker) and the Founders-keep column appear in all three.</p>
+
+<div class="toolbar">
+  <div class="toggle"><button class="on">This month</button><button>Year-to-date</button></div>
+  <select><option>May 2026</option><option>April 2026</option></select>
+  <span class="muted" style="margin-left:auto">Payout = agent take-home (post-split, incl. adjustments) · <span class="keepcol">Keep</span> = Founders override/keep</span>
+</div>
+
+<!-- ============ VARIANT A: MATRIX ============ -->
+<div class="variant" id="optA">
+  <span class="vtag">Option A · Matrix (agents × carriers)</span>
+  <h2>One scannable grid — click any cell to drill in</h2>
+  <table class="mx" style="margin-top:14px">
+    <thead><tr><th>Agent</th><th>UHC</th><th>Aetna</th><th>Devoted</th><th>Humana</th><th>BCBS</th><th>Hspr</th><th>Payout</th><th class="keepcol">Keep</th></tr></thead>
+    <tbody>
+      <tr><td>Brian Freeman</td><td class="cell">4,766</td><td class="cell">47</td><td class="cell">1,264</td><td class="cell">1,210</td><td class="cell">887</td><td class="cell">14</td><td class="num">8,190</td><td class="num keepcol">10,219</td></tr>
+      <tr><td>Mike Lauzurique</td><td class="cell">4,418</td><td class="cell muted">—</td><td class="cell">720</td><td class="cell">1,245</td><td class="cell">344</td><td class="cell muted">—</td><td class="num">6,728</td><td class="num keepcol">13,102</td></tr>
+      <tr><td>Chris Foster</td><td class="cell">5,185</td><td class="cell">129</td><td class="cell">723</td><td class="cell">255</td><td class="cell">295</td><td class="cell muted">—</td><td class="num">6,587</td><td class="num keepcol">7,644</td></tr>
+      <tr><td>Justin Basinger</td><td class="cell">3,992</td><td class="cell">0</td><td class="cell">250</td><td class="cell">672</td><td class="cell">431</td><td class="cell neg">-127</td><td class="num">5,218</td><td class="num keepcol">5,737</td></tr>
+      <tr><td>Tim Winslow</td><td class="cell">3,657</td><td class="cell">111</td><td class="cell">695</td><td class="cell">124</td><td class="cell">334</td><td class="cell">111</td><td class="num">5,033</td><td class="num keepcol">5,731</td></tr>
+      <tr><td>Rebekah Long</td><td class="cell muted">—</td><td class="cell">225</td><td class="cell neg">-188</td><td class="cell">1,161</td><td class="cell">615</td><td class="cell">1,145</td><td class="num">2,958</td><td class="num keepcol">2,707</td></tr>
+      <tr><td>Anjana Patel</td><td class="cell">187</td><td class="cell muted">—</td><td class="cell">542</td><td class="cell">29</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="num">757</td><td class="num keepcol">1,092</td></tr>
+      <tr><td>Betty Marlowe</td><td class="cell">243</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="num">243</td><td class="num keepcol">293</td></tr>
+      <tr><td class="muted">Founders (agency)</td><td class="cell">7,447</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="cell">16</td><td class="cell muted">—</td><td class="cell muted">—</td><td class="num">7,463</td><td class="num keepcol">8,112</td></tr>
+      <tr class="total"><td>TOTAL</td><td class="num">29,895</td><td class="num">541</td><td class="num">4,006</td><td class="num">4,712</td><td class="num">2,906</td><td class="num">1,254</td><td class="grand">43,177</td><td class="num keepcol">54,637</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ VARIANT B: CARRIER BLOCKS ============ -->
+<div class="variant" id="optB">
+  <span class="vtag">Option B · Per-carrier blocks</span>
+  <h2>Grouped by carrier — best when reconciling one carrier's statement</h2>
+  <div style="margin-top:14px">
+    <div class="cblock">
+      <div class="cbar"><h2>UHC</h2><span class="ct">$29,895</span></div>
+      <div class="colhead"><span>Agent</span><span class="p">Payout</span><span class="k">Keep</span></div>
+      <div class="crow"><span>Chris Foster</span><span class="p">5,185</span><span class="k">5,640</span></div>
+      <div class="crow"><span>Brian Freeman</span><span class="p">4,766</span><span class="k">4,766</span></div>
+      <div class="crow"><span>Mike Lauzurique</span><span class="p">4,418</span><span class="k">11,560</span></div>
+      <div class="crow"><span>Tim Winslow</span><span class="p">3,657</span><span class="k">3,657</span></div>
+      <div class="crow muted"><span>Founders (agency override)</span><span class="p">7,447</span><span class="k">—</span></div>
+    </div>
+    <div class="cblock">
+      <div class="cbar"><h2>Devoted</h2><span class="ct">$4,006</span></div>
+      <div class="colhead"><span>Agent</span><span class="p">Payout</span><span class="k">Keep</span></div>
+      <div class="crow"><span>Brian Freeman</span><span class="p">1,264</span><span class="k">1,014</span></div>
+      <div class="crow"><span>Chris Foster</span><span class="p">723</span><span class="k">508</span></div>
+      <div class="crow"><span>Mike Lauzurique</span><span class="p">720</span><span class="k">527</span></div>
+      <div class="crow"><span>Rebekah Long</span><span class="p neg">-188</span><span class="k neg">-404</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VARIANT C: AGENT CARDS ============ -->
+<div class="variant" id="optC">
+  <span class="vtag">Option C · Per-agent cards (recap-style)</span>
+  <h2>The familiar agent-recap layout, repeated for everyone</h2>
+  <div style="margin-top:14px">
+    <div class="acard">
+      <div class="ahead"><h2>Brian Freeman</h2><span class="at">$8,190 <span class="muted" style="font-size:.8rem">payout · <span class="keepcol">$10,219 keep</span></span></span></div>
+      <div class="pills">
+        <span class="pill">UHC <b>4,766</b></span><span class="pill">Devoted <b>1,264</b></span>
+        <span class="pill">Humana <b>1,210</b></span><span class="pill">BCBS <b>887</b></span>
+        <span class="pill">Aetna <b>47</b></span><span class="pill">Hspr <b>14</b></span>
+      </div>
+    </div>
+    <div class="acard">
+      <div class="ahead"><h2>Chris Foster</h2><span class="at">$6,587 <span class="muted" style="font-size:.8rem">payout · <span class="keepcol">$7,644 keep</span></span></span></div>
+      <div class="pills">
+        <span class="pill">UHC <b>5,185</b></span><span class="pill">Devoted <b>723</b></span>
+        <span class="pill">BCBS <b>295</b></span><span class="pill">Humana <b>255</b></span>
+        <span class="pill">Aetna <b>129</b></span>
+      </div>
+    </div>
+    <div class="acard">
+      <div class="ahead"><h2>Mike Lauzurique</h2><span class="at">$6,728 <span class="muted" style="font-size:.8rem">payout · <span class="keepcol">$13,102 keep</span></span></span></div>
+      <div class="pills">
+        <span class="pill">UHC <b>4,418</b></span><span class="pill">Humana <b>1,245</b></span>
+        <span class="pill">Devoted <b>720</b></span><span class="pill">BCBS <b>344</b></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div></body></html>

@@ -20,7 +20,8 @@ from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
 from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
                                    publish_recap, build_carrier_blocks, latest_period_with_data,
-                                   all_periods_with_data, quarantined_line_items)
+                                   all_periods_with_data, quarantined_line_items,
+                                   build_aggregate_matrix)
 from app.commission.rollup import apply_rollup
 
 SPLIT_RATE = 0.55
@@ -1601,6 +1602,30 @@ def agent_recap():
     return render_template("commission/recap.html", recap=recap, pending=False,
                            period_label=period, is_admin=current_user.is_admin,
                            periods=_published_periods(current_user.id, current_user.agency_id))
+
+
+@commission_bp.route("/admin/commissions/aggregate")
+@login_required
+def admin_aggregate():
+    """All agents × all carriers commission matrix (Option A). Payout + Founders-
+    keep per cell, month / year-to-date toggle, click a cell to drill into that
+    agent+carrier's recap."""
+    if not current_user.is_admin:
+        abort(403)
+    scope = "ytd" if request.args.get("scope") == "ytd" else "month"
+    period = (request.args.get("period")
+              or latest_period_with_data(current_user.agency_id)
+              or date.today().strftime("%B %Y"))
+    try:
+        year = datetime.strptime(period, "%B %Y").year
+    except ValueError:
+        year = date.today().year
+    matrix = build_aggregate_matrix(current_user.agency_id, scope=scope,
+                                    period_label=period, year=year)
+    return render_template("commission/aggregate.html", matrix=matrix, scope=scope,
+                           period_label=period, year=year,
+                           periods=all_periods_with_data(current_user.agency_id),
+                           is_admin=True)
 
 
 @commission_bp.route("/admin/commissions/recap")

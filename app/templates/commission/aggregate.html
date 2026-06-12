@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}All Commissions{% endblock %}
+
+{% block styles %}
+  {# base.html wraps {% block styles %} in its own <style> — do NOT add <style> here. #}
+  .agg-page{ --a-blue:var(--gold); --a-green:var(--green); --a-navy:var(--ivory-bright);
+    --a-ink:var(--ivory); --a-muted:var(--slate); --a-border:var(--border);
+    --a-card:var(--surface); --a-bg:var(--ink); --a-neg:var(--status-error);
+    max-width:1180px; margin:0 auto; }
+  .agg-page h1{ color:var(--a-navy); margin:0 0 4px; }
+  .agg-lead{ color:var(--a-muted); font-size:.86rem; margin:0 0 18px; }
+  .agg-toolbar{ display:flex; gap:10px; align-items:center; margin:0 0 16px; flex-wrap:wrap; }
+  .agg-toggle{ display:inline-flex; border:1px solid var(--a-border); border-radius:999px; overflow:hidden; background:var(--a-card); }
+  .agg-toggle a{ padding:7px 16px; text-decoration:none; color:var(--a-muted); font-size:.85rem; }
+  .agg-toggle a.on{ background:var(--a-blue); color:#fff; }
+  .agg-toolbar select{ padding:7px 12px; border:1px solid var(--a-border); border-radius:10px; background:var(--a-card); color:var(--a-ink); font:inherit; }
+  .agg-legend{ margin-left:auto; color:var(--a-muted); font-size:.78rem; }
+  .agg-legend .k{ color:var(--a-green); }
+  .agg-card{ background:var(--a-card); border:1px solid var(--a-border); border-radius:var(--radius); box-shadow:var(--shadow); padding:8px; overflow-x:auto; }
+  table.agg{ width:100%; border-collapse:collapse; font-size:.86rem; }
+  table.agg th, table.agg td{ padding:9px 10px; border-bottom:1px solid var(--a-border); white-space:nowrap; }
+  table.agg thead th{ color:var(--a-muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; text-align:right; }
+  table.agg thead th:first-child{ text-align:left; }
+  table.agg td:first-child{ font-weight:600; color:var(--a-ink); }
+  table.agg td.cell{ text-align:right; font-variant-numeric:tabular-nums; }
+  table.agg td.cell a{ color:var(--a-ink); text-decoration:none; display:block; border-radius:6px; padding:2px 4px; margin:-2px -4px; }
+  table.agg td.cell a:hover{ background:color-mix(in srgb, var(--a-blue) 12%, transparent); }
+  table.agg td.cell .keep{ display:block; color:var(--a-green); font-size:.72rem; }
+  table.agg td.empty{ text-align:right; color:var(--a-muted); }
+  table.agg td.neg, table.agg td.cell a.neg{ color:var(--a-neg); }
+  table.agg td.pt{ text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
+  table.agg td.kt{ text-align:right; font-variant-numeric:tabular-nums; color:var(--a-green); }
+  table.agg tr.total td{ font-weight:700; border-top:2px solid var(--a-navy); border-bottom:none; color:var(--a-navy); }
+  table.agg tr.total td.grand{ color:var(--a-blue); }
+  .agg-empty{ padding:40px; text-align:center; color:var(--a-muted); }
+{% endblock %}
+
+{% block content %}
+<div class="agg-page">
+  <h1>All Commissions</h1>
+  <p class="agg-lead">Every agent × every carrier. Tap a cell to drill into that agent's carrier detail.</p>
+
+  <div class="agg-toolbar">
+    <div class="agg-toggle">
+      <a href="{{ url_for('commission.admin_aggregate', scope='month', period=period_label) }}"
+         class="{{ 'on' if scope == 'month' else '' }}">This month</a>
+      <a href="{{ url_for('commission.admin_aggregate', scope='ytd', period=period_label) }}"
+         class="{{ 'on' if scope == 'ytd' else '' }}">Year-to-date</a>
+    </div>
+    <select onchange="location.href='{{ url_for('commission.admin_aggregate', scope=scope) }}&period='+encodeURIComponent(this.value)">
+      {% for p in periods %}
+      <option value="{{ p }}" {{ 'selected' if p == period_label else '' }}>{{ p }}</option>
+      {% endfor %}
+    </select>
+    <span class="agg-legend">
+      {% if scope == 'ytd' %}Year-to-date {{ year }}{% else %}{{ period_label }}{% endif %}
+      · Payout = agent take-home · <span class="k">Keep</span> = Founders override
+    </span>
+  </div>
+
+  {% if matrix.rows %}
+  <div class="agg-card">
+    <table class="agg">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          {% for c in matrix.carriers %}<th>{{ c }}</th>{% endfor %}
+          <th>Payout</th>
+          <th>Keep</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in matrix.rows %}
+        <tr>
+          <td>{{ r.agent_name }}</td>
+          {% for c in matrix.carriers %}
+            {% set cell = r.cells.get(c) %}
+            {% if cell %}
+            <td class="cell">
+              {% if r.agent_id and scope == 'month' %}
+              <a class="{{ 'neg' if cell.payout < 0 else '' }}"
+                 href="{{ url_for('commission.admin_recap', agent_id=r.agent_id, period=period_label) }}"
+                 title="{{ r.agent_name }} · {{ c }} — open recap">
+                {{ '{:,.0f}'.format(cell.payout) }}
+                <span class="keep">{{ '{:,.0f}'.format(cell.keep) }}</span>
+              </a>
+              {% else %}
+              <span class="{{ 'neg' if cell.payout < 0 else '' }}">{{ '{:,.0f}'.format(cell.payout) }}</span>
+              <span class="keep">{{ '{:,.0f}'.format(cell.keep) }}</span>
+              {% endif %}
+            </td>
+            {% else %}
+            <td class="empty">—</td>
+            {% endif %}
+          {% endfor %}
+          <td class="pt {{ 'neg' if r.payout_total < 0 else '' }}">{{ '{:,.0f}'.format(r.payout_total) }}</td>
+          <td class="kt">{{ '{:,.0f}'.format(r.keep_total) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td>TOTAL</td>
+          {% for c in matrix.carriers %}
+          <td class="cell">{{ '{:,.0f}'.format(matrix.carrier_totals[c].payout) }}</td>
+          {% endfor %}
+          <td class="grand">{{ '{:,.0f}'.format(matrix.grand.payout) }}</td>
+          <td class="kt">{{ '{:,.0f}'.format(matrix.grand.keep) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="agg-card"><div class="agg-empty">No commission data for this period yet.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

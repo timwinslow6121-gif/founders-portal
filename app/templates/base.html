@@ -759,6 +759,10 @@
            class="nav-item {% if request.endpoint == 'commission.admin_recap' %}active{% endif %}">
           <span class="nav-dot"></span>Agent Recaps
         </a>
+        <a href="{{ url_for('commission.admin_aggregate') }}"
+           class="nav-item {% if request.endpoint == 'commission.admin_aggregate' %}active{% endif %}">
+          <span class="nav-dot"></span>All Commissions
+        </a>
         <a href="{{ url_for('commission.commission_admin') }}"
            class="nav-item {% if request.path == '/admin/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit

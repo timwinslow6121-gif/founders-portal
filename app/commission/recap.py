@@ -7,6 +7,7 @@ renders. No new commission math — reuses ledger.split_breakdown.
 
 See docs/superpowers/specs/2026-06-09-agent-commission-recap-design.md.
 """
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -247,6 +248,90 @@ def _ledger_ytd_total(agent_id, agency_id, year):
         total += payout
         months[dt.month] = round(months.get(dt.month, 0.0) + payout, 2)
     return round(total, 2), months
+
+
+def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=None):
+    """Admin all-agents × all-carriers matrix (#6, Option A). One cell per
+    (agent, carrier) with agent `payout` (take-home, incl. adjustments — matches
+    the agent's recap carrier total) and Founders `keep` (override/keep). Plus row
+    totals, carrier column totals, and a grand total.
+
+    scope='month' uses period_label ("May 2026"); scope='ytd' sums every period in
+    `year` (defaults to the current period's year). Returns a dict the template
+    renders directly."""
+    from app.models import User, CommissionAdjustment
+
+    PAYOUT_CLASSES = {"agent_commission", "hra_bonus", "chargeback"}
+
+    def _in_scope(li):
+        if scope == "month":
+            return li.period_label == period_label
+        try:
+            return datetime.strptime(li.period_label or "", "%B %Y").year == year
+        except ValueError:
+            return False
+
+    rows_q = CommissionLineItem.query.filter_by(agency_id=agency_id)
+    if scope == "month":
+        rows_q = rows_q.filter_by(period_label=period_label)
+    lis = [li for li in rows_q.all() if _in_scope(li)]
+
+    # accumulate payout + keep per (agent_id, carrier)
+    pay = defaultdict(float)   # (agent_id, carrier) -> payout
+    keep = defaultdict(float)  # (agent_id, carrier) -> founders keep
+    carriers, agents_with_data = set(), set()
+    for li in lis:
+        p, k = split_breakdown(li)
+        carriers.add(li.carrier)
+        agents_with_data.add(li.agent_id)
+        if li.classification in PAYOUT_CLASSES:
+            pay[(li.agent_id, li.carrier)] += p
+        keep[(li.agent_id, li.carrier)] += k
+
+    # adjustments fold into payout (per agent+carrier; scope-filtered)
+    adj_q = CommissionAdjustment.query.filter_by(agency_id=agency_id)
+    if scope == "month":
+        adj_q = adj_q.filter_by(period_label=period_label)
+    for adj in adj_q.all():
+        if scope == "ytd":
+            try:
+                if datetime.strptime(adj.period_label or "", "%B %Y").year != year:
+                    continue
+            except ValueError:
+                continue
+        carriers.add(adj.carrier)
+        agents_with_data.add(adj.agent_id)
+        pay[(adj.agent_id, adj.carrier)] += (adj.amount or 0.0)
+
+    carriers = sorted(carriers)
+    users = {u.id: u.name for u in User.query.filter_by(agency_id=agency_id).all()}
+
+    rows = []
+    for aid in agents_with_data:
+        name = users.get(aid, "(unattributed)") if aid else "(unattributed)"
+        cells = {}
+        for c in carriers:
+            pv, kv = round(pay.get((aid, c), 0.0), 2), round(keep.get((aid, c), 0.0), 2)
+            if pv or kv:
+                cells[c] = {"payout": pv, "keep": kv}
+        rows.append({
+            "agent_id": aid, "agent_name": name, "cells": cells,
+            "payout_total": round(sum(v["payout"] for v in cells.values()), 2),
+            "keep_total": round(sum(v["keep"] for v in cells.values()), 2),
+        })
+    rows.sort(key=lambda r: r["payout_total"], reverse=True)
+
+    carrier_totals = {c: {
+        "payout": round(sum(r["cells"].get(c, {}).get("payout", 0.0) for r in rows), 2),
+        "keep": round(sum(r["cells"].get(c, {}).get("keep", 0.0) for r in rows), 2),
+    } for c in carriers}
+    grand = {
+        "payout": round(sum(r["payout_total"] for r in rows), 2),
+        "keep": round(sum(r["keep_total"] for r in rows), 2),
+    }
+    return {"scope": scope, "period_label": period_label, "year": year,
+            "carriers": carriers, "rows": rows,
+            "carrier_totals": carrier_totals, "grand": grand}
 
 
 def build_recap(agent_id, agency_id, period_label) -> RecapView:

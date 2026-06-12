@@ -472,3 +472,91 @@ def test_carrier_block_rows_reconcile_to_total_exactly(db_session, agency):
     assert b.total_payout == 157.59      # reconciled value, NOT the old drifted 157.58
     # and to the sum of group subtotals
     assert round(sum(g.subtotal for g in b.groups), 2) == b.total_payout
+
+
+# ── #6 admin aggregate matrix (agents × carriers) ────────────────────────
+
+def test_build_aggregate_matrix_payout_keep_and_totals(db_session, agency):
+    """The admin matrix: one cell per (agent, carrier) with payout + founders-keep,
+    plus row/column/grand totals. Cell payout matches the agent's recap carrier
+    block; keep includes founders_override; adjustments fold into payout."""
+    from app.models import User, CommissionAdjustment
+    from app.extensions import db
+    from app.commission.recap import build_aggregate_matrix
+
+    tim = User(name="Tim Winslow", email="mx-tim@x.com", agency_id=agency.id)
+    reb = User(name="Rebekah Long", email="mx-reb@x.com", agency_id=agency.id)
+    db.session.add_all([tim, reb]); db.session.flush()
+
+    # Tim UHC: renewal $100@.55 (payout 55, keep 45) + a founders_override $4.59 (keep 4.59)
+    _mk_line(db, agency, tim, "UHC", "agent_commission", "renewal", 100.0, 0.55, "A")
+    _mk_line(db, agency, tim, "UHC", "founders_override", "override", 4.59, None, "A")
+    # Tim Devoted: hra_bonus $50@.50 (payout 25, keep 25)
+    _mk_line(db, agency, tim, "Devoted", "hra_bonus", "hra", 50.0, 0.50, "B")
+    # Rebekah UHC: renewal $200@.55 (payout 110, keep 90)
+    _mk_line(db, agency, reb, "UHC", "agent_commission", "renewal", 200.0, 0.55, "C")
+    # Tim UHC adjustment -$20
+    db.session.add(CommissionAdjustment(agency_id=agency.id, agent_id=tim.id,
+                   carrier="UHC", period_label="May 2026", amount=-20.0, note="corr"))
+    db.session.flush()
+
+    m = build_aggregate_matrix(agency.id, scope="month", period_label="May 2026")
+
+    carriers = m["carriers"]
+    assert "UHC" in carriers and "Devoted" in carriers
+    cell = {(r["agent_name"], c): r["cells"].get(c) for r in m["rows"] for c in carriers}
+
+    # Tim UHC payout = 55 - 20 adjustment = 35 ; keep = 45 + 4.59 override = 49.59
+    tim_uhc = cell[("Tim Winslow", "UHC")]
+    assert round(tim_uhc["payout"], 2) == 35.00
+    assert round(tim_uhc["keep"], 2) == 49.59
+    # Rebekah UHC payout 110
+    assert round(cell[("Rebekah Long", "UHC")]["payout"], 2) == 110.00
+    # column total UHC payout = 35 + 110 = 145
+    assert round(m["carrier_totals"]["UHC"]["payout"], 2) == 145.00
+    # Tim row total payout = 35 (UHC) + 25 (Devoted HRA) = 60
+    tim_row = next(r for r in m["rows"] if r["agent_name"] == "Tim Winslow")
+    assert round(tim_row["payout_total"], 2) == 60.00
+    # grand total payout = 60 + 110 = 170
+    assert round(m["grand"]["payout"], 2) == 170.00
+
+
+def test_admin_aggregate_page_renders(db_session, app, client, agency):
+    """The All-Commissions matrix renders end-to-end (route + template)."""
+    from app.extensions import db
+    from app.models import User
+
+    with app.app_context():
+        admin = User(name="AJ", email="agg-admin@x.com", is_admin=True, agency_id=agency.id)
+        tim = User(name="Tim Winslow", email="agg-tim@x.com", agency_id=agency.id)
+        db.session.add_all([admin, tim]); db.session.flush()
+        _mk_line(db, agency, tim, "UHC", "agent_commission", "renewal", 100.0, 0.55, "A")
+        db.session.commit()
+        uid = admin.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(uid)
+    resp = client.get("/admin/commissions/aggregate?scope=month&period=May%202026")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "All Commissions" in body
+    assert "Tim Winslow" in body
+    assert "Year-to-date" in body          # the toggle
+    # ytd scope also renders
+    assert client.get("/admin/commissions/aggregate?scope=ytd").status_code == 200
+    # (admin guard is the same `if not current_user.is_admin: abort(403)` as
+    # admin_recap/audit — covered there; not re-tested here.)
+
+
+def test_admin_aggregate_blocks_non_admin(app, db_session, agency):
+    """Non-admin gets 403 (fresh client, single login — like the audit guard test)."""
+    from app.extensions import db
+    from app.models import User
+    with app.app_context():
+        na = User(name="Agent X", email="agg-block@x.com", is_admin=False, agency_id=agency.id)
+        db.session.add(na); db.session.commit()
+        na_id = na.id
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess["_user_id"] = str(na_id)
+    assert c.get("/admin/commissions/aggregate").status_code == 403

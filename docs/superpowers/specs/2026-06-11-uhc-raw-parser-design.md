@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-11
 **Goal:** Let AJ upload the RAW UHC carrier statement and have the portal auto-split the easy ~90% of lines (agent pay vs Founders override) into the R1 commission ledger, quarantining the hard 5-10% for manual review. Saves AJ hours/month.
-**Status:** ✅ Implemented + validated (97.7% auto, all agents balance to the penny). NOT yet wired to live upload (pending "New" enrollments + AJ review). 2026-06-11.
+**Status:** ✅ SHIPPED LIVE + IMPORTED 2026-06-12. Wired into the normalized upload pipeline (NORMALIZERS + EXTRACTORS), quarantine tab built, UHC May imported on VPS (stmt 55, balances to the penny, 89 quarantined). 2 prod hotfixes post-ship: migration 026 (payment_type 32→256) + `no_autoflush` on resolver reads (re-upload UniqueViolation). REMAINING: AJ reviews a real run before system-of-record; "New" enrollment proration stays quarantined. See [[uhc-parser-resume]] + the R4 Build Status entry in CLAUDE.md. (Original validated rule set below unchanged.)
 
 ---
 

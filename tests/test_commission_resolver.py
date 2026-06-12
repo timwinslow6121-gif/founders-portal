@@ -278,6 +278,35 @@ def test_get_customer_policies_finds_fk_linked_bcbs_no_mbi(db_session, app, agen
                    for pol in policies)
 
 
+def test_two_facts_same_mbi_one_transaction_no_autoflush_collision(db_session, app, agency, agent_user):
+    """A member appears in MULTIPLE rows of one UHC file (renewal + chargeback +
+    override). Resolving the 2nd fact must MATCH the customer the 1st fact created
+    in the SAME uncommitted transaction — not autoflush a duplicate INSERT and hit
+    ix_customers_mbi. This is the real UHC re-upload crash.
+    """
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        f1 = MemberFact(carrier="UHC", full_name="SWEATT, RICKY L.", mbi="8NP5GM6TK40",
+                        carrier_member_id=None, row_class=RowClass.RENEWAL, amount=28.92,
+                        effective_date=date(2026, 1, 1))
+        f2 = MemberFact(carrier="UHC", full_name="SWEATT, RICKY L.", mbi="8NP5GM6TK40",
+                        carrier_member_id=None, row_class=RowClass.CHARGEBACK, amount=-268.0,
+                        effective_date=date(2026, 1, 1))
+        r1 = resolve_customer(f1, agency_id=agency.id, agent_id=agent_user.id,
+                              source="commission_import")
+        # NO commit between — same transaction, mirrors the ingest loop.
+        r2 = resolve_customer(f2, agency_id=agency.id, agent_id=agent_user.id,
+                              source="commission_import")
+        db.session.commit()  # MUST NOT raise UniqueViolation on ix_customers_mbi
+
+        assert r2.customer.id == r1.customer.id
+        assert Customer.query.filter_by(agency_id=agency.id, mbi="8NP5GM6TK40").count() == 1
+
+
 def test_bob_two_step_flow_no_duplicate_policy(db_session, app, agency, agent_user):
     """Reproduces the REAL BOB upload: outer loop adds the Policy (customer_id NULL),
     THEN _upsert_customer_from_policy runs. Must NOT create a duplicate policy."""

@@ -46,13 +46,19 @@ def _effective_member_id(fact: MemberFact) -> str:
 def _crosswalk(fact: MemberFact, agency_id: int):
     """Return existing Policy matched by (carrier, effective member_id), else None.
     The effective member_id mirrors _attach_policy: carrier_member_id, else MBI,
-    else source_ref."""
+    else source_ref.
+
+    no_autoflush: a stub Customer/Policy created earlier in this SAME uncommitted
+    transaction (another row of the same file) must NOT be autoflushed by THIS
+    SELECT — that flush would fire ix_customers_mbi and crash the whole upload.
+    The match queries are pure reads; suppressing autoflush is safe."""
     cid = _effective_member_id(fact)
     if not cid:
         return None
-    return (Policy.query
-            .filter_by(agency_id=agency_id, carrier=fact.carrier, member_id=cid)
-            .first())
+    with db.session.no_autoflush:
+        return (Policy.query
+                .filter_by(agency_id=agency_id, carrier=fact.carrier, member_id=cid)
+                .first())
 
 
 def _attach_policy(fact: MemberFact, customer: Customer, agency_id: int,
@@ -79,13 +85,17 @@ def _attach_policy(fact: MemberFact, customer: Customer, agency_id: int,
 
 
 def _match_by_mbi(fact: MemberFact, agency_id: int):
-    """Return existing Customer by MBI (or humana_id for Humana), else None."""
-    if fact.carrier == "Humana" and fact.mbi:
-        c = Customer.query.filter_by(humana_id=fact.mbi, agency_id=agency_id).first()
-        if c:
-            return c
-    if fact.mbi:
-        return Customer.query.filter_by(mbi=fact.mbi, agency_id=agency_id).first()
+    """Return existing Customer by MBI (or humana_id for Humana), else None.
+
+    no_autoflush (see _crosswalk): this SELECT must not autoflush a pending stub
+    INSERT and trip ix_customers_mbi mid-upload."""
+    with db.session.no_autoflush:
+        if fact.carrier == "Humana" and fact.mbi:
+            c = Customer.query.filter_by(humana_id=fact.mbi, agency_id=agency_id).first()
+            if c:
+                return c
+        if fact.mbi:
+            return Customer.query.filter_by(mbi=fact.mbi, agency_id=agency_id).first()
     return None
 
 
@@ -186,12 +196,13 @@ def _find_name_dob_match(fact: MemberFact, agency_id: int):
     ln = (fact.last_name or "").strip().lower()
     if not fn or not ln or not fact.dob:
         return None, None
-    c = (Customer.query
-         .filter(Customer.agency_id == agency_id,
-                 db.func.lower(Customer.first_name) == fn,
-                 db.func.lower(Customer.last_name) == ln,
-                 Customer.dob == fact.dob)
-         .first())
+    with db.session.no_autoflush:   # see _crosswalk — don't autoflush a pending stub
+        c = (Customer.query
+             .filter(Customer.agency_id == agency_id,
+                     db.func.lower(Customer.first_name) == fn,
+                     db.func.lower(Customer.last_name) == ln,
+                     Customer.dob == fact.dob)
+             .first())
     if c:
         return c, "name_dob"
     return None, None

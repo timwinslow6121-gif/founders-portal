@@ -137,6 +137,40 @@ def test_uhc_ha_payment_is_hra_bonus_with_member_name():
     assert by_member["BOB ROE"].classification == CHARGEBACK   # negative HA = clawback
 
 
+def test_uhc_attributes_by_writing_agent_id_not_name():
+    """Rebekah Long writes UHC under the agency name 'FOUNDERS INSURANCE AGENCY,
+    LLC' but her Writing Agent ID (col 4) = 6435806. The parser MUST attribute by
+    that ID, not the name (every row's name is the agency). Regression for the
+    'Rebekah has 0 UHC' bug."""
+    from app.commission.ledger import extract_lineitems_uhc
+
+    id_to_name = {"6435806": "Rebekah Long", "6453223": "Christopher Foster"}
+
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[5] = "Writing Agent Name"
+    header[7] = "Member Name"; header[8] = "MedicareID"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+
+    def row(wid, name, member, amt):
+        r = [""] * 24
+        r[4] = wid; r[5] = name; r[7] = member; r[12] = "MAPD"
+        r[19] = "Renewal"; r[23] = amt
+        return r
+
+    sheets = {"Commission Transactions": [
+        header,
+        row("6435806", "FOUNDERS INSURANCE AGENCY, LLC", "DOE, JANE", 28.92),
+        row("6453223", "FOSTER, CHRISTOPHER", "ROE, BOB", 28.92),
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name=id_to_name)
+    by_member = {i.member_name: i for i in items
+                 if i.classification != "founders_override"}
+    # Rebekah's row resolves to her name, NOT the agency string
+    assert by_member["DOE, JANE"].writing_agent_raw == "Rebekah Long"
+    assert by_member["ROE, BOB"].writing_agent_raw == "Christopher Foster"
+
+
 def test_betty_riddle_legal_name_resolves_to_betty_marlowe(db_session, app, agency):
     """Betty writes some UHC business under her legal name 'RIDDLE, BETTY B'. It
     must resolve to her portal user (Betty Marlowe), not fall through unmatched."""

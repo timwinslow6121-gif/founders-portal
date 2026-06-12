@@ -567,7 +567,9 @@ def money_rows_total_humana(sheets) -> float:
 # ──────────────────────────────────────────────────────────────────────────
 _UHC_SHEET = "Commission Transactions"
 # RAW file columns (0-indexed, header=row 0), verified against real statement:
-_UHC_AGENT = 5      # Writing Agent Name "LAST, FIRST ..."
+_UHC_WRITING_ID = 4  # Writing Agent ID — the STABLE per-agent key. Attribute by THIS.
+_UHC_AGENT = 5      # Writing Agent Name — UNRELIABLE: Rebekah (and others) write as
+                    # "FOUNDERS INSURANCE AGENCY, LLC", so name attribution is wrong.
 _UHC_MEMBER = 7     # Member Name
 _UHC_MBI = 8        # MedicareID
 _UHC_PLANTYPE = 12  # Plan Type (MAPD/DSNP/CSNP/MA = MA family; PARTD/AARP... = other)
@@ -596,7 +598,8 @@ _UHC_MEDSUPP = {"AARPMODMEDSUP"}   # premium-based; renewal+override PAIRED per 
 # of statements to nail down). Matched by surname substring in the "LAST, FIRST"
 # writing-agent name. (Rebekah's UHC business isn't in this statement under her
 # name — likely under the agency entity — so she's not listed here yet.)
-_UHC_MEDSUPP_AGENTS = ("WINSLOW", "FOSTER", "BASINGER", "LAUZURIQUE", "LONG, DON")
+# Matched against the RESOLVED portal name (upper). LOA agents who write Med-Supp.
+_UHC_MEDSUPP_AGENTS = ("WINSLOW", "FOSTER", "BASINGER", "LAUZURIQUE", "DONALD LONG")
 _CENT = 0.005  # match tolerance for the fixed amounts
 
 
@@ -607,6 +610,26 @@ def _uhc_rows(sheets):
     if rows is None:
         rows = next(iter(sheets.values())) if sheets else []
     return rows or []
+
+
+def _uhc_writing_id_map(agency_id):
+    """Writing Agent ID (UHC col 4) -> portal agent display name, from each agent's
+    UHC AgentCarrierContract.id_value. This is the AUTHORITATIVE attribution: the
+    name column is unusable (Rebekah & others write as 'FOUNDERS INSURANCE AGENCY,
+    LLC'). Returns {} if contracts aren't seeded (extractor then falls back to name)."""
+    from app.models import AgentCarrierContract, User
+    out = {}
+    q = AgentCarrierContract.query.filter_by(carrier="UHC")
+    if agency_id is not None:
+        q = q.filter_by(agency_id=agency_id)
+    for c in q.all():
+        wid = (c.id_value or "").strip()
+        if not wid:
+            continue
+        u = User.query.get(c.agent_id)
+        if u:
+            out[wid] = u.name
+    return out
 
 
 def _near(a, b):
@@ -626,13 +649,14 @@ def _uhc_ha_member(action):
     return m.group(1).strip() if m else ""
 
 
-def _uhc_medsupp_overrides(rows):
+def _uhc_medsupp_overrides(rows, writing_for):
     """Med-Supp pays per-member as TWO lines (premium-based): a larger renewal
     (splits) + a smaller Founders override (no split). Pre-pass to identify, per
     (member, agent), which Med-Supp amount is the override (the SMALLER of the
     pair) so the main loop can classify each line. Only for the LOA agents who
-    write Med-Supp; others' Med-Supp is quarantined. Returns a set of
-    (member, agent, amount) tuples that are OVERRIDE lines."""
+    write Med-Supp; others' Med-Supp is quarantined. `writing_for(row)` resolves
+    the agent (by Writing Agent ID). Returns a set of (member, AGENT_UPPER, amount)
+    OVERRIDE tuples — keyed on the SAME resolved writing the main loop uses."""
     by_member = defaultdict(list)
     for row in rows[1:]:
         if not any(row) or len(row) <= _UHC_AMOUNT:
@@ -640,7 +664,7 @@ def _uhc_medsupp_overrides(rows):
         plan = str(row[_UHC_PLANTYPE] or "").strip().upper()
         if plan not in _UHC_MEDSUPP:
             continue
-        writing = str(row[_UHC_AGENT] or "").strip().upper()
+        writing = writing_for(row).upper()
         if not any(a in writing for a in _UHC_MEDSUPP_AGENTS):
             continue
         amt = round(_to_float(row[_UHC_AMOUNT]), 2)
@@ -656,11 +680,26 @@ def _uhc_medsupp_overrides(rows):
     return overrides
 
 
-def extract_lineitems_uhc(sheets, split_lookup) -> List[LineItemDraft]:
+def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
+                          agency_id=None) -> List[LineItemDraft]:
     rows = _uhc_rows(sheets)
     if not rows:
         return []
-    medsupp_overrides = _uhc_medsupp_overrides(rows)
+    # Attribute by Writing Agent ID (col 4), NOT name (col 5) — the name is the
+    # agency for Rebekah & others. Map ID -> portal name; fall back to the raw name
+    # only when an ID isn't seeded on a contract. Build from contracts when not
+    # supplied (guarded: tests without an app context pass an explicit map / get {}).
+    if writing_id_to_name is None:
+        try:
+            writing_id_to_name = _uhc_writing_id_map(agency_id)
+        except RuntimeError:
+            writing_id_to_name = {}
+
+    def _writing_for(row):
+        wid = str(row[_UHC_WRITING_ID] or "").strip() if len(row) > _UHC_WRITING_ID else ""
+        return writing_id_to_name.get(wid) or str(row[_UHC_AGENT] or "").strip()
+
+    medsupp_overrides = _uhc_medsupp_overrides(rows, _writing_for)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) <= _UHC_AMOUNT:
@@ -671,7 +710,7 @@ def extract_lineitems_uhc(sheets, split_lookup) -> List[LineItemDraft]:
         action = str(row[_UHC_ACTION] or "").strip()
         action_l = action.lower()
         plan = str(row[_UHC_PLANTYPE] or "").strip().upper()
-        writing = str(row[_UHC_AGENT] or "").strip()
+        writing = _writing_for(row)
         member = str(row[_UHC_MEMBER] or "").strip()
         mbi = str(row[_UHC_MBI] or "").strip() or None
         eff = _parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None

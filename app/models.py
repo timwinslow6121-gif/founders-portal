@@ -847,6 +847,34 @@ class AgentRecapPeriod(db.Model):
         return f"<AgentRecapPeriod agent={self.agent_id} {self.period_label} {self.status}>"
 
 
+class CommissionAdjustment(db.Model):
+    """
+    A manual reconciliation line AJ adds to one agent's carrier block for one
+    period — e.g. correcting a prior-month over/underpayment. It flows into the
+    recap as its own line in that (agent, carrier, period) block and into the
+    grand total. The note explains WHY; both the line and note are visible to the
+    agent (transparent reconciliation).
+    """
+    __tablename__ = "commission_adjustments"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    agency_id    = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agent_id     = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    agent        = db.relationship("User", foreign_keys=[agent_id])
+    carrier      = db.Column(db.String(64), nullable=False, index=True)
+    period_label = db.Column(db.String(32), nullable=False, index=True)   # "May 2026"
+
+    amount       = db.Column(db.Float, nullable=False)        # signed: + underpay correction, - overpay
+    note         = db.Column(db.String(256), nullable=False)  # required: why this adjustment exists
+
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at    = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at    = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    def __repr__(self):
+        return f"<CommissionAdjustment agent={self.agent_id} {self.carrier} {self.period_label} {self.amount}>"
+
+
 class UnmatchedCall(db.Model):
     """
     Stores inbound calls/voicemails from phone numbers that could not be matched

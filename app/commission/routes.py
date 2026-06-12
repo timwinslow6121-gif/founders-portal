@@ -1628,9 +1628,16 @@ def admin_recap():
         if q["count"]:
             quar_links.append({"stmt_id": s.id, "carrier": s.carrier,
                                "count": q["count"], "total": q["total"]})
+    from app.models import CommissionAdjustment
+    adjustments = (CommissionAdjustment.query
+                   .filter_by(agency_id=current_user.agency_id, agent_id=agent_id,
+                              period_label=period)
+                   .order_by(CommissionAdjustment.carrier).all())
+    carriers_for_adj = [b.carrier for b in recap.carriers] if recap else []
     return render_template("commission/recap.html", recap=recap, pending=False, admin_view=True,
                            period_label=period, recap_period=rp, agents=agents,
-                           quar_links=quar_links,
+                           quar_links=quar_links, adjustments=adjustments,
+                           carriers_for_adj=carriers_for_adj,
                            periods=all_periods_with_data(current_user.agency_id),
                            selected_agent_id=agent_id, is_admin=True)
 
@@ -1666,6 +1673,48 @@ def admin_recap_set_uhc():
     rp.uhc_manual_note = (request.form.get("uhc_note") or "").strip() or None
     db.session.commit()
     flash("UHC figure updated.", "success")
+    return redirect(url_for("commission.admin_recap", agent_id=agent_id, period=period))
+
+
+@commission_bp.route("/admin/commissions/recap/adjustment", methods=["POST"])
+@login_required
+def admin_recap_add_adjustment():
+    """AJ adds a manual reconciliation line to an agent's carrier block for a period."""
+    if not current_user.is_admin:
+        abort(403)
+    from app.models import CommissionAdjustment
+    agent_id = request.form.get("agent_id", type=int)
+    period = request.form.get("period")
+    carrier = (request.form.get("carrier") or "").strip()
+    note = (request.form.get("note") or "").strip()
+    raw = (request.form.get("amount") or "").replace("$", "").replace(",", "").strip()
+    try:
+        amount = float(raw)
+    except (ValueError, TypeError):
+        amount = None
+    if not (agent_id and period and carrier and note and amount is not None):
+        flash("Adjustment needs an agent, carrier, amount, and note.", "error")
+        return redirect(url_for("commission.admin_recap", agent_id=agent_id, period=period))
+    db.session.add(CommissionAdjustment(
+        agency_id=current_user.agency_id, agent_id=agent_id, carrier=carrier,
+        period_label=period, amount=amount, note=note, created_by_id=current_user.id))
+    db.session.commit()
+    flash(f"Adjustment added to {carrier} {period}: ${amount:,.2f}.", "success")
+    return redirect(url_for("commission.admin_recap", agent_id=agent_id, period=period))
+
+
+@commission_bp.route("/admin/commissions/recap/adjustment/<int:adj_id>/delete", methods=["POST"])
+@login_required
+def admin_recap_delete_adjustment(adj_id):
+    if not current_user.is_admin:
+        abort(403)
+    from app.models import CommissionAdjustment
+    adj = CommissionAdjustment.query.filter_by(
+        id=adj_id, agency_id=current_user.agency_id).first_or_404()
+    agent_id, period = adj.agent_id, adj.period_label
+    db.session.delete(adj)
+    db.session.commit()
+    flash("Adjustment removed.", "success")
     return redirect(url_for("commission.admin_recap", agent_id=agent_id, period=period))
 
 

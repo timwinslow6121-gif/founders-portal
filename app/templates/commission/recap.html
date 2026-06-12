@@ -77,6 +77,21 @@
   .recap-page .btn-publish{background:var(--rc-green);color:#08361b}
   .recap-page .admin-tag{font-size:.78rem;color:var(--rc-muted);align-self:center}
 
+  /* reconciliation adjustments (admin) */
+  .recap-page .adj-panel{margin:14px 0 4px;border:1px solid var(--rc-border);border-radius:12px;background:var(--rc-surface)}
+  .recap-page .adj-panel summary{cursor:pointer;padding:12px 16px;font-weight:600;color:var(--rc-ink);user-select:none}
+  .recap-page .adj-chip{display:inline-block;margin-left:6px;background:var(--rc-blue);color:#fff;border-radius:999px;font-size:.72rem;padding:1px 8px}
+  .recap-page .adj-body{padding:0 16px 16px}
+  .recap-page .adj-help{font-size:.8rem;color:var(--rc-muted);margin:4px 0 12px}
+  .recap-page .adj-table{width:100%;border-collapse:collapse;font-size:.86rem;margin-bottom:12px}
+  .recap-page .adj-table th{text-align:left;color:var(--rc-muted);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid var(--rc-border)}
+  .recap-page .adj-table td{padding:7px 8px;border-bottom:1px solid var(--rc-border)}
+  .recap-page .adj-table td.neg{color:#C0392B;font-variant-numeric:tabular-nums}
+  .recap-page .adj-del{background:none;border:none;color:#C0392B;cursor:pointer;font-size:.95rem;opacity:.65}
+  .recap-page .adj-del:hover{opacity:1}
+  .recap-page .adj-form{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .recap-page .adj-form select,.recap-page .adj-form input{padding:8px 10px;border:1px solid var(--rc-border);border-radius:8px;background:var(--rc-bg);color:var(--rc-ink);font-size:.86rem}
+
   /* headline KPIs */
   .recap-page .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:24px}
   .recap-page .kpi{background:var(--rc-card);border-radius:var(--rc-r);box-shadow:var(--rc-shadow);padding:24px;text-align:center;border:1px solid #EDF2F7}
@@ -220,6 +235,50 @@
     </a>
     {% endfor %}
   </div>
+
+  {# ---------- admin: reconciliation adjustments ---------- #}
+  <details class="adj-panel">
+    <summary>Reconciliation adjustments
+      {% if adjustments %}<span class="adj-chip">{{ adjustments|length }}</span>{% endif %}
+    </summary>
+    <div class="adj-body">
+      <p class="adj-help">Correct a prior over/underpayment. Use a negative amount to claw back an
+        overpayment, positive to add an underpayment. The line + note are visible to the agent.</p>
+      {% if adjustments %}
+      <table class="adj-table">
+        <thead><tr><th>Carrier</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+        <tbody>
+          {% for a in adjustments %}
+          <tr>
+            <td>{{ a.carrier }}</td>
+            <td class="{{ 'neg' if a.amount < 0 else '' }}">${{ '%.2f'|format(a.amount) }}</td>
+            <td>{{ a.note }}</td>
+            <td>
+              <form method="post" action="{{ url_for('commission.admin_recap_delete_adjustment', adj_id=a.id) }}"
+                    onsubmit="return confirm('Remove this adjustment?')">
+                <button type="submit" class="adj-del" title="Remove">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      <form method="post" action="{{ url_for('commission.admin_recap_add_adjustment') }}" class="adj-form">
+        <input type="hidden" name="agent_id" value="{{ selected_agent_id }}">
+        <input type="hidden" name="period" value="{{ period_label }}">
+        <select name="carrier" required>
+          <option value="" disabled selected>Carrier…</option>
+          {% for c in (carriers_for_adj if carriers_for_adj is defined else []) %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="amount" placeholder="-120.00" required style="width:110px;">
+        <input type="text" name="note" placeholder="e.g. April overpayment correction" required style="flex:1;min-width:200px;">
+        <button type="submit" class="btn btn-primary">Add adjustment</button>
+      </form>
+    </div>
+  </details>
   {% endif %}
 
   {# ---------- PENDING state ---------- #}

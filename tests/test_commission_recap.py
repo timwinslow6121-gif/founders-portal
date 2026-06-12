@@ -138,6 +138,104 @@ def test_hra_bonus_is_included_in_agent_payout(db_session, agency):
     assert round(sum(r.payout for r in allrows), 2) == round(dev.total_payout, 2)
 
 
+def test_commission_adjustment_flows_into_carrier_block(db_session, agency):
+    """A CommissionAdjustment (agent+carrier+period) shows as its own line in that
+    carrier block and is added to the carrier total — AJ's reconciliation line."""
+    from app.models import User, CommissionAdjustment
+    from app.extensions import db
+    from app.commission.recap import build_carrier_blocks
+
+    agent = User(name="Tim Winslow", email="adj@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+
+    # UHC: $100 renewal payout @0.55 = 55.00
+    _mk_line(db, agency, agent, "UHC", "agent_commission", "renewal", 100.0, 0.55, "Member A")
+    # AJ corrects a prior overpayment: -$20
+    db.session.add(CommissionAdjustment(agency_id=agency.id, agent_id=agent.id,
+                   carrier="UHC", period_label="May 2026", amount=-20.0,
+                   note="April overpayment correction"))
+    db.session.flush()
+
+    blocks = build_carrier_blocks(agent.id, agency.id, "May 2026")
+    uhc = next(b for b in blocks if b.carrier == "UHC")
+    # total = 55.00 renewal - 20.00 adjustment = 35.00
+    assert round(uhc.total_payout, 2) == 35.00
+    # adjustment is its own group + line carrying the note
+    adj = next(g for g in uhc.groups if g.kind == "Adjustments")
+    assert round(adj.subtotal, 2) == -20.00
+    assert adj.rows[0].member_name == "April overpayment correction"
+    # not counted as a member
+    assert uhc.new_members == 0
+    # drill-down still reconciles to the total
+    allrows = [r for g in uhc.groups for r in g.rows]
+    assert round(sum(r.payout for r in allrows), 2) == round(uhc.total_payout, 2)
+
+
+def test_admin_can_add_and_delete_adjustment(db_session, app, client, agency):
+    """End-to-end: AJ posts an adjustment, it persists; deleting removes it."""
+    from app.extensions import db
+    from app.models import User, CommissionAdjustment
+
+    with app.app_context():
+        admin = User(name="AJ", email="ajadmin@x.com", is_admin=True, agency_id=agency.id)
+        agent = User(name="Tim Winslow", email="timadj@x.com", agency_id=agency.id)
+        db.session.add_all([admin, agent]); db.session.commit()
+        aid, uid = agent.id, admin.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(uid)
+
+    resp = client.post("/admin/commissions/recap/adjustment", data={
+        "agent_id": aid, "period": "May 2026", "carrier": "UHC",
+        "amount": "-120.00", "note": "April overpayment correction"}, follow_redirects=False)
+    assert resp.status_code in (302, 303)
+
+    with app.app_context():
+        adj = CommissionAdjustment.query.filter_by(agent_id=aid, carrier="UHC").first()
+        assert adj is not None and adj.amount == -120.0
+        assert adj.note == "April overpayment correction"
+        adj_id = adj.id
+
+    resp = client.post(f"/admin/commissions/recap/adjustment/{adj_id}/delete")
+    assert resp.status_code in (302, 303)
+    with app.app_context():
+        assert CommissionAdjustment.query.filter_by(agent_id=aid).count() == 0
+
+
+def test_admin_recap_page_renders_with_adjustment(db_session, app, client, agency):
+    """The admin recap template renders (form + existing adjustment row) without a
+    Jinja error — guards the template wiring for #4."""
+    from app.extensions import db
+    from app.models import User, CommissionAdjustment
+
+    with app.app_context():
+        admin = User(name="AJ", email="ajr@x.com", is_admin=True, agency_id=agency.id)
+        agent = User(name="Tim Winslow", email="timr@x.com", agency_id=agency.id)
+        db.session.add_all([admin, agent]); db.session.flush()
+        _mk_line(db, agency, agent, "UHC", "agent_commission", "renewal", 100.0, 0.55, "Member A")
+        db.session.add(CommissionAdjustment(agency_id=agency.id, agent_id=agent.id,
+                       carrier="UHC", period_label="May 2026", amount=-20.0,
+                       note="April overpayment correction"))
+        db.session.commit()
+        aid, uid = agent.id, admin.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(uid)
+    resp = client.get(f"/admin/commissions/recap?agent_id={aid}&period=May%202026")
+    assert resp.status_code == 200
+    body = resp.get_data(as_text=True)
+    assert "Add adjustment" in body                  # the form
+    assert "April overpayment correction" in body    # the existing adjustment in the admin list
+    # carrier total reflects the adjustment server-side: 100*.55 - 20 = 35.00
+    assert "35.00" in body
+    # the "Adjustments" group + line come through the drill-down JSON endpoint
+    j = client.get(f"/commissions/recap/carrier?agent_id={aid}&period=May%202026&carrier=UHC")
+    assert j.status_code == 200
+    data = j.get_json()
+    kinds = {g["kind"] for g in data["groups"]}
+    assert "Adjustments" in kinds
+
+
 def test_lost_members_and_uhc_manual(db_session, agency):
     from app.models import User, Policy, AgentRecapPeriod
     from app.extensions import db

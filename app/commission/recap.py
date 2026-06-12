@@ -71,9 +71,9 @@ class CarrierBlock:
 
 
 _GROUP_FOR = {"new": "New enrollments", "renewal": "Renewals",
-              "bonus": "HRA", "chargeback": "Chargebacks"}
+              "bonus": "HRA", "chargeback": "Chargebacks", "adjustment": "Adjustments"}
 _TYPE_LABEL = {"new": "New enrollment", "renewal": "Renewal",
-               "bonus": "HRA", "chargeback": "Chargeback"}
+               "bonus": "HRA", "chargeback": "Chargeback", "adjustment": "Adjustment"}
 
 
 def _row_kind(carrier, li):
@@ -113,6 +113,20 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
                      payout=round(payout, 2))
         by_carrier.setdefault(li.carrier, []).append(lr)
 
+    # AJ's manual reconciliation adjustments (per agent+carrier+period). Each is a
+    # synthetic line in its carrier block: payout = amount (no split — it's already
+    # the final dollar effect); note shown as the "member" so the agent sees why.
+    from app.models import CommissionAdjustment
+    adjustments = (CommissionAdjustment.query
+                   .filter_by(agent_id=agent_id, agency_id=agency_id, period_label=period_label)
+                   .all())
+    for adj in adjustments:
+        amt = round(adj.amount or 0.0, 2)
+        by_carrier.setdefault(adj.carrier, []).append(
+            LineRow(member_name=adj.note, customer_id=None,
+                    type_label=_TYPE_LABEL["adjustment"], type_kind="adjustment",
+                    raw_amount=amt, split_rate=None, payout=amt))
+
     blocks = []
     for carrier, lrs in by_carrier.items():
         groups = {}
@@ -125,7 +139,8 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
         # more only to clear float addition noise like 0.1+0.2).
         for g in groups.values():
             g.subtotal = round(sum(r.payout for r in g.rows), 2)
-        ordered = [groups[k] for k in ("new", "renewal", "bonus", "chargeback") if k in groups]
+        ordered = [groups[k] for k in ("new", "renewal", "bonus", "chargeback", "adjustment")
+                   if k in groups]
         block = CarrierBlock(
             carrier=carrier,
             total_payout=round(sum(lr.payout for lr in lrs), 2),

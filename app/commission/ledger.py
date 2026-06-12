@@ -583,6 +583,8 @@ _UHC_EFFDATE = 11
 # every override-bearing plan family (MA AND Part D). The raw file emits the pair
 # as two lines OR one combined line; combined lines are decomposed.
 _UHC_OVERRIDE = 4.59    # ~$55/yr ÷ 12 — the Founders override (no split), all families
+_UHC_PARTD_OVERRIDE = 0.26  # fixed monthly Founders override on a Part D plan renewal
+                            # (no split — 100% Founders), per Tim. NOT dust.
 _UHC_RENEWAL_HMO = 28.92   # standard HMO MA renewal ($347/yr ÷ 12) — splits
 _UHC_RENEWAL_PPO = 26.09   # non-SNP PPO renewal (different comp) — splits
 _UHC_COMBINED_HMO = round(_UHC_RENEWAL_HMO + _UHC_OVERRIDE, 2)  # 33.51 = 28.92+4.59
@@ -738,8 +740,15 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
         is_renewal = "renewal" in action_l
         in_override_family = plan in _UHC_OVERRIDE_FAMILY
 
-        # ── Sub-threshold PARTD "dust" ($0.26 etc): AJ drops these from agent
-        #    renewal totals. Quarantine (don't split) so we reconcile to his books.
+        # ── Fixed $0.26 PARTD renewal = Founders override for a Part D plan (per
+        #    Tim): 100% Founders, no split. (Was previously quarantined as "dust".)
+        if is_renewal and plan == "PARTD" and _near(abs(amount), _UHC_PARTD_OVERRIDE):
+            signed = _UHC_PARTD_OVERRIDE if amount >= 0 else -_UHC_PARTD_OVERRIDE
+            out.append(draft(signed, FOUNDERS_OVERRIDE, None, sref, ptype="partd override"))
+            continue
+
+        # ── Any OTHER sub-threshold PARTD renewal (not 0.26, not 4.59): still
+        #    quarantine — unexpected, route to AJ.
         if is_renewal and plan == "PARTD" and abs(amount) < 1.00 \
                 and not _near(amount, _UHC_OVERRIDE):
             out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref, ptype="partd dust"))

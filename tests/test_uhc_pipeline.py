@@ -137,6 +137,33 @@ def test_uhc_ha_payment_is_hra_bonus_with_member_name():
     assert by_member["BOB ROE"].classification == CHARGEBACK   # negative HA = clawback
 
 
+def test_uhc_partd_026_is_founders_override_not_quarantined():
+    """The fixed $0.26 PARTD renewal is a Founders override for a Part D plan (per
+    Tim) — book it as founders_override (100% Founders, no split), NOT quarantine."""
+    from app.commission.ledger import extract_lineitems_uhc, FOUNDERS_OVERRIDE, NEEDS_MANUAL_REVIEW
+
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+    def row(plan, action, amt, member="DOE, JANE"):
+        r = [""] * 24
+        r[5] = "WINSLOW, TIMOTHY"; r[7] = member; r[12] = plan; r[19] = action; r[23] = amt
+        return r
+    sheets = {"Commission Transactions": [
+        header,
+        row("PARTD", "Renewal", 0.26, "PARTD, OVR"),    # the override
+        row("PARTD", "Renewal", 4.59, "PARTD, BIG"),    # already an override
+        row("PARTD", "Renewal", 0.50, "PARTD, ODD"),    # other sub-$1 still quarantines
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by_member = {i.member_name: i for i in items}
+    assert by_member["PARTD, OVR"].classification == FOUNDERS_OVERRIDE
+    assert by_member["PARTD, OVR"].split_rate is None     # 100% Founders
+    assert by_member["PARTD, BIG"].classification == FOUNDERS_OVERRIDE
+    assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
+
+
 def test_uhc_attributes_by_writing_agent_id_not_name():
     """Rebekah Long writes UHC under the agency name 'FOUNDERS INSURANCE AGENCY,
     LLC' but her Writing Agent ID (col 4) = 6435806. The parser MUST attribute by

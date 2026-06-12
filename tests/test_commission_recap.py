@@ -629,3 +629,25 @@ def test_recap_shows_contracted_carriers_at_zero_with_status(db_session, app, ag
         assert by_carrier["BCBS"].status == "received"            # statement uploaded
         assert by_carrier["Aetna"].total_payout == 0.0
         assert by_carrier["Aetna"].status == "confirmed_zero"     # AJ confirmed no business
+
+
+def test_aggregate_matrix_has_founders_agency_override_row(db_session, agency):
+    """A read-only 'Founders Agency' row sums founders_override per carrier (the
+    agency's own override earnings)."""
+    from app.models import User
+    from app.extensions import db
+    from app.commission.recap import build_aggregate_matrix
+
+    tim = User(name="Tim Winslow", email="ag1@x.com", agency_id=agency.id)
+    db.session.add(tim); db.session.flush()
+    # Tim UHC: renewal (agent) + a $4.59 override (agency)
+    _mk_line(db, agency, tim, "UHC", "agent_commission", "renewal", 100.0, 0.55, "A")
+    _mk_line(db, agency, tim, "UHC", "founders_override", "override", 4.59, None, "A")
+    _mk_line(db, agency, tim, "Devoted", "founders_override", "override", 10.00, None, "B")
+    db.session.flush()
+
+    m = build_aggregate_matrix(agency.id, scope="month", period_label="May 2026")
+    ar = m["agency_row"]
+    assert round(ar["cells"]["UHC"], 2) == 4.59
+    assert round(ar["cells"]["Devoted"], 2) == 10.00
+    assert round(ar["total"], 2) == 14.59

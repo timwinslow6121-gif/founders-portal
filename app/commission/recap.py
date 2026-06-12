@@ -381,8 +381,17 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
         "keep": round(sum(r["keep_total"] for r in rows), 2),
         "pending": round(sum(r["pending_total"] for r in rows), 2),
     }
+    # Read-only "Founders Agency" row: the agency's own earnings = all
+    # founders_override per carrier (100% Founders, written under the agency NPN /
+    # paired with each agent's split). Surfaced as a first-class row so AJ sees what
+    # the agency itself made on overrides, without making it a real agent.
+    agency_row = {
+        "cells": {c: carrier_totals[c]["override"] for c in carriers
+                  if carrier_totals[c]["override"]},
+        "total": round(sum(carrier_totals[c]["override"] for c in carriers), 2),
+    }
     return {"scope": scope, "period_label": period_label, "year": year,
-            "carriers": carriers, "rows": rows,
+            "carriers": carriers, "rows": rows, "agency_row": agency_row,
             "carrier_totals": carrier_totals, "grand": grand}
 
 

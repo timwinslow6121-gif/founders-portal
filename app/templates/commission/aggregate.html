@@ -53,6 +53,10 @@
   table.agg td.neg, table.agg td.cell a.neg{ color:var(--a-neg); }
   table.agg td.pt{ text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
   table.agg td.kt{ text-align:right; font-variant-numeric:tabular-nums; color:var(--a-green); }
+  table.agg tr.agencyrow td{ border-top:1px dashed var(--a-border); background:color-mix(in srgb, var(--a-green) 6%, transparent); }
+  table.agg tr.agencyrow td:first-child{ color:var(--a-green); font-weight:600; }
+  table.agg tr.agencyrow td.ovr{ color:var(--a-green); font-variant-numeric:tabular-nums; }
+  table.agg .agency-sub{ font-size:.66rem; color:var(--a-muted); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
   table.agg tr.total td{ font-weight:700; border-top:2px solid var(--a-navy); border-bottom:none; color:var(--a-navy); }
   table.agg tr.total td.grand{ color:var(--a-blue); }
   .agg-empty{ padding:40px; text-align:center; color:var(--a-muted); }
@@ -142,6 +146,19 @@
           <td class="kt keepcol">{{ '${:,.2f}'.format(r.override_total) }}</td>
         </tr>
         {% endfor %}
+        {% if matrix.agency_row and matrix.agency_row.total %}
+        <tr class="agencyrow" title="The agency's own earnings — Founders override lines (100% Founders), per carrier">
+          <td>Founders Agency <span class="agency-sub">overrides</span></td>
+          {% for c in matrix.carriers %}
+            {% set ov = matrix.agency_row.cells.get(c) %}
+            {% if ov %}<td class="cell ovr">{{ '${:,.2f}'.format(ov) }}</td>
+            {% else %}<td class="empty">—</td>{% endif %}
+          {% endfor %}
+          <td class="pt ovr">{{ '${:,.2f}'.format(matrix.agency_row.total) }}</td>
+          <td class="kt keepcol"></td>
+          <td class="kt keepcol"></td>
+        </tr>
+        {% endif %}
         <tr class="total">
           <td>TOTAL</td>
           {% for c in matrix.carriers %}

@@ -44,7 +44,15 @@ rm -f "$ARCHIVE"   # keep only the encrypted copy locally
 log "Encrypted -> $ENC ($(du -h "$ENC" | cut -f1))"
 
 # 5. upload to Drive
-rclone copy "$ENC" "$BACKUP_RCLONE_REMOTE/" --log-file "$LOG" --log-level INFO \
+# RCLONE_FLAGS: ride through transient Google Drive 403/429 rate-limits. The remote
+# uses rclone's SHARED default OAuth client_id (no custom client_id in the config),
+# which Google throttles globally — so a nightly run can hit a 'Queries per minute'
+# 403 unrelated to our tiny usage. Retries + pacer backoff self-heal it. The durable
+# fix is a private OAuth client_id (see scripts/RCLONE_OWN_CLIENT_ID.md).
+RCLONE_FLAGS=(--retries 5 --retries-sleep 30s --low-level-retries 10
+              --drive-pacer-min-sleep 100ms --drive-pacer-burst 1
+              --log-file "$LOG" --log-level INFO)
+rclone copy "$ENC" "$BACKUP_RCLONE_REMOTE/" "${RCLONE_FLAGS[@]}" \
     || fail "rclone upload failed"
 log "Uploaded to $BACKUP_RCLONE_REMOTE"
 
@@ -66,7 +74,7 @@ prune() {
   # complex via rclone alone; simplest robust rule for a tiny DB: keep last (RETAIN_DAILY +
   # RETAIN_MONTHLY*31) days on Drive via --min-age. This over-keeps slightly (fine at 155KB).
   local max_age=$(( (RETAIN_DAILY + RETAIN_MONTHLY*31) ))
-  rclone delete "$BACKUP_RCLONE_REMOTE/" --min-age "${max_age}d" --log-file "$LOG" || true
+  rclone delete "$BACKUP_RCLONE_REMOTE/" --min-age "${max_age}d" "${RCLONE_FLAGS[@]}" || true
 }
 prune
 

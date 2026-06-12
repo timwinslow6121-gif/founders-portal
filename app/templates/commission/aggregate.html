@@ -26,6 +26,13 @@
   table.agg td.cell a{ color:var(--a-ink); text-decoration:none; display:block; border-radius:6px; padding:2px 4px; margin:-2px -4px; }
   table.agg td.cell a:hover{ background:color-mix(in srgb, var(--a-blue) 12%, transparent); }
   table.agg td.cell .sub{ display:block; color:var(--a-green); font-size:.68rem; }
+  /* Founders-keep detail is hidden by default; the toggle adds .show-keep. */
+  table.agg .keep-only{ display:none; }
+  table.agg.show-keep .keep-only{ display:block; }
+  table.agg .keepcol{ display:none; }
+  table.agg.show-keep .keepcol{ display:table-cell; }
+  .agg-keepswitch{ display:inline-flex; align-items:center; gap:6px; font-size:.82rem; color:var(--a-muted); cursor:pointer; }
+  .agg-pending{ margin-left:auto; color:#C2701A; font-size:.8rem; font-weight:600; }
   table.agg td.empty{ text-align:right; color:var(--a-muted); }
   table.agg td.neg, table.agg td.cell a.neg{ color:var(--a-neg); }
   table.agg td.pt{ text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
@@ -52,22 +59,26 @@
       <option value="{{ p }}" {{ 'selected' if p == period_label else '' }}>{{ p }}</option>
       {% endfor %}
     </select>
-    <span class="agg-legend">
-      {% if scope == 'ytd' %}Year-to-date {{ year }}{% else %}{{ period_label }}{% endif %}
-      · <b>Payout</b> = agent take-home · <span class="k">split</span> = Founders' share of the split · <span class="k">ovr</span> = Founders-override lines
+    <label class="agg-keepswitch">
+      <input type="checkbox" id="aggKeepToggle"> Show Founders keep
+    </label>
+    {% if matrix.grand.pending %}
+    <span class="agg-pending" title="Unsplit 'New' enrollments etc. awaiting manual review — not yet attributed">
+      ⚠ ${{ '{:,.0f}'.format(matrix.grand.pending) }} pending review
     </span>
+    {% endif %}
   </div>
 
   {% if matrix.rows %}
   <div class="agg-card">
-    <table class="agg">
+    <table class="agg" id="aggTable">
       <thead>
         <tr>
           <th>Agent</th>
           {% for c in matrix.carriers %}<th>{{ c }}</th>{% endfor %}
           <th>Payout</th>
-          <th title="Founders' share of split commissions">F. split</th>
-          <th title="Pure Founders-override lines (100% Founders)">Override</th>
+          <th class="keepcol" title="Founders' share of split commissions">F. split</th>
+          <th class="keepcol" title="Pure Founders-override lines (100% Founders)">Override</th>
         </tr>
       </thead>
       <tbody>
@@ -81,13 +92,13 @@
               {% if r.agent_id and scope == 'month' %}
               <a class="{{ 'neg' if cell.payout < 0 else '' }}"
                  href="{{ url_for('commission.admin_recap', agent_id=r.agent_id, period=period_label) }}"
-                 title="{{ r.agent_name }} · {{ c }} — payout ${{ '%.2f'|format(cell.payout) }} · Founders split-share ${{ '%.2f'|format(cell.split_keep) }} · override ${{ '%.2f'|format(cell.override) }}">
+                 title="{{ r.agent_name }} · {{ c }} — payout ${{ '%.2f'|format(cell.payout) }} · Founders split-share ${{ '%.2f'|format(cell.split_keep) }} · override ${{ '%.2f'|format(cell.override) }}{% if cell.pending %} · pending ${{ '%.2f'|format(cell.pending) }}{% endif %}">
                 {{ '{:,.0f}'.format(cell.payout) }}
-                <span class="sub">split {{ '{:,.0f}'.format(cell.split_keep) }} · ovr {{ '{:,.0f}'.format(cell.override) }}</span>
+                <span class="sub keep-only">split {{ '{:,.0f}'.format(cell.split_keep) }} · ovr {{ '{:,.0f}'.format(cell.override) }}</span>
               </a>
               {% else %}
               <span class="{{ 'neg' if cell.payout < 0 else '' }}">{{ '{:,.0f}'.format(cell.payout) }}</span>
-              <span class="sub">split {{ '{:,.0f}'.format(cell.split_keep) }} · ovr {{ '{:,.0f}'.format(cell.override) }}</span>
+              <span class="sub keep-only">split {{ '{:,.0f}'.format(cell.split_keep) }} · ovr {{ '{:,.0f}'.format(cell.override) }}</span>
               {% endif %}
             </td>
             {% else %}
@@ -95,24 +106,38 @@
             {% endif %}
           {% endfor %}
           <td class="pt {{ 'neg' if r.payout_total < 0 else '' }}">{{ '{:,.0f}'.format(r.payout_total) }}</td>
-          <td class="kt">{{ '{:,.0f}'.format(r.split_keep_total) }}</td>
-          <td class="kt">{{ '{:,.0f}'.format(r.override_total) }}</td>
+          <td class="kt keepcol">{{ '{:,.0f}'.format(r.split_keep_total) }}</td>
+          <td class="kt keepcol">{{ '{:,.0f}'.format(r.override_total) }}</td>
         </tr>
         {% endfor %}
         <tr class="total">
           <td>TOTAL</td>
           {% for c in matrix.carriers %}
           <td class="cell">{{ '{:,.0f}'.format(matrix.carrier_totals[c].payout) }}
-            <span class="sub">split {{ '{:,.0f}'.format(matrix.carrier_totals[c].split_keep) }} · ovr {{ '{:,.0f}'.format(matrix.carrier_totals[c].override) }}</span>
+            <span class="sub keep-only">split {{ '{:,.0f}'.format(matrix.carrier_totals[c].split_keep) }} · ovr {{ '{:,.0f}'.format(matrix.carrier_totals[c].override) }}</span>
           </td>
           {% endfor %}
           <td class="grand">{{ '{:,.0f}'.format(matrix.grand.payout) }}</td>
-          <td class="kt">{{ '{:,.0f}'.format(matrix.grand.split_keep) }}</td>
-          <td class="kt">{{ '{:,.0f}'.format(matrix.grand.override) }}</td>
+          <td class="kt keepcol">{{ '{:,.0f}'.format(matrix.grand.split_keep) }}</td>
+          <td class="kt keepcol">{{ '{:,.0f}'.format(matrix.grand.override) }}</td>
         </tr>
       </tbody>
     </table>
   </div>
+  <script>
+    (function(){
+      var cb = document.getElementById('aggKeepToggle');
+      var t  = document.getElementById('aggTable');
+      if(!cb || !t) return;
+      var KEY = 'fp-agg-show-keep';
+      function apply(){ t.classList.toggle('show-keep', cb.checked); }
+      cb.checked = localStorage.getItem(KEY) === '1';
+      apply();
+      cb.addEventListener('change', function(){
+        localStorage.setItem(KEY, cb.checked ? '1' : '0'); apply();
+      });
+    })();
+  </script>
   {% else %}
   <div class="agg-card"><div class="agg-empty">No commission data for this period yet.</div></div>
   {% endif %}

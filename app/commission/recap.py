@@ -276,12 +276,18 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
         rows_q = rows_q.filter_by(period_label=period_label)
     lis = [li for li in rows_q.all() if _in_scope(li)]
 
-    # accumulate per (agent_id, carrier): agent payout, plus Founders keep split
-    # into its TWO sources — Founders' share of split commissions vs pure override
-    # lines — so the matrix can label them separately.
-    pay = defaultdict(float)          # agent take-home
-    split_keep = defaultdict(float)   # Founders' share of split (agent_commission/hra/chargeback)
-    override = defaultdict(float)     # pure founders_override lines (100% Founders)
+    # accumulate per (agent_id, carrier):
+    #   pay        = agent take-home (split commissions + HRA + chargebacks)
+    #   split_keep = Founders' share of those split commissions
+    #   override   = pure founders_override lines (100% Founders)
+    #   pending    = unsplit quarantine (needs_manual_review) rows — NOT counted as
+    #                Founders keep (they're awaiting AJ's split, e.g. UHC "New"
+    #                enrollments). Surfaced separately so a big "New" month doesn't
+    #                inflate an agent's keep (the Mike $9,177 bug).
+    pay = defaultdict(float)
+    split_keep = defaultdict(float)
+    override = defaultdict(float)
+    pending = defaultdict(float)
     carriers, agents_with_data = set(), set()
     for li in lis:
         p, k = split_breakdown(li)
@@ -294,9 +300,7 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
             pay[key] += p
             split_keep[key] += k
         else:
-            # quarantine / unsplit rows: split_rate None → keep, but it's "pending",
-            # not Founders' true share. Park it in split_keep so totals still close.
-            split_keep[key] += k
+            pending[key] += (li.raw_amount or 0.0)
 
     # adjustments fold into payout (per agent+carrier; scope-filtered)
     adj_q = CommissionAdjustment.query.filter_by(agency_id=agency_id)
@@ -324,15 +328,17 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
             pv = round(pay.get((aid, c), 0.0), 2)
             sk = round(split_keep.get((aid, c), 0.0), 2)
             ov = round(override.get((aid, c), 0.0), 2)
-            if pv or sk or ov:
+            pd = round(pending.get((aid, c), 0.0), 2)
+            if pv or sk or ov or pd:
                 cells[c] = {"payout": pv, "split_keep": sk, "override": ov,
-                            "keep": round(sk + ov, 2)}
+                            "keep": round(sk + ov, 2), "pending": pd}
         rows.append({
             "agent_id": aid, "agent_name": name, "cells": cells,
             "payout_total": round(sum(v["payout"] for v in cells.values()), 2),
             "split_keep_total": round(sum(v["split_keep"] for v in cells.values()), 2),
             "override_total": round(sum(v["override"] for v in cells.values()), 2),
             "keep_total": round(sum(v["keep"] for v in cells.values()), 2),
+            "pending_total": round(sum(v["pending"] for v in cells.values()), 2),
         })
     rows.sort(key=lambda r: r["payout_total"], reverse=True)
 
@@ -341,12 +347,14 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
     carrier_totals = {c: {"payout": _coltot(c, "payout"),
                           "split_keep": _coltot(c, "split_keep"),
                           "override": _coltot(c, "override"),
-                          "keep": _coltot(c, "keep")} for c in carriers}
+                          "keep": _coltot(c, "keep"),
+                          "pending": _coltot(c, "pending")} for c in carriers}
     grand = {
         "payout": round(sum(r["payout_total"] for r in rows), 2),
         "split_keep": round(sum(r["split_keep_total"] for r in rows), 2),
         "override": round(sum(r["override_total"] for r in rows), 2),
         "keep": round(sum(r["keep_total"] for r in rows), 2),
+        "pending": round(sum(r["pending_total"] for r in rows), 2),
     }
     return {"scope": scope, "period_label": period_label, "year": year,
             "carriers": carriers, "rows": rows,

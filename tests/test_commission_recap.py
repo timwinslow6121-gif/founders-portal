@@ -495,6 +495,9 @@ def test_build_aggregate_matrix_payout_keep_and_totals(db_session, agency):
     _mk_line(db, agency, tim, "Devoted", "hra_bonus", "hra", 50.0, 0.50, "B")
     # Rebekah UHC: renewal $200@.55 (payout 110, keep 90)
     _mk_line(db, agency, reb, "UHC", "agent_commission", "renewal", 200.0, 0.55, "C")
+    # Tim UHC: a quarantined "New" enrollment $500 (split_rate None) — must NOT be
+    # counted as Founders keep; it's pending review.
+    _mk_line(db, agency, tim, "UHC", "needs_manual_review", "New", 500.0, None, "D")
     # Tim UHC adjustment -$20
     db.session.add(CommissionAdjustment(agency_id=agency.id, agent_id=tim.id,
                    carrier="UHC", period_label="May 2026", amount=-20.0, note="corr"))
@@ -510,9 +513,11 @@ def test_build_aggregate_matrix_payout_keep_and_totals(db_session, agency):
     # keep splits into Founders' split-share (45 from the renewal) + override (4.59).
     tim_uhc = cell[("Tim Winslow", "UHC")]
     assert round(tim_uhc["payout"], 2) == 35.00
-    assert round(tim_uhc["keep"], 2) == 49.59             # total keep (back-compat)
     assert round(tim_uhc["split_keep"], 2) == 45.00       # Founders' share of the split
     assert round(tim_uhc["override"], 2) == 4.59          # pure override lines
+    # keep = split + override ONLY — the $500 quarantine row is NOT in keep
+    assert round(tim_uhc["keep"], 2) == 49.59
+    assert round(tim_uhc["pending"], 2) == 500.00         # surfaced separately
     # Rebekah UHC payout 110
     assert round(cell[("Rebekah Long", "UHC")]["payout"], 2) == 110.00
     # column total UHC payout = 35 + 110 = 145

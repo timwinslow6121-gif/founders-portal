@@ -199,24 +199,11 @@
     </div>
   </div>
 
-  {# ---------- admin tools (set UHC + publish) ---------- #}
+  {# ---------- admin tools (publish) ---------- #}
+  {# UHC manual-entry form removed 2026-06-12 — UHC is now a real parsed carrier
+     (R4 ledger). AJ no longer hand-enters a UHC figure. #}
   {% if admin_view %}
   <div class="admin-tools">
-    <form method="post" action="{{ url_for('commission.admin_recap_set_uhc') }}">
-      <input type="hidden" name="agent_id" value="{{ selected_agent_id }}">
-      <input type="hidden" name="period" value="{{ period_label }}">
-      <div class="fld">
-        <label class="label" for="uhc_amount">UHC commission (manual)</label>
-        <input type="text" id="uhc_amount" name="uhc_amount" placeholder="$0.00"
-               value="{% if recap_period and recap_period.uhc_manual_amount is not none %}{{ '%.2f'|format(recap_period.uhc_manual_amount) }}{% endif %}">
-      </div>
-      <div class="fld">
-        <label class="label" for="uhc_note">Note</label>
-        <input type="text" id="uhc_note" name="uhc_note" placeholder="e.g. AEP true-up incl."
-               value="{% if recap_period and recap_period.uhc_manual_note %}{{ recap_period.uhc_manual_note }}{% endif %}">
-      </div>
-      <button type="submit" class="btn btn-primary">Save UHC</button>
-    </form>
     <form method="post" action="{{ url_for('commission.admin_recap_publish') }}">
       <input type="hidden" name="agent_id" value="{{ selected_agent_id }}">
       <input type="hidden" name="period" value="{{ period_label }}">
@@ -225,6 +212,13 @@
     <span class="admin-tag">
       {% if recap_period and recap_period.status == 'published' %}Published{% if recap_period.published_at %} · {{ recap_period.published_at.strftime('%b %d') }}{% endif %}{% else %}Draft (not visible to agent yet){% endif %}
     </span>
+    {% for q in (quar_links if quar_links is defined else []) %}
+    <a href="{{ url_for('commission.commission_quarantine', stmt_id=q.stmt_id) }}"
+       class="btn" style="background:#C2701A;color:#fff;text-decoration:none;"
+       title="{{ q.count }} {{ q.carrier }} line(s) need manual review">
+      ⚠ {{ q.count }} {{ q.carrier }} to review (${{ '%.0f'|format(q.total) }})
+    </a>
+    {% endfor %}
   </div>
   {% endif %}
 

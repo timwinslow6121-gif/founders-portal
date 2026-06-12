@@ -613,6 +613,19 @@ def _near(a, b):
     return abs(a - b) < _CENT
 
 
+import re
+
+# UHC HA (HRA) rows carry no member column; the member is named inside the action
+# string: "HA payment for agent ID 6337213 for member JEANETTE CATHCART MBI *****8VD98 ...".
+_UHC_HA_MEMBER_RE = re.compile(r"for member (.+?)\s+MBI\b", re.IGNORECASE)
+
+
+def _uhc_ha_member(action):
+    """Extract the member name from a UHC HA-payment action string, else ''."""
+    m = _UHC_HA_MEMBER_RE.search(str(action or ""))
+    return m.group(1).strip() if m else ""
+
+
 def _uhc_medsupp_overrides(rows):
     """Med-Supp pays per-member as TWO lines (premium-based): a larger renewal
     (splits) + a smaller Founders override (no split). Pre-pass to identify, per
@@ -665,17 +678,22 @@ def extract_lineitems_uhc(sheets, split_lookup) -> List[LineItemDraft]:
         sref = f"uhc::0::{idx}"
         rate = split_lookup(writing)
 
-        def draft(raw, cls, srate, ref, ptype=None):
+        def draft(raw, cls, srate, ref, ptype=None, member_name=None):
             return LineItemDraft(
                 carrier="UHC", source_ref=ref, raw_amount=raw, classification=cls,
                 split_rate=srate, payment_type=(ptype or action_l or None),
-                member_name=member, mbi=mbi, writing_agent_raw=writing,
-                effective_date=eff)
+                member_name=(member_name if member_name is not None else member),
+                mbi=mbi, writing_agent_raw=writing, effective_date=eff)
 
-        # ── HA payment/chargeback ($50): no override, but DOES split agent/Founders.
+        # ── HA payment/chargeback ($50): an HRA bonus. No override, but DOES split
+        #    agent/Founders. Classify as HRA_BONUS (its own "HRA" recap group), not
+        #    a renewal. A negative HA is an HRA clawback → chargeback. The HA rows
+        #    carry no member col — the name is embedded in the action string
+        #    ("... for member JANE DOE MBI *****1234 ..."), so pull it out for display.
         if action_l.startswith("ha payment") or action_l.startswith("ha chargeback"):
-            cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
-            out.append(draft(amount, cls, rate, sref, ptype="ha"))
+            cls = CHARGEBACK if amount < 0 else HRA_BONUS
+            ha_member = _uhc_ha_member(action) or member
+            out.append(draft(amount, cls, rate, sref, ptype="hra", member_name=ha_member))
             continue
 
         is_renewal = "renewal" in action_l

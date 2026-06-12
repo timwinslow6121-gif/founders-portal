@@ -71,9 +71,9 @@ class CarrierBlock:
 
 
 _GROUP_FOR = {"new": "New enrollments", "renewal": "Renewals",
-              "bonus": "Bonuses", "chargeback": "Chargebacks"}
+              "bonus": "HRA", "chargeback": "Chargebacks"}
 _TYPE_LABEL = {"new": "New enrollment", "renewal": "Renewal",
-               "bonus": "Bonus", "chargeback": "Chargeback"}
+               "bonus": "HRA", "chargeback": "Chargeback"}
 
 
 def _row_kind(carrier, li):
@@ -241,7 +241,11 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
           .filter_by(agency_id=agency_id, agent_id=agent_id, period_label=period_label).first())
 
     carriers = build_carrier_blocks(agent_id, agency_id, period_label)
-    uhc = uhc_manual_block(rp) if rp else None
+    # UHC is now a real ledger carrier (R4 parser, 2026-06). The manual figure is a
+    # legacy fallback ONLY for periods with no parsed UHC data — never add it on top
+    # of a ledger UHC block (that would double-count). New manual entry is removed.
+    has_ledger_uhc = any(b.carrier == "UHC" for b in carriers)
+    uhc = (uhc_manual_block(rp) if rp else None) if not has_ledger_uhc else None
     if uhc:
         carriers.append(uhc)
         carriers.sort(key=lambda b: b.total_payout, reverse=True)

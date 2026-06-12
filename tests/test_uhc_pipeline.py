@@ -109,6 +109,34 @@ def test_long_quarantine_action_string_persists(db_session, app, agency):
         assert li.payment_type == long_action  # stored in full, not truncated
 
 
+def test_uhc_ha_payment_is_hra_bonus_with_member_name():
+    """A UHC 'HA payment' is an HRA bonus (its own group), not a renewal, and its
+    member name is parsed out of the action string (the HA rows have no member col)."""
+    from app.commission.ledger import extract_lineitems_uhc, HRA_BONUS, CHARGEBACK, _uhc_ha_member
+
+    assert _uhc_ha_member(
+        "HA payment for agent ID 6337213 for member JEANETTE CATHCART MBI *****8VD98 policy 942") \
+        == "JEANETTE CATHCART"
+
+    header = [""] * 24
+    header[5] = "Writing Agent Name"; header[7] = "Member Name"; header[8] = "MedicareID"
+    header[12] = "Plan Type"; header[19] = "Commission Action"; header[23] = "Commission"
+    def ha_row(action, amt):
+        r = [""] * 24
+        r[5] = "WINSLOW, TIMOTHY"; r[12] = "MAPD"; r[19] = action; r[23] = amt
+        return r
+    sheets = {"Commission Transactions": [
+        header,
+        ha_row("HA payment for agent ID 1 for member JANE DOE MBI *****1234 policy 9", 50.0),
+        ha_row("HA chargeback for agent ID 1 for member BOB ROE MBI  policy 8", -50.0),
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55)
+    by_member = {i.member_name: i for i in items}
+    assert by_member["JANE DOE"].classification == HRA_BONUS
+    assert by_member["JANE DOE"].payment_type == "hra"
+    assert by_member["BOB ROE"].classification == CHARGEBACK   # negative HA = clawback
+
+
 def test_betty_riddle_legal_name_resolves_to_betty_marlowe(db_session, app, agency):
     """Betty writes some UHC business under her legal name 'RIDDLE, BETTY B'. It
     must resolve to her portal user (Betty Marlowe), not fall through unmatched."""

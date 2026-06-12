@@ -1618,8 +1618,19 @@ def admin_recap():
     db.session.commit()
     recap = build_recap(agent_id, current_user.agency_id, period)
     agents = User.query.filter_by(agency_id=current_user.agency_id).order_by(User.name).all()
+    # Period-level quarantine surfacing: any statement this period with needs-review
+    # lines (UHC's ~2.3%) so AJ sees them from where he reviews commissions.
+    quar_links = []
+    stmts = CommissionStatement.query.filter_by(
+        agency_id=current_user.agency_id, period_label=period).all()
+    for s in stmts:
+        q = quarantined_line_items(s.id, current_user.agency_id)
+        if q["count"]:
+            quar_links.append({"stmt_id": s.id, "carrier": s.carrier,
+                               "count": q["count"], "total": q["total"]})
     return render_template("commission/recap.html", recap=recap, pending=False, admin_view=True,
                            period_label=period, recap_period=rp, agents=agents,
+                           quar_links=quar_links,
                            periods=all_periods_with_data(current_user.agency_id),
                            selected_agent_id=agent_id, is_admin=True)
 

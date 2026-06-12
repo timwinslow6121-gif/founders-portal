@@ -129,10 +129,10 @@ def test_hra_bonus_is_included_in_agent_payout(db_session, agency):
     dev = next(b for b in blocks if b.carrier == "Devoted")
     # payout = 100*.50 (renewal) + 50*.50 (HRA) = 50 + 25 = 75
     assert round(dev.total_payout, 2) == 75.00
-    # HRA shows in its own group, NOT counted as a new member
+    # HRA shows in its own "HRA" group, NOT counted as a new member
     assert dev.new_members == 0
     kinds = {g.kind for g in dev.groups}
-    assert "Bonuses" in kinds
+    assert "HRA" in kinds
     # drill-down still reconciles to the total exactly
     allrows = [r for g in dev.groups for r in g.rows]
     assert round(sum(r.payout for r in allrows), 2) == round(dev.total_payout, 2)

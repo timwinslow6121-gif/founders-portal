@@ -25,10 +25,10 @@
   table.agg td.cell{ text-align:right; font-variant-numeric:tabular-nums; }
   table.agg td.cell a{ color:var(--a-ink); text-decoration:none; display:block; border-radius:6px; padding:2px 4px; margin:-2px -4px; }
   table.agg td.cell a:hover{ background:color-mix(in srgb, var(--a-blue) 12%, transparent); }
-  table.agg td.cell .sub{ display:block; color:var(--a-green); font-size:.68rem; }
+  table.agg td.cell .sub{ color:var(--a-green); font-size:.68rem; }
   /* Founders-keep detail is hidden by default; the toggle adds .show-keep. */
-  table.agg .keep-only{ display:none; }
-  table.agg.show-keep .keep-only{ display:block; }
+  table.agg td.cell .sub.keep-only{ display:none; }
+  table.agg.show-keep td.cell .sub.keep-only{ display:block; }
   table.agg .keepcol{ display:none; }
   table.agg.show-keep .keepcol{ display:table-cell; }
   .agg-keepswitch{ display:inline-flex; align-items:center; gap:6px; font-size:.82rem; color:var(--a-muted); cursor:pointer; }

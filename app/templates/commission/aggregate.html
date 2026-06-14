@@ -38,6 +38,8 @@
   table.agg thead th{ color:var(--a-muted); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; text-align:right; }
   table.agg thead th:first-child{ text-align:left; }
   table.agg td:first-child{ font-weight:600; color:var(--a-ink); }
+  table.agg td:first-child a.agent-link{ color:var(--a-ink); text-decoration:none; }
+  table.agg td:first-child a.agent-link:hover{ color:var(--a-blue); text-decoration:underline; }
   table.agg td.cell{ text-align:right; font-variant-numeric:tabular-nums; }
   table.agg td.cell a{ color:var(--a-ink); text-decoration:none; display:block; border-radius:6px; padding:2px 4px; margin:-2px -4px; }
   table.agg td.cell a:hover{ background:color-mix(in srgb, var(--a-blue) 12%, transparent); }
@@ -64,8 +66,8 @@
 
 {% block content %}
 <div class="agg-page">
-  <h1>All Commissions</h1>
-  <p class="agg-lead">Every agent × every carrier. Tap a cell to drill into that agent's carrier detail.</p>
+  <h1>Agent Commissions</h1>
+  <p class="agg-lead">Founders overview — every agent × every carrier. Click an agent's name (or a cell) to open their full recap.</p>
 
   <div class="agg-toolbar">
     <div class="agg-toggle">
@@ -120,7 +122,7 @@
       <tbody>
         {% for r in matrix.rows %}
         <tr>
-          <td>{{ r.agent_name }}</td>
+          <td>{% if r.agent_id %}<a class="agent-link" href="{{ url_for('commission.admin_recap', agent_id=r.agent_id, period=period_label) }}" title="Open {{ r.agent_name }}'s recap">{{ r.agent_name }}</a>{% else %}{{ r.agent_name }}{% endif %}</td>
           {% for c in matrix.carriers %}
             {% set cell = r.cells.get(c) %}
             {% if cell %}

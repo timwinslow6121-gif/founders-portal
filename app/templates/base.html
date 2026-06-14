@@ -757,7 +757,7 @@
         <div class="nav-section-label">Commissions</div>
         <a href="{{ url_for('commission.admin_aggregate') }}"
            class="nav-item {% if request.endpoint in ['commission.admin_aggregate', 'commission.admin_recap'] %}active{% endif %}">
-          <span class="nav-dot"></span>All Commissions
+          <span class="nav-dot"></span>Agent Commissions
         </a>
         <a href="{{ url_for('commission.commission_admin') }}"
            class="nav-item {% if request.path == '/admin/commissions' %}active{% endif %}">

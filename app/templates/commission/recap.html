@@ -194,7 +194,7 @@
 
   {# ---------- topbar + period/agent selectors ---------- #}
   {% if admin_view %}
-  <a class="recap-back" href="{{ url_for('commission.admin_aggregate', period=period_label) }}">← All Commissions</a>
+  <a class="recap-back" href="{{ url_for('commission.admin_aggregate', period=period_label) }}">← Agent Commissions (overview)</a>
   {% endif %}
   <div class="topbar">
     <h1>{% if recap %}{{ recap.agent_name }} — {% endif %}{% if admin_view %}Recap{% else %}My Commission Recap{% endif %}</h1>

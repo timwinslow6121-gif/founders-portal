@@ -651,3 +651,23 @@ def test_aggregate_matrix_has_founders_agency_override_row(db_session, agency):
     assert round(ar["cells"]["UHC"], 2) == 4.59
     assert round(ar["cells"]["Devoted"], 2) == 10.00
     assert round(ar["total"], 2) == 14.59
+
+
+def test_admin_recap_no_agent_redirects_to_matrix(app, db_session, agency):
+    """Admin hitting the recap area with no agent_id lands on the All-Commissions
+    matrix, not AJ's own empty 'My Commission' shell."""
+    from app.extensions import db
+    from app.models import User
+    with app.app_context():
+        admin = User(name="AJ", email="recapredir@x.com", is_admin=True, agency_id=agency.id)
+        db.session.add(admin); db.session.commit()
+        uid = admin.id
+    c = app.test_client()
+    with c.session_transaction() as sess:
+        sess["_user_id"] = str(uid)
+    r = c.get("/admin/commissions/recap")   # no agent_id
+    assert r.status_code == 302
+    assert "/admin/commissions/aggregate" in r.headers["Location"]
+    # WITH an agent_id it renders the recap (200)
+    r2 = c.get(f"/admin/commissions/recap?agent_id={uid}")
+    assert r2.status_code == 200

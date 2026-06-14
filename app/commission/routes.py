@@ -1666,7 +1666,14 @@ def admin_confirm_zero():
 def admin_recap():
     if not current_user.is_admin:
         abort(403)
-    agent_id = request.args.get("agent_id", type=int) or current_user.id
+    # The admin commission landing IS the All-Commissions matrix (the agency
+    # overview). A specific agent's recap is reached by clicking a matrix row/cell
+    # (which passes agent_id). Without agent_id, don't show AJ's own empty "My
+    # Commission" shell — send him to the matrix.
+    agent_id = request.args.get("agent_id", type=int)
+    if agent_id is None:
+        return redirect(url_for("commission.admin_aggregate",
+                                period=request.args.get("period")))
     # Default to the most recent period that actually has commission data (so opening
     # the page after an upload lands on that period), falling back to today's month.
     period = (request.args.get("period")
@@ -1675,7 +1682,11 @@ def admin_recap():
     rp = get_or_create_period(agent_id, current_user.agency_id, period)
     db.session.commit()
     recap = build_recap(agent_id, current_user.agency_id, period)
-    agents = User.query.filter_by(agency_id=current_user.agency_id).order_by(User.name).all()
+    # Agent nav bar (#4): real agents only — exclude the shared admin@ account (it's
+    # never a commission agent; same filter as the Commission Audit view).
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.email != "admin@foundersinsuranceagency.com")
+              .order_by(User.name).all())
     # Period-level quarantine surfacing: any statement this period with needs-review
     # lines (UHC's ~2.3%) so AJ sees them from where he reviews commissions.
     quar_links = []

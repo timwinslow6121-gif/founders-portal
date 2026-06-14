@@ -21,6 +21,12 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 ---
 
 ## 💰 Commissions
+- 🟡 🔴 **Commission-admin UX batch (2026-06-13, in progress):**
+  - ✅ #1a/b — unresolved stubs no longer attributed to the uploader (AJ); 463 backfilled to "unassigned" (live).
+  - ⬜ #1c — **"Unassigned customers" view + reassign-agent UI** (463 stubs now need a real agent set).
+  - 🟡 #2 — make **All-Commissions the admin recap landing** (merge; kill AJ's empty "My Commission" shell for admins). *(in progress)*
+  - ⬜ #3 — **in-line resolve quarantined UHC rows** (set agent + override + split right in the portal; no way to currently).
+  - ⬜ #4 — agent picker: dropdown → **visible agent nav-bar** (1-click to an agent).
 - ⬜ 🟠 **AJ signs off on a real UHC upload run** + the quarantine tab before UHC is system-of-record. — `[[uhc-parser-resume]]`
 - ⬜ 🟠 **UHC "New" enrollment proration** — the last big quarantine chunk (~48 rows, mostly "New" months-remaining math, cols L/T/AA/AB). Needs a few worked examples from AJ. Irreducible until then.
 - ⏸ 🟢 **Aetna Medigap supplement parser** — `aetnasupplement.zip` ($101.53, different `Commission Details` shape). Deferred; normal agent split applies when built. — `[[session-handoff-2026-06-11-commissions]]`

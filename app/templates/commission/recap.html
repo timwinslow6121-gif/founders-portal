@@ -30,9 +30,16 @@
   }
 
   /* topbar */
-  .recap-page .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .recap-page .recap-back{display:inline-block;color:var(--rc-blue);text-decoration:none;font-size:.82rem;font-weight:600;margin-bottom:10px}
+  .recap-page .recap-back:hover{text-decoration:underline}
+  .recap-page .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
   .recap-page .topbar h1{font-size:1.6rem;font-weight:800}
   .recap-page .topbar-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  /* #4 agent nav bar — every agent visible, 1 click to switch */
+  .recap-page .agent-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:8px;background:var(--rc-card);border:1px solid var(--rc-border);border-radius:12px}
+  .recap-page .agent-pill{padding:6px 13px;border-radius:999px;font-size:.84rem;text-decoration:none;color:var(--rc-ink);background:var(--rc-blue-tint);border:1px solid transparent;white-space:nowrap}
+  .recap-page .agent-pill:hover{border-color:var(--rc-blue)}
+  .recap-page .agent-pill.on{background:var(--rc-blue);color:#fff;font-weight:600}
   .recap-page select.period,.recap-page select.agent-sel{
     font-family:'Plus Jakarta Sans';font-size:.9rem;font-weight:600;
     background:var(--rc-card);border:1px solid var(--rc-border);border-radius:12px;
@@ -186,19 +193,12 @@
 <div class="recap-page">
 
   {# ---------- topbar + period/agent selectors ---------- #}
+  {% if admin_view %}
+  <a class="recap-back" href="{{ url_for('commission.admin_aggregate', period=period_label) }}">← All Commissions</a>
+  {% endif %}
   <div class="topbar">
-    <h1>{% if recap %}{{ recap.agent_name }} — {% endif %}My Commission Recap</h1>
+    <h1>{% if recap %}{{ recap.agent_name }} — {% endif %}{% if admin_view %}Recap{% else %}My Commission Recap{% endif %}</h1>
     <div class="topbar-controls">
-      {% if admin_view and agents %}
-      <form method="get" action="{{ url_for('commission.admin_recap') }}" style="display:inline">
-        <input type="hidden" name="period" value="{{ period_label }}">
-        <select class="agent-sel" name="agent_id" onchange="this.form.submit()" aria-label="Choose agent">
-          {% for a in agents %}
-          <option value="{{ a.id }}" {% if a.id == selected_agent_id %}selected{% endif %}>{{ a.name }}</option>
-          {% endfor %}
-        </select>
-      </form>
-      {% endif %}
       {% if periods %}
       <form method="get" style="display:inline">
         {% if admin_view and selected_agent_id %}<input type="hidden" name="agent_id" value="{{ selected_agent_id }}">{% endif %}
@@ -216,6 +216,17 @@
       {% endif %}
     </div>
   </div>
+
+  {# ---------- agent nav bar (#4): all agents visible, 1 click to switch ---------- #}
+  {% if admin_view and agents %}
+  <div class="agent-bar" role="tablist" aria-label="Choose agent">
+    {% for a in agents %}
+    <a class="agent-pill {% if a.id == selected_agent_id %}on{% endif %}"
+       href="{{ url_for('commission.admin_recap', agent_id=a.id, period=period_label) }}"
+       {% if a.id == selected_agent_id %}aria-current="true"{% endif %}>{{ a.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {# ---------- admin tools (publish) ---------- #}
   {# UHC manual-entry form removed 2026-06-12 — UHC is now a real parsed carrier

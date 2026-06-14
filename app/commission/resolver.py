@@ -154,6 +154,10 @@ def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
     from the fact so BOB plan names are preserved."""
     if not fact.effective_date:
         return
+    # No real agent resolved → the customer is UNASSIGNED. Don't fabricate an AOR
+    # interval (agent_id is NOT NULL); the AOR is created when an agent is assigned.
+    if agent_id is None:
+        return
     existing = CustomerAorHistory.query.filter_by(
         customer_id=customer.id, carrier=fact.carrier, effective_date=fact.effective_date,
     ).first()

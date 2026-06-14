@@ -395,3 +395,29 @@ def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
         resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
         db.session.commit()
         assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 1
+
+
+def test_unresolved_commission_stub_is_unassigned_not_uploader(db_session, app, agency):
+    """A commission row that can't resolve to a real agent must create an
+    UNASSIGNED stub (primary_agent_id NULL) and NO AOR interval — never silently
+    attribute the customer to the uploading admin. (The Sweatt→AJ bug.)"""
+    from app.extensions import db
+    from app.models import Customer, CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+    from datetime import date
+
+    with app.app_context():
+        fact = MemberFact(
+            carrier="UHC", full_name="SWEATT, RICKY L.", mbi="8NP5GM6TK40",
+            row_class=RowClass.RENEWAL, amount=28.92, effective_date=date(2026, 1, 1),
+        )
+        # agent_id=None mirrors the upload path when no writing agent resolves.
+        r = resolve_customer(fact, agency_id=agency.id, agent_id=None,
+                             source="commission_import")
+        db.session.commit()
+
+        assert r.customer.stub is True
+        assert r.customer.primary_agent_id is None          # UNASSIGNED, not the uploader
+        # no fabricated AOR interval for an unassigned customer
+        assert CustomerAorHistory.query.filter_by(customer_id=r.customer.id).count() == 0

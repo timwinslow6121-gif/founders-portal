@@ -888,11 +888,12 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
             agency_id=current_user.agency_id).first()
     agent_split = contract.split_rate if contract else 0.55
 
-    # AOR history rows require a non-null agent_id. When no writing agent in the
-    # file matches a portal user (common for agency-level multi-agent files),
-    # attribute the per-row fallback to the uploading admin.
-    if agent_id is None:
-        agent_id = current_user.id
+    # Do NOT attribute unresolved rows to the uploading admin — that wrongly made
+    # the uploader (AJ) the agent for every stub the file couldn't resolve. When no
+    # writing agent matches a portal user, leave agent_id None: the row resolves to
+    # an UNASSIGNED customer (primary_agent_id NULL, no AOR interval) until someone
+    # sets the real agent in the portal. (See _create_stub / _open_aor_interval.)
+    # agent_id stays None here on purpose.
 
     # Every carrier pays Founders (the agency), never an agent directly. The
     # statement is always agency-level; per-agent earnings come from per-row

@@ -16,7 +16,7 @@ _Last updated: 2026-06-12_
 ## ⚠ Regressions / broke recently
 _Anything a recent change broke or left half-done. Clear these FIRST._
 
-- _(none open)_
+- ✅ FIXED 2026-06-13 — over-merging the commission nav removed the "Agent Recaps" entry, so AJ thought agent recaps were gone (they were reachable but not discoverable). Fixed: one **"Agent Commissions"** module = matrix overview (landing) + per-agent recaps (clickable agent names/cells + agent pills + back-link). Commit 2c7580c. _(Lesson: a nav-merge must confirm the removed item's destination stays DISCOVERABLE, not just functional — screenshot the nav after.)_
 
 ---
 

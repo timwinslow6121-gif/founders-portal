@@ -905,3 +905,79 @@ def execute_merge(a_id, b_id):
 
     flash(f"Merged {discarded_label} into {canonical_label}.", "success")
     return redirect(url_for('customers.customer_profile', customer_id=canonical.id))
+
+
+# ---------------------------------------------------------------------------
+# Unassigned customers (admin) — commission stubs with no agent yet (#1c)
+# ---------------------------------------------------------------------------
+
+def _suggested_agent_id(customer):
+    """Best-guess agent for an unassigned customer: the agent resolved on its
+    commission line item (matched by MBI). Returns (agent_id, basis) or (None, '')."""
+    if not customer.mbi:
+        return None, ""
+    from app.models import CommissionLineItem
+    li = (CommissionLineItem.query
+          .filter_by(agency_id=customer.agency_id, mbi=customer.mbi)
+          .filter(CommissionLineItem.agent_id.isnot(None))
+          .first())
+    if li:
+        return li.agent_id, f"{li.carrier} commission writing agent"
+    return None, ""
+
+
+@customers_bp.route("/customers/unassigned")
+@login_required
+def customers_unassigned():
+    """Admin: customers with no primary agent (commission stubs that couldn't be
+    resolved). Each shows a suggested agent (from its commission line item) so AJ
+    can confirm/assign in one click — with the BASIS shown for transparency."""
+    if not current_user.is_admin:
+        abort(403)
+    rows = (Customer.query
+            .filter_by(agency_id=current_user.agency_id, primary_agent_id=None)
+            .order_by(Customer.full_name).all())
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.email != "admin@foundersinsuranceagency.com")
+              .order_by(User.name).all())
+    items = []
+    for c in rows:
+        sid, basis = _suggested_agent_id(c)
+        sname = next((a.display_name for a in agents if a.id == sid), None)
+        items.append({"c": c, "suggested_id": sid, "suggested_name": sname, "basis": basis})
+    return render_template("customers_unassigned.html", items=items, agents=agents)
+
+
+@customers_bp.route("/customers/<int:customer_id>/set-agent", methods=["POST"])
+@login_required
+def customer_set_agent(customer_id):
+    """Admin: assign (or change) a customer's primary agent. Opens the AOR interval
+    from the customer's policy data when present (carrier + effective_date)."""
+    if not current_user.is_admin:
+        abort(403)
+    customer = Customer.query.filter_by(
+        id=customer_id, agency_id=current_user.agency_id).first_or_404()
+    agent_id = request.form.get("agent_id", type=int)
+    agent = User.query.filter_by(id=agent_id, agency_id=current_user.agency_id).first()
+    if not agent:
+        flash("Pick a valid agent.", "error")
+        return redirect(request.referrer or url_for("customers.customers_unassigned"))
+    customer.primary_agent_id = agent.id
+    # Open the AOR interval that was skipped at import, if we have policy facts.
+    pol = Policy.query.filter_by(customer_id=customer.id).first()
+    if pol and pol.effective_date and pol.carrier:
+        exists = CustomerAorHistory.query.filter_by(
+            customer_id=customer.id, carrier=pol.carrier,
+            effective_date=pol.effective_date).first()
+        if not exists:
+            db.session.add(CustomerAorHistory(
+                agency_id=customer.agency_id, customer_id=customer.id, agent_id=agent.id,
+                carrier=pol.carrier, effective_date=pol.effective_date,
+                end_date=(None if pol.carrier == "BCBS" else pol.term_date),
+                source="manual_assign"))
+    db.session.commit()
+    log_event("customer_set_agent", category="admin",
+              detail=f"customer {customer.id} → agent {agent.id} ({agent.display_name})",
+              customer_id=customer.id)
+    flash(f"{customer.display_name} assigned to {agent.display_name}.", "success")
+    return redirect(request.referrer or url_for("customers.customers_unassigned"))

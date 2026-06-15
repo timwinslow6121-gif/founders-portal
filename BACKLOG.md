@@ -23,7 +23,8 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 ## 💰 Commissions
 - 🟡 🔴 **Commission-admin UX batch (2026-06-13, in progress):**
   - ✅ #1a/b — unresolved stubs no longer attributed to the uploader (AJ); 463 backfilled to "unassigned" (live).
-  - ⬜ #1c — **"Unassigned customers" view + reassign-agent UI** (463 stubs now need a real agent set).
+  - 🟡 #1c — unassigned stubs: ✅ root fix (normalize_uhc by Writing Agent ID) + ✅ backfilled 460→Rebekah (3 true unknowns left). ⬜ **"Unassigned Customers" admin view** (suggested-agent set; for the 3 + future) *(in progress)*.
+  - ⬜ 🟠 **NEW — commission statements should ENRICH customer/policy records** (effective/term date, plan type, contract/PBP/plan code, state, county, policy #, MBI). Lots of this is on the line item but not propagated to Customer/Policy (stubs stay sparse → e.g. backfill couldn't open AORs, no effective_date). Needs a spec: which fields commission can fill + precedence (fill-blanks / never overwrite manually_edited or BOB values). [[provenance-and-next-work]]
   - 🟡 #2 — make **All-Commissions the admin recap landing** (merge; kill AJ's empty "My Commission" shell for admins). *(in progress)*
   - ⬜ #3 — **in-line resolve quarantined UHC rows** (set agent + override + split right in the portal; no way to currently).
   - ⬜ #4 — agent picker: dropdown → **visible agent nav-bar** (1-click to an agent).

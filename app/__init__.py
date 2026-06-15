@@ -51,7 +51,15 @@ def create_app():
             )
         except Exception:
             count = 0
-        return {'duplicate_mbi_count': count}
+        unassigned = 0
+        if current_user.is_admin:
+            try:
+                from app.models import Customer
+                unassigned = Customer.query.filter_by(
+                    agency_id=current_user.agency_id, primary_agent_id=None).count()
+            except Exception:
+                unassigned = 0
+        return {'duplicate_mbi_count': count, 'unassigned_customer_count': unassigned}
 
     with app.app_context():
         pass

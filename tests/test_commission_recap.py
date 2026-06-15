@@ -671,3 +671,45 @@ def test_admin_recap_no_agent_redirects_to_matrix(app, db_session, agency):
     # WITH an agent_id it renders the recap (200)
     r2 = c.get(f"/admin/commissions/recap?agent_id={uid}")
     assert r2.status_code == 200
+
+
+def test_unassigned_customers_view_and_set_agent(app, db_session, agency):
+    """Admin Unassigned view lists no-agent customers with a suggested agent; the
+    set-agent endpoint assigns them."""
+    from app.extensions import db
+    from app.models import User, Customer, CommissionLineItem
+    from datetime import date
+    with app.app_context():
+        admin = User(name="AJ", email="ua-admin@x.com", is_admin=True, agency_id=agency.id)
+        reb = User(name="Rebekah Long", email="ua-reb@x.com", agency_id=agency.id)
+        db.session.add_all([admin, reb]); db.session.flush()
+        c = Customer(agency_id=agency.id, first_name="Ricky", last_name="Sweatt",
+                     full_name="SWEATT, RICKY", mbi="8NP5GM6TK40",
+                     stub=True, source="commission_import", primary_agent_id=None)
+        db.session.add(c); db.session.flush()
+        # a UHC line item resolved to Rebekah → the suggestion basis
+        from app.models import CommissionStatement
+        st = CommissionStatement(agency_id=agency.id, carrier="UHC", agent_id=None,
+                                 period_label="May 2026", filename="u.xlsx", statement_date=date(2026,5,1))
+        db.session.add(st); db.session.flush()
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=st.id, carrier="UHC",
+                       period_label="May 2026", source_ref="uhc::0::1", agent_id=reb.id,
+                       member_name="SWEATT, RICKY", mbi="8NP5GM6TK40", raw_amount=28.92,
+                       classification="agent_commission"))
+        db.session.commit()
+        cid, uid, rid = c.id, admin.id, reb.id
+
+    cli = app.test_client()
+    with cli.session_transaction() as s:
+        s["_user_id"] = str(uid)
+    r = cli.get("/customers/unassigned")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "SWEATT, RICKY" in body and "Rebekah Long" in body   # suggested
+
+    # assign
+    r2 = cli.post(f"/customers/{cid}/set-agent", data={"agent_id": rid})
+    assert r2.status_code in (302, 303)
+    with app.app_context():
+        from app.models import Customer
+        assert Customer.query.get(cid).primary_agent_id == rid

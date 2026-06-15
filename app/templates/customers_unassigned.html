@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Unassigned Customers{% endblock %}
+
+{% block styles %}
+  {# base.html wraps {% block styles %} in its own <style> — no <style> here. #}
+  .ua-wrap{ max-width:1000px; margin:0 auto; }
+  .ua-wrap h1{ color:var(--ivory-bright); margin:0 0 4px; }
+  .ua-lead{ color:var(--slate); font-size:.88rem; margin:0 0 20px; }
+  .ua-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; }
+  table.ua{ width:100%; border-collapse:collapse; font-size:.9rem; }
+  table.ua th{ text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--slate); padding:11px 14px; border-bottom:2px solid var(--border); }
+  table.ua td{ padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  table.ua tr:last-child td{ border-bottom:none; }
+  .ua-name{ font-weight:600; color:var(--ivory); }
+  .ua-meta{ font-size:.74rem; color:var(--slate); }
+  .ua-basis{ font-size:.74rem; color:var(--slate); font-style:italic; }
+  .ua-suggest{ color:var(--green); font-weight:600; }
+  .ua-form{ display:flex; gap:8px; align-items:center; }
+  .ua-form select{ padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:.82rem; }
+  .ua-form button{ padding:7px 13px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:.82rem; font-weight:600; cursor:pointer; }
+  .ua-empty{ padding:40px; text-align:center; color:var(--slate); }
+{% endblock %}
+
+{% block content %}
+<div class="ua-wrap">
+  <h1>Unassigned Customers</h1>
+  <p class="ua-lead">Customers with no agent yet — usually commission stubs the importer couldn't tie to an agent.
+     The <strong>suggested agent</strong> comes from the member's commission line item; the basis is shown so you can confirm before assigning.</p>
+
+  {% if items %}
+  <div class="ua-card">
+    <table class="ua">
+      <thead>
+        <tr><th>Customer</th><th>Suggested agent</th><th>Assign</th></tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+        {% set c = it.c %}
+        <tr>
+          <td>
+            <a class="ua-name" href="{{ url_for('customers.customer_profile', customer_id=c.id) }}">{{ c.display_name or c.full_name or '(no name)' }}</a>
+            <div class="ua-meta">{% if c.mbi %}MBI {{ c.mbi }}{% else %}no MBI{% endif %}{% if c.source %} · {{ c.source }}{% endif %}</div>
+          </td>
+          <td>
+            {% if it.suggested_name %}
+              <span class="ua-suggest">{{ it.suggested_name }}</span>
+              <div class="ua-basis">{{ it.basis }}</div>
+            {% else %}
+              <span class="ua-meta">— no commission hint —</span>
+            {% endif %}
+          </td>
+          <td>
+            <form class="ua-form" method="post" action="{{ url_for('customers.customer_set_agent', customer_id=c.id) }}">
+              <select name="agent_id" aria-label="Agent for {{ c.full_name }}">
+                {% for a in agents %}
+                <option value="{{ a.id }}" {% if a.id == it.suggested_id %}selected{% endif %}>{{ a.display_name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit">Assign</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="ua-card"><div class="ua-empty">✓ No unassigned customers — every customer has an agent.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

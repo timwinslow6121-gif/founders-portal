@@ -32,6 +32,12 @@
   .cdot.zero{ background:var(--a-muted); }
   .cdot-btn{ background:none; border:1px solid #C2701A; color:#C2701A; border-radius:999px; font-size:.6rem; padding:1px 6px; margin-left:5px; cursor:pointer; text-transform:none; letter-spacing:0; }
   .cdot-btn:hover{ background:color-mix(in srgb,#C2701A 12%,transparent); }
+  /* persistent agent nav bar (1-click into a recap), matches the recap page pills */
+  .agg-page .agent-bar{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding:8px;
+    background:var(--a-card); border:1px solid var(--a-border); border-radius:14px; box-shadow:var(--shadow); }
+  .agg-page .agent-pill{ padding:6px 13px; border-radius:999px; font-size:.84rem; text-decoration:none;
+    color:var(--a-ink); background:color-mix(in srgb, var(--a-blue) 8%, transparent); border:1px solid transparent; white-space:nowrap; }
+  .agg-page .agent-pill:hover{ border-color:var(--a-blue); color:var(--a-blue); }
   .agg-card{ background:var(--a-card); border:1px solid var(--a-border); border-radius:var(--radius); box-shadow:var(--shadow); padding:8px; overflow-x:auto; }
   table.agg{ width:100%; border-collapse:collapse; font-size:.86rem; }
   table.agg th, table.agg td{ padding:9px 10px; border-bottom:1px solid var(--a-border); white-space:nowrap; }
@@ -92,6 +98,16 @@
     </span>
     {% endif %}
   </div>
+
+  {# Persistent agent nav bar — 1 click into any agent's recap, always visible
+     above the matrix (below the month/YTD toolbar). #}
+  {% if agents %}
+  <div class="agent-bar" aria-label="Open an agent's recap">
+    {% for a in agents %}
+    <a class="agent-pill" href="{{ url_for('commission.admin_recap', agent_id=a.id, period=period_label) }}">{{ a.name }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% if matrix.rows %}
   <div class="agg-card">

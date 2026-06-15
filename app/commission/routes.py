@@ -1628,8 +1628,13 @@ def admin_aggregate():
     from app.commission.recap import carrier_period_status
     statuses = ({c: carrier_period_status(current_user.agency_id, period, c)
                  for c in matrix["carriers"]} if scope == "month" else {})
+    # Persistent agent nav bar (same 1-click pills as the recap page); admin@ excluded.
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.email != "admin@foundersinsuranceagency.com")
+              .order_by(User.name).all())
     return render_template("commission/aggregate.html", matrix=matrix, scope=scope,
                            period_label=period, year=year, carrier_status=statuses,
+                           agents=agents,
                            periods=all_periods_with_data(current_user.agency_id),
                            is_admin=True)
 

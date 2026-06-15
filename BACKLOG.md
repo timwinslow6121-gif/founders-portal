@@ -9,7 +9,7 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-06-12_
+_Last updated: 2026-06-15_
 
 ---
 
@@ -26,7 +26,7 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
   - 🟡 #1c — unassigned stubs: ✅ root fix (normalize_uhc by Writing Agent ID) + ✅ backfilled 460→Rebekah (3 true unknowns left). ⬜ **"Unassigned Customers" admin view** (suggested-agent set; for the 3 + future) *(in progress)*.
   - ⬜ 🟠 **NEW — commission statements should ENRICH customer/policy records** (effective/term date, plan type, contract/PBP/plan code, state, county, policy #, MBI). Lots of this is on the line item but not propagated to Customer/Policy (stubs stay sparse → e.g. backfill couldn't open AORs, no effective_date). Needs a spec: which fields commission can fill + precedence (fill-blanks / never overwrite manually_edited or BOB values). [[provenance-and-next-work]]
   - 🟡 #2 — make **All-Commissions the admin recap landing** (merge; kill AJ's empty "My Commission" shell for admins). *(in progress)*
-  - ⬜ #3 — **in-line resolve quarantined UHC rows** (set agent + override + split right in the portal; no way to currently).
+  - ✅ #3 — in-line resolve quarantined UHC rows (agent + override $ → remainder splits at contract rate; row leaves quarantine). LIVE 2026-06-15 (commit acea498).
   - ⬜ #4 — agent picker: dropdown → **visible agent nav-bar** (1-click to an agent).
 - ⬜ 🟠 **AJ signs off on a real UHC upload run** + the quarantine tab before UHC is system-of-record. — `[[uhc-parser-resume]]`
 - ⬜ 🟠 **UHC "New" enrollment proration** — the last big quarantine chunk (~48 rows, mostly "New" months-remaining math, cols L/T/AA/AB). Needs a few worked examples from AJ. Irreducible until then.

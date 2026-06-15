@@ -58,3 +58,4 @@ _Keep this short — it's a confidence check that things landed, not a permanent
 - ✅ 2026-06-11/12 — UHC shipped live (normalized pipeline + quarantine tab) with 3 prod hotfixes (migration 026 truncation, no_autoflush re-upload, writing-ID attribution).
 - ✅ 2026-06-13→15 — Commission-admin UX: unassigned-customers fix+view, "Agent Commissions" unified module, persistent responsive agent nav-bar, in-line quarantine resolver.
 - ✅ 2026-06-15 — Resolve quarantined payments from the matrix (pending badge → "N payments to review: $X" button → period-level review page, carrier-agnostic w/ carrier column + per-carrier breakdown).
+- ✅ 2026-06-15 — Nameless+MBI-less UHC rows (DVH Manual Payment) are NON_CUSTOMER now (no junk stub); deleted the lone leftover. Unassigned customers = 0.

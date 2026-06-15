@@ -33,9 +33,12 @@
   .cdot-btn{ background:none; border:1px solid #C2701A; color:#C2701A; border-radius:999px; font-size:.6rem; padding:1px 6px; margin-left:5px; cursor:pointer; text-transform:none; letter-spacing:0; }
   .cdot-btn:hover{ background:color-mix(in srgb,#C2701A 12%,transparent); }
   /* persistent agent nav bar (1-click into a recap), matches the recap page pills */
-  .agg-page .agent-bar{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding:8px;
+  .agg-page .agent-bar{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px; padding:10px;
     background:var(--a-card); border:1px solid var(--a-border); border-radius:14px; box-shadow:var(--shadow); }
-  .agg-page .agent-pill{ padding:6px 13px; border-radius:999px; font-size:.84rem; text-decoration:none;
+  /* pills GROW to fill the row evenly; min-width floor forces wrap to 2+ lines on
+     small screens (phones/tablets) instead of shrinking unreadably. */
+  .agg-page .agent-pill{ flex:1 1 120px; min-width:120px; text-align:center;
+    padding:8px 13px; border-radius:999px; font-size:.84rem; text-decoration:none;
     color:var(--a-ink); background:color-mix(in srgb, var(--a-blue) 8%, transparent); border:1px solid transparent; white-space:nowrap; }
   .agg-page .agent-pill:hover{ border-color:var(--a-blue); color:var(--a-blue); }
   .agg-card{ background:var(--a-card); border:1px solid var(--a-border); border-radius:var(--radius); box-shadow:var(--shadow); padding:8px; overflow-x:auto; }

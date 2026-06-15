@@ -36,8 +36,9 @@
   .recap-page .topbar h1{font-size:1.6rem;font-weight:800}
   .recap-page .topbar-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   /* #4 agent nav bar — every agent visible, 1 click to switch */
-  .recap-page .agent-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:8px;background:var(--rc-card);border:1px solid var(--rc-border);border-radius:12px}
-  .recap-page .agent-pill{padding:6px 13px;border-radius:999px;font-size:.84rem;text-decoration:none;color:var(--rc-ink);background:var(--rc-blue-tint);border:1px solid transparent;white-space:nowrap}
+  .recap-page .agent-bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:10px;background:var(--rc-card);border:1px solid var(--rc-border);border-radius:12px}
+  /* pills fill the row evenly + wrap to 2+ lines on small screens (min-width floor) */
+  .recap-page .agent-pill{flex:1 1 120px;min-width:120px;text-align:center;padding:8px 13px;border-radius:999px;font-size:.84rem;text-decoration:none;color:var(--rc-ink);background:var(--rc-blue-tint);border:1px solid transparent;white-space:nowrap}
   .recap-page .agent-pill:hover{border-color:var(--rc-blue)}
   .recap-page .agent-pill.on{background:var(--rc-blue);color:#fff;font-weight:600}
   .recap-page select.period,.recap-page select.agent-sel{

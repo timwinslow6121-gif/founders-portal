@@ -342,3 +342,29 @@ def test_normalize_uhc_override_and_ha_are_non_customer():
         "OVR, ONLY": RowClass.NON_CUSTOMER,
         "HA, BONUS": RowClass.NON_CUSTOMER,
     }
+
+
+def test_normalize_uhc_attributes_by_writing_agent_id():
+    """normalize_uhc must resolve the agent by Writing Agent ID (col 4), not the
+    name (col 5) — Rebekah writes under 'FOUNDERS INSURANCE AGENCY, LLC'. Without
+    this the customer-sync stub is left unassigned (the Sweatt→unassigned bug)."""
+    from app.commission.normalizers import normalize_uhc
+
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[5] = "Writing Agent Name"
+    header[7] = "Member Name"; header[8] = "MedicareID"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+
+    def row(wid, name, member, amt):
+        r = [""] * 24
+        r[4] = wid; r[5] = name; r[7] = member; r[12] = "MAPD"
+        r[19] = "Renewal"; r[23] = amt
+        return r
+
+    sheets = {"Commission Transactions": [
+        header,
+        row("6435806", "FOUNDERS INSURANCE AGENCY, LLC", "SWEATT, RICKY L.", 28.92),
+    ]}
+    facts = normalize_uhc(sheets, writing_id_to_name={"6435806": "Rebekah Long"})
+    assert len(facts) == 1
+    assert facts[0].writing_agent_raw == "Rebekah Long"   # NOT the agency name

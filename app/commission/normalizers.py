@@ -413,6 +413,7 @@ def _humana_name(grp_name):
 from app.commission.ledger import (
     _UHC_SHEET, _UHC_AGENT, _UHC_MEMBER, _UHC_MBI, _UHC_PLANTYPE,
     _UHC_ACTION, _UHC_AMOUNT, _UHC_EFFDATE, _UHC_OVERRIDE, _near,
+    _UHC_WRITING_ID, _uhc_writing_id_map,
 )
 
 _UHC_CONTRACT = 13
@@ -445,11 +446,21 @@ def _classify_uhc(action, amount, plan_type):
     return RowClass.RENEWAL
 
 
-def normalize_uhc(sheets):
-    """Agency-level raw UHC file: data on the 'Commission Transactions' sheet."""
+def normalize_uhc(sheets, writing_id_to_name=None, agency_id=None):
+    """Agency-level raw UHC file: data on the 'Commission Transactions' sheet.
+
+    Attribute the writing agent by Writing Agent ID (col 4), NOT the name (col 5) —
+    Rebekah & others write their whole book under 'FOUNDERS INSURANCE AGENCY, LLC',
+    so name attribution leaves them unassigned. Mirrors the ledger extractor so the
+    customer-sync pass and the ledger agree on the agent."""
     rows = sheets.get(_UHC_SHEET) if sheets else None
     if not rows:
         return []
+    if writing_id_to_name is None:
+        try:
+            writing_id_to_name = _uhc_writing_id_map(agency_id)
+        except RuntimeError:
+            writing_id_to_name = {}
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) <= _UHC_AMOUNT:
@@ -458,7 +469,8 @@ def normalize_uhc(sheets):
         if amount == 0:
             continue
         member = str(row[_UHC_MEMBER] or "").strip()
-        agent = str(row[_UHC_AGENT] or "").strip()
+        wid = str(row[_UHC_WRITING_ID] or "").strip() if len(row) > _UHC_WRITING_ID else ""
+        agent = writing_id_to_name.get(wid) or str(row[_UHC_AGENT] or "").strip()
         plan_type = str(row[_UHC_PLANTYPE] or "").strip() or None
         action = str(row[_UHC_ACTION] or "").strip()
         out.append(MemberFact(

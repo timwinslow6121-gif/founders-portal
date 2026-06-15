@@ -232,3 +232,90 @@ def test_quarantined_line_items_scoped_to_statement_and_agency(db_session, app, 
         assert q1["count"] == 1 and q1["rows"][0]["member_name"] == "S1"
         # wrong agency → nothing
         assert quarantined_line_items(s1.id, other.id)["count"] == 0
+
+
+def test_resolve_quarantine_line_splits_into_commission_and_override(db_session, app, agency):
+    """Resolving a quarantined 'New' row: AJ sets agent + override $; the remainder
+    becomes agent_commission at the agent's split rate, override becomes a 100%-
+    Founders line. Σ raw is unchanged; the row leaves quarantine."""
+    from app.extensions import db
+    from app.models import User, CommissionLineItem
+    from app.commission.ledger import (resolve_quarantine_line, split_breakdown,
+                                        AGENT_COMMISSION, FOUNDERS_OVERRIDE, NEEDS_MANUAL_REVIEW)
+
+    with app.app_context():
+        agent = User(name="Rebekah Long", email="rq@x.com", agency_id=agency.id)
+        db.session.add(agent); db.session.flush()
+        stmt = _mk_stmt(db, agency)
+        li = _mk_li(db, agency, stmt, cls=NEEDS_MANUAL_REVIEW, raw=517.50,
+                    name="NEW, ALICE", ptype="New", ref="uhc::0::2")
+        db.session.commit()
+
+        # AJ: agent=Rebekah, override $55.00, split 0.50 → commission part $462.50
+        resolve_quarantine_line(li, agent.id, override_amount=55.00, split_rate=0.50)
+        db.session.commit()
+
+        rows = CommissionLineItem.query.filter_by(statement_id=stmt.id).all()
+        by_class = {r.classification: r for r in rows}
+        assert NEEDS_MANUAL_REVIEW not in by_class            # left quarantine
+        comm = by_class[AGENT_COMMISSION]; ovr = by_class[FOUNDERS_OVERRIDE]
+        assert round(comm.raw_amount, 2) == 462.50 and comm.agent_id == agent.id
+        assert round(comm.split_rate, 2) == 0.50
+        assert round(ovr.raw_amount, 2) == 55.00 and ovr.split_rate is None
+        # Σ raw unchanged (balance invariant)
+        assert round(comm.raw_amount + ovr.raw_amount, 2) == 517.50
+        # agent payout = 462.50 * 0.50; override is 100% Founders keep
+        assert round(split_breakdown(comm)[0], 2) == 231.25
+        assert split_breakdown(ovr) == (0.0, 55.00)
+
+
+def test_resolve_quarantine_override_zero_no_override_row(db_session, app, agency):
+    """Override $0 → just attribute the whole amount as agent_commission, no override row."""
+    from app.extensions import db
+    from app.models import User, CommissionLineItem
+    from app.commission.ledger import resolve_quarantine_line, AGENT_COMMISSION, FOUNDERS_OVERRIDE
+
+    with app.app_context():
+        agent = User(name="Tim Winslow", email="tq@x.com", agency_id=agency.id)
+        db.session.add(agent); db.session.flush()
+        stmt = _mk_stmt(db, agency)
+        li = _mk_li(db, agency, stmt, cls="needs_manual_review", raw=100.0,
+                    name="X", ref="uhc::0::9")
+        db.session.commit()
+        resolve_quarantine_line(li, agent.id, override_amount=0.0, split_rate=0.55)
+        db.session.commit()
+        rows = CommissionLineItem.query.filter_by(statement_id=stmt.id).all()
+        assert len(rows) == 1
+        assert rows[0].classification == AGENT_COMMISSION
+        assert round(rows[0].raw_amount, 2) == 100.00
+        assert FOUNDERS_OVERRIDE not in {r.classification for r in rows}
+
+
+def test_quarantine_resolve_endpoint(db_session, app, client, agency):
+    """End-to-end: POST resolve a quarantine line → it splits and leaves quarantine."""
+    from app.extensions import db
+    from app.models import User, CommissionLineItem, AgentCarrierContract
+    with app.app_context():
+        admin = User(name="AJ", email="qra@x.com", is_admin=True, agency_id=agency.id)
+        reb = User(name="Rebekah Long", email="qrr@x.com", agency_id=agency.id)
+        db.session.add_all([admin, reb]); db.session.flush()
+        db.session.add(AgentCarrierContract(agency_id=agency.id, agent_id=reb.id,
+                       carrier="UHC", is_active=True, split_rate=0.55))
+        stmt = _mk_stmt(db, agency)
+        li = _mk_li(db, agency, stmt, cls="needs_manual_review", raw=517.50,
+                    name="NEW, ALICE", ptype="New", ref="uhc::0::2")
+        db.session.commit()
+        lid, uid, rid, sid = li.id, admin.id, reb.id, stmt.id
+
+    with client.session_transaction() as s:
+        s["_user_id"] = str(uid)
+    r = client.post(f"/admin/commissions/quarantine/{lid}/resolve",
+                    data={"agent_id": rid, "override_amount": "55.00"})
+    assert r.status_code in (302, 303)
+    with app.app_context():
+        from app.commission.recap import quarantined_line_items
+        q = quarantined_line_items(sid, agency.id)
+        assert q["count"] == 0   # resolved → gone from quarantine
+        rows = CommissionLineItem.query.filter_by(statement_id=sid).all()
+        classes = {x.classification for x in rows}
+        assert "agent_commission" in classes and "founders_override" in classes

@@ -17,6 +17,11 @@
   table.quar-table td { padding:8px 10px; border-bottom:1px solid var(--border); }
   table.quar-table td.num { text-align:right; font-variant-numeric: tabular-nums; }
   td.num.neg { color: var(--status-error); }
+  .qr-form { display:flex; gap:8px; align-items:center; justify-content:flex-end; padding:6px 10px; }
+  .qr-form select { padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; min-width:140px; }
+  .qr-form input { width:92px; padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
+  .qr-form button { padding:6px 14px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .qr-form button:hover { filter:brightness(1.07); }
   .quar-empty { background: var(--surface); border:1px solid var(--border); border-radius:8px;
                 padding:32px; text-align:center; color: var(--slate); }
   .back-link { color: var(--gold); font-size:13px; text-decoration:none; }
@@ -41,9 +46,10 @@
 
   {% if quar.count %}
     <div class="help-note">
-      These are typically “New” enrollments (proration math), sub-$1 Part D dust, or
-      other-agent Med-Supp rows. Their total is shown so you can reconcile the statement;
-      enter the splits in your usual workflow.
+      These are typically “New” enrollments the parser can't auto-split. For each:
+      pick the <strong>agent</strong> (pre-filled from the writing agent when known) and enter the
+      <strong>Founders override $</strong> portion — the remainder splits to the agent at their
+      contract rate, and the row leaves quarantine into the recap.
     </div>
 
     <div class="quar-summary">
@@ -53,15 +59,30 @@
 
     <table class="quar-table">
       <thead>
-        <tr><th>Member</th><th>MBI</th><th>Action</th><th style="text-align:right;">Amount</th></tr>
+        <tr><th>Member</th><th style="text-align:right;">Amount</th><th>Agent</th>
+            <th style="text-align:right;">Override&nbsp;$</th><th></th></tr>
       </thead>
       <tbody>
         {% for r in quar.rows %}
         <tr>
-          <td>{{ r.member_name }}</td>
-          <td style="font-variant-numeric:tabular-nums;color:var(--slate);">{{ r.mbi or '—' }}</td>
-          <td>{{ r.action or '—' }}</td>
+          <td>
+            <div>{{ r.member_name }}</div>
+            <div style="font-size:11px;color:var(--slate);">{% if r.mbi %}MBI {{ r.mbi }} · {% endif %}{{ r.action or '—' }}</div>
+          </td>
           <td class="num{{ ' neg' if r.amount < 0 else '' }}">${{ '%.2f'|format(r.amount) }}</td>
+          <td colspan="3" style="padding:0;">
+            <form class="qr-form" method="post" action="{{ url_for('commission.commission_quarantine_resolve', line_id=r.id) }}">
+              <select name="agent_id" required aria-label="Agent for {{ r.member_name }}">
+                <option value="">— pick agent —</option>
+                {% for a in agents %}
+                <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
+                {% endfor %}
+              </select>
+              <input type="number" step="0.01" name="override_amount" value="0.00"
+                     aria-label="Override amount" title="Founders override portion (100% Founders); the rest splits to the agent">
+              <button type="submit">Resolve</button>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       </tbody>

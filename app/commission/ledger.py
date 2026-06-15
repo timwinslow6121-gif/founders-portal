@@ -894,6 +894,55 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
         internal_ok=internal_ok, completeness_ok=completeness_ok)
 
 
+def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
+    """Resolve ONE quarantined (needs_manual_review) line item in place: split its
+    lump amount into an agent_commission part (the remainder, which splits at
+    `split_rate`) and a founders_override part (`override_amount`, 100% Founders).
+
+    Faithful to the ledger invariant: the two new rows' raw_amounts sum back to the
+    original raw_amount, so Σ raw is unchanged. The original quarantine row becomes
+    the agent_commission remainder (keeping its source_ref); a sibling override row
+    is created with source_ref + '::ovr' when override_amount is non-zero.
+
+    Returns the (possibly new) override CommissionLineItem or None. Caller commits."""
+    from app.models import CommissionLineItem
+    raw = round(line.raw_amount or 0.0, 2)
+    ov = round(override_amount or 0.0, 2)
+    # override must share the sign of the row and not exceed it in magnitude
+    if abs(ov) > abs(raw):
+        raise ValueError("override amount exceeds the line amount")
+
+    commission_part = round(raw - ov, 2)
+    # The original row becomes the agent commission remainder (splits).
+    line.classification = (CHARGEBACK if commission_part < 0 else AGENT_COMMISSION)
+    line.agent_id = agent_id
+    line.raw_amount = commission_part
+    line.split_rate = split_rate
+    line.payment_type = (line.payment_type or "")[:240] + " [resolved]"
+
+    override_row = None
+    ovr_ref = f"{line.source_ref}::ovr"
+    existing_ovr = CommissionLineItem.query.filter_by(
+        statement_id=line.statement_id, source_ref=ovr_ref).first()
+    if abs(ov) >= 0.005:
+        override_row = existing_ovr or CommissionLineItem(
+            agency_id=line.agency_id, statement_id=line.statement_id,
+            carrier=line.carrier, period_label=line.period_label,
+            statement_date=line.statement_date, source_ref=ovr_ref,
+            member_name=line.member_name, mbi=line.mbi,
+            carrier_member_id=line.carrier_member_id)
+        override_row.raw_amount = ov
+        override_row.split_rate = None
+        override_row.classification = FOUNDERS_OVERRIDE
+        override_row.agent_id = None
+        override_row.payment_type = "override [resolved]"
+        if existing_ovr is None:
+            db.session.add(override_row)
+    elif existing_ovr is not None:
+        db.session.delete(existing_ovr)   # override cleared on a re-resolve
+    return override_row
+
+
 def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=None) -> int:
     """Insert/update CommissionLineItem rows for a statement, idempotent on
     (statement_id, source_ref). agent_resolver(writing_agent_raw) -> user_id|None

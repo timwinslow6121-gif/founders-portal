@@ -165,8 +165,23 @@ def quarantined_line_items(statement_id, agency_id):
                         classification="needs_manual_review")
              .order_by(CommissionLineItem.member_name)
              .all())
-    rows = [{"member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
-             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or ""}
+
+    def _suggested_agent(li):
+        """The agent to pre-select: the line's own agent_id, else another resolved
+        line item for the same member (MBI) — same basis as the unassigned view."""
+        if li.agent_id:
+            return li.agent_id
+        if li.mbi:
+            other = (CommissionLineItem.query
+                     .filter_by(agency_id=agency_id, mbi=li.mbi)
+                     .filter(CommissionLineItem.agent_id.isnot(None)).first())
+            if other:
+                return other.agent_id
+        return None
+
+    rows = [{"id": li.id, "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
+             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
+             "agent_id": li.agent_id, "suggested_agent_id": _suggested_agent(li)}
             for li in items]
     return {"count": len(rows),
             "total": round(sum(r["amount"] for r in rows), 2),

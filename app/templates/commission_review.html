@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Payments to Review — {{ period_label }}{% endblock %}
+
+{% block styles %}
+<style>
+  .rv-wrap { max-width: 1040px; margin: 0 auto; }
+  .rv-head { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin:12px 0 6px; }
+  .rv-sub { color: var(--slate); font-size: 13px; margin-bottom: 18px; }
+  .rv-summary { display:flex; gap:12px; flex-wrap:wrap; margin: 0 0 20px; }
+  .rv-stat { background: var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 16px; }
+  .rv-stat .n { font-size: 20px; font-weight: 700; color: var(--ivory-bright); }
+  .rv-stat .l { font-size: 11px; color: var(--slate); text-transform: uppercase; letter-spacing:.04em; }
+  .rv-chips { display:flex; gap:8px; flex-wrap:wrap; margin: 0 0 18px; }
+  .rv-chip { background: var(--surface); border:1px solid var(--border); border-radius:999px; padding:5px 12px; font-size:12px; color: var(--ivory); }
+  .rv-chip b { color: var(--gold); }
+  table.rv { width:100%; border-collapse: collapse; font-size:14px; }
+  table.rv th { text-align:left; padding:9px 10px; border-bottom:2px solid var(--border); color:var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+  table.rv td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  table.rv td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.num.neg { color: var(--status-error); }
+  .rv-carrier { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; background: var(--gold-muted, var(--blue, #2B6CB0)); color:#fff; }
+  .rv-form { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+  .rv-form select { padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; min-width:140px; }
+  .rv-form input { width:90px; padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
+  .rv-form button { padding:6px 14px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .rv-empty { background: var(--surface); border:1px solid var(--border); border-radius:8px; padding:32px; text-align:center; color: var(--slate); }
+  .rv-back { color: var(--gold); font-size:13px; text-decoration:none; }
+  .help-note { background: color-mix(in srgb, var(--status-waiting) 8%, transparent);
+               border:1px solid color-mix(in srgb, var(--status-waiting) 30%, transparent);
+               border-radius:8px; padding:12px 16px; font-size:13px; color: var(--ivory); margin-bottom:18px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rv-wrap">
+  <a class="rv-back" href="{{ url_for('commission.admin_aggregate', period=period_label) }}">← Agent Commissions (overview)</a>
+
+  <div class="rv-head">
+    <h1 style="margin:0;">Payments to Review — {{ period_label }}</h1>
+  </div>
+  <div class="rv-sub">
+    Payments the parser couldn't reliably attribute (at 100%), across all carriers. They're recorded
+    but not yet split — resolve each here so it flows into the recap &amp; matrix.
+  </div>
+
+  {% if quar.count %}
+    <div class="help-note">
+      For each: pick the <strong>agent</strong> (pre-filled from the writing agent when known) and enter the
+      <strong>Founders override $</strong> portion. The remainder splits to the agent at their contract rate.
+    </div>
+
+    <div class="rv-summary">
+      <div class="rv-stat"><div class="n">{{ quar.count }}</div><div class="l">Payments</div></div>
+      <div class="rv-stat"><div class="n">${{ '%.2f'|format(quar.total) }}</div><div class="l">Total pending</div></div>
+    </div>
+
+    {% if quar.by_carrier %}
+    <div class="rv-chips">
+      {% for carrier, b in quar.by_carrier.items() %}
+      <span class="rv-chip">{{ carrier }} · <b>{{ b.count }}</b> · ${{ '%.2f'|format(b.total) }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <table class="rv">
+      <thead>
+        <tr><th>Carrier</th><th>Member</th><th style="text-align:right;">Amount</th>
+            <th>Agent</th><th style="text-align:right;">Override&nbsp;$</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in quar.rows %}
+        <tr>
+          <td><span class="rv-carrier">{{ r.carrier }}</span></td>
+          <td>
+            <div>{{ r.member_name }}</div>
+            <div style="font-size:11px;color:var(--slate);">{% if r.mbi %}MBI {{ r.mbi }} · {% endif %}{{ r.action or '—' }}</div>
+          </td>
+          <td class="num{{ ' neg' if r.amount < 0 else '' }}">${{ '%.2f'|format(r.amount) }}</td>
+          <td colspan="3" style="padding:0 10px;">
+            <form class="rv-form" method="post" action="{{ url_for('commission.commission_quarantine_resolve', line_id=r.id) }}">
+              <input type="hidden" name="next" value="{{ url_for('commission.commission_review', period=period_label) }}">
+              <select name="agent_id" required aria-label="Agent for {{ r.member_name }}">
+                <option value="">— pick agent —</option>
+                {% for a in agents %}
+                <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
+                {% endfor %}
+              </select>
+              <input type="number" step="0.01" name="override_amount" value="0.00"
+                     aria-label="Override amount" title="Founders override portion (100% Founders); the rest splits to the agent">
+              <button type="submit">Resolve</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="rv-empty">✓ Nothing to review for {{ period_label }} — every payment is attributed.</div>
+  {% endif %}
+</div>
+{% endblock %}

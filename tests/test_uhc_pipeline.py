@@ -319,3 +319,57 @@ def test_quarantine_resolve_endpoint(db_session, app, client, agency):
         rows = CommissionLineItem.query.filter_by(statement_id=sid).all()
         classes = {x.classification for x in rows}
         assert "agent_commission" in classes and "founders_override" in classes
+
+
+def test_period_quarantine_spans_carriers(db_session, app, agency):
+    """period_quarantine aggregates needs_manual_review across ALL carriers/statements
+    for a period, with a per-carrier breakdown (not UHC-specific)."""
+    from app.extensions import db
+    from app.models import CommissionStatement, CommissionLineItem
+    from app.commission.recap import period_quarantine
+    from datetime import date
+
+    with app.app_context():
+        for carrier, raw in [("UHC", 517.50), ("Aetna", 100.00), ("Aetna", 50.00)]:
+            st = (CommissionStatement.query
+                  .filter_by(agency_id=agency.id, carrier=carrier, period_label="May 2026").first())
+            if not st:
+                st = CommissionStatement(agency_id=agency.id, carrier=carrier, agent_id=None,
+                                         period_label="May 2026", filename="x.xlsx",
+                                         statement_date=date(2026,5,1))
+                db.session.add(st); db.session.flush()
+            db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=st.id,
+                           carrier=carrier, period_label="May 2026",
+                           source_ref=f"{carrier}::q::{raw}", member_name=f"M{raw}",
+                           raw_amount=raw, split_rate=None, classification="needs_manual_review"))
+        db.session.commit()
+
+        q = period_quarantine(agency.id, "May 2026")
+        assert q["count"] == 3
+        assert round(q["total"], 2) == 667.50
+        assert set(q["by_carrier"]) == {"UHC", "Aetna"}
+        assert q["by_carrier"]["Aetna"]["count"] == 2
+        assert {r["carrier"] for r in q["rows"]} == {"UHC", "Aetna"}
+
+
+def test_commission_review_page_renders(db_session, app, client, agency):
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from datetime import date
+    with app.app_context():
+        admin = User(name="AJ", email="rev@x.com", is_admin=True, agency_id=agency.id)
+        db.session.add(admin); db.session.flush()
+        st = CommissionStatement(agency_id=agency.id, carrier="Aetna", agent_id=None,
+                                 period_label="May 2026", filename="a.xlsx", statement_date=date(2026,5,1))
+        db.session.add(st); db.session.flush()
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=st.id, carrier="Aetna",
+                       period_label="May 2026", source_ref="aetna::q::1", member_name="DOE, JANE",
+                       raw_amount=100.0, split_rate=None, classification="needs_manual_review"))
+        db.session.commit()
+        uid = admin.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(uid)
+    r = client.get("/admin/commissions/review?period=May%202026")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "Payments to Review" in body and "DOE, JANE" in body and "Aetna" in body

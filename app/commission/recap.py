@@ -154,38 +154,63 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
     return blocks
 
 
+def _suggested_quarantine_agent(li, agency_id):
+    """The agent to pre-select on a quarantine row: the line's own agent_id, else
+    another resolved line item for the same member (MBI) — same basis as the
+    unassigned-customers view. Carrier-agnostic."""
+    if li.agent_id:
+        return li.agent_id
+    if li.mbi:
+        other = (CommissionLineItem.query
+                 .filter_by(agency_id=agency_id, mbi=li.mbi)
+                 .filter(CommissionLineItem.agent_id.isnot(None)).first())
+        if other:
+            return other.agent_id
+    return None
+
+
+def _quarantine_row(li, agency_id):
+    return {"id": li.id, "carrier": li.carrier,
+            "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
+            "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
+            "agent_id": li.agent_id,
+            "suggested_agent_id": _suggested_quarantine_agent(li, agency_id)}
+
+
 def quarantined_line_items(statement_id, agency_id):
-    """The needs_manual_review line items for a statement (UHC's ~2.3% the parser
-    can't auto-split: 'New' enrollment proration, PARTD dust, other-agent
-    Med-Supp). These are recorded but NOT split (split_rate NULL → payout 0), so
-    nothing is silently dropped — AJ hand-splits them from the quarantine tab.
-    Returns {count, total, rows:[{member_name, mbi, amount, action}]}."""
+    """needs_manual_review line items for ONE statement. Any carrier — these are
+    recorded but NOT split (payout 0), so nothing is silently dropped; AJ resolves
+    them in-line. Returns {count, total, rows:[{id, carrier, member_name, mbi,
+    amount, action, agent_id, suggested_agent_id}]}."""
     items = (CommissionLineItem.query
              .filter_by(statement_id=statement_id, agency_id=agency_id,
                         classification="needs_manual_review")
              .order_by(CommissionLineItem.member_name)
              .all())
-
-    def _suggested_agent(li):
-        """The agent to pre-select: the line's own agent_id, else another resolved
-        line item for the same member (MBI) — same basis as the unassigned view."""
-        if li.agent_id:
-            return li.agent_id
-        if li.mbi:
-            other = (CommissionLineItem.query
-                     .filter_by(agency_id=agency_id, mbi=li.mbi)
-                     .filter(CommissionLineItem.agent_id.isnot(None)).first())
-            if other:
-                return other.agent_id
-        return None
-
-    rows = [{"id": li.id, "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
-             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
-             "agent_id": li.agent_id, "suggested_agent_id": _suggested_agent(li)}
-            for li in items]
+    rows = [_quarantine_row(li, agency_id) for li in items]
     return {"count": len(rows),
             "total": round(sum(r["amount"] for r in rows), 2),
             "rows": rows}
+
+
+def period_quarantine(agency_id, period_label):
+    """ALL needs_manual_review line items for a period, across every carrier /
+    statement — what the agency-overview matrix links to. Same row shape as
+    quarantined_line_items, plus a per-carrier breakdown for the header."""
+    items = (CommissionLineItem.query
+             .filter_by(agency_id=agency_id, period_label=period_label,
+                        classification="needs_manual_review")
+             .order_by(CommissionLineItem.carrier, CommissionLineItem.member_name)
+             .all())
+    rows = [_quarantine_row(li, agency_id) for li in items]
+    by_carrier = {}
+    for r in rows:
+        b = by_carrier.setdefault(r["carrier"], {"count": 0, "total": 0.0})
+        b["count"] += 1
+        b["total"] = round(b["total"] + r["amount"], 2)
+    return {"count": len(rows),
+            "total": round(sum(r["amount"] for r in rows), 2),
+            "rows": rows, "by_carrier": by_carrier}
 
 
 from datetime import datetime
@@ -328,6 +353,7 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
     split_keep = defaultdict(float)
     override = defaultdict(float)
     pending = defaultdict(float)
+    pending_count = 0
     carriers, agents_with_data = set(), set()
     for li in lis:
         p, k = split_breakdown(li)
@@ -341,6 +367,7 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
             split_keep[key] += k
         else:
             pending[key] += (li.raw_amount or 0.0)
+            pending_count += 1
 
     # adjustments fold into payout (per agent+carrier; scope-filtered)
     adj_q = CommissionAdjustment.query.filter_by(agency_id=agency_id)
@@ -395,6 +422,7 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
         "override": round(sum(r["override_total"] for r in rows), 2),
         "keep": round(sum(r["keep_total"] for r in rows), 2),
         "pending": round(sum(r["pending_total"] for r in rows), 2),
+        "pending_count": pending_count,
     }
     # Read-only "Founders Agency" row: the agency's own earnings = all
     # founders_override per carrier (100% Founders, written under the agency NPN /

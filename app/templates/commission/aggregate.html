@@ -59,7 +59,10 @@
   table.agg .keepcol{ display:none; }
   table.agg.show-keep .keepcol{ display:table-cell; }
   .agg-keepswitch{ display:inline-flex; align-items:center; gap:6px; font-size:.82rem; color:var(--a-muted); cursor:pointer; }
-  .agg-pending{ margin-left:auto; color:#C2701A; font-size:.8rem; font-weight:600; }
+  .agg-review-btn{ margin-left:auto; display:inline-flex; align-items:center; gap:5px;
+    background:#C2701A; color:#fff; font-size:.8rem; font-weight:600; text-decoration:none;
+    padding:7px 13px; border-radius:999px; border:1px solid #C2701A; white-space:nowrap; }
+  .agg-review-btn:hover{ filter:brightness(1.08); }
   table.agg td.empty{ text-align:right; color:var(--a-muted); }
   table.agg td.neg, table.agg td.cell a.neg{ color:var(--a-neg); }
   table.agg td.pt{ text-align:right; font-variant-numeric:tabular-nums; font-weight:700; }
@@ -95,10 +98,11 @@
       <span class="m3track"><span class="m3thumb"></span></span>
       Founders keep
     </label>
-    {% if matrix.grand.pending %}
-    <span class="agg-pending" title="Unsplit 'New' enrollments etc. awaiting manual review — not yet attributed">
-      ⚠ ${{ '{:,.2f}'.format(matrix.grand.pending) }} pending review
-    </span>
+    {% if matrix.grand.pending_count %}
+    <a class="agg-review-btn" href="{{ url_for('commission.commission_review', period=period_label) }}"
+       title="Payments that couldn't be reliably attributed (any carrier) — click to resolve">
+      ⚠ {{ matrix.grand.pending_count }} payment{{ 's' if matrix.grand.pending_count != 1 else '' }} to review: ${{ '{:,.2f}'.format(matrix.grand.pending) }} pending
+    </a>
     {% endif %}
   </div>
 

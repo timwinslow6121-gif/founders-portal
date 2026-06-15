@@ -1209,25 +1209,52 @@ def commission_quarantine(stmt_id):
     return render_template("commission_quarantine.html", stmt=stmt, quar=quar, agents=agents)
 
 
+@commission_bp.route("/admin/commissions/review")
+@login_required
+def commission_review():
+    """Period-level quarantine review across ALL carriers — what the Agent
+    Commissions matrix's 'N payments to review' button opens. Each row shows the
+    carrier so AJ can resolve payments that couldn't be reliably attributed,
+    regardless of carrier."""
+    if not current_user.is_admin:
+        abort(403)
+    from app.commission.recap import period_quarantine
+    period = (request.args.get("period")
+              or latest_period_with_data(current_user.agency_id)
+              or date.today().strftime("%B %Y"))
+    quar = period_quarantine(current_user.agency_id, period)
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.email != "admin@foundersinsuranceagency.com")
+              .order_by(User.name).all())
+    return render_template("commission_review.html", quar=quar, agents=agents,
+                           period_label=period)
+
+
 @commission_bp.route("/admin/commissions/quarantine/<int:line_id>/resolve", methods=["POST"])
 @login_required
 def commission_quarantine_resolve(line_id):
     """Resolve one quarantined line: agent + override $ → agent_commission remainder
-    (split at the agent's contract rate) + a founders_override line."""
+    (split at the agent's contract rate) + a founders_override line. Returns to the
+    page it was submitted from (per-statement tab or the period review page)."""
     if not current_user.is_admin:
         abort(403)
     from app.commission.ledger import resolve_quarantine_line, NEEDS_MANUAL_REVIEW
     li = CommissionLineItem.query.filter_by(
         id=line_id, agency_id=current_user.agency_id).first_or_404()
+
+    # Return to wherever the resolve was triggered from.
+    back = (request.form.get("next") or request.referrer
+            or url_for("commission.commission_quarantine", stmt_id=li.statement_id))
+
     if li.classification != NEEDS_MANUAL_REVIEW:
         flash("That line was already resolved.", "warning")
-        return redirect(url_for("commission.commission_quarantine", stmt_id=li.statement_id))
+        return redirect(back)
 
     agent = User.query.filter_by(id=request.form.get("agent_id", type=int),
                                  agency_id=current_user.agency_id).first()
     if not agent:
         flash("Pick a valid agent.", "error")
-        return redirect(url_for("commission.commission_quarantine", stmt_id=li.statement_id))
+        return redirect(back)
     try:
         override_amount = float(request.form.get("override_amount") or 0)
     except ValueError:
@@ -1245,10 +1272,10 @@ def commission_quarantine_resolve(line_id):
     except ValueError as e:
         db.session.rollback()
         flash(f"Could not resolve: {e}", "error")
-        return redirect(url_for("commission.commission_quarantine", stmt_id=li.statement_id))
+        return redirect(back)
     flash(f"Resolved {li.member_name or 'line'} → {agent.display_name} "
           f"(split {split_rate:.0%}, override ${override_amount:,.2f}).", "success")
-    return redirect(url_for("commission.commission_quarantine", stmt_id=li.statement_id))
+    return redirect(back)
 
 
 @commission_bp.route("/admin/commissions/agent/<int:agent_id>")

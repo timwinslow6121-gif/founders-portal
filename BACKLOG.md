@@ -21,13 +21,8 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 ---
 
 ## 💰 Commissions
-- 🟡 🔴 **Commission-admin UX batch (2026-06-13, in progress):**
-  - ✅ #1a/b — unresolved stubs no longer attributed to the uploader (AJ); 463 backfilled to "unassigned" (live).
-  - 🟡 #1c — unassigned stubs: ✅ root fix (normalize_uhc by Writing Agent ID) + ✅ backfilled 460→Rebekah (3 true unknowns left). ⬜ **"Unassigned Customers" admin view** (suggested-agent set; for the 3 + future) *(in progress)*.
-  - ⬜ 🟠 **NEW — commission statements should ENRICH customer/policy records** (effective/term date, plan type, contract/PBP/plan code, state, county, policy #, MBI). Lots of this is on the line item but not propagated to Customer/Policy (stubs stay sparse → e.g. backfill couldn't open AORs, no effective_date). Needs a spec: which fields commission can fill + precedence (fill-blanks / never overwrite manually_edited or BOB values). [[provenance-and-next-work]]
-  - 🟡 #2 — make **All-Commissions the admin recap landing** (merge; kill AJ's empty "My Commission" shell for admins). *(in progress)*
-  - ✅ #3 — in-line resolve quarantined UHC rows (agent + override $ → remainder splits at contract rate; row leaves quarantine). LIVE 2026-06-15 (commit acea498).
-  - ⬜ #4 — agent picker: dropdown → **visible agent nav-bar** (1-click to an agent).
+- ✅ **Commission-admin UX batch (2026-06-13→15) — all shipped + live:** #1 unresolved-stub-as-uploader fixed + 463 backfilled (460→Rebekah via root normalize_uhc-by-writing-ID fix, 3 unknowns) + **Unassigned Customers admin view** (nav badge, suggested-agent w/ basis, set-agent). #2 **All-Commissions = admin recap landing** (one "Agent Commissions" module). #3 **in-line quarantine resolver** (acea498). #4 **agent nav-bar** (persistent, fills row, responsive).
+- ⬜ 🟠 **NEW — commission statements should ENRICH customer/policy records** (effective/term date, plan type, contract/PBP/plan code, state, county, policy #, MBI). On the line item but not propagated to Customer/Policy (stubs stay sparse → backfill couldn't open AORs). Needs a spec: which fields commission can fill + precedence (fill-blanks / never overwrite manually_edited or BOB). [[provenance-and-next-work]]
 - ⬜ 🟠 **AJ signs off on a real UHC upload run** + the quarantine tab before UHC is system-of-record. — `[[uhc-parser-resume]]`
 - ⬜ 🟠 **UHC "New" enrollment proration** — the last big quarantine chunk (~48 rows, mostly "New" months-remaining math, cols L/T/AA/AB). Needs a few worked examples from AJ. Irreducible until then.
 - ⏸ 🟢 **Aetna Medigap supplement parser** — `aetnasupplement.zip` ($101.53, different `Commission Details` shape). Deferred; normal agent split applies when built. — `[[session-handoff-2026-06-11-commissions]]`
@@ -61,3 +56,4 @@ _Keep this short — it's a confidence check that things landed, not a permanent
 - ✅ 2026-06-12 — UHC attribute by Writing Agent ID (Rebekah's $7,447 book recovered); $0.26 PARTD → override; HA→HRA; $16 Humana (Betty/Riddle) fixed; GTL/Medico brand colors.
 - ✅ 2026-06-12 — Reconciliation adjustments (per agent/carrier/period + note); recap customer-name hyperlinks.
 - ✅ 2026-06-11/12 — UHC shipped live (normalized pipeline + quarantine tab) with 3 prod hotfixes (migration 026 truncation, no_autoflush re-upload, writing-ID attribution).
+- ✅ 2026-06-13→15 — Commission-admin UX: unassigned-customers fix+view, "Agent Commissions" unified module, persistent responsive agent nav-bar, in-line quarantine resolver.

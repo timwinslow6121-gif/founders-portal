@@ -420,7 +420,7 @@ _UHC_CONTRACT = 13
 _UHC_PBP = 14
 
 
-def _classify_uhc(action, amount, plan_type):
+def _classify_uhc(action, amount, plan_type, member="", mbi=None):
     """Map a UHC row to the 4-value RowClass taxonomy for customer sync.
 
     HA bonuses, pure Founders-override rows ($4.59), and sub-$1 PARTD "dust" are
@@ -430,6 +430,11 @@ def _classify_uhc(action, amount, plan_type):
     a = str(action or "").lower()
     plan = str(plan_type or "").upper().strip()
 
+    # No usable member identity (e.g. DVH Manual Payment — the member name is
+    # buried in the action string, not the member column). Can't be a real
+    # customer; treat as a payment only, no junk stub.
+    if not str(member or "").strip() and not (mbi or "").strip():
+        return RowClass.NON_CUSTOMER
     if a.startswith("ha payment") or a.startswith("ha chargeback"):
         return RowClass.NON_CUSTOMER
     # pure override-only row (the flat $4.59, either sign)
@@ -481,7 +486,8 @@ def normalize_uhc(sheets, writing_id_to_name=None, agency_id=None):
             plan_contract=str(row[_UHC_CONTRACT] or "").strip() or None,
             plan_pbp=str(row[_UHC_PBP] or "").strip() or None,
             plan_type=plan_type,
-            row_class=_classify_uhc(action, amount, plan_type),
+            row_class=_classify_uhc(action, amount, plan_type, member,
+                                    str(row[_UHC_MBI] or "").strip()),
             amount=amount,
             writing_agent_raw=agent,
             source_ref=f"uhc::0::{idx}",

@@ -275,20 +275,22 @@ def _uhc_row(agent="WINSLOW, TIMOTHY", member="DOE, JANE", mbi="1AB2CD3EF45",
 def test_classify_uhc_chargeback_renewal_enrollment():
     from app.commission.normalizers import _classify_uhc
     from app.commission.member_fact import RowClass
-    assert _classify_uhc("New Chargeback", -268.0, "MAPD") == RowClass.CHARGEBACK
-    assert _classify_uhc("Renewal", 33.51, "MAPD") == RowClass.RENEWAL
-    assert _classify_uhc("New", 250.0, "MAPD") == RowClass.ENROLLMENT
+    M = "DOE, JANE"   # a named member (else the nameless→NON_CUSTOMER rule applies)
+    assert _classify_uhc("New Chargeback", -268.0, "MAPD", M) == RowClass.CHARGEBACK
+    assert _classify_uhc("Renewal", 33.51, "MAPD", M) == RowClass.RENEWAL
+    assert _classify_uhc("New", 250.0, "MAPD", M) == RowClass.ENROLLMENT
     # any negative is a chargeback even if action says otherwise
-    assert _classify_uhc("Renewal", -33.51, "MAPD") == RowClass.CHARGEBACK
+    assert _classify_uhc("Renewal", -33.51, "MAPD", M) == RowClass.CHARGEBACK
 
 
 def test_classify_uhc_ha_and_override_and_dust_are_non_customer():
     """HA bonus, pure override ($4.59), and PARTD dust must NOT create customers."""
     from app.commission.normalizers import _classify_uhc
     from app.commission.member_fact import RowClass
-    assert _classify_uhc("HA Payment", 50.0, "MAPD") == RowClass.NON_CUSTOMER
-    assert _classify_uhc("Renewal", 4.59, "MAPD") == RowClass.NON_CUSTOMER   # override-only
-    assert _classify_uhc("Renewal", 0.26, "PARTD") == RowClass.NON_CUSTOMER  # dust
+    M = "DOE, JANE"
+    assert _classify_uhc("HA Payment", 50.0, "MAPD", M) == RowClass.NON_CUSTOMER
+    assert _classify_uhc("Renewal", 4.59, "MAPD", M) == RowClass.NON_CUSTOMER   # override-only
+    assert _classify_uhc("Renewal", 0.26, "PARTD", M) == RowClass.NON_CUSTOMER  # dust
 
 
 def test_normalize_uhc_reduces_sheet_to_member_facts():
@@ -368,3 +370,21 @@ def test_normalize_uhc_attributes_by_writing_agent_id():
     facts = normalize_uhc(sheets, writing_id_to_name={"6435806": "Rebekah Long"})
     assert len(facts) == 1
     assert facts[0].writing_agent_raw == "Rebekah Long"   # NOT the agency name
+
+
+def test_normalize_uhc_nameless_no_mbi_row_is_non_customer():
+    """A row with no member name AND no MBI (e.g. DVH Manual Payment — member is in
+    the action string) must NOT spawn a junk stub customer."""
+    from app.commission.normalizers import normalize_uhc
+    from app.commission.member_fact import RowClass
+
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[8] = "MedicareID"
+    header[12] = "Plan Type"; header[19] = "Commission Action"; header[23] = "Commission"
+    r = [""] * 24
+    r[4] = "6435806"; r[7] = ""; r[8] = ""   # no member, no MBI
+    r[12] = "MAPD"; r[19] = "New, DVH Manual Payment, ... for JANA BENSON"; r[23] = 29.53
+    facts = normalize_uhc({"Commission Transactions": [header, r]},
+                          writing_id_to_name={"6435806": "Rebekah Long"})
+    assert len(facts) == 1
+    assert facts[0].row_class == RowClass.NON_CUSTOMER   # payment only, no stub

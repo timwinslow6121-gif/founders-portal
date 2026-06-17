@@ -23,6 +23,116 @@ from app.commission.resolver import resolve_customer, member_fact_from_bob_rec
 upload_bp = Blueprint("upload", __name__)
 
 
+def _dedupe_bob_records(records):
+    """Collapse BOB rows that share a (carrier, member_id) so a member listed on
+    multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide
+    on the uq_carrier_member unique constraint mid-upload. LAST occurrence wins (the
+    later row carries the more current plan/status), but the row keeps its ORIGINAL
+    position so import order is stable. Rows missing a member_id are passed through
+    untouched (each is unique; never collapse them onto an empty key)."""
+    seen = {}          # (carrier, member_id) -> index in `out`
+    out = []
+    for rec in records:
+        mid = rec.get("member_id")
+        carrier = rec.get("carrier")
+        if not mid:
+            out.append(rec)
+            continue
+        key = (carrier, mid)
+        if key in seen:
+            out[seen[key]] = rec          # last wins, keep original slot
+        else:
+            seen[key] = len(out)
+            out.append(rec)
+    return out
+
+
+def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvable):
+    """Import ONE BOB record: match/update-or-create its Policy + upsert the
+    Customer master. Returns "new", "updated", or "skipped" (for an unresolvable
+    no-MBI row). Runs inside a per-row savepoint in the caller, so a raise here
+    rolls back only this row."""
+    # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
+    is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
+    if is_unresolvable:
+        unresolvable.append({
+            "carrier": rec.get("carrier"),
+            "member_id": rec.get("member_id"),
+            "full_name": rec.get("full_name"),
+            "dob": str(rec.get("dob")) if rec.get("dob") else None,
+            "plan_name": rec.get("plan_name"),
+            "effective_date": str(rec.get("effective_date")) if rec.get("effective_date") else None,
+        })
+
+    # Primary match: carrier + member_id
+    existing = Policy.query.filter_by(
+        carrier=rec["carrier"], member_id=rec["member_id"],
+        agency_id=bulk_agency_id,
+    ).first()
+    # Fallback: match by MBI when member_id changed between import formats
+    if not existing and rec.get("mbi"):
+        existing = Policy.query.filter_by(
+            carrier=rec["carrier"], mbi=rec["mbi"],
+            agency_id=bulk_agency_id,
+        ).first()
+        if existing:
+            existing.member_id = rec["member_id"]   # adopt new member_id as authoritative
+    if existing:
+        existing.mbi = rec["mbi"] or existing.mbi
+        existing.first_name = rec["first_name"]
+        existing.last_name = rec["last_name"]
+        existing.full_name = rec["full_name"]
+        existing.plan_name = rec["plan_name"]
+        existing.plan_type = rec["plan_type"]
+        existing.effective_date = rec["effective_date"]
+        existing.term_date = rec["term_date"]
+        existing.renewal_date = rec.get("renewal_date")
+        existing.dob = rec["dob"]
+        existing.phone = rec["phone"]
+        existing.county = rec["county"]
+        existing.address1 = rec.get("address1", "")
+        existing.city = rec.get("city", "")
+        existing.state = rec.get("state", "")
+        existing.zip_code = rec.get("zip_code", "")
+        existing.agent_id_carrier = rec["agent_id"]
+        existing.status = rec["status"]
+        existing.last_seen_date = today
+        existing.import_batch_id = batch.id
+        if bulk_agent_id:
+            existing.agent_id = bulk_agent_id
+        outcome = "updated"
+    else:
+        db.session.add(Policy(
+            agency_id=bulk_agency_id,
+            agent_id=bulk_agent_id,
+            carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"] or None,
+            first_name=rec["first_name"], last_name=rec["last_name"],
+            full_name=rec["full_name"], plan_name=rec["plan_name"],
+            plan_type=rec["plan_type"], effective_date=rec["effective_date"],
+            term_date=rec["term_date"], renewal_date=rec.get("renewal_date"),
+            dob=rec["dob"], phone=rec["phone"], county=rec["county"],
+            address1=rec.get("address1", ""), city=rec.get("city", ""),
+            state=rec.get("state", ""), zip_code=rec.get("zip_code", ""),
+            agent_id_carrier=rec["agent_id"], status=rec["status"],
+            last_seen_date=today, import_batch_id=batch.id,
+        ))
+        outcome = "new"
+
+    # Flush the policy NOW so the resolver's crosswalk (which runs under
+    # no_autoflush and therefore won't flush it for us) can SEE this just-created
+    # policy and adopt it — instead of creating a SECOND policy for the same
+    # (carrier, member_id) and tripping uq_carrier_member. (The June 2026 500.)
+    db.session.flush()
+
+    # Upsert the customer master record from this policy row. Skip unresolvable
+    # rows (no MBI means no reliable customer match). A failure here RAISES — the
+    # caller's savepoint rolls back the whole row (policy + customer together).
+    effective_agent_id = bulk_agent_id or (existing.agent_id if existing else None)
+    if not is_unresolvable:
+        _upsert_customer_from_policy(rec, effective_agent_id, batch.id, bulk_agency_id)
+    return "skipped" if is_unresolvable else outcome
+
+
 def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency_id: int) -> None:
     """
     Create or update a Customer from a parsed BOB policy row.
@@ -677,84 +787,32 @@ def bulk_upload():
         finally:
             if os.path.exists(filepath): os.remove(filepath)
 
+        # Collapse repeated (carrier, member_id) rows BEFORE the loop so a member
+        # listed multiple times in the file can't collide on uq_carrier_member.
+        records = _dedupe_bob_records(records)
+
         new_count = updated_count = 0
         unresolvable = []
+        skipped_rows = []
         for rec in records:
-            # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
-            is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
-            if is_unresolvable:
-                unresolvable.append({
-                    "carrier": rec.get("carrier"),
-                    "member_id": rec.get("member_id"),
-                    "full_name": rec.get("full_name"),
-                    "dob": str(rec.get("dob")) if rec.get("dob") else None,
-                    "plan_name": rec.get("plan_name"),
-                    "effective_date": str(rec.get("effective_date")) if rec.get("effective_date") else None,
-                })
-
-            # Primary match: carrier + member_id
-            existing = Policy.query.filter_by(
-                carrier=rec["carrier"], member_id=rec["member_id"],
-                agency_id=bulk_agency_id,
-            ).first()
-            # Fallback: match by MBI when member_id changed between import formats
-            if not existing and rec.get("mbi"):
-                existing = Policy.query.filter_by(
-                    carrier=rec["carrier"], mbi=rec["mbi"],
-                    agency_id=bulk_agency_id,
-                ).first()
-                if existing:
-                    # Adopt the new member_id as authoritative
-                    existing.member_id = rec["member_id"]
-            if existing:
-                existing.mbi = rec["mbi"] or existing.mbi
-                existing.first_name = rec["first_name"]
-                existing.last_name = rec["last_name"]
-                existing.full_name = rec["full_name"]
-                existing.plan_name = rec["plan_name"]
-                existing.plan_type = rec["plan_type"]
-                existing.effective_date = rec["effective_date"]
-                existing.term_date = rec["term_date"]
-                existing.renewal_date = rec.get("renewal_date")
-                existing.dob = rec["dob"]
-                existing.phone = rec["phone"]
-                existing.county = rec["county"]
-                existing.address1 = rec.get("address1", "")
-                existing.city = rec.get("city", "")
-                existing.state = rec.get("state", "")
-                existing.zip_code = rec.get("zip_code", "")
-                existing.agent_id_carrier = rec["agent_id"]
-                existing.status = rec["status"]
-                existing.last_seen_date = today
-                existing.import_batch_id = batch.id
-                if bulk_agent_id:
-                    existing.agent_id = bulk_agent_id
-                updated_count += 1
-            else:
-                db.session.add(Policy(
-                    agency_id=bulk_agency_id,
-                    agent_id=bulk_agent_id,
-                    carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"] or None,
-                    first_name=rec["first_name"], last_name=rec["last_name"],
-                    full_name=rec["full_name"], plan_name=rec["plan_name"],
-                    plan_type=rec["plan_type"], effective_date=rec["effective_date"],
-                    term_date=rec["term_date"], renewal_date=rec.get("renewal_date"),
-                    dob=rec["dob"], phone=rec["phone"], county=rec["county"],
-                    address1=rec.get("address1", ""), city=rec.get("city", ""),
-                    state=rec.get("state", ""), zip_code=rec.get("zip_code", ""),
-                    agent_id_carrier=rec["agent_id"], status=rec["status"],
-                    last_seen_date=today, import_batch_id=batch.id,
-                ))
-                new_count += 1
-
-            # Upsert the customer master record from this policy row.
-            # Skip customer upsert for unresolvable rows — no MBI means no reliable customer match.
-            effective_agent_id = bulk_agent_id or (existing.agent_id if existing else None)
-            if not is_unresolvable:
-                try:
-                    _upsert_customer_from_policy(rec, effective_agent_id, batch.id, bulk_agency_id)
-                except Exception as e:
-                    current_app.logger.warning(f"Customer upsert failed for {rec.get('member_id')}: {e}")
+            # Per-row savepoint: if ANY DB op for this row fails (e.g. a unique-
+            # constraint violation we didn't pre-empt), roll back JUST this row so
+            # the failed flush can't poison the session and 500 the whole upload.
+            # The bad row is skipped + logged; the rest of the file still imports.
+            try:
+                with db.session.begin_nested():
+                    outcome = _import_bob_row(
+                        rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvable)
+                if outcome == "new":
+                    new_count += 1
+                elif outcome == "updated":
+                    updated_count += 1
+            except Exception as e:
+                current_app.logger.warning(
+                    f"BOB row skipped ({rec.get('carrier')} {rec.get('member_id')}): {e}")
+                skipped_rows.append({"carrier": rec.get("carrier"),
+                                     "member_id": rec.get("member_id"),
+                                     "full_name": rec.get("full_name"), "error": str(e)})
 
         # Persist quarantined rows onto the batch for inline resolution via the modal
         if unresolvable:
@@ -766,8 +824,12 @@ def bulk_upload():
         batch.status = "success"
         db.session.commit()
         log_event("carrier_upload", category="business",
-                  detail=f"{carrier} | {filename} | {len(records)} records ({new_count} new, {updated_count} updated)")
-        results.append(f"{carrier}: {len(records)} records")
+                  detail=f"{carrier} | {filename} | {len(records)} records "
+                         f"({new_count} new, {updated_count} updated, {len(skipped_rows)} skipped)")
+        result = f"{carrier}: {len(records)} records"
+        if skipped_rows:
+            result += f" ({len(skipped_rows)} rows skipped — see logs)"
+        results.append(result)
 
     msg_parts = []
     if results:

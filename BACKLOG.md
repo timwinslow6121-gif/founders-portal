@@ -9,7 +9,7 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-06-15_
+_Last updated: 2026-06-16_
 
 ---
 
@@ -22,7 +22,7 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 
 ## 💰 Commissions
 - ✅ **Commission-admin UX batch (2026-06-13→15) — all shipped + live:** #1 unresolved-stub-as-uploader fixed + 463 backfilled (460→Rebekah via root normalize_uhc-by-writing-ID fix, 3 unknowns) + **Unassigned Customers admin view** (nav badge, suggested-agent w/ basis, set-agent). #2 **All-Commissions = admin recap landing** (one "Agent Commissions" module). #3 **in-line quarantine resolver** (acea498). #4 **agent nav-bar** (persistent, fills row, responsive).
-- ⬜ 🟠 **NEW — commission statements should ENRICH customer/policy records** (effective/term date, plan type, contract/PBP/plan code, state, county, policy #, MBI). On the line item but not propagated to Customer/Policy (stubs stay sparse → backfill couldn't open AORs). Needs a spec: which fields commission can fill + precedence (fill-blanks / never overwrite manually_edited or BOB). [[provenance-and-next-work]]
+- 🟡 🔴 **NEXT BUILD — commission→customer ENRICHMENT + AOR timeline reconciliation.** Spec WRITTEN + Tim-answered: `docs/superpowers/specs/2026-06-16-commission-enrichment-aor-reconcile-design.md`. Grounding case Tocara Brown (2 open AOR intervals). **Phase 1 (build first): AOR reconcile** — only ENROLLMENT rows open intervals; newer enrollment end-dates the older OPEN interval at **prior month-end** (Medicare term=month-end); dry-run backfill first; BCBS end_date stays special. **Phase 2:** fill-blanks Policy/Customer (dates/plan/type/commission_type), manual>BOB>commission, never overwrite. **Phase 3:** extend MemberFact+normalizers for state/county/policy# + customer PII via the **provenance engine** (agent-fix>commission; first-look fills blank; conflict flags ONCE; agent-fixed→ignore commission; brand-new never-seen value→flag to call+confirm). **Phase 4 (opt):** surface payment dates on profile (PolicyPayment already has them). [[customer-provenance-design]]
 - ⬜ 🟠 **AJ signs off on a real UHC upload run** + the quarantine tab before UHC is system-of-record. — `[[uhc-parser-resume]]`
 - ⬜ 🟠 **UHC "New" enrollment proration** — the last big quarantine chunk (~48 rows, mostly "New" months-remaining math, cols L/T/AA/AB). Needs a few worked examples from AJ. Irreducible until then.
 - ⏸ 🟢 **Aetna Medigap supplement parser** — `aetnasupplement.zip` ($101.53, different `Commission Details` shape). Deferred; normal agent split applies when built. — `[[session-handoff-2026-06-11-commissions]]`

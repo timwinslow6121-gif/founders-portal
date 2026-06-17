@@ -99,8 +99,31 @@ when 6/1 opens.)
   and manually_edited fields untouched.
 - Full suite green; spot-check a handful of multi-enrollment customers on the VPS.
 
-## 7. Open questions for Tim
-1. AOR close boundary: `end_date = new_eff − 1 day` (no gap) vs `end_date = new_eff` — preference?
-2. Phase 1 backfill: auto-close all superseded open intervals agency-wide now, or dry-run +
-   review first (like the unassigned backfill)?
-3. Phase 3 (state/county/policy#): worth it, or is dates+plan+lifecycle enough for now?
+## 7. Open questions — ANSWERED by Tim 2026-06-16
+1. **AOR close boundary = last day of the prior month.** Medicare plans almost always
+   terminate on the last day of a month and the new plan starts on the 1st. So when a
+   newer enrollment supersedes an older interval, close the older at the **last day of the
+   month before the new effective date** (e.g. new eff 6/1 → old interval end = 5/31). Use
+   the row's term_date when present (it's usually in the data and already month-end);
+   otherwise derive month-end-before-new-eff.
+2. **Phase 1 backfill = DRY-RUN FIRST** (like the unassigned/assign backfills): list the
+   superseded open intervals it would close, review, then `--apply`.
+3. **Phase 3 (state/county/policy#) = YES, do it — AND make customer PII provenance-tracked
+   like other modules.** Specifically the customer address/city/phone/mailing-address
+   enrichment must follow the established provenance pattern (see `app/plan_provenance.py`
+   precedent + [[customer-provenance-design]]):
+   - **Precedence: agent input/fix > commission import.** Commission fills blanks; never
+     overwrites an agent-corrected (manually_edited) value.
+   - **First-look:** commission value fills an empty field (unverified).
+   - **Conflict (commission differs from a stored value):** flag for review **ONCE** — but:
+     - if the stored value was an **agent fix**, commission is ignored for that field (no
+       re-flag); 
+     - if it's a **genuinely new value we've never seen** (e.g. a brand-new address, not
+       just a carrier typo), flag it for review so AJ/agent can call the customer to confirm
+       (moved? mailing vs residence?).
+   - Tim's example: John Doe stored 123 Main St Kannapolis (agent-fixed) vs carrier says
+     Concord → ignore carrier (agent wins, no re-flag). But John later shows 999 South St
+     Concord (never-seen address) → flag once for human confirmation.
+   - This means Phase 3 should reuse/extend the provenance engine (field source + trust +
+     conflict), not a naive fill-blank, for the PII fields. (Dates/plan/lifecycle in
+     Phase 1–2 stay simple fill-blanks — they're carrier-authoritative, not PII.)

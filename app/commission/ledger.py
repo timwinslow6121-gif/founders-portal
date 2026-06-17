@@ -595,13 +595,11 @@ _UHC_COMBINED_PAIRS = [(_UHC_RENEWAL_HMO, _UHC_COMBINED_HMO),
 # Plan families that carry the $4.59 Founders override (MA + Part D).
 _UHC_OVERRIDE_FAMILY = {"MAPD", "DSNP", "CSNP", "MA", "PARTD"}
 _UHC_MEDSUPP = {"AARPMODMEDSUP"}   # premium-based; renewal+override PAIRED per member
-# Med-Supp pairing applies to the LOA agents who write Med-Supp; others' Med-Supp
-# → quarantine (small BOBs, rule unconfirmed — Tim 2026-06-11; needs a few months
-# of statements to nail down). Matched by surname substring in the "LAST, FIRST"
-# writing-agent name. (Rebekah's UHC business isn't in this statement under her
-# name — likely under the agency entity — so she's not listed here yet.)
-# Matched against the RESOLVED portal name (upper). LOA agents who write Med-Supp.
-_UHC_MEDSUPP_AGENTS = ("WINSLOW", "FOSTER", "BASINGER", "LAUZURIQUE", "DONALD LONG")
+# Med-Supp pairing applies to ANY agent who writes it — the smaller line of a
+# per-member pair is the Founders override (structural, not agent-specific). A
+# lone Med-Supp line (no pair) can't be decomposed → quarantine. (Was previously
+# gated to a hardcoded LOA agent list, which dropped Anjana/Brian Med-Supp pairs
+# into quarantine — the June 2026 "overrides not caught" bug.)
 _CENT = 0.005  # match tolerance for the fixed amounts
 
 
@@ -655,10 +653,15 @@ def _uhc_medsupp_overrides(rows, writing_for):
     """Med-Supp pays per-member as TWO lines (premium-based): a larger renewal
     (splits) + a smaller Founders override (no split). Pre-pass to identify, per
     (member, agent), which Med-Supp amount is the override (the SMALLER of the
-    pair) so the main loop can classify each line. Only for the LOA agents who
-    write Med-Supp; others' Med-Supp is quarantined. `writing_for(row)` resolves
-    the agent (by Writing Agent ID). Returns a set of (member, AGENT_UPPER, amount)
-    OVERRIDE tuples — keyed on the SAME resolved writing the main loop uses."""
+    pair) so the main loop can classify each line. Applies to ANY agent who writes
+    Med-Supp — the split is structural (smaller-of-pair = override), not
+    agent-specific. `writing_for(row)` resolves the agent (by Writing Agent ID).
+    Returns (overrides, paired_members):
+      - overrides:       set of (member, AGENT_UPPER, amount) OVERRIDE tuples
+      - paired_members:  set of (member, AGENT_UPPER) that have a 2+ line pair
+    both keyed on the SAME resolved writing the main loop uses. A lone Med-Supp
+    line is in NEITHER set → the main loop quarantines it (can't decompose one
+    line into renewal+override)."""
     by_member = defaultdict(list)
     for row in rows[1:]:
         if not any(row) or len(row) <= _UHC_AMOUNT:
@@ -667,19 +670,19 @@ def _uhc_medsupp_overrides(rows, writing_for):
         if plan not in _UHC_MEDSUPP:
             continue
         writing = writing_for(row).upper()
-        if not any(a in writing for a in _UHC_MEDSUPP_AGENTS):
-            continue
         amt = round(_to_float(row[_UHC_AMOUNT]), 2)
         if amt == 0:
             continue
         member = str(row[_UHC_MEMBER] or "").strip()
         by_member[(member, writing)].append(amt)
     overrides = set()
+    paired_members = set()
     for (member, writing), amts in by_member.items():
         if len(amts) >= 2:
+            paired_members.add((member, writing))
             smaller = min(amts, key=abs)   # the override is the smaller line
             overrides.add((member, writing, smaller))
-    return overrides
+    return overrides, paired_members
 
 
 def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
@@ -701,7 +704,7 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
         wid = str(row[_UHC_WRITING_ID] or "").strip() if len(row) > _UHC_WRITING_ID else ""
         return writing_id_to_name.get(wid) or str(row[_UHC_AGENT] or "").strip()
 
-    medsupp_overrides = _uhc_medsupp_overrides(rows, _writing_for)
+    medsupp_overrides, medsupp_paired_members = _uhc_medsupp_overrides(rows, _writing_for)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) <= _UHC_AMOUNT:
@@ -779,14 +782,19 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
             out.append(draft(amount, cls, rate, sref))
             continue
 
-        # ── Med-Supp renewals (paired per member; LOA agents only).
+        # ── Med-Supp renewals (paired per member; ANY agent). The split rule is
+        #    structural (the smaller line of a per-member pair = the Founders
+        #    override), not agent-specific — so it applies to whoever wrote it.
+        #    A lone Med-Supp line (no pair) is NOT in medsupp_overrides and has no
+        #    sibling, so it falls through to quarantine below (correct).
         if is_renewal and plan in _UHC_MEDSUPP and \
-                any(a in writing.upper() for a in _UHC_MEDSUPP_AGENTS):
-            if (member, writing.upper(), amount) in medsupp_overrides:
-                out.append(draft(amount, FOUNDERS_OVERRIDE, None, sref))   # smaller = override
-            else:
-                cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
-                out.append(draft(amount, cls, rate, sref))                 # larger = renewal split
+                (member, writing.upper(), amount) in medsupp_overrides:
+            out.append(draft(amount, FOUNDERS_OVERRIDE, None, sref))       # smaller = override
+            continue
+        if is_renewal and plan in _UHC_MEDSUPP and \
+                (member, writing.upper()) in medsupp_paired_members:
+            cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+            out.append(draft(amount, cls, rate, sref))                     # larger = renewal split
             continue
 
         # ── Everything else: "New" enrollments (complex cols L/T/AA/AB — analyze

@@ -164,6 +164,68 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
     assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
 
 
+def test_uhc_medsupp_pair_splits_for_any_agent():
+    """AARP Med-Supp pays per member as TWO lines (variable premium): a larger
+    renewal (splits agent/Founders) + a smaller Founders override (no split). This
+    must auto-split for ANY agent, not just a hardcoded LOA list — the June 2026
+    bug where DEVA/PATEL/KENDALL (agents NOT on the old whitelist) fell to
+    quarantine instead of splitting."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                        FOUNDERS_OVERRIDE, NEEDS_MANUAL_REVIEW)
+
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[5] = "Writing Agent Name"
+    header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+
+    def row(member, amt, agent="PATEL, ANJANA"):
+        r = [""] * 24
+        r[5] = agent; r[7] = member; r[12] = "AARPMODMEDSUP"
+        r[19] = "Renewal"; r[23] = amt
+        return r
+
+    # A non-whitelisted agent's Med-Supp pair: larger 22.46 + smaller 2.98.
+    sheets = {"Commission Transactions": [
+        header,
+        row("DEVA, HANSA", 25.21), row("DEVA, HANSA", 3.35),
+        row("PATEL, ASHOK", 22.46), row("PATEL, ASHOK", 2.98),
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    # group amounts by classification
+    by_amt = {round(float(i.raw_amount), 2): i.classification for i in items}
+    assert by_amt[25.21] == AGENT_COMMISSION    # larger line splits
+    assert by_amt[3.35] == FOUNDERS_OVERRIDE     # smaller line = override, no split
+    assert by_amt[22.46] == AGENT_COMMISSION
+    assert by_amt[2.98] == FOUNDERS_OVERRIDE
+    # none should land in quarantine
+    assert NEEDS_MANUAL_REVIEW not in by_amt.values()
+    # the override lines carry no split rate (100% Founders)
+    overrides = [i for i in items if i.classification == FOUNDERS_OVERRIDE]
+    assert all(o.split_rate is None for o in overrides)
+
+
+def test_uhc_single_medsupp_line_without_pair_still_quarantines():
+    """A lone AARP Med-Supp line (no matching pair for that member) can't be
+    decomposed into renewal+override — it stays quarantined for AJ."""
+    from app.commission.ledger import extract_lineitems_uhc, NEEDS_MANUAL_REVIEW
+
+    header = [""] * 24
+    header[5] = "Writing Agent Name"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+
+    def row(member, amt):
+        r = [""] * 24
+        r[5] = "PATEL, ANJANA"; r[7] = member; r[12] = "AARPMODMEDSUP"
+        r[19] = "Renewal"; r[23] = amt
+        return r
+
+    sheets = {"Commission Transactions": [header, row("SOLO, MEMBER", 25.21)]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    assert all(i.classification == NEEDS_MANUAL_REVIEW for i in items)
+
+
 def test_uhc_attributes_by_writing_agent_id_not_name():
     """Rebekah Long writes UHC under the agency name 'FOUNDERS INSURANCE AGENCY,
     LLC' but her Writing Agent ID (col 4) = 6435806. The parser MUST attribute by

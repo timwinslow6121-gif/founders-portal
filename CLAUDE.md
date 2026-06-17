@@ -3,10 +3,10 @@
 <!-- ════════════════════════════════════════════════════════════════════
      START HERE (new session) — keep this block current at every session end.
      ════════════════════════════════════════════════════════════════════ -->
-## 🧭 START HERE — current state (updated 2026-06-11)
+## 🧭 START HERE — current state (updated 2026-06-17)
 
 **FIRST ACTION each new session:** read these memory files before doing work — they hold current state that this file summarizes:
-1. `memory/session-handoff-2026-06-16-commission-admin-ux.md` — NEWEST: where we left off (commission-admin UX overhaul — unassigned-customer fix→0, unified "Agent Commissions" module, persistent agent nav-bar, in-line quarantine resolver [per-statement + period-level all-carrier], nameless-stub fix, HTTPS cert outage fixed via snap certbot). **NEXT = build commission→customer ENRICHMENT + AOR reconciliation** (spec `docs/superpowers/specs/2026-06-16-commission-enrichment-aor-reconcile-design.md`, Tim-answered §7; Phase 1 = AOR reconcile, grounding case Tocara Brown). Prev: `session-handoff-2026-06-12-aggregate-ui.md`.
+1. `memory/session-handoff-2026-06-17-aor-phase1.md` — NEWEST: **Phase 1 of the commission-enrichment spec SHIPPED + LIVE = AOR timeline reconciliation.** Resolver supersession (a newer ENROLLMENT end-dates an older OPEN interval for same customer+carrier at the row's term_date else new_eff−1 = Medicare month-end), enrollment-gate w/ first-interval bootstrap, BCBS excluded. Dry-run backfill `scripts/backfill_reconcile_aor_intervals.py` (idempotent) **APPLIED on VPS = 228 intervals closed** (220 clean UHC annual rollovers + ~8 mid-year re-enrollments incl. Tocara 3/1→5/31); checked 0 of 228 had an agent change (no cannibalization erased), DB backed up pre-apply. commit 439b911, suite 249 green, no migration. **NEXT = Phase 2: fill-blanks enrichment of Policy/Customer** (effective/term/plan/plan_type/commission_type on create + crosswalk re-match, manual>BOB>commission, never overwrite/manually_edited). Spec `docs/superpowers/specs/2026-06-16-commission-enrichment-aor-reconcile-design.md` (Phase 1 ✅). Prev: `session-handoff-2026-06-16-commission-admin-ux.md`.
 2. `memory/uhc-parser-resume.md` — UHC parser details + resume.
 3. `memory/m2-phase2-resume-point.md` — M2 UI Phase 2 resume (Phase 1 shipped: design system + login + spinner all live).
 4. `memory/roadmap-2026-06-09.md` — the active roadmap.

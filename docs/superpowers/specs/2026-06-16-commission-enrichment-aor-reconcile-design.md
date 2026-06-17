@@ -1,7 +1,7 @@
 # Commission → Customer/Policy Enrichment + AOR Timeline Reconciliation (Design / Spec)
 
 **Date:** 2026-06-16
-**Status:** 📝 SPEC for Tim's review — NOT built yet
+**Status:** Phase 1 ✅ SHIPPED + LIVE (2026-06-17, commit 439b911); Phases 2–4 not yet built
 **Author:** brainstormed with Tim 2026-06-16 (grounded in the Tocara Brown case)
 
 ---

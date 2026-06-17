@@ -397,6 +397,236 @@ def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
         assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 1
 
 
+# ---------------------------------------------------------------------------
+# Phase 1 — AOR timeline reconciliation (supersession by effective date)
+# ---------------------------------------------------------------------------
+
+def _seed_open_interval(db, agency, agent, customer, *, carrier, eff, plan="Old Plan"):
+    from app.models import CustomerAorHistory
+    from datetime import date
+    aor = CustomerAorHistory(
+        agency_id=agency.id, customer_id=customer.id, agent_id=agent.id,
+        carrier=carrier, plan_name=plan, effective_date=eff, end_date=None,
+        source="commission_import",
+    )
+    db.session.add(aor)
+    db.session.flush()
+    return aor
+
+
+def test_later_enrollment_closes_earlier_open_interval(db_session, app, agency, agent_user):
+    """The Tocara Brown case: an enrollment effective 6/1 supersedes an OPEN 3/1
+    interval for the same (customer, carrier). The 3/1 interval is end-dated to
+    the day before the new eff (5/31); exactly one interval stays open (6/1)."""
+    from app.extensions import db
+    from app.models import Customer, CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+
+    with app.app_context():
+        c, p = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="Humana", member_id="PIDTOCARA",
+            mbi=None, first="Tocara", last="Brown",
+        )
+        # Existing open interval effective 3/1 (the one that should be superseded).
+        _seed_open_interval(db, agency, agent_user, c, carrier="Humana",
+                            eff=date(2026, 3, 1))
+        db.session.commit()
+
+        # New ENROLLMENT effective 6/1 arrives on the SAME policy (crosswalk path).
+        fact = MemberFact(
+            carrier="Humana", full_name="Brown Tocara", first_name="Tocara",
+            last_name="Brown", carrier_member_id="PIDTOCARA",
+            row_class=RowClass.ENROLLMENT, amount=202.42, effective_date=date(2026, 6, 1),
+        )
+        from app.commission.resolver import resolve_customer
+        resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                         source="commission_import")
+        db.session.commit()
+
+        intervals = (CustomerAorHistory.query
+                     .filter_by(customer_id=c.id, carrier="Humana")
+                     .order_by(CustomerAorHistory.effective_date).all())
+        assert len(intervals) == 2
+        old, new = intervals
+        assert old.effective_date == date(2026, 3, 1)
+        assert old.end_date == date(2026, 5, 31)      # closed day-before new eff
+        assert new.effective_date == date(2026, 6, 1)
+        assert new.end_date is None                   # only the newest stays open
+
+
+def test_renewal_does_not_open_or_supersede(db_session, app, agency, agent_user):
+    """A RENEWAL row never opens a new interval and never supersedes — when an open
+    interval already exists for the carrier, a renewal just confirms it."""
+    from app.extensions import db
+    from app.models import CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+
+    with app.app_context():
+        c, p = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="Humana", member_id="PIDREN",
+            first="Reuben", last="Walker",
+        )
+        _seed_open_interval(db, agency, agent_user, c, carrier="Humana",
+                            eff=date(2026, 1, 1))
+        db.session.commit()
+
+        fact = MemberFact(
+            carrier="Humana", full_name="Walker Reuben", first_name="Reuben",
+            last_name="Walker", carrier_member_id="PIDREN",
+            row_class=RowClass.RENEWAL, amount=28.92, effective_date=date(2026, 6, 1),
+        )
+        from app.commission.resolver import resolve_customer
+        resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                         source="commission_import")
+        db.session.commit()
+
+        intervals = CustomerAorHistory.query.filter_by(
+            customer_id=c.id, carrier="Humana").all()
+        assert len(intervals) == 1                    # renewal opened nothing
+        assert intervals[0].effective_date == date(2026, 1, 1)
+        assert intervals[0].end_date is None          # left open / untouched
+
+
+def test_first_interval_opens_for_bob_renewal_when_none_exists(db_session, app, agency, agent_user):
+    """Bootstrap rule: when NO open interval exists for (customer, carrier), even a
+    RENEWAL (how BOB rows arrive) opens the initial interval — never leave a customer
+    with zero intervals."""
+    from app.extensions import db
+    from app.models import CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+
+    with app.app_context():
+        c, p = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="UHC", member_id="UHCFIRST",
+            mbi="MBIFIRST01", first="Faye", last="Irst",
+        )
+        db.session.commit()
+
+        fact = MemberFact(
+            carrier="UHC", full_name="Irst Faye", first_name="Faye", last_name="Irst",
+            mbi="MBIFIRST01", carrier_member_id="UHCFIRST",
+            row_class=RowClass.RENEWAL, amount=28.92, effective_date=date(2026, 1, 1),
+        )
+        from app.commission.resolver import resolve_customer
+        resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id, source="bob")
+        db.session.commit()
+
+        intervals = CustomerAorHistory.query.filter_by(
+            customer_id=c.id, carrier="UHC").all()
+        assert len(intervals) == 1
+        assert intervals[0].effective_date == date(2026, 1, 1)
+        assert intervals[0].end_date is None
+
+
+def test_supersession_uses_term_date_when_present(db_session, app, agency, agent_user):
+    """When the incoming enrollment row carries a term_date for the prior coverage,
+    the superseded interval is closed at that term_date (carrier-authoritative),
+    not the derived new_eff-1."""
+    from app.extensions import db
+    from app.models import CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+
+    with app.app_context():
+        c, p = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="Humana", member_id="PIDTERM",
+            first="Terry", last="Mdate",
+        )
+        old = _seed_open_interval(db, agency, agent_user, c, carrier="Humana",
+                                  eff=date(2026, 3, 1))
+        db.session.commit()
+
+        fact = MemberFact(
+            carrier="Humana", full_name="Mdate Terry", first_name="Terry",
+            last_name="Mdate", carrier_member_id="PIDTERM",
+            row_class=RowClass.ENROLLMENT, amount=202.42,
+            effective_date=date(2026, 6, 1), term_date=date(2026, 4, 30),
+        )
+        from app.commission.resolver import resolve_customer
+        resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                         source="commission_import")
+        db.session.commit()
+
+        db.session.refresh(old)
+        assert old.end_date == date(2026, 4, 30)      # used the row's term_date
+
+
+def test_supersession_never_touches_later_or_already_closed_or_bcbs(db_session, app, agency, agent_user):
+    """Guardrails: an incoming enrollment only closes OPEN, strictly-EARLIER intervals
+    for the SAME carrier. It must not (a) close an already-closed interval, (b) close a
+    later-effective open interval, or (c) close a BCBS interval (BCBS end_date is special)."""
+    from app.extensions import db
+    from app.models import CustomerAorHistory
+    from app.commission.member_fact import MemberFact, RowClass
+
+    with app.app_context():
+        c, p = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="Humana", member_id="PIDGUARD",
+            first="Gloria", last="Uard",
+        )
+        # (a) already-closed earlier interval — must stay as-is
+        closed = _seed_open_interval(db, agency, agent_user, c, carrier="Humana",
+                                     eff=date(2025, 1, 1))
+        closed.end_date = date(2025, 12, 31)
+        # (b) a LATER open interval (eff 8/1) — must NOT be closed by a 6/1 enrollment
+        later = _seed_open_interval(db, agency, agent_user, c, carrier="Humana",
+                                    eff=date(2026, 8, 1))
+        # (c) a BCBS open interval — different carrier, must be untouched
+        bcbs = _seed_open_interval(db, agency, agent_user, c, carrier="BCBS",
+                                   eff=date(2026, 2, 1))
+        db.session.commit()
+
+        fact = MemberFact(
+            carrier="Humana", full_name="Uard Gloria", first_name="Gloria",
+            last_name="Uard", carrier_member_id="PIDGUARD",
+            row_class=RowClass.ENROLLMENT, amount=202.42, effective_date=date(2026, 6, 1),
+        )
+        from app.commission.resolver import resolve_customer
+        resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
+                         source="commission_import")
+        db.session.commit()
+
+        db.session.refresh(closed); db.session.refresh(later); db.session.refresh(bcbs)
+        assert closed.end_date == date(2025, 12, 31)  # untouched (already closed)
+        assert later.end_date is None                 # untouched (later eff)
+        assert bcbs.end_date is None                  # untouched (other carrier)
+
+
+def test_backfill_reconciles_existing_duplicate_open_intervals(db_session, app, agency, agent_user):
+    """The backfill reproduces the supersession rule on legacy data: a customer with
+    THREE open Humana intervals (3/1, 5/1, 6/1) is reconciled to a contiguous timeline
+    — 3/1->4/30, 5/1->5/31, 6/1 open — closing each at the NEXT interval's eff-1. A
+    lone open interval and a BCBS group are left untouched."""
+    from app.extensions import db
+    from app.models import CustomerAorHistory
+    from scripts.backfill_reconcile_aor_intervals import reconcile_open_intervals
+
+    with app.app_context():
+        c, _ = _seed_customer_with_policy(
+            db, agency, agent_user, carrier="Humana", member_id="PIDBF",
+            first="Bertha", last="Fill",
+        )
+        i1 = _seed_open_interval(db, agency, agent_user, c, carrier="Humana", eff=date(2026, 3, 1))
+        i2 = _seed_open_interval(db, agency, agent_user, c, carrier="Humana", eff=date(2026, 5, 1))
+        i3 = _seed_open_interval(db, agency, agent_user, c, carrier="Humana", eff=date(2026, 6, 1))
+        # A single open BCBS interval — must be ignored (BCBS excluded + only one).
+        bcbs = _seed_open_interval(db, agency, agent_user, c, carrier="BCBS", eff=date(2026, 1, 1))
+        db.session.commit()
+
+        groups, closed = reconcile_open_intervals(verbose=False)
+        db.session.commit()
+
+        assert (groups, closed) == (1, 2)
+        db.session.refresh(i1); db.session.refresh(i2); db.session.refresh(i3); db.session.refresh(bcbs)
+        assert i1.end_date == date(2026, 4, 30)   # closed at next eff (5/1) - 1
+        assert i2.end_date == date(2026, 5, 31)   # closed at next eff (6/1) - 1
+        assert i3.end_date is None                # newest stays open
+        assert bcbs.end_date is None              # untouched
+
+        # Idempotent: a second pass finds nothing to close.
+        groups2, closed2 = reconcile_open_intervals(verbose=False)
+        assert (groups2, closed2) == (0, 0)
+
+
 def test_unresolved_commission_stub_is_unassigned_not_uploader(db_session, app, agency):
     """A commission row that can't resolve to a real agent must create an
     UNASSIGNED stub (primary_agent_id NULL) and NO AOR interval — never silently

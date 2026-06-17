@@ -11,6 +11,7 @@ stub. See docs/superpowers/specs/2026-06-03-commission-customer-sync-design.md �
 """
 import json
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Optional, List
 
 from app.extensions import db
@@ -146,23 +147,76 @@ def _apply_carrier_switch(fact: MemberFact, customer: Customer, new_policy: Poli
         result.actions.append("carrier_switch")
 
 
+def _supersedes(incoming: CustomerAorHistory, existing: CustomerAorHistory) -> bool:
+    """Phase 1 supersession predicate (the heart of AOR reconciliation).
+
+    Return True when `incoming` (a just-opened ENROLLMENT interval) should END-DATE
+    the already-persisted `existing` interval. Both are the SAME (customer, carrier)
+    by construction; this decides the date relationship + guardrails.
+
+    Guardrails from the spec (§2.B / §5) and Tim's §7 answers — only end-date an
+    interval that is:
+      - still OPEN (existing.end_date is None) — never re-close history, and
+      - strictly EARLIER-effective than the incoming enrollment
+        (existing.effective_date < incoming.effective_date) — a newer enrollment
+        supersedes an older one, never the reverse, and never an equal/same-day row.
+    BCBS is already excluded upstream (its term_date is a renewal date, not an end),
+    so this predicate does not need a carrier check.
+
+    """
+    if existing.end_date is not None:
+        return False                       # already closed — never re-close history
+    if existing.effective_date is None or incoming.effective_date is None:
+        return False                       # can't prove which is older → leave it
+    return existing.effective_date < incoming.effective_date
+
+
+def _aor_close_date(incoming_eff: date, term_date: Optional[date]) -> date:
+    """The date to close a superseded interval at. Tim's §7: use the row's term_date
+    when present (carrier-authoritative, already month-end); otherwise the day before
+    the new effective date (Medicare effs are the 1st, so new_eff−1 lands on month-end,
+    e.g. 6/1 → 5/31)."""
+    return term_date if term_date is not None else incoming_eff - timedelta(days=1)
+
+
 def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
                        agent_id, batch_id, result: ResolveResult, source: str):
-    """Open an AOR interval if none exists for this customer+carrier+effective_date.
-    BCBS term_date is a renewal date — never an end_date. The `source` (e.g. "bob"
-    or "commission_import") is recorded for provenance, and plan_name is carried
-    from the fact so BOB plan names are preserved."""
+    """Phase 1 AOR reconciliation. Opens an interval and reconciles the timeline:
+
+      - Bootstrap: if NO open interval exists for (customer, carrier), open one for
+        ANY row (so BOB renewals + first sales still get their initial interval).
+      - Otherwise only ENROLLMENT rows open a new interval; renewals/chargebacks just
+        confirm the existing coverage (prevents the per-row duplicate intervals).
+      - When an ENROLLMENT opens a later interval, close every OPEN, strictly-earlier
+        interval for the same (customer, carrier) — the Tocara supersession rule.
+
+    BCBS term_date is a renewal date — never an end_date. `source` is recorded for
+    provenance; plan_name is carried so BOB plan names are preserved."""
     if not fact.effective_date:
         return
     # No real agent resolved → the customer is UNASSIGNED. Don't fabricate an AOR
     # interval (agent_id is NOT NULL); the AOR is created when an agent is assigned.
     if agent_id is None:
         return
-    existing = CustomerAorHistory.query.filter_by(
+
+    # Exact-duplicate guard: an identical (carrier, effective_date) interval already
+    # exists — never create a second copy of the same coverage.
+    existing_same = CustomerAorHistory.query.filter_by(
         customer_id=customer.id, carrier=fact.carrier, effective_date=fact.effective_date,
     ).first()
-    if existing:
+    if existing_same:
         return
+
+    open_intervals = CustomerAorHistory.query.filter_by(
+        customer_id=customer.id, carrier=fact.carrier, end_date=None,
+    ).all()
+
+    # Gate: only ENROLLMENT opens additional intervals; but if the customer has NO
+    # open interval for this carrier yet, bootstrap the first one from any row.
+    from app.commission.member_fact import RowClass
+    if open_intervals and fact.row_class != RowClass.ENROLLMENT:
+        return
+
     end_date = None if fact.carrier == "BCBS" else fact.term_date
     aor = CustomerAorHistory(
         agency_id=agency_id, customer_id=customer.id, agent_id=agent_id,
@@ -172,6 +226,13 @@ def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
     )
     db.session.add(aor)
     result.actions.append("aor_interval")
+
+    # Supersede older open intervals (BCBS excluded — its end_date is never a term).
+    if fact.carrier != "BCBS":
+        for prior in open_intervals:
+            if _supersedes(aor, prior):
+                prior.end_date = _aor_close_date(fact.effective_date, fact.term_date)
+                result.actions.append("aor_superseded")
 
 
 def _enqueue_suggestion(fact: MemberFact, stub_customer: Customer, candidate: Customer,

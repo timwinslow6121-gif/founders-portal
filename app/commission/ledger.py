@@ -583,6 +583,7 @@ _UHC_EFFDATE = 11
 # every override-bearing plan family (MA AND Part D). The raw file emits the pair
 # as two lines OR one combined line; combined lines are decomposed.
 _UHC_OVERRIDE = 4.59    # ~$55/yr ÷ 12 — the Founders override (no split), all families
+_UHC_NEW_OVERRIDE = 125.0   # flat 'New' Founders override fee (100% Founders, no split)
 _UHC_PARTD_OVERRIDE = 0.26  # fixed monthly Founders override on a Part D plan renewal
                             # (no split — 100% Founders), per Tim. NOT dust.
 _UHC_RENEWAL_HMO = 28.92   # standard HMO MA renewal ($347/yr ÷ 12) — splits
@@ -741,7 +742,17 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
             continue
 
         is_renewal = "renewal" in action_l
+        is_new = "new" in action_l and "chargeback" not in action_l
         in_override_family = plan in _UHC_OVERRIDE_FAMILY
+
+        # ── Flat $125.00 'New' = a 100% Founders override fee (no agent split), per
+        #    Tim (June 2026). Appears as a standalone line beside the real New
+        #    enrollment commission. (New CHARGEBACKs are excluded — those are still
+        #    under review.)
+        if is_new and _near(abs(amount), _UHC_NEW_OVERRIDE):
+            signed = _UHC_NEW_OVERRIDE if amount >= 0 else -_UHC_NEW_OVERRIDE
+            out.append(draft(signed, FOUNDERS_OVERRIDE, None, sref, ptype="new override"))
+            continue
 
         # ── Fixed $0.26 PARTD renewal = Founders override for a Part D plan (per
         #    Tim): 100% Founders, no split. (Was previously quarantined as "dust".)

@@ -164,6 +164,37 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
     assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
 
 
+def test_uhc_new_125_is_founders_override_not_quarantined():
+    """A flat $125.00 'New' UHC row is a 100% Founders override (no agent split) —
+    a fixed referral/override fee that appears alongside the real New-enrollment
+    commission (per Tim, June 2026). Book it as founders_override, not quarantine.
+    Other 'New' amounts (the real enrollment commission) stay quarantined."""
+    from app.commission.ledger import (extract_lineitems_uhc, FOUNDERS_OVERRIDE,
+                                        NEEDS_MANUAL_REVIEW)
+
+    header = [""] * 24
+    header[5] = "Writing Agent Name"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+
+    def row(member, action, amt):
+        r = [""] * 24
+        r[5] = "FREEMAN, BRIAN"; r[7] = member; r[12] = "MAPD"
+        r[19] = action; r[23] = amt
+        return r
+
+    sheets = {"Commission Transactions": [
+        header,
+        row("CORUM, TAMMY", "New", 125.0),     # the flat override
+        row("CORUM, TAMMY", "New", 202.42),    # the real enrollment — still quarantines
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by_amt = {round(float(i.raw_amount), 2): i for i in items}
+    assert by_amt[125.0].classification == FOUNDERS_OVERRIDE
+    assert by_amt[125.0].split_rate is None                  # 100% Founders, no split
+    assert by_amt[202.42].classification == NEEDS_MANUAL_REVIEW  # real New still quarantines
+
+
 def test_uhc_medsupp_pair_splits_for_any_agent():
     """AARP Med-Supp pays per member as TWO lines (variable premium): a larger
     renewal (splits agent/Founders) + a smaller Founders override (no split). This

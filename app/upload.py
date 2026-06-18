@@ -704,6 +704,9 @@ def _detect_carrier(filepath: str, filename: str) -> str:
         # Humana BOB: "CommRunDt" + "WaName" + "PaidAmount"
         if "commrundt" in header_set and "waname" in header_set:
             return "Humana"
+        # Humana BOB portal export (XLSX or CSV): "MbrFirstName" + "Humana ID"
+        if "mbrfirstname" in header_set and "humana id" in header_set:
+            return "Humana"
         # BCBS BOB: "Agent #" + "Agent Name" + "ORIGEFFDATE"
         if "agent #" in header_set and "origeffdate" in header_set:
             return "BCBS"

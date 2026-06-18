@@ -913,6 +913,18 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
         internal_ok=internal_ok, completeness_ok=completeness_ok)
 
 
+def _snapshot_line(line) -> dict:
+    """The mutable money fields of a line item — the unit of undo. Captured
+    before a resolve/edit so undo can restore the EXACT prior state."""
+    return {
+        "classification": line.classification,
+        "raw_amount": line.raw_amount,
+        "split_rate": line.split_rate,
+        "agent_id": line.agent_id,
+        "payment_type": line.payment_type,
+    }
+
+
 def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
     """Resolve ONE quarantined (needs_manual_review) line item in place: split its
     lump amount into an agent_commission part (the remainder, which splits at

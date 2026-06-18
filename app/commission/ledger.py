@@ -955,6 +955,9 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user
     ovr_ref = f"{line.source_ref}::ovr"
     existing_ovr = CommissionLineItem.query.filter_by(
         statement_id=line.statement_id, source_ref=ovr_ref).first()
+    # Snapshot the sibling's state BEFORE this resolve mutates/deletes/creates it,
+    # so undo can restore EXACTLY what was there before (None = it didn't exist).
+    sibling_before = _snapshot_line(existing_ovr) if existing_ovr is not None else None
     if abs(ov) >= 0.005:
         override_row = existing_ovr or CommissionLineItem(
             agency_id=line.agency_id, statement_id=line.statement_id,
@@ -976,7 +979,8 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user
         agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
         action="resolve", user_id=user_id,
         before_json=json.dumps(before), after_json=json.dumps(_snapshot_line(line)),
-        sibling_source_ref=(ovr_ref if abs(ov) >= 0.005 else None)))
+        sibling_source_ref=(ovr_ref if (abs(ov) >= 0.005 or existing_ovr is not None) else None),
+        sibling_before_json=(json.dumps(sibling_before) if sibling_before is not None else None)))
     return override_row
 
 
@@ -1002,15 +1006,35 @@ def undo_last_change(line, *, user_id=None) -> bool:
     for k, v in before.items():
         setattr(line, k, v)
 
-    # reverse the sibling override row this revision created/changed
+    # reverse the sibling override row this revision created/changed.
+    # sibling_before_json tells us what the sibling looked like BEFORE this
+    # revision's resolve touched it:
+    #   - None  -> the sibling did not exist before -> undo DELETES it.
+    #   - a dict -> the sibling existed before (this was a re-resolve) -> undo
+    #     RESTORES it to that prior state, re-creating it if the resolve deleted
+    #     it outright (the override-amount->0 case).
     if rev.sibling_source_ref:
         sib = CommissionLineItem.query.filter_by(
             statement_id=line.statement_id, source_ref=rev.sibling_source_ref).first()
-        if sib is not None:
-            # the resolve created this sibling (the row had no override before),
-            # so undo removes it. (Edit-of-existing-override is handled by edit's
-            # own revision pairing in Task 5.)
-            db.session.delete(sib)
+        sibling_before = (json.loads(rev.sibling_before_json)
+                           if rev.sibling_before_json else None)
+        if sibling_before is None:
+            # sibling didn't exist before this revision's change -> remove it.
+            if sib is not None:
+                db.session.delete(sib)
+        else:
+            # sibling existed before -> restore it (re-create if it was deleted).
+            if sib is None:
+                sib = CommissionLineItem(
+                    agency_id=line.agency_id, statement_id=line.statement_id,
+                    carrier=line.carrier, period_label=line.period_label,
+                    statement_date=line.statement_date,
+                    source_ref=rev.sibling_source_ref,
+                    member_name=line.member_name, mbi=line.mbi,
+                    carrier_member_id=line.carrier_member_id)
+                db.session.add(sib)
+            for k, v in sibling_before.items():
+                setattr(sib, k, v)
 
     rev.undone = True
     db.session.add(CommissionLineItemRevision(

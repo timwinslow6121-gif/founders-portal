@@ -26,6 +26,7 @@ def upgrade():
         sa.Column("before_json", sa.Text()),
         sa.Column("after_json", sa.Text()),
         sa.Column("sibling_source_ref", sa.String(length=160)),
+        sa.Column("sibling_before_json", sa.Text()),
         sa.Column("undone", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("created_at", sa.DateTime(), server_default=sa.func.now()),
     )

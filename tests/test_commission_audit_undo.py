@@ -88,6 +88,57 @@ def test_undo_restores_exact_prior_state_and_removes_override(db_session, app, a
             statement_id=1, source_ref="uhc::0::5::ovr").count() == 0
 
 
+def test_undo_after_re_resolve_restores_prior_override(db_session, app, agency):
+    """A line gets resolved TWICE (creating an ::ovr sibling, then re-resolving
+    it to a different override amount). Undoing the SECOND resolve must restore
+    the sibling to its value from BEFORE that resolve (10), not delete it —
+    otherwise Sigma raw_amount silently changes (money lost)."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import resolve_quarantine_line, undo_last_change
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::7", raw_amount=100.0, split_rate=None,
+            classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.flush()
+
+        # resolve #1: override=10 -> line.raw=90, ovr.raw=10 (Sum=100)
+        resolve_quarantine_line(li, agent_id=7, override_amount=10.0,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        assert li.raw_amount == 90.0
+        ovr = CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::7::ovr").first()
+        assert ovr is not None and ovr.raw_amount == 10.0
+
+        # resolve #2 (re-resolve): override=20 -> line.raw=70, ovr.raw=20
+        resolve_quarantine_line(li, agent_id=7, override_amount=20.0,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        assert li.raw_amount == 70.0
+        db.session.refresh(ovr)
+        assert ovr.raw_amount == 20.0
+
+        # undo the re-resolve (resolve #2)
+        ok = undo_last_change(li, user_id=3)
+        db.session.commit()
+        assert ok is True
+
+        # line restored to its post-resolve#1 state
+        assert li.raw_amount == 90.0
+
+        # the sibling must be RESTORED to 10 (its value before resolve#2),
+        # NOT deleted -- this is the bug under test.
+        sib = CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::7::ovr").first()
+        assert sib is not None, "override sibling was wrongly deleted on undo"
+        assert sib.raw_amount == 10.0
+
+        # the money invariant: Sum raw_amount across line + sibling == original 100
+        assert round(li.raw_amount + sib.raw_amount, 2) == 100.0
+
+
 def test_undo_returns_false_when_nothing_to_undo(db_session, app, agency):
     from app.extensions import db
     from app.models import CommissionLineItem

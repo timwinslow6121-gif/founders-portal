@@ -826,6 +826,8 @@ class CommissionLineItemRevision(db.Model):
     before_json   = db.Column(db.Text)                          # mutable fields BEFORE the change
     after_json    = db.Column(db.Text)                          # mutable fields AFTER the change
     sibling_source_ref = db.Column(db.String(160))              # the ::ovr row this op created/changed, if any
+    sibling_before_json = db.Column(db.Text)                     # sibling's mutable fields BEFORE this op, or
+                                                                   # null if the sibling did not exist before it
     undone        = db.Column(db.Boolean, default=False, nullable=False)
     created_at    = db.Column(db.DateTime, server_default=db.func.now())
 

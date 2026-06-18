@@ -925,18 +925,18 @@ def _snapshot_line(line) -> dict:
     }
 
 
-def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
+def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user_id=None):
     """Resolve ONE quarantined (needs_manual_review) line item in place: split its
     lump amount into an agent_commission part (the remainder, which splits at
     `split_rate`) and a founders_override part (`override_amount`, 100% Founders).
 
-    Faithful to the ledger invariant: the two new rows' raw_amounts sum back to the
-    original raw_amount, so Σ raw is unchanged. The original quarantine row becomes
-    the agent_commission remainder (keeping its source_ref); a sibling override row
-    is created with source_ref + '::ovr' when override_amount is non-zero.
-
-    Returns the (possibly new) override CommissionLineItem or None. Caller commits."""
-    from app.models import CommissionLineItem
+    Records a CommissionLineItemRevision(action="resolve") snapshotting the
+    pre-resolution state so the action is auditable + undoable. Faithful to the
+    ledger invariant: the two new rows' raw_amounts sum back to the original
+    raw_amount, so Σ raw is unchanged. Caller commits."""
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    import json
+    before = _snapshot_line(line)
     raw = round(line.raw_amount or 0.0, 2)
     ov = round(override_amount or 0.0, 2)
     # override must share the sign of the row and not exceed it in magnitude
@@ -971,6 +971,12 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
             db.session.add(override_row)
     elif existing_ovr is not None:
         db.session.delete(existing_ovr)   # override cleared on a re-resolve
+
+    db.session.add(CommissionLineItemRevision(
+        agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
+        action="resolve", user_id=user_id,
+        before_json=json.dumps(before), after_json=json.dumps(_snapshot_line(line)),
+        sibling_source_ref=(ovr_ref if abs(ov) >= 0.005 else None)))
     return override_row
 
 

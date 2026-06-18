@@ -1,7 +1,7 @@
 # Commission Trust System — Audit + Design Spec
 
 **Date:** 2026-06-18
-**Status:** 📝 SPEC for Tim's review — NOT built yet
+**Status:** 📝 SPEC — open questions resolved by Tim 2026-06-18; awaiting final sign-off → then implementation plan. NOT built yet.
 **Author:** brainstormed with Tim 2026-06-18 (grounded in a live audit of the running system)
 **Why this matters:** Tim's pay (via his forming S-Corp) depends on Founders trusting the
 portal's commissions. Brian (final say, tech-averse) requires the portal to agree with
@@ -132,18 +132,34 @@ The edit is CONSTRAINED so `agent_commission + founders_override = raw_amount` a
 "he doesn't edit the raw data, but if the parser gets the agent or override wrong, or it's
 quarantined, he needs to fix/add it."
 
-### A6. Re-upload safety contract
-Define + build what happens to AJ's manual resolutions when he re-uploads a corrected file:
-raw rows are replaced, but **human resolutions/edits are preserved (or clearly flagged to
-re-confirm) — never silently lost or double-counted.** (AJ re-uploads constantly; losing an
-hour of UHC splits would destroy trust instantly.) Exact mechanism = a design task in the
-implementation plan (likely: key human edits to a stable per-row identity that survives
-re-parse; on conflict, surface "you previously split this row — keep or redo").
+### A6. Re-upload safety contract (Tim-answered 2026-06-18)
+In steady state AJ uploads ONCE per pay period; the multiple UHC re-uploads this week were a
+one-time consequence of fixing PARSER CODE (the parser only runs on upload), not normal
+workflow. He may also accidentally upload the same file twice. So this does NOT need a heavy
+merge engine — the rule is simple:
+**On re-upload, if a row AJ already manually resolved/edited comes back from the parser, KEEP
+AJ's manual value and FLAG it as conflicting** ("parser now says X, your fix says Y — confirm
+which"), resolvable in one click. Never silently lost, never silently overwritten. This same
+conflict mechanism also makes an accidental double-upload safe. Human edits key to a stable
+per-row identity (carrier + member + source position) that survives re-parse.
 
-### A7. Statement sign-off / lock
+### A7. Statement sign-off / lock (Admin-only; Tim-answered 2026-06-18)
 An explicit "AJ reviewed & locked this statement" action that freezes it (re-open requires a
 logged reason). This is the moment a number becomes payable and answers "who approved this
-pay period?" — a strong, concrete trust signal for Brian.
+pay period?". **Lock/unlock + all commission editing = ADMIN-only** (AJ is the sole commission
+operator). A locked statement requires unlock-before-edit; Undo of a pre-lock action requires
+unlocking first (so the lock is a real freeze).
+
+### A9. Brian's read-only "trust dashboard" (two distinct admin experiences)
+Commissions have TWO admin audiences with different needs:
+- **AJ = the operator** — uploads, resolves, edits, locks. Full control.
+- **Brian = the viewer who must trust it** — sees EVERYTHING (Fidelity View, balance status,
+  who-approved-what, the audit trail, drill-to-proof) but EDITS NOTHING. His job is to look
+  and believe.
+So Brian gets a read-only view optimized for "is this right?" — balance status, "AJ reviewed &
+locked 6/17", drill-to-proof — with NO edit controls to clutter it or worry him. (Implemented
+as a view-permission distinction within admin, not a new role; Brian needs both admin AND
+agent views per the roster.)
 
 ### A8. Carrier stated-total cross-check
 Where the carrier file carries its own summary/deposit total, verify our line-item total
@@ -221,11 +237,20 @@ Goal: drive UHC quarantine from ~80 toward a small, clean, predictable handful p
   manual Excel to the penny for a full month, across all carriers.
 - Full test suite green; verified on real Postgres (SQLite hides partial-index/autoflush bugs).
 
-## 8. Open questions for Tim (carry into planning)
+## 8. Open questions — RESOLVED 2026-06-18
 
-1. Re-upload safety mechanism: confirm the desired behavior when a re-uploaded row conflicts
-   with a prior manual split — auto-preserve silently, or surface "keep your split / redo"?
-2. Statement lock: who can lock/unlock — AJ + admins only? Does a locked statement still
-   allow Undo of a pre-lock action, or must it be unlocked first?
-3. Betty specifics (the three parked questions in §5) — needed before any Betty work.
-4. UHC worked examples — Tim to supply; volume + which comp_types/plans are covered.
+1. ✅ **Re-upload conflict:** keep AJ's manual value, FLAG as conflicting (parser-X vs
+   fix-Y, 1-click resolve). No heavy merge engine — steady state is one upload/period. (A6)
+2. ✅ **Lock + all editing = ADMIN-only** (AJ is sole operator). Locked = unlock-before-edit;
+   Undo of a pre-lock action requires unlock first. (A7)
+3. ✅ **Betty = parked**, do not build until AJ/Brian give the three specifics in §5.
+4. ✅ **Brian = read-only trust dashboard** (sees all, edits nothing). (A9)
+
+### Remaining ACTION ITEM (not a blocker for Phase A; needed for Phase B)
+- **UHC worked examples — Tim to supply as a FILE** (AJ's real worked Excel: the raw UHC
+  commission file WITH his Agent-Commission + Founders-Override columns filled in for the
+  "New" rows). Per row I need: raw Commission $, AJ's agent $ + override $, effective date,
+  plan type, comp type (I/R), and a note if AJ used outside knowledge to split it. **Coverage
+  over volume** — ~15 rows spanning the variety (both comp types, a few effective months, a
+  couple chargebacks, the $517.50/$433.75 amounts) beats 200 identical rows. Drop it in
+  `docs/Commission DL/` and name the file, or give a path on the box.

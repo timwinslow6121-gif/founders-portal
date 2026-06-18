@@ -980,6 +980,48 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user
     return override_row
 
 
+def undo_last_change(line, *, user_id=None) -> bool:
+    """Undo the most recent un-undone human change to `line`. Restores the line's
+    mutable fields from that revision's before_json, reverses the sibling ::ovr
+    row it created (delete if the override didn't exist before; restore if it did),
+    marks the revision undone, and records an action="undo" revision. Returns True
+    if a change was undone, False if there was nothing to undo. Caller commits."""
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    import json
+    rev = (CommissionLineItemRevision.query
+           .filter_by(line_item_id=line.id, undone=False)
+           .filter(CommissionLineItemRevision.action != "undo")
+           .order_by(CommissionLineItemRevision.id.desc())
+           .first())
+    if rev is None:
+        return False
+
+    before = json.loads(rev.before_json or "{}")
+    after_undo_snapshot = _snapshot_line(line)   # for the undo revision's "before"
+    # restore mutable fields
+    for k, v in before.items():
+        setattr(line, k, v)
+
+    # reverse the sibling override row this revision created/changed
+    if rev.sibling_source_ref:
+        sib = CommissionLineItem.query.filter_by(
+            statement_id=line.statement_id, source_ref=rev.sibling_source_ref).first()
+        if sib is not None:
+            # the resolve created this sibling (the row had no override before),
+            # so undo removes it. (Edit-of-existing-override is handled by edit's
+            # own revision pairing in Task 5.)
+            db.session.delete(sib)
+
+    rev.undone = True
+    db.session.add(CommissionLineItemRevision(
+        agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
+        action="undo", user_id=user_id,
+        before_json=json.dumps(after_undo_snapshot),
+        after_json=json.dumps(_snapshot_line(line)),
+        sibling_source_ref=rev.sibling_source_ref))
+    return True
+
+
 def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=None) -> int:
     """Insert/update CommissionLineItem rows for a statement, idempotent on
     (statement_id, source_ref). agent_resolver(writing_agent_raw) -> user_id|None

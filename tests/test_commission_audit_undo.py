@@ -55,3 +55,47 @@ def test_resolve_writes_a_revision_with_before_state(db_session, app, agency):
         assert rev.sibling_source_ref == "uhc::0::5::ovr"
         # invariant: agent remainder + override == original raw
         assert round(li.raw_amount + 4.59, 2) == 33.51
+
+
+def test_undo_restores_exact_prior_state_and_removes_override(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import resolve_quarantine_line, undo_last_change
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::5", raw_amount=33.51, split_rate=None,
+            classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.flush()
+        resolve_quarantine_line(li, agent_id=7, override_amount=4.59,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        # sanity: it was resolved + an override sibling exists
+        assert li.classification == "agent_commission"
+        assert CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::5::ovr").count() == 1
+
+        ok = undo_last_change(li, user_id=3)
+        db.session.commit()
+        assert ok is True
+        # line restored to EXACT prior state
+        assert li.classification == "needs_manual_review"
+        assert li.raw_amount == 33.51
+        assert li.split_rate is None
+        assert li.payment_type == "New"
+        # the override sibling the resolve created is gone
+        assert CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::5::ovr").count() == 0
+
+
+def test_undo_returns_false_when_nothing_to_undo(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import undo_last_change
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::9", raw_amount=10.0, split_rate=0.55,
+            classification="agent_commission", payment_type="renewal")
+        db.session.add(li); db.session.flush()
+        assert undo_last_change(li, user_id=3) is False

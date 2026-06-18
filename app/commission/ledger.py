@@ -1046,6 +1046,61 @@ def undo_last_change(line, *, user_id=None) -> bool:
     return True
 
 
+def edit_line_split(line, *, agent_amount, override_amount, agent_id, user_id=None):
+    """Correct a line's agent-commission / founders-override split in place. The
+    two amounts MUST sum to the line's current combined total (its raw plus any
+    existing ::ovr sibling) — an edit can never change Σ raw or break the
+    agent+override==combined invariant. Records an action="edit" revision. Caller
+    commits. Raises ValueError if the amounts don't sum to the original combined."""
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    import json
+    ovr_ref = f"{line.source_ref}::ovr"
+    existing_ovr = CommissionLineItem.query.filter_by(
+        statement_id=line.statement_id, source_ref=ovr_ref).first()
+    original_combined = round((line.raw_amount or 0.0) +
+                              (existing_ovr.raw_amount if existing_ovr else 0.0), 2)
+    agent_amount = round(agent_amount or 0.0, 2)
+    override_amount = round(override_amount or 0.0, 2)
+    if round(agent_amount + override_amount, 2) != original_combined:
+        raise ValueError(
+            f"agent ${agent_amount} + override ${override_amount} must equal "
+            f"the line total ${original_combined}")
+
+    before = _snapshot_line(line)
+    line.classification = (CHARGEBACK if agent_amount < 0 else AGENT_COMMISSION)
+    line.raw_amount = agent_amount
+    line.agent_id = agent_id
+    if line.split_rate is None:
+        line.split_rate = 0.55   # keep a split rate so the agent share derives
+
+    # Snapshot the sibling's state BEFORE this edit mutates/deletes/creates it,
+    # so undo can restore EXACTLY what was there before (None = it didn't exist).
+    sibling_before = _snapshot_line(existing_ovr) if existing_ovr is not None else None
+    if abs(override_amount) >= 0.005:
+        ovr = existing_ovr or CommissionLineItem(
+            agency_id=line.agency_id, statement_id=line.statement_id,
+            carrier=line.carrier, period_label=line.period_label,
+            statement_date=line.statement_date, source_ref=ovr_ref,
+            member_name=line.member_name, mbi=line.mbi,
+            carrier_member_id=line.carrier_member_id)
+        ovr.raw_amount = override_amount
+        ovr.split_rate = None
+        ovr.classification = FOUNDERS_OVERRIDE
+        ovr.agent_id = None
+        ovr.payment_type = "override [edited]"
+        if existing_ovr is None:
+            db.session.add(ovr)
+    elif existing_ovr is not None:
+        db.session.delete(existing_ovr)
+
+    db.session.add(CommissionLineItemRevision(
+        agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
+        action="edit", user_id=user_id,
+        before_json=json.dumps(before), after_json=json.dumps(_snapshot_line(line)),
+        sibling_source_ref=(ovr_ref if (abs(override_amount) >= 0.005 or existing_ovr is not None) else None),
+        sibling_before_json=(json.dumps(sibling_before) if sibling_before is not None else None)))
+
+
 def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=None) -> int:
     """Insert/update CommissionLineItem rows for a statement, idempotent on
     (statement_id, source_ref). agent_resolver(writing_agent_raw) -> user_id|None

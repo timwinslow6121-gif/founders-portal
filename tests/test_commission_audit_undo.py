@@ -150,3 +150,63 @@ def test_undo_returns_false_when_nothing_to_undo(db_session, app, agency):
             classification="agent_commission", payment_type="renewal")
         db.session.add(li); db.session.flush()
         assert undo_last_change(li, user_id=3) is False
+
+
+def test_edit_line_split_enforces_sum_invariant(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    from app.commission.ledger import edit_line_split
+    with app.app_context():
+        # a row currently all agent_commission ($33.51), no override sibling
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::5", raw_amount=33.51, split_rate=0.55,
+            classification="agent_commission", payment_type="renewal", agent_id=7)
+        db.session.add(li); db.session.flush()
+
+        # correct the split to 28.92 agent + 4.59 override (sums to 33.51)
+        edit_line_split(li, agent_amount=28.92, override_amount=4.59,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li.raw_amount == 28.92
+        ovr = CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::5::ovr").first()
+        assert ovr is not None and ovr.raw_amount == 4.59
+        assert ovr.classification == "founders_override"
+        rev = CommissionLineItemRevision.query.filter_by(
+            line_item_id=li.id, action="edit").first()
+        assert rev is not None
+
+        # an edit that BREAKS the sum is rejected
+        import pytest
+        with pytest.raises(ValueError):
+            edit_line_split(li, agent_amount=20.00, override_amount=4.59,
+                            agent_id=7, user_id=3)
+
+
+def test_undo_after_edit_restores_state(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import edit_line_split, undo_last_change
+    with app.app_context():
+        # all agent_commission, no sibling override
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::5", raw_amount=33.51, split_rate=0.55,
+            classification="agent_commission", payment_type="renewal", agent_id=7)
+        db.session.add(li); db.session.flush()
+
+        edit_line_split(li, agent_amount=28.92, override_amount=4.59,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::5::ovr").count() == 1
+
+        ok = undo_last_change(li, user_id=3)
+        db.session.commit()
+        assert ok is True
+        assert li.raw_amount == 33.51
+        assert li.classification == "agent_commission"
+        # the sibling didn't exist before the edit -> undo removes it
+        assert CommissionLineItem.query.filter_by(
+            statement_id=1, source_ref="uhc::0::5::ovr").count() == 0

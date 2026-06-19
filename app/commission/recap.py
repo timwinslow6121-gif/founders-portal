@@ -355,6 +355,40 @@ def quarantine_total_count(agency_id):
         agency_id=agency_id, classification="needs_manual_review").count()
 
 
+def recently_resolved_workbench(agency_id, *, period=None, carrier=None, agent_id=None, limit=100):
+    """Resolved/edited commission lines across the WHOLE agency (every statement),
+    for the Quarantine Workbench's 'Recently resolved' section so AJ can Undo/Edit a
+    change from the all-months triage page. Honors the same period/carrier/agent
+    filters as the workbench. A line undone back to needs_manual_review is excluded
+    (it's in the active quarantine list instead). Newest change first, capped."""
+    from app.models import CommissionLineItemRevision
+    line_ids = [lid for (lid,) in (
+        db.session.query(CommissionLineItemRevision.line_item_id)
+        .filter(CommissionLineItemRevision.agency_id == agency_id)
+        .distinct().all())]
+    if not line_ids:
+        return []
+    q = (CommissionLineItem.query
+         .filter(CommissionLineItem.id.in_(line_ids),
+                 CommissionLineItem.agency_id == agency_id,
+                 CommissionLineItem.classification != "needs_manual_review"))
+    if period:
+        q = q.filter(CommissionLineItem.period_label == period)
+    if carrier:
+        q = q.filter(CommissionLineItem.carrier == carrier)
+    if agent_id:
+        q = q.filter(CommissionLineItem.agent_id == agent_id)
+    items = q.all()
+    revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
+    rows = []
+    for li in items:
+        r = _resolved_row(li, revs_by_line.get(li.id, []))
+        r["period_label"] = li.period_label or ""
+        rows.append(r)
+    rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
+    return rows[:limit]
+
+
 def recently_resolved_period_line_items(agency_id, period_label):
     """Same as recently_resolved_line_items but across every statement in a
     period — what the period-level review page ('Payments to Review') shows

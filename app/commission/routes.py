@@ -1209,10 +1209,14 @@ def commission_quarantine_workbench():
         sort = None
     wb = quarantine_workbench(current_user.agency_id, period=period, carrier=carrier,
                               agent_id=agent_id, sort=sort)
+    from app.commission.recap import recently_resolved_workbench
+    resolved = recently_resolved_workbench(current_user.agency_id, period=period,
+                                           carrier=carrier, agent_id=agent_id)
     agents = (User.query.filter_by(agency_id=current_user.agency_id)
               .filter(User.email != "admin@foundersinsuranceagency.com")
               .order_by(User.name).all())
     return render_template("commission_quarantine_workbench.html", wb=wb, agents=agents,
+                           resolved=resolved,
                            f_period=period, f_carrier=carrier, f_agent=agent_id, f_sort=sort)
 
 
@@ -1321,8 +1325,8 @@ def commission_line_undo(line_id):
     from app.audit import log_event
     li = CommissionLineItem.query.filter_by(
         id=line_id, agency_id=current_user.agency_id).first_or_404()
-    back = request.referrer or url_for("commission.commission_quarantine",
-                                       stmt_id=li.statement_id)
+    back = (request.form.get("next") or request.referrer
+            or url_for("commission.commission_quarantine", stmt_id=li.statement_id))
     if undo_last_change(li, user_id=current_user.id):
         db.session.commit()
         log_event("commission_undo", category="commission",
@@ -1346,8 +1350,8 @@ def commission_line_edit(line_id):
     from app.audit import log_event
     li = CommissionLineItem.query.filter_by(
         id=line_id, agency_id=current_user.agency_id).first_or_404()
-    back = request.referrer or url_for("commission.commission_quarantine",
-                                       stmt_id=li.statement_id)
+    back = (request.form.get("next") or request.referrer
+            or url_for("commission.commission_quarantine", stmt_id=li.statement_id))
     agent = User.query.filter_by(id=request.form.get("agent_id", type=int),
                                  agency_id=current_user.agency_id).first()
     if not agent:

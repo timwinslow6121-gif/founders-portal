@@ -146,6 +146,47 @@ def test_workbench_page_renders_for_admin(db_session, app, client, agency):
     assert resp2.status_code == 200
 
 
+def test_recently_resolved_workbench_lists_resolved_lines(db_session, app, agency):
+    """A resolved line shows in the workbench's resolved feed; an undone one does
+    NOT (it's back in active quarantine)."""
+    from app.extensions import db
+    from app.commission.recap import recently_resolved_workbench
+    from app.commission.ledger import resolve_quarantine_line, undo_last_change
+    with app.app_context():
+        s = _mk_stmt(db, agency, period="June 2026")
+        a = _mk_q(db, agency, s, raw=491.58, name="WINECOFF", ref="uhc::0::1")
+        b = _mk_q(db, agency, s, raw=125.0, name="CORUM", ref="uhc::0::2")
+        db.session.flush()
+        resolve_quarantine_line(a, agent_id=6, override_amount=0.0, split_rate=0.55, user_id=1)
+        resolve_quarantine_line(b, agent_id=6, override_amount=4.59, split_rate=0.55, user_id=1)
+        undo_last_change(b, user_id=1)   # CORUM undone -> back to quarantine
+        db.session.commit()
+
+        rows = recently_resolved_workbench(agency.id)
+        names = {r["member_name"] for r in rows}
+        assert "WINECOFF" in names        # resolved, shown
+        assert "CORUM" not in names       # undone, NOT shown (it's active quarantine again)
+        wrow = next(r for r in rows if r["member_name"] == "WINECOFF")
+        assert wrow["period_label"] == "June 2026"
+        assert wrow["revisions"]          # carries its history for the UI
+
+
+def test_recently_resolved_workbench_honors_filters(db_session, app, agency):
+    from app.extensions import db
+    from app.commission.recap import recently_resolved_workbench
+    from app.commission.ledger import resolve_quarantine_line
+    with app.app_context():
+        jun = _mk_stmt(db, agency, period="June 2026", d=date(2026, 6, 1))
+        may = _mk_stmt(db, agency, period="May 2026", d=date(2026, 5, 1))
+        a = _mk_q(db, agency, jun, raw=491.58, name="JUNE_ONE", ref="uhc::0::1")
+        c = _mk_q(db, agency, may, raw=200.0, name="MAY_ONE", ref="uhc::0::2")
+        db.session.flush()
+        resolve_quarantine_line(a, agent_id=6, override_amount=0.0, split_rate=0.55, user_id=1)
+        resolve_quarantine_line(c, agent_id=6, override_amount=0.0, split_rate=0.55, user_id=1)
+        db.session.commit()
+        assert {r["member_name"] for r in recently_resolved_workbench(agency.id, period="June 2026")} == {"JUNE_ONE"}
+
+
 def test_workbench_page_forbidden_for_non_admin(db_session, app, client, agency):
     from app.extensions import db
     from app.models import User

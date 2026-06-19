@@ -4,14 +4,20 @@ Status filter: "Active Policy" (confirmed March 2026).
 Primary key: Humana ID (MBI masked).
 Confirmed columns from live file March 2026.
 """
+import os
+
 import pandas as pd
 
 REQUIRED_COLUMNS = {"MbrFirstName", "MbrLastName", "Humana ID"}
 
 
 def parse(filepath: str) -> list[dict]:
+    ext = os.path.splitext(filepath)[1].lower()
     try:
-        df = pd.read_csv(filepath, dtype=str)
+        if ext in (".xlsx", ".xls"):
+            df = pd.read_excel(filepath, dtype=str)
+        else:
+            df = pd.read_csv(filepath, dtype=str)
     except Exception as e:
         raise ValueError(f"Could not read Humana file: {e}")
 

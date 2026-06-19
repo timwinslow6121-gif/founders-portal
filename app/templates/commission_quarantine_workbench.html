@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Quarantine Workbench{% endblock %}
+
+{% block styles %}
+<style>
+  .qw-wrap { max-width: 1100px; margin: 0 auto; }
+  .qw-head { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:6px; }
+  .qw-sub { color: var(--slate); font-size: 13px; margin-bottom: 18px; }
+  .qw-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background: var(--surface);
+                border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:20px; }
+  .qw-filters label { font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; margin-right:4px; }
+  .qw-filters select { padding:6px 9px; border:1px solid var(--border); border-radius:8px;
+                       background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; }
+  .qw-filters .clear { margin-left:auto; color:var(--gold); font-size:12px; text-decoration:none; }
+  .qw-summary { display:flex; gap:24px; margin: 0 0 22px; }
+  .qw-stat { background: var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 18px; }
+  .qw-stat .n { font-size: 22px; font-weight: 700; color: var(--ivory-bright); }
+  .qw-stat .l { font-size: 12px; color: var(--slate); text-transform: uppercase; letter-spacing: .04em; }
+  .qw-month-head { display:flex; align-items:baseline; gap:12px; margin: 26px 0 8px; }
+  .qw-month-head h2 { margin:0; font-size:18px; }
+  .qw-month-head .meta { color: var(--slate); font-size:13px; }
+  table.qw-table { width:100%; border-collapse: collapse; font-size: 14px; }
+  table.qw-table th { text-align:left; padding:8px 10px; border-bottom:2px solid var(--border);
+                      color: var(--slate); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  table.qw-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  table.qw-table td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  td.num.neg { color: var(--status-error); }
+  .qr-form { display:flex; gap:8px; align-items:center; justify-content:flex-end; padding:6px 10px; }
+  .qr-form select { padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; min-width:140px; }
+  .qr-form input { width:92px; padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
+  .qr-form button { padding:6px 14px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .qr-form button:hover { filter:brightness(1.07); }
+  .qw-carrier { display:inline-block; font-size:11px; font-weight:600; color:var(--slate); }
+  .qw-empty { background: var(--surface); border:1px solid var(--border); border-radius:8px;
+              padding:40px; text-align:center; color: var(--slate); }
+  .back-link { color: var(--gold); font-size:13px; text-decoration:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% macro qrow(r, show_month=False) %}
+  <tr>
+    <td>
+      <div>{{ r.member_name }} <span class="qw-carrier">· {{ r.carrier }}</span></div>
+      <div style="font-size:11px;color:var(--slate);">{% if show_month %}{{ r.period_label }} · {% endif %}{% if r.mbi %}MBI {{ r.mbi }} · {% endif %}{{ r.action or '—' }}</div>
+    </td>
+    <td class="num{{ ' neg' if r.amount < 0 else '' }}">${{ '%.2f'|format(r.amount) }}</td>
+    <td colspan="3" style="padding:0;">
+      <form class="qr-form" method="post" action="{{ url_for('commission.commission_quarantine_resolve', line_id=r.id) }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <select name="agent_id" required aria-label="Agent for {{ r.member_name }}">
+          <option value="">— pick agent —</option>
+          {% for a in agents %}
+          <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" step="0.01" name="override_amount" value="0.00"
+               aria-label="Override amount" title="Founders override portion (100% Founders); the rest splits to the agent">
+        <button type="submit">Resolve</button>
+      </form>
+    </td>
+  </tr>
+{% endmacro %}
+
+<div class="qw-wrap">
+  <a class="back-link" href="{{ url_for('commission.admin_aggregate') }}">← Agent Commissions</a>
+
+  <div class="qw-head" style="margin-top:12px;">
+    <h1 style="margin:0;">Quarantine Workbench</h1>
+  </div>
+  <div class="qw-sub">
+    Every commission line the parser could not auto-split, across all months. Nothing is dropped —
+    these are recorded but not yet attributed to an agent's payout. Filter, sort by amount to batch
+    identical amounts, and resolve them down to zero.
+  </div>
+
+  <form class="qw-filters" method="get" id="qw-filters">
+    <span><label>Month</label>
+      <select name="period" onchange="this.form.submit()">
+        <option value="">All months</option>
+        {% for p in wb.filter_options.periods %}
+        <option value="{{ p }}" {% if p == f_period %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </span>
+    <span><label>Carrier</label>
+      <select name="carrier" onchange="this.form.submit()">
+        <option value="">All carriers</option>
+        {% for c in wb.filter_options.carriers %}
+        <option value="{{ c }}" {% if c == f_carrier %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </span>
+    <span><label>Agent</label>
+      <select name="agent" onchange="this.form.submit()">
+        <option value="">All agents</option>
+        {% for a in agents %}
+        <option value="{{ a.id }}" {% if a.id == f_agent %}selected{% endif %}>{{ a.display_name }}</option>
+        {% endfor %}
+      </select>
+    </span>
+    <span><label>Sort</label>
+      <select name="sort" onchange="this.form.submit()">
+        <option value="">By month (newest)</option>
+        <option value="amount_desc" {% if f_sort == 'amount_desc' %}selected{% endif %}>Amount: high → low</option>
+        <option value="amount_asc" {% if f_sort == 'amount_asc' %}selected{% endif %}>Amount: low → high</option>
+      </select>
+    </span>
+    {% if f_period or f_carrier or f_agent or f_sort %}
+    <a class="clear" href="{{ url_for('commission.commission_quarantine_workbench') }}">Clear filters</a>
+    {% endif %}
+  </form>
+
+  <div class="qw-summary">
+    <div class="qw-stat"><div class="n">{{ wb.count }}</div><div class="l">Quarantined</div></div>
+    <div class="qw-stat"><div class="n">${{ '%.2f'|format(wb.total) }}</div><div class="l">Total</div></div>
+  </div>
+
+  {% if not wb.count %}
+    <div class="qw-empty">✓ Nothing in quarantine{% if f_period or f_carrier or f_agent %} for this filter{% endif %} — every row is split into the ledger.</div>
+
+  {% elif wb.grouped %}
+    {% for g in wb.groups %}
+      <div class="qw-month-head">
+        <h2>{{ g.period_label }}</h2>
+        <span class="meta">{{ g.count }} line{{ '' if g.count == 1 else 's' }} · ${{ '%.2f'|format(g.total) }}</span>
+      </div>
+      <table class="qw-table">
+        <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Agent</th>
+                   <th style="text-align:right;">Override&nbsp;$</th><th></th></tr></thead>
+        <tbody>
+          {% for r in g.rows %}{{ qrow(r) }}{% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+  {% else %}
+    {# flat amount-sorted list with a Month column shown inline #}
+    <table class="qw-table">
+      <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Agent</th>
+                 <th style="text-align:right;">Override&nbsp;$</th><th></th></tr></thead>
+      <tbody>
+        {% for r in wb.flat %}{{ qrow(r, show_month=True) }}{% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}

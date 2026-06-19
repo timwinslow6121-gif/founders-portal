@@ -273,6 +273,88 @@ def period_quarantine(agency_id, period_label):
             "rows": rows, "by_carrier": by_carrier}
 
 
+def _period_sort_key(period_label):
+    """Sort key for a 'June 2026' label → its first-of-month date, so periods order
+    chronologically (newest-first when reversed). Unparseable labels sort oldest."""
+    from datetime import datetime
+    try:
+        return datetime.strptime(period_label or "", "%B %Y")
+    except ValueError:
+        return datetime.min
+
+
+def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None, sort=None):
+    """The standalone Quarantine Workbench data: every needs_manual_review line for
+    the agency, optionally filtered by period/carrier/agent. Default = all months
+    GROUPED by month (newest first). When `sort` is 'amount_asc'/'amount_desc' the
+    grouping is FLATTENED into one amount-sorted list so identical amounts cluster
+    across months. Returns:
+      {count, total, sort, grouped, groups:[{period_label,count,total,rows:[...]}],
+       flat:[...], by_carrier:{carrier:{count,total}},
+       filter_options:{periods:[...], carriers:[...], agents:[user_id,...]}}
+    Rows use the shared _quarantine_row shape (id/carrier/member_name/mbi/amount/
+    action/agent_id/suggested_agent_id) plus 'period_label' for display."""
+    q = CommissionLineItem.query.filter_by(
+        agency_id=agency_id, classification="needs_manual_review")
+    if period:
+        q = q.filter(CommissionLineItem.period_label == period)
+    if carrier:
+        q = q.filter(CommissionLineItem.carrier == carrier)
+    if agent_id:
+        q = q.filter(CommissionLineItem.agent_id == agent_id)
+    items = q.all()
+
+    def row(li):
+        r = _quarantine_row(li, agency_id)
+        r["period_label"] = li.period_label or ""
+        return r
+    rows = [row(li) for li in items]
+
+    total = round(sum(r["amount"] for r in rows), 2)
+    by_carrier = {}
+    for r in rows:
+        b = by_carrier.setdefault(r["carrier"], {"count": 0, "total": 0.0})
+        b["count"] += 1
+        b["total"] = round(b["total"] + r["amount"], 2)
+
+    # filter options = the distinct periods/carriers/agents that HAVE quarantine
+    # (across the WHOLE agency, ignoring current filters, so the dropdowns are stable).
+    all_items = CommissionLineItem.query.filter_by(
+        agency_id=agency_id, classification="needs_manual_review").all()
+    periods = sorted({li.period_label for li in all_items if li.period_label},
+                     key=_period_sort_key, reverse=True)
+    carriers = sorted({li.carrier for li in all_items if li.carrier})
+    agents = sorted({li.agent_id for li in all_items if li.agent_id})
+
+    result = {"count": len(rows), "total": total, "sort": sort,
+              "by_carrier": by_carrier,
+              "filter_options": {"periods": periods, "carriers": carriers, "agents": agents}}
+
+    if sort in ("amount_asc", "amount_desc"):
+        flat = sorted(rows, key=lambda r: r["amount"], reverse=(sort == "amount_desc"))
+        result.update({"grouped": False, "flat": flat, "groups": []})
+        return result
+
+    # default: group by month, newest first; rows within a group by member name
+    by_period = defaultdict(list)
+    for r in rows:
+        by_period[r["period_label"]].append(r)
+    groups = []
+    for plabel in sorted(by_period, key=_period_sort_key, reverse=True):
+        grp_rows = sorted(by_period[plabel], key=lambda r: (r["member_name"] or ""))
+        groups.append({"period_label": plabel, "count": len(grp_rows),
+                       "total": round(sum(r["amount"] for r in grp_rows), 2),
+                       "rows": grp_rows})
+    result.update({"grouped": True, "groups": groups, "flat": []})
+    return result
+
+
+def quarantine_total_count(agency_id):
+    """Total needs_manual_review line items for the agency — the nav badge count."""
+    return CommissionLineItem.query.filter_by(
+        agency_id=agency_id, classification="needs_manual_review").count()
+
+
 def recently_resolved_period_line_items(agency_id, period_label):
     """Same as recently_resolved_line_items but across every statement in a
     period — what the period-level review page ('Payments to Review') shows

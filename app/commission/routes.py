@@ -21,7 +21,7 @@ from app.commission.ledger import EXTRACTORS, persist_line_items, verify_stateme
 from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
                                    publish_recap, build_carrier_blocks, latest_period_with_data,
                                    all_periods_with_data, quarantined_line_items,
-                                   build_aggregate_matrix)
+                                   build_aggregate_matrix, quarantine_workbench)
 from app.commission.rollup import apply_rollup
 
 SPLIT_RATE = 0.55
@@ -1190,6 +1190,30 @@ def commission_delete(stmt_id):
     db.session.commit()
     flash(f"{label} statement deleted.", "success")
     return redirect(url_for("commission.commission_admin"))
+
+
+@commission_bp.route("/admin/commissions/quarantine")
+@login_required
+def commission_quarantine_workbench():
+    """Standalone Quarantine Workbench: every needs_manual_review line across all
+    months/carriers/agents (default grouped by month, newest first), with
+    period/carrier/agent filters and an amount sort that flattens + clusters
+    identical amounts. Admin-only. Resolve/Undo/Edit reuse the existing routes."""
+    if not current_user.is_admin:
+        abort(403)
+    period = request.args.get("period") or None
+    carrier = request.args.get("carrier") or None
+    agent_id = request.args.get("agent", type=int)
+    sort = request.args.get("sort") or None
+    if sort not in ("amount_asc", "amount_desc"):
+        sort = None
+    wb = quarantine_workbench(current_user.agency_id, period=period, carrier=carrier,
+                              agent_id=agent_id, sort=sort)
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.email != "admin@foundersinsuranceagency.com")
+              .order_by(User.name).all())
+    return render_template("commission_quarantine_workbench.html", wb=wb, agents=agents,
+                           f_period=period, f_carrier=carrier, f_agent=agent_id, f_sort=sort)
 
 
 @commission_bp.route("/admin/commissions/<int:stmt_id>/quarantine")

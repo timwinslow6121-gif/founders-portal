@@ -52,6 +52,7 @@ def create_app():
         except Exception:
             count = 0
         unassigned = 0
+        quarantine_count = 0
         if current_user.is_admin:
             try:
                 from app.models import Customer
@@ -59,7 +60,13 @@ def create_app():
                     agency_id=current_user.agency_id, primary_agent_id=None).count()
             except Exception:
                 unassigned = 0
-        return {'duplicate_mbi_count': count, 'unassigned_customer_count': unassigned}
+            try:
+                from app.commission.recap import quarantine_total_count
+                quarantine_count = quarantine_total_count(current_user.agency_id)
+            except Exception:
+                quarantine_count = 0
+        return {'duplicate_mbi_count': count, 'unassigned_customer_count': unassigned,
+                'quarantine_count': quarantine_count}
 
     with app.app_context():
         pass

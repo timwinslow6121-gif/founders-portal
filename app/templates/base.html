@@ -766,6 +766,13 @@
            class="nav-item {% if request.endpoint in ['commission.admin_aggregate', 'commission.admin_recap'] %}active{% endif %}">
           <span class="nav-dot"></span>Agent Commissions
         </a>
+        <a href="{{ url_for('commission.commission_quarantine_workbench') }}"
+           class="nav-item {% if request.endpoint == 'commission.commission_quarantine_workbench' %}active{% endif %}">
+          <span class="nav-dot"></span>Quarantine
+          {% if quarantine_count and quarantine_count > 0 %}
+          <span class="nav-badge">{{ quarantine_count }}</span>
+          {% endif %}
+        </a>
         <a href="{{ url_for('commission.commission_admin') }}"
            class="nav-item {% if request.path == '/admin/commissions' %}active{% endif %}">
           <span class="nav-dot"></span>Commission Audit

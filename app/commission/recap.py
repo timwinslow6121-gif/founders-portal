@@ -203,13 +203,31 @@ def quarantined_line_items(statement_id, agency_id):
             "rows": rows}
 
 
-def _resolved_row(li, agency_id):
-    revs = line_revisions(li.id, agency_id)
+def _resolved_row(li, revisions):
     return {"id": li.id, "carrier": li.carrier,
             "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
             "agent_id": li.agent_id, "classification": li.classification,
-            "revisions": revs}
+            "revisions": revisions}
+
+
+def _revisions_by_line(line_ids, agency_id):
+    """Fetch ALL revisions for a set of line_ids in ONE query, grouped by
+    line_item_id, newest first (avoids N+1 from calling line_revisions() per
+    row in the recently-resolved feeds)."""
+    from collections import defaultdict
+    from app.models import CommissionLineItemRevision
+    grouped = defaultdict(list)
+    if not line_ids:
+        return grouped
+    revs = (CommissionLineItemRevision.query
+            .filter(CommissionLineItemRevision.agency_id == agency_id,
+                    CommissionLineItemRevision.line_item_id.in_(line_ids))
+            .order_by(CommissionLineItemRevision.id.desc())
+            .all())
+    for r in revs:
+        grouped[r.line_item_id].append(r)   # already newest-first due to id.desc() order
+    return grouped
 
 
 def recently_resolved_line_items(statement_id, agency_id):
@@ -229,7 +247,8 @@ def recently_resolved_line_items(statement_id, agency_id):
                      CommissionLineItem.agency_id == agency_id,
                      CommissionLineItem.classification != "needs_manual_review")
              .all())
-    rows = [_resolved_row(li, agency_id) for li in items]
+    revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
+    rows = [_resolved_row(li, revs_by_line.get(li.id, [])) for li in items]
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
     return rows
 
@@ -276,7 +295,8 @@ def recently_resolved_period_line_items(agency_id, period_label):
                      CommissionLineItem.agency_id == agency_id,
                      CommissionLineItem.classification != "needs_manual_review")
              .all())
-    rows = [_resolved_row(li, agency_id) for li in items]
+    revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
+    rows = [_resolved_row(li, revs_by_line.get(li.id, [])) for li in items]
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
     return rows
 

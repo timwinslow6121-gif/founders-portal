@@ -147,7 +147,6 @@
             <button type="button" class="edit-toggle" onclick="document.getElementById('edit-{{ r.id }}').classList.toggle('open')">Edit</button>
             &nbsp;
             <form method="post" action="{{ url_for('commission.commission_line_undo', line_id=r.id) }}" style="display:inline">
-              <input type="hidden" name="next" value="{{ url_for('commission.commission_review', period=period_label) }}">
               <button type="submit" class="undo-btn" onclick="return confirm('Undo this change?')">↶ Undo</button>
             </form>
           </td>
@@ -155,7 +154,6 @@
         <tr id="edit-{{ r.id }}" class="edit-row">
           <td colspan="5" style="padding:0;">
             <form class="edit-form" method="post" action="{{ url_for('commission.commission_line_edit', line_id=r.id) }}">
-              <input type="hidden" name="next" value="{{ url_for('commission.commission_review', period=period_label) }}">
               <select name="agent_id" required aria-label="Agent for {{ r.member_name }}">
                 <option value="">— pick agent —</option>
                 {% for a in agents %}

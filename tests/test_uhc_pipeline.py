@@ -584,3 +584,32 @@ def test_line_revisions_returns_history_newest_first(db_session, app, agency):
         db.session.commit()
         revs = line_revisions(li.id, agency.id)
         assert [r.action for r in revs] == ["undo", "resolve"]   # newest first
+
+
+def test_recently_resolved_feed_batches_revisions(db_session, app, agency):
+    """recently_resolved_line_items batches its revision fetch into one query
+    instead of querying line_revisions() per row (was N+1) — this locks in that
+    each row still carries its own correct revision history after the refactor."""
+    from app.extensions import db
+    from app.commission.ledger import resolve_quarantine_line
+    from app.commission.recap import recently_resolved_line_items
+
+    with app.app_context():
+        stmt = _mk_stmt(db, agency)
+        li1 = _mk_li(db, agency, stmt, cls="needs_manual_review", raw=10.00,
+                     name="Alice One", ref="uhc::0::1")
+        li2 = _mk_li(db, agency, stmt, cls="needs_manual_review", raw=20.00,
+                     name="Bob Two", ref="uhc::0::2")
+        resolve_quarantine_line(li1, agent_id=7, override_amount=1.00,
+                                split_rate=0.55, user_id=3)
+        resolve_quarantine_line(li2, agent_id=7, override_amount=2.00,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+
+        rows = recently_resolved_line_items(stmt.id, agency.id)
+        assert len(rows) == 2
+        by_id = {r["id"]: r for r in rows}
+        assert li1.id in by_id and li2.id in by_id
+        for r in by_id.values():
+            assert len(r["revisions"]) >= 1
+            assert r["revisions"][0].action == "resolve"

@@ -566,3 +566,21 @@ def test_edit_endpoint_uses_agent_contract_rate(db_session, app, client, agency)
             statement_id=li2.statement_id, source_ref=f"{li2.source_ref}::ovr").first()
         assert sib is not None
         assert sib.raw_amount == 4.59
+
+
+def test_line_revisions_returns_history_newest_first(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import resolve_quarantine_line, undo_last_change
+    from app.commission.recap import line_revisions
+    with app.app_context():
+        li = CommissionLineItem(agency_id=agency.id, statement_id=1, carrier="UHC",
+                                source_ref="uhc::0::5", raw_amount=33.51, split_rate=None,
+                                classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.flush()
+        resolve_quarantine_line(li, agent_id=7, override_amount=4.59, split_rate=0.55, user_id=3)
+        db.session.flush()
+        undo_last_change(li, user_id=3)
+        db.session.commit()
+        revs = line_revisions(li.id, agency.id)
+        assert [r.action for r in revs] == ["undo", "resolve"]   # newest first

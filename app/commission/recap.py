@@ -154,6 +154,16 @@ def build_carrier_blocks(agent_id, agency_id, period_label) -> List[CarrierBlock
     return blocks
 
 
+def line_revisions(line_id, agency_id):
+    """Revision history for one commission line, newest first, agency-scoped.
+    Drives the 'who changed this, when, before->after' display + Undo control."""
+    from app.models import CommissionLineItemRevision
+    return (CommissionLineItemRevision.query
+            .filter_by(line_item_id=line_id, agency_id=agency_id)
+            .order_by(CommissionLineItemRevision.id.desc())
+            .all())
+
+
 def _suggested_quarantine_agent(li, agency_id):
     """The agent to pre-select on a quarantine row: the line's own agent_id, else
     another resolved line item for the same member (MBI) — same basis as the
@@ -193,6 +203,37 @@ def quarantined_line_items(statement_id, agency_id):
             "rows": rows}
 
 
+def _resolved_row(li, agency_id):
+    revs = line_revisions(li.id, agency_id)
+    return {"id": li.id, "carrier": li.carrier,
+            "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
+            "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
+            "agent_id": li.agent_id, "classification": li.classification,
+            "revisions": revs}
+
+
+def recently_resolved_line_items(statement_id, agency_id):
+    """Lines on ONE statement that have a revision history (resolved and/or
+    edited via the quarantine workflow) and are NOT currently quarantined —
+    i.e. what AJ can review + Undo. Newest-touched first. Each row carries its
+    full `revisions` list (line_revisions()) for the history display."""
+    from app.models import CommissionLineItemRevision
+    line_ids = [lid for (lid,) in (
+        db.session.query(CommissionLineItemRevision.line_item_id)
+        .filter_by(agency_id=agency_id, statement_id=statement_id)
+        .distinct().all())]
+    if not line_ids:
+        return []
+    items = (CommissionLineItem.query
+             .filter(CommissionLineItem.id.in_(line_ids),
+                     CommissionLineItem.agency_id == agency_id,
+                     CommissionLineItem.classification != "needs_manual_review")
+             .all())
+    rows = [_resolved_row(li, agency_id) for li in items]
+    rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
+    return rows
+
+
 def period_quarantine(agency_id, period_label):
     """ALL needs_manual_review line items for a period, across every carrier /
     statement — what the agency-overview matrix links to. Same row shape as
@@ -211,6 +252,33 @@ def period_quarantine(agency_id, period_label):
     return {"count": len(rows),
             "total": round(sum(r["amount"] for r in rows), 2),
             "rows": rows, "by_carrier": by_carrier}
+
+
+def recently_resolved_period_line_items(agency_id, period_label):
+    """Same as recently_resolved_line_items but across every statement in a
+    period — what the period-level review page ('Payments to Review') shows
+    so AJ can Undo a resolve regardless of which statement it came from."""
+    from app.models import CommissionLineItemRevision, CommissionStatement
+    stmt_ids = [sid for (sid,) in (
+        db.session.query(CommissionStatement.id)
+        .filter_by(agency_id=agency_id, period_label=period_label).all())]
+    if not stmt_ids:
+        return []
+    line_ids = [lid for (lid,) in (
+        db.session.query(CommissionLineItemRevision.line_item_id)
+        .filter(CommissionLineItemRevision.agency_id == agency_id,
+                CommissionLineItemRevision.statement_id.in_(stmt_ids))
+        .distinct().all())]
+    if not line_ids:
+        return []
+    items = (CommissionLineItem.query
+             .filter(CommissionLineItem.id.in_(line_ids),
+                     CommissionLineItem.agency_id == agency_id,
+                     CommissionLineItem.classification != "needs_manual_review")
+             .all())
+    rows = [_resolved_row(li, agency_id) for li in items]
+    rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
+    return rows
 
 
 from datetime import datetime

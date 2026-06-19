@@ -1203,10 +1203,13 @@ def commission_quarantine(stmt_id):
     stmt = CommissionStatement.query.filter_by(
         id=stmt_id, agency_id=current_user.agency_id).first_or_404()
     quar = quarantined_line_items(stmt.id, current_user.agency_id)
+    from app.commission.recap import recently_resolved_line_items
+    resolved = recently_resolved_line_items(stmt.id, current_user.agency_id)
     agents = (User.query.filter_by(agency_id=current_user.agency_id)
               .filter(User.email != "admin@foundersinsuranceagency.com")
               .order_by(User.name).all())
-    return render_template("commission_quarantine.html", stmt=stmt, quar=quar, agents=agents)
+    return render_template("commission_quarantine.html", stmt=stmt, quar=quar,
+                           resolved=resolved, agents=agents)
 
 
 @commission_bp.route("/admin/commissions/review")
@@ -1218,16 +1221,17 @@ def commission_review():
     regardless of carrier."""
     if not current_user.is_admin:
         abort(403)
-    from app.commission.recap import period_quarantine
+    from app.commission.recap import period_quarantine, recently_resolved_period_line_items
     period = (request.args.get("period")
               or latest_period_with_data(current_user.agency_id)
               or date.today().strftime("%B %Y"))
     quar = period_quarantine(current_user.agency_id, period)
+    resolved = recently_resolved_period_line_items(current_user.agency_id, period)
     agents = (User.query.filter_by(agency_id=current_user.agency_id)
               .filter(User.email != "admin@foundersinsuranceagency.com")
               .order_by(User.name).all())
-    return render_template("commission_review.html", quar=quar, agents=agents,
-                           period_label=period)
+    return render_template("commission_review.html", quar=quar, resolved=resolved,
+                           agents=agents, period_label=period)
 
 
 @commission_bp.route("/admin/commissions/line/<int:line_id>/resolve", methods=["POST"])

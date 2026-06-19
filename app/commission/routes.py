@@ -1243,23 +1243,16 @@ def commission_quarantine(stmt_id):
 @commission_bp.route("/admin/commissions/review")
 @login_required
 def commission_review():
-    """Period-level quarantine review across ALL carriers — what the Agent
-    Commissions matrix's 'N payments to review' button opens. Each row shows the
-    carrier so AJ can resolve payments that couldn't be reliably attributed,
-    regardless of carrier."""
+    """RETIRED — the period-level review page was a duplicate of the Quarantine
+    Workbench (same data, confusingly different page). Permanently redirect to the
+    Workbench (filtered to the period if one was passed) so there is ONE canonical
+    quarantine surface. Kept as a route so old bookmarks/links don't 404."""
     if not current_user.is_admin:
         abort(403)
-    from app.commission.recap import period_quarantine, recently_resolved_period_line_items
-    period = (request.args.get("period")
-              or latest_period_with_data(current_user.agency_id)
-              or date.today().strftime("%B %Y"))
-    quar = period_quarantine(current_user.agency_id, period)
-    resolved = recently_resolved_period_line_items(current_user.agency_id, period)
-    agents = (User.query.filter_by(agency_id=current_user.agency_id)
-              .filter(User.email != "admin@foundersinsuranceagency.com")
-              .order_by(User.name).all())
-    return render_template("commission_review.html", quar=quar, resolved=resolved,
-                           agents=agents, period_label=period)
+    period = request.args.get("period")
+    return redirect(url_for("commission.commission_quarantine_workbench",
+                            period=period) if period
+                    else url_for("commission.commission_quarantine_workbench"))
 
 
 @commission_bp.route("/admin/commissions/line/<int:line_id>/resolve", methods=["POST"])

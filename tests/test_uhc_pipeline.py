@@ -474,27 +474,21 @@ def test_period_quarantine_spans_carriers(db_session, app, agency):
         assert {r["carrier"] for r in q["rows"]} == {"UHC", "Aetna"}
 
 
-def test_commission_review_page_renders(db_session, app, client, agency):
+def test_commission_review_redirects_to_workbench(db_session, app, client, agency):
+    """The old period-level review page is RETIRED — it now redirects to the unified
+    Quarantine Workbench (preserving the period) so there is one canonical surface."""
     from app.extensions import db
-    from app.models import User, CommissionStatement, CommissionLineItem
-    from datetime import date
+    from app.models import User
     with app.app_context():
         admin = User(name="AJ", email="rev@x.com", is_admin=True, agency_id=agency.id)
-        db.session.add(admin); db.session.flush()
-        st = CommissionStatement(agency_id=agency.id, carrier="Aetna", agent_id=None,
-                                 period_label="May 2026", filename="a.xlsx", statement_date=date(2026,5,1))
-        db.session.add(st); db.session.flush()
-        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=st.id, carrier="Aetna",
-                       period_label="May 2026", source_ref="aetna::q::1", member_name="DOE, JANE",
-                       raw_amount=100.0, split_rate=None, classification="needs_manual_review"))
-        db.session.commit()
+        db.session.add(admin); db.session.commit()
         uid = admin.id
     with client.session_transaction() as s:
         s["_user_id"] = str(uid)
-    r = client.get("/admin/commissions/review?period=May%202026")
-    assert r.status_code == 200
-    body = r.get_data(as_text=True)
-    assert "Payments to Review" in body and "DOE, JANE" in body and "Aetna" in body
+    r = client.get("/admin/commissions/review?period=May%202026", follow_redirects=False)
+    assert r.status_code in (301, 302)
+    assert "/admin/commissions/quarantine" in r.headers["Location"]
+    assert "May" in r.headers["Location"]   # period preserved as a filter
 
 
 def test_undo_endpoint_reverts_a_resolve(db_session, app, client, agency):

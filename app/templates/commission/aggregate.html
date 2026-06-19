@@ -99,8 +99,8 @@
       Founders keep
     </label>
     {% if matrix.grand.pending_count %}
-    <a class="agg-review-btn" href="{{ url_for('commission.commission_review', period=period_label) }}"
-       title="Payments that couldn't be reliably attributed (any carrier) — click to resolve">
+    <a class="agg-review-btn" href="{{ url_for('commission.commission_quarantine_workbench', period=period_label) }}"
+       title="Payments that couldn't be reliably attributed (any carrier) — click to resolve in the Quarantine Workbench">
       ⚠ {{ matrix.grand.pending_count }} payment{{ 's' if matrix.grand.pending_count != 1 else '' }} to review: ${{ '{:,.2f}'.format(matrix.grand.pending) }} pending
     </a>
     {% endif %}

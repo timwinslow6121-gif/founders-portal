@@ -402,7 +402,7 @@ def test_quarantine_resolve_endpoint(db_session, app, client, agency):
 
     with client.session_transaction() as s:
         s["_user_id"] = str(uid)
-    r = client.post(f"/admin/commissions/quarantine/{lid}/resolve",
+    r = client.post(f"/admin/commissions/line/{lid}/resolve",
                     data={"agent_id": rid, "override_amount": "55.00"})
     assert r.status_code in (302, 303)
     with app.app_context():
@@ -412,6 +412,35 @@ def test_quarantine_resolve_endpoint(db_session, app, client, agency):
         rows = CommissionLineItem.query.filter_by(statement_id=sid).all()
         classes = {x.classification for x in rows}
         assert "agent_commission" in classes and "founders_override" in classes
+
+
+def test_resolve_endpoint_records_revision(db_session, app, client, agency):
+    """The resolve endpoint must persist a revision (audit + undo) for the action."""
+    from app.extensions import db
+    from app.models import (CommissionStatement, CommissionLineItem, User,
+                            CommissionLineItemRevision, AgentCarrierContract)
+    from datetime import date
+    with app.app_context():
+        admin = User(email="admin@test.com", name="Admin", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   statement_date=date(2026, 6, 1), period_label="June 2026")
+        db.session.add(stmt); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier="UHC",
+                                source_ref="uhc::0::5", raw_amount=33.51, split_rate=None,
+                                classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.commit()
+        line_id, sid, aid = li.id, stmt.id, admin.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    resp = client.post(f"/admin/commissions/line/{line_id}/resolve",
+                       data={"agent_id": str(aid), "override_amount": "4.59"},
+                       follow_redirects=False)
+    assert resp.status_code in (302, 303)
+    with app.app_context():
+        assert CommissionLineItemRevision.query.filter_by(
+            line_item_id=line_id, action="resolve").count() == 1
 
 
 def test_period_quarantine_spans_carriers(db_session, app, agency):

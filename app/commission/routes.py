@@ -1230,7 +1230,7 @@ def commission_review():
                            period_label=period)
 
 
-@commission_bp.route("/admin/commissions/quarantine/<int:line_id>/resolve", methods=["POST"])
+@commission_bp.route("/admin/commissions/line/<int:line_id>/resolve", methods=["POST"])
 @login_required
 def commission_quarantine_resolve(line_id):
     """Resolve one quarantined line: agent + override $ → agent_commission remainder
@@ -1267,12 +1267,17 @@ def commission_quarantine_resolve(line_id):
     split_rate = contract.split_rate if contract else 0.55
 
     try:
-        resolve_quarantine_line(li, agent.id, override_amount, split_rate)
+        resolve_quarantine_line(li, agent.id, override_amount, split_rate,
+                                user_id=current_user.id)
         db.session.commit()
     except ValueError as e:
         db.session.rollback()
         flash(f"Could not resolve: {e}", "error")
         return redirect(back)
+    from app.audit import log_event
+    log_event("commission_resolve", category="commission",
+              detail=f"{li.carrier} {li.member_name or 'line'} -> agent {agent.id} "
+                     f"override ${override_amount:.2f}")
     flash(f"Resolved {li.member_name or 'line'} → {agent.display_name} "
           f"(split {split_rate:.0%}, override ${override_amount:,.2f}).", "success")
     return redirect(back)

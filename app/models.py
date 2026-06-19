@@ -807,6 +807,34 @@ class CommissionLineItem(db.Model):
         return f"<CommissionLineItem {self.carrier} {self.classification} {self.raw_amount}>"
 
 
+class CommissionLineItemRevision(db.Model):
+    """Append-only audit + undo record for a CommissionLineItem. One row per
+    human change (resolve / edit / undo). before_json/after_json snapshot the
+    line's mutable money fields so undo restores the EXACT prior state, and the
+    full who/when/before->after history is always answerable. Never deleted."""
+    __tablename__ = "commission_line_item_revisions"
+
+    id            = db.Column(db.Integer, primary_key=True)
+    agency_id     = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    line_item_id  = db.Column(db.Integer, db.ForeignKey("commission_line_items.id",
+                              ondelete="CASCADE"), nullable=False, index=True)
+    statement_id  = db.Column(db.Integer, db.ForeignKey("commission_statements.id",
+                              ondelete="CASCADE"), nullable=False, index=True)
+    action        = db.Column(db.String(16), nullable=False)   # resolve | edit | undo
+    user_id       = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    user          = db.relationship("User")
+    before_json   = db.Column(db.Text)                          # mutable fields BEFORE the change
+    after_json    = db.Column(db.Text)                          # mutable fields AFTER the change
+    sibling_source_ref = db.Column(db.String(160))              # the ::ovr row this op created/changed, if any
+    sibling_before_json = db.Column(db.Text)                     # sibling's mutable fields BEFORE this op, or
+                                                                   # null if the sibling did not exist before it
+    undone        = db.Column(db.Boolean, default=False, nullable=False)
+    created_at    = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"<CLIRevision {self.action} line={self.line_item_id} undone={self.undone}>"
+
+
 class AgentRecapPeriod(db.Model):
     """
     R2 — workflow state for one agent's commission recap for one period.

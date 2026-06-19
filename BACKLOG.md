@@ -9,7 +9,7 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-06-17_
+_Last updated: 2026-06-18_
 
 ---
 
@@ -63,6 +63,8 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 
 ## ✅ Recently shipped (prune after ~1 week)
 _Keep this short — it's a confidence check that things landed, not a permanent log (CLAUDE.md Build Status is the permanent record)._
+
+- ✅ 2026-06-18 — Humana BOB now uploads as **XLSX** (AJ's export switched CSV→XLSX). `_detect_carrier` XLSX branch was fingerprinting Humana *commission* cols only; added the BOB fingerprint (MbrFirstName+Humana ID), and `humana.parse` reads .xlsx via read_excel (else CSV). Shipped on `main` (commit e532d86) + deployed to VPS — NOT on the commission-audit branch. Verified: parses 2,271 active policies.
 
 - ✅ 2026-06-12 — All-Commissions matrix (#6) + Founders-keep toggle + currency + carrier-status (received/confirmed-$0/pending) + persistent contracted-carrier containers + Founders Agency override row.
 - ✅ 2026-06-12 — UHC attribute by Writing Agent ID (Rebekah's $7,447 book recovered); $0.26 PARTD → override; HA→HRA; $16 Humana (Betty/Riddle) fixed; GTL/Medico brand colors.

@@ -913,18 +913,30 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
         internal_ok=internal_ok, completeness_ok=completeness_ok)
 
 
-def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
+def _snapshot_line(line) -> dict:
+    """The mutable money fields of a line item — the unit of undo. Captured
+    before a resolve/edit so undo can restore the EXACT prior state."""
+    return {
+        "classification": line.classification,
+        "raw_amount": line.raw_amount,
+        "split_rate": line.split_rate,
+        "agent_id": line.agent_id,
+        "payment_type": line.payment_type,
+    }
+
+
+def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user_id=None):
     """Resolve ONE quarantined (needs_manual_review) line item in place: split its
     lump amount into an agent_commission part (the remainder, which splits at
     `split_rate`) and a founders_override part (`override_amount`, 100% Founders).
 
-    Faithful to the ledger invariant: the two new rows' raw_amounts sum back to the
-    original raw_amount, so Σ raw is unchanged. The original quarantine row becomes
-    the agent_commission remainder (keeping its source_ref); a sibling override row
-    is created with source_ref + '::ovr' when override_amount is non-zero.
-
-    Returns the (possibly new) override CommissionLineItem or None. Caller commits."""
-    from app.models import CommissionLineItem
+    Records a CommissionLineItemRevision(action="resolve") snapshotting the
+    pre-resolution state so the action is auditable + undoable. Faithful to the
+    ledger invariant: the two new rows' raw_amounts sum back to the original
+    raw_amount, so Σ raw is unchanged. Caller commits."""
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    import json
+    before = _snapshot_line(line)
     raw = round(line.raw_amount or 0.0, 2)
     ov = round(override_amount or 0.0, 2)
     # override must share the sign of the row and not exceed it in magnitude
@@ -943,6 +955,9 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
     ovr_ref = f"{line.source_ref}::ovr"
     existing_ovr = CommissionLineItem.query.filter_by(
         statement_id=line.statement_id, source_ref=ovr_ref).first()
+    # Snapshot the sibling's state BEFORE this resolve mutates/deletes/creates it,
+    # so undo can restore EXACTLY what was there before (None = it didn't exist).
+    sibling_before = _snapshot_line(existing_ovr) if existing_ovr is not None else None
     if abs(ov) >= 0.005:
         override_row = existing_ovr or CommissionLineItem(
             agency_id=line.agency_id, statement_id=line.statement_id,
@@ -959,7 +974,130 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate):
             db.session.add(override_row)
     elif existing_ovr is not None:
         db.session.delete(existing_ovr)   # override cleared on a re-resolve
+
+    db.session.add(CommissionLineItemRevision(
+        agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
+        action="resolve", user_id=user_id,
+        before_json=json.dumps(before), after_json=json.dumps(_snapshot_line(line)),
+        sibling_source_ref=(ovr_ref if (abs(ov) >= 0.005 or existing_ovr is not None) else None),
+        sibling_before_json=(json.dumps(sibling_before) if sibling_before is not None else None)))
     return override_row
+
+
+def undo_last_change(line, *, user_id=None) -> bool:
+    """Undo the most recent un-undone human change to `line`. Restores the line's
+    mutable fields from that revision's before_json, reverses the sibling ::ovr
+    row it created (delete if the override didn't exist before; restore if it did),
+    marks the revision undone, and records an action="undo" revision. Returns True
+    if a change was undone, False if there was nothing to undo. Caller commits."""
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    import json
+    rev = (CommissionLineItemRevision.query
+           .filter_by(line_item_id=line.id, undone=False)
+           .filter(CommissionLineItemRevision.action != "undo")
+           .order_by(CommissionLineItemRevision.id.desc())
+           .first())
+    if rev is None:
+        return False
+
+    before = json.loads(rev.before_json or "{}")
+    after_undo_snapshot = _snapshot_line(line)   # for the undo revision's "before"
+    # restore mutable fields
+    for k, v in before.items():
+        setattr(line, k, v)
+
+    # reverse the sibling override row this revision created/changed.
+    # sibling_before_json tells us what the sibling looked like BEFORE this
+    # revision's resolve touched it:
+    #   - None  -> the sibling did not exist before -> undo DELETES it.
+    #   - a dict -> the sibling existed before (this was a re-resolve) -> undo
+    #     RESTORES it to that prior state, re-creating it if the resolve deleted
+    #     it outright (the override-amount->0 case).
+    if rev.sibling_source_ref:
+        sib = CommissionLineItem.query.filter_by(
+            statement_id=line.statement_id, source_ref=rev.sibling_source_ref).first()
+        sibling_before = (json.loads(rev.sibling_before_json)
+                           if rev.sibling_before_json else None)
+        if sibling_before is None:
+            # sibling didn't exist before this revision's change -> remove it.
+            if sib is not None:
+                db.session.delete(sib)
+        else:
+            # sibling existed before -> restore it (re-create if it was deleted).
+            if sib is None:
+                sib = CommissionLineItem(
+                    agency_id=line.agency_id, statement_id=line.statement_id,
+                    carrier=line.carrier, period_label=line.period_label,
+                    statement_date=line.statement_date,
+                    source_ref=rev.sibling_source_ref,
+                    member_name=line.member_name, mbi=line.mbi,
+                    carrier_member_id=line.carrier_member_id)
+                db.session.add(sib)
+            for k, v in sibling_before.items():
+                setattr(sib, k, v)
+
+    rev.undone = True
+    db.session.add(CommissionLineItemRevision(
+        agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
+        action="undo", user_id=user_id,
+        before_json=json.dumps(after_undo_snapshot),
+        after_json=json.dumps(_snapshot_line(line)),
+        sibling_source_ref=rev.sibling_source_ref))
+    return True
+
+
+def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate, user_id=None):
+    """Correct a line's agent-commission / founders-override split in place. The
+    two amounts MUST sum to the line's current combined total (its raw plus any
+    existing ::ovr sibling) — an edit can never change Σ raw or break the
+    agent+override==combined invariant. Records an action="edit" revision. Caller
+    commits. Raises ValueError if the amounts don't sum to the original combined."""
+    from app.models import CommissionLineItem, CommissionLineItemRevision
+    import json
+    ovr_ref = f"{line.source_ref}::ovr"
+    existing_ovr = CommissionLineItem.query.filter_by(
+        statement_id=line.statement_id, source_ref=ovr_ref).first()
+    original_combined = round((line.raw_amount or 0.0) +
+                              (existing_ovr.raw_amount if existing_ovr else 0.0), 2)
+    agent_amount = round(agent_amount or 0.0, 2)
+    override_amount = round(override_amount or 0.0, 2)
+    if round(agent_amount + override_amount, 2) != original_combined:
+        raise ValueError(
+            f"agent ${agent_amount} + override ${override_amount} must equal "
+            f"the line total ${original_combined}")
+
+    before = _snapshot_line(line)
+    line.classification = (CHARGEBACK if agent_amount < 0 else AGENT_COMMISSION)
+    line.raw_amount = agent_amount
+    line.agent_id = agent_id
+    line.split_rate = split_rate
+
+    # Snapshot the sibling's state BEFORE this edit mutates/deletes/creates it,
+    # so undo can restore EXACTLY what was there before (None = it didn't exist).
+    sibling_before = _snapshot_line(existing_ovr) if existing_ovr is not None else None
+    if abs(override_amount) >= 0.005:
+        ovr = existing_ovr or CommissionLineItem(
+            agency_id=line.agency_id, statement_id=line.statement_id,
+            carrier=line.carrier, period_label=line.period_label,
+            statement_date=line.statement_date, source_ref=ovr_ref,
+            member_name=line.member_name, mbi=line.mbi,
+            carrier_member_id=line.carrier_member_id)
+        ovr.raw_amount = override_amount
+        ovr.split_rate = None
+        ovr.classification = FOUNDERS_OVERRIDE
+        ovr.agent_id = None
+        ovr.payment_type = "override [edited]"
+        if existing_ovr is None:
+            db.session.add(ovr)
+    elif existing_ovr is not None:
+        db.session.delete(existing_ovr)
+
+    db.session.add(CommissionLineItemRevision(
+        agency_id=line.agency_id, line_item_id=line.id, statement_id=line.statement_id,
+        action="edit", user_id=user_id,
+        before_json=json.dumps(before), after_json=json.dumps(_snapshot_line(line)),
+        sibling_source_ref=(ovr_ref if (abs(override_amount) >= 0.005 or existing_ovr is not None) else None),
+        sibling_before_json=(json.dumps(sibling_before) if sibling_before is not None else None)))
 
 
 def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=None) -> int:

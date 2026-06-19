@@ -402,7 +402,7 @@ def test_quarantine_resolve_endpoint(db_session, app, client, agency):
 
     with client.session_transaction() as s:
         s["_user_id"] = str(uid)
-    r = client.post(f"/admin/commissions/quarantine/{lid}/resolve",
+    r = client.post(f"/admin/commissions/line/{lid}/resolve",
                     data={"agent_id": rid, "override_amount": "55.00"})
     assert r.status_code in (302, 303)
     with app.app_context():
@@ -412,6 +412,35 @@ def test_quarantine_resolve_endpoint(db_session, app, client, agency):
         rows = CommissionLineItem.query.filter_by(statement_id=sid).all()
         classes = {x.classification for x in rows}
         assert "agent_commission" in classes and "founders_override" in classes
+
+
+def test_resolve_endpoint_records_revision(db_session, app, client, agency):
+    """The resolve endpoint must persist a revision (audit + undo) for the action."""
+    from app.extensions import db
+    from app.models import (CommissionStatement, CommissionLineItem, User,
+                            CommissionLineItemRevision, AgentCarrierContract)
+    from datetime import date
+    with app.app_context():
+        admin = User(email="admin@test.com", name="Admin", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   statement_date=date(2026, 6, 1), period_label="June 2026")
+        db.session.add(stmt); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier="UHC",
+                                source_ref="uhc::0::5", raw_amount=33.51, split_rate=None,
+                                classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.commit()
+        line_id, sid, aid = li.id, stmt.id, admin.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    resp = client.post(f"/admin/commissions/line/{line_id}/resolve",
+                       data={"agent_id": str(aid), "override_amount": "4.59"},
+                       follow_redirects=False)
+    assert resp.status_code in (302, 303)
+    with app.app_context():
+        assert CommissionLineItemRevision.query.filter_by(
+            line_item_id=line_id, action="resolve").count() == 1
 
 
 def test_period_quarantine_spans_carriers(db_session, app, agency):
@@ -466,3 +495,121 @@ def test_commission_review_page_renders(db_session, app, client, agency):
     assert r.status_code == 200
     body = r.get_data(as_text=True)
     assert "Payments to Review" in body and "DOE, JANE" in body and "Aetna" in body
+
+
+def test_undo_endpoint_reverts_a_resolve(db_session, app, client, agency):
+    from app.extensions import db
+    from app.models import CommissionStatement, CommissionLineItem, User
+    from app.commission.ledger import resolve_quarantine_line
+    from datetime import date
+    with app.app_context():
+        admin = User(email="admin2@test.com", name="Admin2", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   statement_date=date(2026, 6, 1), period_label="June 2026")
+        db.session.add(stmt); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier="UHC",
+                                source_ref="uhc::0::5", raw_amount=33.51, split_rate=None,
+                                classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.flush()
+        resolve_quarantine_line(li, agent_id=admin.id, override_amount=4.59,
+                                split_rate=0.55, user_id=admin.id)
+        db.session.commit()
+        line_id, aid = li.id, admin.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    resp = client.post(f"/admin/commissions/line/{line_id}/undo", follow_redirects=False)
+    assert resp.status_code in (302, 303)
+    with app.app_context():
+        from app.models import CommissionLineItem
+        li2 = CommissionLineItem.query.get(line_id)
+        assert li2.classification == "needs_manual_review"   # back to quarantine
+        assert li2.raw_amount == 33.51
+
+
+def test_edit_endpoint_uses_agent_contract_rate(db_session, app, client, agency):
+    """The edit endpoint must derive the split rate from the agent's REAL
+    AgentCarrierContract (0.525 here), never a hardcoded 0.55 — a silent wrong
+    rate would corrupt pay (e.g. Betty Marlowe is 52.5%, not 55%)."""
+    from app.extensions import db
+    from app.models import (CommissionStatement, CommissionLineItem, User,
+                            AgentCarrierContract)
+    from datetime import date
+    with app.app_context():
+        admin = User(email="admin3@test.com", name="Admin3", is_admin=True, agency_id=agency.id)
+        agent = User(email="agent3@test.com", name="Agent3", agency_id=agency.id)
+        db.session.add_all([admin, agent]); db.session.flush()
+        db.session.add(AgentCarrierContract(agency_id=agency.id, agent_id=agent.id,
+                       carrier="UHC", split_rate=0.525, is_active=True))
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   statement_date=date(2026, 6, 1), period_label="June 2026")
+        db.session.add(stmt); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier="UHC",
+                                source_ref="uhc::0::9", raw_amount=33.51, split_rate=None,
+                                classification="agent_commission", payment_type="New")
+        db.session.add(li); db.session.commit()
+        line_id, aid, agent_id = li.id, admin.id, agent.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    resp = client.post(f"/admin/commissions/line/{line_id}/edit",
+                       data={"agent_id": str(agent_id), "agent_amount": "28.92",
+                             "override_amount": "4.59"},
+                       follow_redirects=False)
+    assert resp.status_code in (302, 303)
+    with app.app_context():
+        from app.models import CommissionLineItem
+        li2 = CommissionLineItem.query.get(line_id)
+        assert li2.split_rate == 0.525   # NOT 0.55 — must derive from the contract
+        sib = CommissionLineItem.query.filter_by(
+            statement_id=li2.statement_id, source_ref=f"{li2.source_ref}::ovr").first()
+        assert sib is not None
+        assert sib.raw_amount == 4.59
+
+
+def test_line_revisions_returns_history_newest_first(db_session, app, agency):
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import resolve_quarantine_line, undo_last_change
+    from app.commission.recap import line_revisions
+    with app.app_context():
+        li = CommissionLineItem(agency_id=agency.id, statement_id=1, carrier="UHC",
+                                source_ref="uhc::0::5", raw_amount=33.51, split_rate=None,
+                                classification="needs_manual_review", payment_type="New")
+        db.session.add(li); db.session.flush()
+        resolve_quarantine_line(li, agent_id=7, override_amount=4.59, split_rate=0.55, user_id=3)
+        db.session.flush()
+        undo_last_change(li, user_id=3)
+        db.session.commit()
+        revs = line_revisions(li.id, agency.id)
+        assert [r.action for r in revs] == ["undo", "resolve"]   # newest first
+
+
+def test_recently_resolved_feed_batches_revisions(db_session, app, agency):
+    """recently_resolved_line_items batches its revision fetch into one query
+    instead of querying line_revisions() per row (was N+1) — this locks in that
+    each row still carries its own correct revision history after the refactor."""
+    from app.extensions import db
+    from app.commission.ledger import resolve_quarantine_line
+    from app.commission.recap import recently_resolved_line_items
+
+    with app.app_context():
+        stmt = _mk_stmt(db, agency)
+        li1 = _mk_li(db, agency, stmt, cls="needs_manual_review", raw=10.00,
+                     name="Alice One", ref="uhc::0::1")
+        li2 = _mk_li(db, agency, stmt, cls="needs_manual_review", raw=20.00,
+                     name="Bob Two", ref="uhc::0::2")
+        resolve_quarantine_line(li1, agent_id=7, override_amount=1.00,
+                                split_rate=0.55, user_id=3)
+        resolve_quarantine_line(li2, agent_id=7, override_amount=2.00,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+
+        rows = recently_resolved_line_items(stmt.id, agency.id)
+        assert len(rows) == 2
+        by_id = {r["id"]: r for r in rows}
+        assert li1.id in by_id and li2.id in by_id
+        for r in by_id.values():
+            assert len(r["revisions"]) >= 1
+            assert r["revisions"][0].action == "resolve"

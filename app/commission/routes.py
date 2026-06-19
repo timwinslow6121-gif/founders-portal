@@ -1283,6 +1283,78 @@ def commission_quarantine_resolve(line_id):
     return redirect(back)
 
 
+@commission_bp.route("/admin/commissions/line/<int:line_id>/undo", methods=["POST"])
+@login_required
+def commission_line_undo(line_id):
+    """Undo the most recent human change to a commission line (admin-only)."""
+    if not current_user.is_admin:
+        abort(403)
+    from app.commission.ledger import undo_last_change
+    from app.audit import log_event
+    li = CommissionLineItem.query.filter_by(
+        id=line_id, agency_id=current_user.agency_id).first_or_404()
+    back = request.referrer or url_for("commission.commission_quarantine",
+                                       stmt_id=li.statement_id)
+    if undo_last_change(li, user_id=current_user.id):
+        db.session.commit()
+        log_event("commission_undo", category="commission",
+                  detail=f"{li.carrier} {li.member_name or 'line'} #{li.id}")
+        flash("Change undone.", "success")
+    else:
+        flash("Nothing to undo on that line.", "warning")
+    return redirect(back)
+
+
+@commission_bp.route("/admin/commissions/line/<int:line_id>/edit", methods=["POST"])
+@login_required
+def commission_line_edit(line_id):
+    """Correct a line's agent/override split (admin-only, invariant-safe). The
+    agent's split_rate is ALWAYS looked up from their real AgentCarrierContract for
+    this carrier (never hardcoded) — different agents have different rates (e.g.
+    Betty Marlowe = 52.5%, not 55%), so a wrong constant would silently corrupt pay."""
+    if not current_user.is_admin:
+        abort(403)
+    from app.commission.ledger import edit_line_split
+    from app.audit import log_event
+    li = CommissionLineItem.query.filter_by(
+        id=line_id, agency_id=current_user.agency_id).first_or_404()
+    back = request.referrer or url_for("commission.commission_quarantine",
+                                       stmt_id=li.statement_id)
+    agent = User.query.filter_by(id=request.form.get("agent_id", type=int),
+                                 agency_id=current_user.agency_id).first()
+    if not agent:
+        flash("Pick a valid agent.", "error")
+        return redirect(back)
+    try:
+        agent_amount = float(request.form.get("agent_amount") or 0)
+        override_amount = float(request.form.get("override_amount") or 0)
+    except ValueError:
+        flash("Enter valid amounts.", "error")
+        return redirect(back)
+
+    # split rate from the agent's contract for this carrier (fallback 0.55) — same
+    # lookup as commission_quarantine_resolve. NEVER hardcode this.
+    contract = AgentCarrierContract.query.filter_by(
+        agent_id=agent.id, carrier=li.carrier, is_active=True,
+        agency_id=current_user.agency_id).first()
+    split_rate = contract.split_rate if contract else 0.55
+    li.split_rate = split_rate   # set on the line so the agent share derives correctly
+
+    try:
+        edit_line_split(li, agent_amount=agent_amount, override_amount=override_amount,
+                        agent_id=agent.id, user_id=current_user.id)
+        db.session.commit()
+    except ValueError as e:
+        db.session.rollback()
+        flash(f"Could not edit: {e}", "error")
+        return redirect(back)
+    log_event("commission_edit", category="commission",
+              detail=f"{li.carrier} {li.member_name or 'line'} #{li.id} "
+                     f"-> agent ${agent_amount:.2f} / override ${override_amount:.2f}")
+    flash("Split updated.", "success")
+    return redirect(back)
+
+
 @commission_bp.route("/admin/commissions/agent/<int:agent_id>")
 @login_required
 def commission_agent_detail(agent_id):

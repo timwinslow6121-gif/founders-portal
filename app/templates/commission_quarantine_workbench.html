@@ -4,34 +4,48 @@
 {% block styles %}
 <style>
   .qw-wrap { max-width: 1100px; margin: 0 auto; }
+  .qw-wrap h1 { color: var(--ivory-bright); margin:0 0 4px; }
   .qw-head { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:6px; }
   .qw-sub { color: var(--slate); font-size: 13px; margin-bottom: 18px; }
-  .qw-filters { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background: var(--surface);
-                border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:20px; }
+  /* one contained control bar — matches the All-Commissions matrix toolbar */
+  .qw-filters { display:flex; flex-wrap:wrap; gap:14px; align-items:center; background: var(--surface);
+                border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
+                padding:10px 14px; margin-bottom:16px; }
   .qw-filters label { font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; margin-right:4px; }
-  .qw-filters select { padding:6px 9px; border:1px solid var(--border); border-radius:8px;
-                       background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; }
+  .qw-filters select { padding:6px 12px; border:1px solid var(--border); border-radius:10px;
+                       background:var(--ink); color:var(--ivory); font:inherit; font-size:.82rem; width:auto; max-width:180px; }
   .qw-filters .clear { margin-left:auto; color:var(--gold); font-size:12px; text-decoration:none; }
-  .qw-summary { display:flex; gap:24px; margin: 0 0 22px; }
-  .qw-stat { background: var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 18px; }
+  .qw-summary { display:flex; gap:16px; margin: 0 0 20px; }
+  .qw-stat { background: var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:12px 18px; }
   .qw-stat .n { font-size: 22px; font-weight: 700; color: var(--ivory-bright); }
   .qw-stat .l { font-size: 12px; color: var(--slate); text-transform: uppercase; letter-spacing: .04em; }
-  .qw-month-head { display:flex; align-items:baseline; gap:12px; margin: 26px 0 8px; }
-  .qw-month-head h2 { margin:0; font-size:18px; }
+  /* the card container around each month's table — matches .agg-card */
+  .qw-card { background: var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+             box-shadow:var(--shadow); padding:4px 14px 8px; margin-bottom:18px; overflow-x:auto; }
+  .qw-month-head { display:flex; align-items:baseline; gap:12px; margin: 8px 4px 4px; }
+  .qw-month-head h2 { margin:0; font-size:17px; color:var(--ivory-bright); }
   .qw-month-head .meta { color: var(--slate); font-size:13px; }
+  .qw-card-title { margin: 8px 4px 4px; font-size:17px; color:var(--ivory-bright); }
   table.qw-table { width:100%; border-collapse: collapse; font-size: 14px; }
-  table.qw-table th { text-align:left; padding:8px 10px; border-bottom:2px solid var(--border);
-                      color: var(--slate); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-  table.qw-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
-  table.qw-table td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  table.qw-table th { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);
+                      color: var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+  table.qw-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  table.qw-table tr:last-child td { border-bottom:none; }
+  table.qw-table td.num { text-align:right; font-variant-numeric: tabular-nums; font-weight:600; }
   td.num.neg { color: var(--status-error); }
-  .qr-form { display:flex; gap:8px; align-items:center; justify-content:flex-end; padding:6px 10px; }
-  .qr-form select { padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; min-width:140px; }
-  .qr-form input { width:92px; padding:6px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
-  .qr-form button { padding:6px 14px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  /* resolve form — labeled fields + live agent-gets preview so it's unambiguous */
+  .qr-form { display:flex; gap:14px; align-items:flex-end; justify-content:flex-end; padding:4px 0; flex-wrap:wrap; }
+  .qr-field { display:flex; flex-direction:column; gap:3px; }
+  .qr-field label { font-size:10px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .qr-form select { padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; min-width:150px; }
+  .qr-form input.qr-money { width:104px; padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
+  .qr-preview { font-size:12px; color:var(--slate); align-self:center; min-width:150px; white-space:nowrap; }
+  .qr-preview b { color:var(--green); font-variant-numeric: tabular-nums; }
+  .qr-preview .keep { color:var(--slate); }
+  .qr-form button { padding:8px 16px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; align-self:center; }
   .qr-form button:hover { filter:brightness(1.07); }
   .qw-carrier { display:inline-block; font-size:11px; font-weight:600; color:var(--slate); }
-  .qw-empty { background: var(--surface); border:1px solid var(--border); border-radius:8px;
+  .qw-empty { background: var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
               padding:40px; text-align:center; color: var(--slate); }
   .back-link { color: var(--gold); font-size:13px; text-decoration:none; }
   .resolved-section { margin-top:42px; }
@@ -64,14 +78,23 @@
     <td colspan="3" style="padding:0;">
       <form class="qr-form" method="post" action="{{ url_for('commission.commission_quarantine_resolve', line_id=r.id) }}">
         <input type="hidden" name="next" value="{{ request.full_path }}">
-        <select name="agent_id" required aria-label="Agent for {{ r.member_name }}">
-          <option value="">— pick agent —</option>
-          {% for a in agents %}
-          <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
-          {% endfor %}
-        </select>
-        <input type="number" step="0.01" name="override_amount" value="0.00"
-               aria-label="Override amount" title="Founders override portion (100% Founders); the rest splits to the agent">
+        <div class="qr-field">
+          <label for="agent-{{ r.id }}">Agent</label>
+          <select id="agent-{{ r.id }}" name="agent_id" required aria-label="Agent for {{ r.member_name }}">
+            <option value="">— pick agent —</option>
+            {% for a in agents %}
+            <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="qr-field">
+          <label for="ovr-{{ r.id }}">Founders override $</label>
+          <input id="ovr-{{ r.id }}" class="qr-money" type="number" step="0.01" name="override_amount" value="0.00"
+                 data-raw="{{ r.amount }}" data-preview="prev-{{ r.id }}"
+                 aria-label="Founders override amount for {{ r.member_name }}"
+                 title="The 100%-Founders override portion. The rest of ${{ '%.2f'|format(r.amount) }} goes to the agent, split at their contract rate.">
+        </div>
+        <div class="qr-preview" id="prev-{{ r.id }}">→ Agent: <b>${{ '%.2f'|format(r.amount) }}</b> <span class="keep">· Founders override $0.00</span></div>
         <button type="submit">Resolve</button>
       </form>
     </td>
@@ -85,9 +108,12 @@
     <h1 style="margin:0;">Quarantine Workbench</h1>
   </div>
   <div class="qw-sub">
-    Every commission line the parser could not auto-split, across all months. Nothing is dropped —
-    these are recorded but not yet attributed to an agent's payout. Filter, sort by amount to batch
-    identical amounts, and resolve them down to zero.
+    Every commission line the parser could not auto-split, across all months — recorded but not yet
+    attributed to an agent. To resolve a line: <strong>pick the agent</strong> and enter the
+    <strong>Founders override $</strong> (the 100%-Founders portion). <strong>The rest goes to the
+    agent</strong>, split at their contract rate — the “→ Agent” preview shows exactly how much as you
+    type. Enter <strong>$0</strong> if the whole amount is the agent's. Sort by amount to batch
+    identical amounts and clear quarantine to zero.
   </div>
 
   <form class="qw-filters" method="get" id="qw-filters">
@@ -137,37 +163,41 @@
 
   {% elif wb.grouped %}
     {% for g in wb.groups %}
-      <div class="qw-month-head">
-        <h2>{{ g.period_label }}</h2>
-        <span class="meta">{{ g.count }} line{{ '' if g.count == 1 else 's' }} · ${{ '%.2f'|format(g.total) }}</span>
+      <div class="qw-card">
+        <div class="qw-month-head">
+          <h2>{{ g.period_label }}</h2>
+          <span class="meta">{{ g.count }} line{{ '' if g.count == 1 else 's' }} · ${{ '%.2f'|format(g.total) }}</span>
+        </div>
+        <table class="qw-table">
+          <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Resolve — pick agent + Founders override</th></tr></thead>
+          <tbody>
+            {% for r in g.rows %}{{ qrow(r) }}{% endfor %}
+          </tbody>
+        </table>
       </div>
-      <table class="qw-table">
-        <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Agent</th>
-                   <th style="text-align:right;">Override&nbsp;$</th><th></th></tr></thead>
-        <tbody>
-          {% for r in g.rows %}{{ qrow(r) }}{% endfor %}
-        </tbody>
-      </table>
     {% endfor %}
 
   {% else %}
     {# flat amount-sorted list with a Month column shown inline #}
-    <table class="qw-table">
-      <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Agent</th>
-                 <th style="text-align:right;">Override&nbsp;$</th><th></th></tr></thead>
-      <tbody>
-        {% for r in wb.flat %}{{ qrow(r, show_month=True) }}{% endfor %}
-      </tbody>
-    </table>
+    <div class="qw-card">
+      <div class="qw-card-title">Sorted by amount — identical amounts grouped together</div>
+      <table class="qw-table">
+        <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Resolve — pick agent + Founders override</th></tr></thead>
+        <tbody>
+          {% for r in wb.flat %}{{ qrow(r, show_month=True) }}{% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 
   {% if resolved %}
   <div class="resolved-section">
-    <h2 style="margin:0 0 6px;">Recently resolved</h2>
+    <h2 style="margin:0 0 6px;color:var(--ivory-bright);">Recently resolved</h2>
     <div class="qw-sub" style="margin-bottom:14px;">
       Lines resolved or edited{% if f_period or f_carrier or f_agent %} (matching the current filter){% endif %}.
       Made a mistake? Undo reverts the most recent change for that line, or Edit corrects the split.
     </div>
+    <div class="qw-card">
     <table class="qw-table">
       <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>History</th><th></th></tr></thead>
       <tbody>
@@ -214,7 +244,29 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
   {% endif %}
 </div>
+
+<script>
+  // Live preview on the resolve form: as AJ types the Founders override, show
+  // exactly what the agent receives (the rest) so it's never ambiguous which
+  // number goes in the box. Edit forms also clarify their own two fields.
+  (function () {
+    function fmt(n) { return '$' + (n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+    document.querySelectorAll('input.qr-money[data-preview]').forEach(function (inp) {
+      var prev = document.getElementById(inp.getAttribute('data-preview'));
+      var raw = parseFloat(inp.getAttribute('data-raw')) || 0;
+      function update() {
+        var ov = parseFloat(inp.value) || 0;
+        var agent = Math.round((raw - ov) * 100) / 100;
+        prev.innerHTML = '→ Agent: <b>' + fmt(agent) + '</b> ' +
+                         '<span class="keep">· Founders override ' + fmt(ov) + '</span>';
+      }
+      inp.addEventListener('input', update);
+      update();
+    });
+  })();
+</script>
 {% endblock %}

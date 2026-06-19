@@ -1046,7 +1046,7 @@ def undo_last_change(line, *, user_id=None) -> bool:
     return True
 
 
-def edit_line_split(line, *, agent_amount, override_amount, agent_id, user_id=None):
+def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate, user_id=None):
     """Correct a line's agent-commission / founders-override split in place. The
     two amounts MUST sum to the line's current combined total (its raw plus any
     existing ::ovr sibling) — an edit can never change Σ raw or break the
@@ -1070,8 +1070,7 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, user_id=No
     line.classification = (CHARGEBACK if agent_amount < 0 else AGENT_COMMISSION)
     line.raw_amount = agent_amount
     line.agent_id = agent_id
-    if line.split_rate is None:
-        line.split_rate = 0.55   # keep a split rate so the agent share derives
+    line.split_rate = split_rate
 
     # Snapshot the sibling's state BEFORE this edit mutates/deletes/creates it,
     # so undo can restore EXACTLY what was there before (None = it didn't exist).

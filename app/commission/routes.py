@@ -1342,11 +1342,10 @@ def commission_line_edit(line_id):
         agent_id=agent.id, carrier=li.carrier, is_active=True,
         agency_id=current_user.agency_id).first()
     split_rate = contract.split_rate if contract else 0.55
-    li.split_rate = split_rate   # set on the line so the agent share derives correctly
 
     try:
         edit_line_split(li, agent_amount=agent_amount, override_amount=override_amount,
-                        agent_id=agent.id, user_id=current_user.id)
+                        agent_id=agent.id, split_rate=split_rate, user_id=current_user.id)
         db.session.commit()
     except ValueError as e:
         db.session.rollback()

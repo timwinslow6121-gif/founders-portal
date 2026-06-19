@@ -166,7 +166,7 @@ def test_edit_line_split_enforces_sum_invariant(db_session, app, agency):
 
         # correct the split to 28.92 agent + 4.59 override (sums to 33.51)
         edit_line_split(li, agent_amount=28.92, override_amount=4.59,
-                        agent_id=7, user_id=3)
+                        agent_id=7, split_rate=0.55, user_id=3)
         db.session.commit()
         assert li.raw_amount == 28.92
         ovr = CommissionLineItem.query.filter_by(
@@ -181,7 +181,7 @@ def test_edit_line_split_enforces_sum_invariant(db_session, app, agency):
         import pytest
         with pytest.raises(ValueError):
             edit_line_split(li, agent_amount=20.00, override_amount=4.59,
-                            agent_id=7, user_id=3)
+                            agent_id=7, split_rate=0.55, user_id=3)
 
 
 def test_undo_after_edit_restores_state(db_session, app, agency):
@@ -197,7 +197,7 @@ def test_undo_after_edit_restores_state(db_session, app, agency):
         db.session.add(li); db.session.flush()
 
         edit_line_split(li, agent_amount=28.92, override_amount=4.59,
-                        agent_id=7, user_id=3)
+                        agent_id=7, split_rate=0.55, user_id=3)
         db.session.commit()
         assert CommissionLineItem.query.filter_by(
             statement_id=1, source_ref="uhc::0::5::ovr").count() == 1
@@ -210,3 +210,35 @@ def test_undo_after_edit_restores_state(db_session, app, agency):
         # the sibling didn't exist before the edit -> undo removes it
         assert CommissionLineItem.query.filter_by(
             statement_id=1, source_ref="uhc::0::5::ovr").count() == 0
+
+
+def test_undo_after_edit_restores_original_split_rate(db_session, app, agency):
+    """Real bug: the EDIT ROUTE used to set li.split_rate to the NEW agent's
+    contract rate BEFORE calling edit_line_split, so the audit snapshot
+    captured the wrong (already-mutated) split_rate, and undo restored the
+    NEW rate instead of the rate the line actually had before the edit.
+    edit_line_split must own the split_rate assignment so the snapshot
+    captures the TRUE prior state."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import edit_line_split, undo_last_change
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::6", raw_amount=33.51, split_rate=0.55,
+            classification="agent_commission", payment_type="renewal", agent_id=7)
+        db.session.add(li); db.session.flush()
+
+        # edit by an agent whose contract is 0.525 (different from the line's
+        # current 0.55)
+        edit_line_split(li, agent_amount=28.92, override_amount=4.59,
+                        agent_id=7, split_rate=0.525, user_id=3)
+        db.session.commit()
+        assert li.split_rate == 0.525
+
+        ok = undo_last_change(li, user_id=3)
+        db.session.commit()
+        assert ok is True
+        assert li.split_rate == 0.55   # RESTORED to the original, NOT 0.525
+        assert li.raw_amount == 33.51
+        assert li.classification == "agent_commission"

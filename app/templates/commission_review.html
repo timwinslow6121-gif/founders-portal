@@ -151,9 +151,9 @@
             </form>
           </td>
         </tr>
-        <tr id="edit-{{ r.id }}" class="edit-row">
+        <tr class="edit-row">
           <td colspan="5" style="padding:0;">
-            <form class="edit-form" method="post" action="{{ url_for('commission.commission_line_edit', line_id=r.id) }}">
+            <form id="edit-{{ r.id }}" class="edit-form" method="post" action="{{ url_for('commission.commission_line_edit', line_id=r.id) }}">
               <select name="agent_id" required aria-label="Agent for {{ r.member_name }}">
                 <option value="">— pick agent —</option>
                 {% for a in agents %}

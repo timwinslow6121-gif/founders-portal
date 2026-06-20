@@ -19,6 +19,7 @@ from app.models import db, Policy, ImportBatch, Customer, CustomerAorHistory, Pl
 from app.audit import log_event
 from app.parsers import parse_carrier_file, SUPPORTED_CARRIERS
 from app.commission.resolver import resolve_customer, member_fact_from_bob_rec
+from app.attribution import resolve_writing_agent
 
 upload_bp = Blueprint("upload", __name__)
 
@@ -102,7 +103,7 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
             existing.agent_id = bulk_agent_id
         outcome = "updated"
     else:
-        db.session.add(Policy(
+        policy = Policy(
             agency_id=bulk_agency_id,
             agent_id=bulk_agent_id,
             carrier=rec["carrier"], member_id=rec["member_id"], mbi=rec["mbi"] or None,
@@ -115,7 +116,8 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
             state=rec.get("state", ""), zip_code=rec.get("zip_code", ""),
             agent_id_carrier=rec["agent_id"], status=rec["status"],
             last_seen_date=today, import_batch_id=batch.id,
-        ))
+        )
+        db.session.add(policy)
         outcome = "new"
 
     # Flush the policy NOW so the resolver's crosswalk (which runs under
@@ -128,6 +130,14 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
     # rows (no MBI means no reliable customer match). A failure here RAISES — the
     # caller's savepoint rolls back the whole row (policy + customer together).
     effective_agent_id = bulk_agent_id or (existing.agent_id if existing else None)
+    if effective_agent_id is None and rec.get("agent_id"):
+        # Admin upload (no self-attributing agent): resolve the carrier writing-id
+        # to a portal agent so the book is actually attributed, not left NULL.
+        resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], bulk_agency_id)
+        if resolved:
+            effective_agent_id = resolved
+            target_policy = existing if existing else policy
+            target_policy.agent_id = resolved
     if not is_unresolvable:
         _upsert_customer_from_policy(rec, effective_agent_id, batch.id, bulk_agency_id)
     return "skipped" if is_unresolvable else outcome
@@ -387,6 +397,14 @@ def process_upload():
 
         # Upsert the customer master record from this policy row
         effective_agent_id = upload_agent_id or (existing.agent_id if existing else None)
+        if effective_agent_id is None and rec.get("agent_id"):
+            # Admin upload (no self-attributing agent): resolve the carrier writing-id
+            # to a portal agent so the book is actually attributed, not left NULL.
+            resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], upload_agency_id)
+            if resolved:
+                effective_agent_id = resolved
+                target_policy = existing if existing else policy
+                target_policy.agent_id = resolved
         try:
             _upsert_customer_from_policy(
                 rec,

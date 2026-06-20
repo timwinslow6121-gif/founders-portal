@@ -138,6 +138,22 @@
 .ca-chip.out { color:var(--slate); background:transparent; }
 .ca-upload { background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:16px 18px; margin:0 0 24px; }
 .ca-flabel { display:block; font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
+/* #1 month picker — compact, not full width */
+.ca-period-form select { max-width: 200px; }
+/* #3 reuse the BOB drop-zone look */
+.ca-drop { display:flex; flex-direction:column; align-items:center; text-align:center; cursor:pointer;
+           border:2px dashed var(--border); border-radius:var(--radius); background:var(--surface-low);
+           padding:26px 20px; transition:border-color .15s, background .15s; color:var(--ivory); }
+.ca-drop:hover, .ca-drop.drag-over { border-color:var(--gold); background:var(--surface-mid); }
+.ca-drop-text { font-size:13px; color:var(--ivory); }
+.ca-drop-sub { font-size:12px; color:var(--slate); margin-top:5px; letter-spacing:.03em; }
+.ca-uprow { display:flex; align-items:flex-end; gap:14px; margin-top:14px; flex-wrap:wrap; }
+.ca-month { background:var(--surface-mid); border:1px solid var(--border); color:var(--ivory); font:inherit;
+            font-size:13px; padding:8px 10px; border-radius:8px; max-width:170px; }
+/* #2 normal rounded themed button (not square / full width) */
+.ca-submit { padding:9px 18px; border:none; border-radius:8px; background:var(--gold); color:#fff;
+             font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.ca-submit:hover { filter:brightness(1.07); }
 .ca-h2 { font-size:17px; color:var(--ivory-bright); margin:0 0 10px; }
 .ca-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:4px 14px; overflow-x:auto; margin:0 0 22px; }
 table.ca-table { width:100%; border-collapse:collapse; font-size:13.5px; }
@@ -444,10 +460,10 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
    ════════════════════════════════════════════ #}
 
 {# Period picker #}
-<form method="get" style="display:flex;align-items:center;gap:10px;margin:0 0 16px;">
+<form method="get" class="ca-period-form" style="display:flex;align-items:center;gap:10px;margin:0 0 16px;">
   <label style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em;">Month</label>
   <select name="period" onchange="this.form.submit()"
-          style="padding:7px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--ivory);font:inherit;font-size:13px;">
+          style="padding:7px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--ivory);font:inherit;font-size:13px;width:auto;">
     {% for p in periods %}
     <option value="{{ p }}" {% if p == selected_period %}selected{% endif %}>{{ p }}</option>
     {% endfor %}
@@ -485,23 +501,35 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
 
 {# Upload box — defaults to the current month, made obvious #}
 <div class="ca-upload">
-  <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;">
-    <div>
-      <label class="ca-flabel">Carrier statement file</label>
-      <input type="file" name="file" accept=".xlsx,.xls,.csv" required
-             style="display:block;color:var(--ivory);font-size:13px;">
+  <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data">
+    <label class="ca-drop" id="caDrop">
+      <input type="file" name="file" id="caFile" accept=".xlsx,.xls,.csv" required hidden>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="opacity:.5;margin-bottom:8px;"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/></svg>
+      <div class="ca-drop-text" id="caDropText">Drop a carrier file here or <span class="link-text">click to browse</span></div>
+      <div class="ca-drop-sub">One file · CSV, XLSX, XLS · carrier + agent auto-detected</div>
+    </label>
+    <div class="ca-uprow">
+      <div>
+        <label class="ca-flabel">Month <span style="color:var(--green);font-weight:600;">· set to {{ current_month }}</span></label>
+        <input type="month" name="statement_month" value="{{ current_month_iso }}" class="ca-month">
+      </div>
+      <button type="submit" class="ca-submit">Upload &amp; Parse</button>
     </div>
-    <div>
-      <label class="ca-flabel">Uploading for month <span style="color:var(--green);font-weight:600;">(set to {{ current_month }})</span></label>
-      <input type="month" name="statement_month" value="{{ current_month_iso }}"
-             style="background:var(--surface-mid);border:1px solid var(--border);color:var(--ivory);font-size:13px;padding:8px 10px;border-radius:8px;">
-    </div>
-    <button type="submit" class="btn-upload" style="margin:0;">Upload &amp; Parse</button>
+    <p style="font-size:11px;color:var(--slate);margin:10px 0 0;">
+      The month defaults to <strong>{{ current_month }}</strong> — change it only if this file is for a different month.
+    </p>
   </form>
-  <p style="font-size:11px;color:var(--slate);margin:10px 0 0;">
-    Carrier + agent auto-detected from the file. The month defaults to <strong>{{ current_month }}</strong> — change it only if this file is for a different month.
-  </p>
 </div>
+<script>
+  (function(){
+    var f=document.getElementById('caFile'), t=document.getElementById('caDropText'), d=document.getElementById('caDrop');
+    if(!f) return;
+    f.addEventListener('change',function(){ if(f.files.length){ t.innerHTML='<strong style="color:var(--gold)">'+f.files[0].name+'</strong> selected'; } });
+    ['dragover','dragenter'].forEach(function(e){ d.addEventListener(e,function(ev){ev.preventDefault(); d.classList.add('drag-over');}); });
+    ['dragleave','drop'].forEach(function(e){ d.addEventListener(e,function(ev){ev.preventDefault(); d.classList.remove('drag-over');}); });
+    d.addEventListener('drop',function(ev){ if(ev.dataTransfer.files.length){ f.files=ev.dataTransfer.files; f.dispatchEvent(new Event('change')); } });
+  })();
+</script>
 
 {# The statement list for the selected period — each row = full trust info + 1-click actions #}
 <h2 class="ca-h2">{{ selected_period }} statements</h2>

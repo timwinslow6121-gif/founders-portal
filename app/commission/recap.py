@@ -472,18 +472,25 @@ def commission_audit_overview(agency_id, period_label):
                            "quarantined": qn, "line_count": counts.get(s.id, 0)})
 
     # expected carriers = distinct carriers from active contracts (auto-updates).
-    expected = sorted({c.carrier for c in
-                       AgentCarrierContract.query.filter_by(agency_id=agency_id, is_active=True).all()
-                       if c.carrier})
-    # include any carrier that uploaded even if no contract maps it (don't hide data).
-    for c in uploaded_carriers:
-        if c not in expected:
-            expected.append(c)
-    checklist = [{"carrier": c, "uploaded": c in uploaded_carriers} for c in sorted(expected)]
+    expected = {c.carrier for c in
+                AgentCarrierContract.query.filter_by(agency_id=agency_id, is_active=True).all()
+                if c.carrier}
+    expected |= uploaded_carriers   # don't hide a carrier that actually uploaded
+
+    # Canonicalize display names: Medico + Wellable are the SAME carrier (everything
+    # is branded "Wellabe"; Medico is the parent). Collapse them to one chip, marked
+    # uploaded if EITHER underlying name has a statement this period.
+    def canon(name):
+        return "Wellabe" if name in ("Medico", "Wellable", "Wellabe") else name
+    seen = {}
+    for c in expected:
+        disp = canon(c)
+        seen[disp] = seen.get(disp, False) or any(canon(u) == disp for u in uploaded_carriers)
+    checklist = [{"carrier": d, "uploaded": up} for d, up in sorted(seen.items())]
 
     return {"period_label": period_label, "statements": statements,
             "checklist": checklist,
-            "carriers_uploaded": len(uploaded_carriers),
+            "carriers_uploaded": sum(1 for c in checklist if c["uploaded"]),
             "carriers_expected": len(checklist),
             "statement_count": len(statements),
             "total_quarantined": total_quarantined}

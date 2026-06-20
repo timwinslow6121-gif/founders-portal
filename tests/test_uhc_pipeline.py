@@ -164,6 +164,48 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
     assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
 
 
+def test_uhc_new_comptype_r_prorates_agent_and_125_override():
+    """New-to-Medicare, Comp Type R: agent = $28.9167 × months-remaining (13−eff_month),
+    Founders override = the rest (the flat $125). Proven vs AJ's file: Shelly Argrett
+    $327.42 eff 6/1 → agent $202.42 (7mo) + override $125. Comp Type I New is NOT
+    auto-split (stays quarantined)."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                        FOUNDERS_OVERRIDE, NEEDS_MANUAL_REVIEW)
+    from datetime import datetime
+
+    header = [""] * 27
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[11] = "Original Effective Date"
+    header[12] = "Plan Type"; header[19] = "Commission Action"; header[23] = "Commission"
+    header[26] = "Comp Type"
+
+    def row(member, plan, action, comp, eff, amt):
+        r = [""] * 27
+        r[5] = "LONG, REBEKAH"; r[7] = member; r[11] = eff; r[12] = plan
+        r[19] = action; r[23] = amt; r[26] = comp
+        return r
+
+    sheets = {"Commission Transactions": [
+        header,
+        # Argrett: single R row $327.42 eff 6/1 → 7mo agent $202.42 + $125 override
+        row("ARGRETT, SHELLY", "CSNP", "New", "R", datetime(2026, 6, 1), 327.42),
+        # a Comp Type I New row → must STAY quarantined (not auto-split)
+        row("BEATY, ADAM", "DSNP", "New", "I", datetime(2026, 5, 1), 462.66),
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by = {(round(i.raw_amount, 2), i.classification) for i in items}
+    # Argrett split exactly: $202.42 agent + $125 override
+    assert (202.42, AGENT_COMMISSION) in by
+    assert (125.0, FOUNDERS_OVERRIDE) in by
+    # the agent part splits (has a rate); the override doesn't
+    agent_row = next(i for i in items if round(i.raw_amount, 2) == 202.42)
+    ovr_row = next(i for i in items if round(i.raw_amount, 2) == 125.0)
+    assert agent_row.split_rate == 0.55 and ovr_row.split_rate is None
+    # Comp Type I New stays quarantined
+    beaty = next(i for i in items if round(i.raw_amount, 2) == 462.66)
+    assert beaty.classification == NEEDS_MANUAL_REVIEW
+
+
 def test_uhc_dvh_manual_payment_extracts_member_and_agent():
     """A DVH Manual Payment row has no member column — the member name + writing
     agent ID live inside the action string. The parser must pull the name out so the

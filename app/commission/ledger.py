@@ -575,7 +575,8 @@ _UHC_MBI = 8        # MedicareID
 _UHC_PLANTYPE = 12  # Plan Type (MAPD/DSNP/CSNP/MA = MA family; PARTD/AARP... = other)
 _UHC_ACTION = 19    # Commission Action
 _UHC_AMOUNT = 23    # Commission ($)
-_UHC_EFFDATE = 11
+_UHC_EFFDATE = 11   # Original Effective Date (col L) — drives New proration (months remaining)
+_UHC_COMPTYPE = 26  # Comp Type (col AA): 'R' = recurring/renewal portion, 'I' = initial
 
 # UHC per-member money constants (monthly), confirmed with Tim + the data.
 # Two money types only: a "renewal" (SPLITS agent%/Founders%) and a fixed
@@ -586,6 +587,12 @@ _UHC_OVERRIDE = 4.59    # ~$55/yr ÷ 12 — the Founders override (no split), al
 _UHC_NEW_OVERRIDE = 125.0   # flat 'New' Founders override fee (100% Founders, no split)
 _UHC_PARTD_OVERRIDE = 0.26  # fixed monthly Founders override on a Part D plan renewal
                             # (no split — 100% Founders), per Tim. NOT dust.
+# New-to-Medicare (Comp Type R) proration: the agent commission is the standard
+# renewal PMPM × months remaining in the calendar year (13 − effective_month), and
+# the Founders override is whatever's left (the flat $125 new-plan override). Proven
+# to the penny against AJ's worked files (Argrett $327.42 → agent 7×28.9167=$202.42,
+# override $125). PMPM uses the unrounded $347/12 like AJ's verification.
+_UHC_NEW_PMPM = 347.0 / 12.0   # 28.91666… — unrounded, matches AJ's math
 _UHC_RENEWAL_HMO = 28.92   # standard HMO MA renewal ($347/yr ÷ 12) — splits
 _UHC_RENEWAL_PPO = 26.09   # non-SNP PPO renewal (different comp) — splits
 _UHC_COMBINED_HMO = round(_UHC_RENEWAL_HMO + _UHC_OVERRIDE, 2)  # 33.51 = 28.92+4.59
@@ -735,6 +742,7 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
         action = str(row[_UHC_ACTION] or "").strip()
         action_l = action.lower()
         plan = str(row[_UHC_PLANTYPE] or "").strip().upper()
+        comp_type = str(row[_UHC_COMPTYPE] or "").strip().upper() if len(row) > _UHC_COMPTYPE else ""
         writing = _writing_for(row)
         member = str(row[_UHC_MEMBER] or "").strip()
         mbi = str(row[_UHC_MBI] or "").strip() or None
@@ -772,6 +780,30 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
             signed = _UHC_NEW_OVERRIDE if amount >= 0 else -_UHC_NEW_OVERRIDE
             out.append(draft(signed, FOUNDERS_OVERRIDE, None, sref, ptype="new override"))
             continue
+
+        # ── New-to-Medicare, Comp Type R: the agent commission is the standard
+        #    renewal PMPM prorated over the months remaining in the year (13 −
+        #    effective_month); the Founders override is the rest (the flat $125
+        #    new-plan override). Proven to the penny vs AJ's files (Argrett
+        #    $327.42 → agent 7×$28.9167=$202.42 + $125 override). Only Comp Type R
+        #    with a future effective date prorates this way; Comp Type I New rows
+        #    are NOT codified (inconsistent in the data) and fall through to
+        #    quarantine for AJ. A row that's already the bare $125 was handled above.
+        if (is_new and comp_type == "R" and eff is not None
+                and plan in _UHC_OVERRIDE_FAMILY):
+            months_remaining = 13 - eff.month
+            if 1 <= months_remaining <= 12:
+                agent_part = round(_UHC_NEW_PMPM * months_remaining, 2)
+                override_part = round(amount - agent_part, 2)
+                # Only auto-split when the leftover is a sane, non-negative override
+                # (the $125 fee, or $0). Anything weird → quarantine for AJ.
+                if 0 <= override_part <= _UHC_NEW_OVERRIDE + 0.01:
+                    out.append(draft(agent_part, AGENT_COMMISSION, rate, sref + "::r",
+                                     ptype="new (prorated)"))
+                    if override_part >= 0.005:
+                        out.append(draft(override_part, FOUNDERS_OVERRIDE, None, sref + "::o",
+                                         ptype="new override"))
+                    continue
 
         # ── Fixed $0.26 PARTD renewal = Founders override for a Part D plan (per
         #    Tim): 100% Founders, no split. (Was previously quarantined as "dust".)

@@ -35,6 +35,7 @@ WRITING_IDS = {
         "Mike Lauzurique": ("NPN", "18052208"),
         "Anjana Patel":    ("NPN", "21041582"),
         "Timothy Winslow": ("NPN", "18708064"),
+        "Betty Marlowe":   ("NPN", "6580706"),   # Betty Marlowe/Riddle NPN (her Humana book)
     },
 }
 

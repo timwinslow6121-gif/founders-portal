@@ -643,10 +643,29 @@ import re
 # string: "HA payment for agent ID 6337213 for member JEANETTE CATHCART MBI *****8VD98 ...".
 _UHC_HA_MEMBER_RE = re.compile(r"for member (.+?)\s+MBI\b", re.IGNORECASE)
 
+# DVH Manual Payment rows also carry no member column; the member + writing agent ID
+# are inside the action string:
+#   "New, DVH Manual Payment, ... written by 6435806 for JANA BENSON, State: NC, ...".
+_UHC_DVH_MEMBER_RE = re.compile(r"\bfor ([A-Za-z][A-Za-z .,'-]+?)\s*,\s*State\b", re.IGNORECASE)
+_UHC_DVH_AGENTID_RE = re.compile(r"written by\s+(\d+)", re.IGNORECASE)
+
 
 def _uhc_ha_member(action):
     """Extract the member name from a UHC HA-payment action string, else ''."""
     m = _UHC_HA_MEMBER_RE.search(str(action or ""))
+    return m.group(1).strip() if m else ""
+
+
+def _uhc_dvh_member(action):
+    """Extract the member name from a DVH Manual Payment action string, else ''.
+    e.g. '... for JANA BENSON, State: NC, ...' -> 'JANA BENSON'."""
+    m = _UHC_DVH_MEMBER_RE.search(str(action or ""))
+    return m.group(1).strip() if m else ""
+
+
+def _uhc_dvh_agent_id(action):
+    """Extract the writing-agent ID from a DVH action string ('written by 6435806'), else ''."""
+    m = _UHC_DVH_AGENTID_RE.search(str(action or ""))
     return m.group(1).strip() if m else ""
 
 
@@ -812,9 +831,19 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
         #    later), other-agent Med-Supp, PDP edge cases, DVH manual, garbage.
         #    Keep the full action string (AJ reads it in the quarantine tab) but
         #    cap to the payment_type column width (256) so an upload can never
-        #    fail on a long description.
+        #    fail on a long description. DVH Manual Payment rows carry no member
+        #    column — pull the member name (and writing-agent ID) out of the action
+        #    string so the quarantine row isn't '(unnamed)'.
+        q_member = member
+        if not q_member:
+            dvh_name = _uhc_dvh_member(action)
+            if dvh_name:
+                q_member = dvh_name
+                dvh_wid = _uhc_dvh_agent_id(action)
+                if dvh_wid and writing_id_to_name.get(dvh_wid):
+                    writing = writing_id_to_name[dvh_wid]
         out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref,
-                         ptype=(action[:256] or None)))
+                         ptype=(action[:256] or None), member_name=q_member))
     return out
 
 

@@ -164,6 +164,40 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
     assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
 
 
+def test_uhc_dvh_manual_payment_extracts_member_and_agent():
+    """A DVH Manual Payment row has no member column — the member name + writing
+    agent ID live inside the action string. The parser must pull the name out so the
+    quarantine row isn't '(unnamed)', and resolve the writing agent via the ID map."""
+    from app.commission.ledger import (extract_lineitems_uhc, NEEDS_MANUAL_REVIEW,
+                                        _uhc_dvh_member, _uhc_dvh_agent_id)
+
+    action = ("New, DVH Manual Payment, DVH 1000 Plan, 09/01/2025 eff, "
+              "Policy 450396656, written by 6435806 for JANA BENSON, State: NC, "
+              "Original Premium: $62.84")
+    assert _uhc_dvh_member(action) == "JANA BENSON"
+    assert _uhc_dvh_agent_id(action) == "6435806"
+
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+
+    def row(amt):
+        r = [""] * 24
+        r[4] = ""               # no writing-id in col 4 either; only in the string
+        r[7] = ""               # NO member column
+        r[12] = "DVH"; r[19] = action; r[23] = amt
+        return r
+
+    sheets = {"Commission Transactions": [header, row(29.53)]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={"6435806": "Rebekah Long"})
+    assert len(items) == 1
+    li = items[0]
+    assert li.classification == NEEDS_MANUAL_REVIEW   # still quarantined
+    assert li.member_name == "JANA BENSON"            # name pulled from the action
+    assert li.writing_agent_raw == "Rebekah Long"     # agent resolved via the ID map
+
+
 def test_uhc_new_125_is_founders_override_not_quarantined():
     """A flat $125.00 'New' UHC row is a 100% Founders override (no agent split) —
     a fixed referral/override fee that appears alongside the real New-enrollment

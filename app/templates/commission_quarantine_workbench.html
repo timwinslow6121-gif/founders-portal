@@ -33,6 +33,16 @@
   table.qw-table tr:last-child td { border-bottom:none; }
   table.qw-table td.num { text-align:right; font-variant-numeric: tabular-nums; font-weight:600; }
   td.num.neg { color: var(--status-error); }
+  /* fixed layout so a long action string in the Member cell WRAPS instead of
+     blowing out the column widths and smooshing the resolve form. */
+  table.qw-table { table-layout: fixed; }
+  table.qw-table col.col-member { width: 230px; }
+  table.qw-table col.col-amount { width: 92px; }
+  table.qw-table col.col-resolve { width: auto; }
+  td.qw-member { vertical-align: top; }
+  td.qw-member .m-name { font-weight:600; }
+  td.qw-member .m-meta { font-size:11px; color:var(--slate); margin-top:2px;
+                         overflow-wrap:anywhere; word-break:break-word; line-height:1.35; }
   /* resolve form — labeled fields + live agent-gets preview so it's unambiguous */
   .qr-form { display:flex; gap:14px; align-items:flex-end; justify-content:flex-end; padding:4px 0; flex-wrap:wrap; }
   .qr-field { display:flex; flex-direction:column; gap:3px; }
@@ -70,9 +80,9 @@
 {% block content %}
 {% macro qrow(r, show_month=False) %}
   <tr>
-    <td>
-      <div>{{ r.member_name }} <span class="qw-carrier">· {{ r.carrier }}</span></div>
-      <div style="font-size:11px;color:var(--slate);">{% if show_month %}{{ r.period_label }} · {% endif %}{% if r.mbi %}MBI {{ r.mbi }} · {% endif %}{{ r.action or '—' }}</div>
+    <td class="qw-member">
+      <div class="m-name">{{ r.member_name }} <span class="qw-carrier">· {{ r.carrier }}</span></div>
+      <div class="m-meta">{% if show_month %}{{ r.period_label }} · {% endif %}{% if r.mbi %}MBI {{ r.mbi }} · {% endif %}{{ r.action or '—' }}</div>
     </td>
     <td class="num{{ ' neg' if r.amount < 0 else '' }}">${{ '%.2f'|format(r.amount) }}</td>
     <td colspan="3" style="padding:0;">
@@ -169,6 +179,7 @@
           <span class="meta">{{ g.count }} line{{ '' if g.count == 1 else 's' }} · ${{ '%.2f'|format(g.total) }}</span>
         </div>
         <table class="qw-table">
+          <colgroup><col class="col-member"><col class="col-amount"><col class="col-resolve"></colgroup>
           <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Resolve — pick agent + Founders override</th></tr></thead>
           <tbody>
             {% for r in g.rows %}{{ qrow(r) }}{% endfor %}
@@ -182,6 +193,7 @@
     <div class="qw-card">
       <div class="qw-card-title">Sorted by amount — identical amounts grouped together</div>
       <table class="qw-table">
+        <colgroup><col class="col-member"><col class="col-amount"><col class="col-resolve"></colgroup>
         <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Resolve — pick agent + Founders override</th></tr></thead>
         <tbody>
           {% for r in wb.flat %}{{ qrow(r, show_month=True) }}{% endfor %}

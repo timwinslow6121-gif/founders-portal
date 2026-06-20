@@ -202,6 +202,10 @@ def test_fidelity_page_has_inline_edit_form(db_session, app, client, agency, age
     assert "Renewal commission (monthly)" in body         # friendly label for arcm
     assert f"/admin/commissions/line/{lid}/edit" in body   # inline edit form present
     assert "fdedit-" in body                                # the edit toggle
+    # #6/#7: sticky-scroll container + sortable headers + agent filter
+    assert "fd-scroll" in body
+    assert 'data-sort="member"' in body and 'data-sort="amount"' in body
+    assert 'id="fdAgent"' in body
 
 
 def test_display_name_normalizes_carrier_names():

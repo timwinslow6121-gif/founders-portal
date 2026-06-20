@@ -24,9 +24,12 @@
   .fd-filters input.fd-search { flex: 1 1 220px; min-width: 180px; }
   .fd-filters .fd-clear { color: var(--gold); font-size: 12px; text-decoration: none; cursor: pointer; margin-left: auto; }
   .fd-shown { font-size: 12px; color: var(--slate); }
-  .fd-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 4px 14px 8px; overflow-x: auto; margin: 0 0 22px; }
+  .fd-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 4px 14px 8px; margin: 0 0 22px; }
   .fd-card-title { margin: 10px 4px 4px; font-size: 16px; color: var(--ivory-bright); }
   .fd-card-title .ct-sub { font-size: 12px; color: var(--slate); font-weight: 400; }
+  /* the scroll container is what sticky headers/footers stick to — a tall list
+     scrolls WITHIN this box and the header stays pinned. */
+  .fd-scroll { max-height: 70vh; overflow: auto; }
   table.fd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.fd-table th { text-align: right; padding: 9px 10px; border-bottom: 2px solid var(--border);
                       position: sticky; top: 0; z-index: 2; background: var(--surface);
@@ -75,7 +78,7 @@
 
 {% block content %}
 {% macro fdrow(r) %}
-  <tr class="fd-row" data-member="{{ r.member_display|lower }}" data-type="{{ r.classification }}" data-amount="{{ r.raw }}">
+  <tr class="fd-row" data-member="{{ r.member_display|lower }}" data-agent="{{ r.agent_name|lower }}" data-type="{{ r.classification }}" data-amount="{{ r.raw }}">
     <td class="fd-mname">
       {% if r.customer_id %}<a href="{{ url_for('customers.customer_profile', customer_id=r.customer_id) }}">{{ r.member_display }}</a>
       {% else %}{{ r.member_display }}{% endif %}
@@ -117,11 +120,16 @@
 {% macro fdtable(rows, title, sub) %}
   {% if rows %}
   <div class="fd-card">
-    <div class="fd-card-title">{{ title }} <span class="ct-sub">· {{ rows|length }} line{{ '' if rows|length == 1 else 's' }}</span></div>
+    <div class="fd-card-title">{{ title }} <span class="ct-sub">· {{ rows|length }} line{{ '' if rows|length == 1 else 's' }} · click a column to sort</span></div>
+    <div class="fd-scroll">
     <table class="fd-table">
       <thead><tr>
-        <th class="l">Member · Agent</th><th>Raw (file)</th><th>Agent commission</th>
-        <th>Founders override</th><th class="l">Type / how it was split</th><th></th>
+        <th class="l sortable" data-sort="member">Member <span class="sa"></span></th>
+        <th class="sortable" data-sort="amount">Raw (file) <span class="sa"></span></th>
+        <th>Agent commission</th>
+        <th>Founders override</th>
+        <th class="l sortable" data-sort="type">Type / how it was split <span class="sa"></span></th>
+        <th></th>
       </tr></thead>
       <tbody>
         {% for r in rows %}{{ fdrow(r) }}{% endfor %}
@@ -136,6 +144,7 @@
         </tr>
       </tfoot>
     </table>
+    </div>
   </div>
   {% endif %}
 {% endmacro %}
@@ -176,6 +185,12 @@
 
   <div class="fd-filters">
     <input type="text" class="fd-search" id="fdSearch" placeholder="Search member name…">
+    <select id="fdAgent">
+      <option value="">All agents</option>
+      {% for a in fv.rows|map(attribute='agent_name')|unique|sort %}
+      <option value="{{ a|lower }}">{{ a }}</option>
+      {% endfor %}
+    </select>
     <select id="fdType">
       <option value="">All types</option>
       {% for t in fv.rows|map(attribute='classification')|unique|sort %}
@@ -198,24 +213,59 @@
 <script>
   (function(){
     var search=document.getElementById('fdSearch'), typeSel=document.getElementById('fdType'),
+        agentSel=document.getElementById('fdAgent'),
         minI=document.getElementById('fdMin'), maxI=document.getElementById('fdMax'),
         shown=document.getElementById('fdShown'), clear=document.getElementById('fdClear');
     function apply(){
-      var q=(search.value||'').toLowerCase().trim(), t=typeSel.value,
+      var q=(search.value||'').toLowerCase().trim(), t=typeSel.value, ag=agentSel.value,
           mn=parseFloat(minI.value), mx=parseFloat(maxI.value);
       var vis=0, tot=0;
       document.querySelectorAll('tr.fd-row').forEach(function(row){
         var m=row.getAttribute('data-member'), ty=row.getAttribute('data-type'),
-            amt=parseFloat(row.getAttribute('data-amount'));
-        var ok = (!q || m.indexOf(q)>-1) && (!t || ty===t)
+            ar=row.getAttribute('data-agent'), amt=parseFloat(row.getAttribute('data-amount'));
+        var ok = (!q || m.indexOf(q)>-1) && (!t || ty===t) && (!ag || ar===ag)
               && (isNaN(mn) || amt>=mn) && (isNaN(mx) || amt<=mx);
         row.style.display = ok ? '' : 'none';
+        // keep each row's paired edit form in sync (hide it with its row)
+        var edit = row.nextElementSibling;
+        if(edit && edit.classList.contains('fd-editrow')) edit.style.display = ok ? '' : 'none';
         if(ok){ vis++; } tot++;
       });
-      shown.textContent = (q||t||!isNaN(mn)||!isNaN(mx)) ? (vis+' of '+tot+' shown') : '';
+      var active = q||t||ag||!isNaN(mn)||!isNaN(mx);
+      shown.textContent = active ? (vis+' of '+tot+' shown') : '';
     }
-    [search,typeSel,minI,maxI].forEach(function(el){ el.addEventListener('input',apply); el.addEventListener('change',apply); });
-    clear.addEventListener('click',function(){ search.value=''; typeSel.value=''; minI.value=''; maxI.value=''; apply(); });
+    [search,typeSel,agentSel,minI,maxI].forEach(function(el){ el.addEventListener('input',apply); el.addEventListener('change',apply); });
+    clear.addEventListener('click',function(){ search.value=''; typeSel.value=''; agentSel.value=''; minI.value=''; maxI.value=''; apply(); });
+
+    // Click-to-sort column headers (per table; keeps each data row paired with its edit form).
+    document.querySelectorAll('table.fd-table').forEach(function(tbl){
+      var tbody=tbl.querySelector('tbody');
+      tbl.querySelectorAll('th.sortable').forEach(function(th){
+        th.style.cursor='pointer';
+        th.addEventListener('click',function(){
+          var key=th.getAttribute('data-sort');
+          var asc = th.getAttribute('data-dir') !== 'asc';
+          // clear arrows on sibling headers
+          tbl.querySelectorAll('th.sortable').forEach(function(o){ o.removeAttribute('data-dir'); var s=o.querySelector('.sa'); if(s) s.textContent=''; });
+          th.setAttribute('data-dir', asc?'asc':'desc');
+          var sa=th.querySelector('.sa'); if(sa) sa.textContent = asc?' ▲':' ▼';
+          // gather (row, its edit-row) pairs
+          var pairs=[];
+          tbody.querySelectorAll('tr.fd-row').forEach(function(row){
+            var edit=row.nextElementSibling;
+            if(edit && !edit.classList.contains('fd-editrow')) edit=null;
+            pairs.push([row, edit]);
+          });
+          pairs.sort(function(a,b){
+            var x,y;
+            if(key==='amount'){ x=parseFloat(a[0].getAttribute('data-amount')); y=parseFloat(b[0].getAttribute('data-amount')); return asc? x-y : y-x; }
+            x=a[0].getAttribute('data-'+key)||''; y=b[0].getAttribute('data-'+key)||'';
+            return asc ? x.localeCompare(y) : y.localeCompare(x);
+          });
+          pairs.forEach(function(p){ tbody.appendChild(p[0]); if(p[1]) tbody.appendChild(p[1]); });
+        });
+      });
+    });
   })();
 
   // Inline edit: live-check that agent + Founders = the row's raw amount (the

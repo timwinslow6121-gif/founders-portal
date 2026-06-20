@@ -799,6 +799,10 @@ class CommissionLineItem(db.Model):
 
     raw_amount    = db.Column(db.Float, nullable=False)   # exactly what the sheet shows; may be negative. The TRUTH.
     split_rate    = db.Column(db.Float, nullable=True)    # snapshotted at import; NULL for founders_override
+    # AJ hand-corrected this line's split in the Fidelity/quarantine UI. When True the
+    # agent_amount is the FINAL payout (split_rate forced to 1.0) and a re-upload must
+    # PRESERVE it (or flag a conflict) rather than blindly re-parse over the manual fix.
+    manually_adjusted = db.Column(db.Boolean, default=False)
 
     classification = db.Column(db.String(32), nullable=False, index=True)
     payment_type   = db.Column(db.String(256))            # descriptive: renewal|initial|hra|override|... (UHC quarantine rows store the full action string for AJ's triage)

@@ -983,6 +983,7 @@ def _snapshot_line(line) -> dict:
         "split_rate": line.split_rate,
         "agent_id": line.agent_id,
         "payment_type": line.payment_type,
+        "manually_adjusted": line.manually_adjusted,
     }
 
 
@@ -1107,12 +1108,18 @@ def undo_last_change(line, *, user_id=None) -> bool:
     return True
 
 
-def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate, user_id=None):
-    """Correct a line's agent-commission / founders-override split in place. The
-    two amounts MUST sum to the line's current combined total (its raw plus any
-    existing ::ovr sibling) — an edit can never change Σ raw or break the
-    agent+override==combined invariant. Records an action="edit" revision. Caller
-    commits. Raises ValueError if the amounts don't sum to the original combined."""
+def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate=None, user_id=None):
+    """Correct a line's agent-commission / founders-override split in place. AJ enters
+    the EXACT dollars: `agent_amount` is what the agent receives (the final payout) and
+    `override_amount` is the 100%-Founders portion; they MUST sum to the line's current
+    combined total (raw + any ::ovr sibling), so an edit can never change Σ raw.
+
+    The agent's entered dollars are stored as the FINAL payout — the line keeps
+    raw_amount = agent_amount with split_rate = 1.0, so split_breakdown() reproduces
+    EXACTLY what AJ typed in the recap (no contract rate is re-applied on top — AJ
+    already did the split). This is what lets a special case like Anjana's 'keeps
+    100% of the post-override amount' stick through to her recap. `split_rate` param
+    is ignored (kept for back-compat). Records an action="edit" revision; caller commits."""
     from app.models import CommissionLineItem, CommissionLineItemRevision
     import json
     ovr_ref = f"{line.source_ref}::ovr"
@@ -1131,7 +1138,10 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
     line.classification = (CHARGEBACK if agent_amount < 0 else AGENT_COMMISSION)
     line.raw_amount = agent_amount
     line.agent_id = agent_id
-    line.split_rate = split_rate
+    # AJ's agent_amount IS the final payout → store rate 1.0 so split_breakdown
+    # returns exactly that (the contract rate is NOT re-applied on top).
+    line.split_rate = 1.0
+    line.manually_adjusted = True
 
     # Snapshot the sibling's state BEFORE this edit mutates/deletes/creates it,
     # so undo can restore EXACTLY what was there before (None = it didn't exist).

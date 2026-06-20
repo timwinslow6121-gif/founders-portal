@@ -1364,16 +1364,13 @@ def commission_line_edit(line_id):
         flash("Enter valid amounts.", "error")
         return redirect(back)
 
-    # split rate from the agent's contract for this carrier (fallback 0.55) — same
-    # lookup as commission_quarantine_resolve. NEVER hardcode this.
-    contract = AgentCarrierContract.query.filter_by(
-        agent_id=agent.id, carrier=li.carrier, is_active=True,
-        agency_id=current_user.agency_id).first()
-    split_rate = contract.split_rate if contract else 0.55
-
+    # AJ enters the EXACT dollars (agent + Founders override). edit_line_split stores
+    # the agent amount as the final payout (split_rate=1.0), so no contract rate is
+    # re-applied — this is what lets a special case (e.g. Anjana keeps 100% of the
+    # post-override amount) flow through to her recap unchanged.
     try:
         edit_line_split(li, agent_amount=agent_amount, override_amount=override_amount,
-                        agent_id=agent.id, split_rate=split_rate, user_id=current_user.id)
+                        agent_id=agent.id, user_id=current_user.id)
         db.session.commit()
     except ValueError as e:
         db.session.rollback()

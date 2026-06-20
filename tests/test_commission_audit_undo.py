@@ -27,7 +27,8 @@ def test_snapshot_line_captures_mutable_fields(db_session, app, agency):
         db.session.add(li); db.session.flush()
         snap = _snapshot_line(li)
         assert snap == {"classification": "needs_manual_review", "raw_amount": 33.51,
-                        "split_rate": None, "agent_id": 7, "payment_type": "New"}
+                        "split_rate": None, "agent_id": 7, "payment_type": "New",
+                        "manually_adjusted": False}
 
 
 def test_resolve_writes_a_revision_with_before_state(db_session, app, agency):
@@ -212,16 +213,14 @@ def test_undo_after_edit_restores_state(db_session, app, agency):
             statement_id=1, source_ref="uhc::0::5::ovr").count() == 0
 
 
-def test_undo_after_edit_restores_original_split_rate(db_session, app, agency):
-    """Real bug: the EDIT ROUTE used to set li.split_rate to the NEW agent's
-    contract rate BEFORE calling edit_line_split, so the audit snapshot
-    captured the wrong (already-mutated) split_rate, and undo restored the
-    NEW rate instead of the rate the line actually had before the edit.
-    edit_line_split must own the split_rate assignment so the snapshot
-    captures the TRUE prior state."""
+def test_edit_stores_agent_amount_as_final_payout_and_undo_restores(db_session, app, agency):
+    """A manual edit stores AJ's agent_amount as the FINAL payout (split_rate=1.0,
+    manually_adjusted=True) so split_breakdown reproduces his exact dollars in the
+    recap — and undo restores the TRUE prior state (the snapshot must capture it
+    before the edit mutates it)."""
     from app.extensions import db
     from app.models import CommissionLineItem
-    from app.commission.ledger import edit_line_split, undo_last_change
+    from app.commission.ledger import edit_line_split, undo_last_change, split_breakdown
     with app.app_context():
         li = CommissionLineItem(
             agency_id=agency.id, statement_id=1, carrier="UHC",
@@ -229,16 +228,18 @@ def test_undo_after_edit_restores_original_split_rate(db_session, app, agency):
             classification="agent_commission", payment_type="renewal", agent_id=7)
         db.session.add(li); db.session.flush()
 
-        # edit by an agent whose contract is 0.525 (different from the line's
-        # current 0.55)
         edit_line_split(li, agent_amount=28.92, override_amount=4.59,
-                        agent_id=7, split_rate=0.525, user_id=3)
+                        agent_id=7, user_id=3)
         db.session.commit()
-        assert li.split_rate == 0.525
+        # the agent's entered $ is the FINAL payout (rate forced to 1.0, flagged)
+        assert li.split_rate == 1.0
+        assert li.manually_adjusted is True
+        payout, _ = split_breakdown(li)
+        assert round(payout, 2) == 28.92   # exactly what AJ entered, not 28.92×0.55
 
         ok = undo_last_change(li, user_id=3)
         db.session.commit()
         assert ok is True
-        assert li.split_rate == 0.55   # RESTORED to the original, NOT 0.525
+        assert li.split_rate == 0.55   # RESTORED to the original
         assert li.raw_amount == 33.51
         assert li.classification == "agent_commission"

@@ -211,11 +211,11 @@
   </div>
   <div class="carrier-grid">
     {% for row in carrier_rows %}
-    <div class="carrier-card" style="background:{{ row.color }}">
+    <a class="carrier-card" href="{{ url_for('carriers.carrier_detail', carrier=row.carrier) }}" style="background:{{ row.color }};text-decoration:none;">
       <div class="carrier-card-name">{{ row.carrier }}</div>
       <div class="carrier-card-count">{{ "{:,}".format(row.count) }}</div>
       <div class="carrier-card-pct">{{ row.pct }}%</div>
-    </div>
+    </a>
     {% endfor %}
   </div>
 </div>
@@ -258,7 +258,7 @@
           <td class="fw-medium" style="color:var(--status-resolved);">{{ row.payout }}</td>
           <td>
             {% for c in row.top_carriers %}
-            <span class="carrier-tag" style="background:{{ carrier_color(c.key) }}">{{ c.key }} {{ c.count }}</span>
+            <a href="{{ url_for('carriers.carrier_detail', carrier=c.key) }}" class="carrier-tag" style="background:{{ carrier_color(c.key) }};text-decoration:none;">{{ c.key }} {{ c.count }}</a>
             {% endfor %}
           </td>
         </tr>

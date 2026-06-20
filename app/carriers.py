@@ -13,6 +13,10 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
 from app.models import Plan, Customer, Policy
+from app.metrics import (Scope, policy_count, book_breakdown,
+                         commission_totals, upcoming_terms, attribution_coverage)
+from app.branding import carrier_color
+from app.commission.recap import latest_period_with_data
 
 carriers_bp = Blueprint("carriers", __name__)
 
@@ -105,6 +109,64 @@ def _serialize_benefits(existing_json_str, form):
 
 def _base_query():
     return Plan.query.filter_by(agency_id=current_user.agency_id)
+
+
+@carriers_bp.route("/carriers/c/<carrier>")
+@login_required
+def carrier_detail(carrier):
+    """Carrier drill-down: book + money + attribution, all via app/metrics.py.
+    `/c/` prefix avoids colliding with /carriers/<int:plan_id> below."""
+    agency_id = current_user.agency_id
+    # Agency-vs-own toggle: ?view=mine scopes to the current agent.
+    # Non-admins always see only their own book regardless of the query arg.
+    agent_id = current_user.id if request.args.get("view") == "mine" else None
+    if agent_id is None and not current_user.is_admin:
+        agent_id = current_user.id
+    scope = Scope(agency_id=agency_id, agent_id=agent_id, carrier=carrier)
+    agency_scope = Scope(agency_id=agency_id, carrier=carrier)
+    period = latest_period_with_data(agency_id)
+
+    total = policy_count(scope)
+    agency_total = policy_count(agency_scope)
+    pct_of_agency = round(total / agency_total * 100, 1) if agency_total else 0.0
+
+    # Best-effort balance badge: only show it if a real statement+result exists
+    # for this carrier+period — never fabricate a balance.
+    balance = None
+    if period:
+        from app.models import CommissionStatement
+        from app.commission.recap import balance_status
+        stmt = (CommissionStatement.query
+                .filter_by(agency_id=agency_id, carrier=carrier, period_label=period)
+                .order_by(CommissionStatement.statement_date.desc())
+                .first())
+        if stmt is not None:
+            state, delta = balance_status(stmt)
+            if state != "unknown":
+                balance = {"state": state, "delta": delta}
+
+    book = book_breakdown(scope)
+    # Best-effort plan_id resolution for linking the plans table to plan_detail
+    # (not a book/money count — just an id lookup keyed off names already in `book`).
+    plan_names = [r["key"] for r in book["by_plan"] if r["key"] and r["key"] != "—"]
+    plan_id_map = {}
+    if plan_names:
+        for p in (Plan.query.filter_by(agency_id=agency_id, carrier=carrier)
+                  .filter(Plan.plan_name.in_(plan_names)).all()):
+            plan_id_map[p.plan_name] = p.id
+
+    return render_template("carrier_detail.html",
+        carrier=carrier, color=carrier_color(carrier),
+        total=total, agency_total=agency_total, pct_of_agency=pct_of_agency,
+        coverage=attribution_coverage(scope),
+        book=book, plan_id_map=plan_id_map,
+        money=commission_totals(Scope(agency_id=agency_id, agent_id=agent_id,
+                                      carrier=carrier, period=period)),
+        balance=balance,
+        terms=upcoming_terms(scope, days=30),
+        period=period,
+        carrier_color=carrier_color,
+        view_mine=(agent_id is not None and current_user.is_admin))
 
 
 @carriers_bp.route("/carriers")

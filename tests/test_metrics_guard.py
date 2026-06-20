@@ -10,7 +10,10 @@ SCANNED = ["app/routes.py", "app/carriers.py", "app/commission/routes.py"]
 # Files/lines knowingly still computing their own numbers (shrink over time).
 # Format: (relpath, substring that identifies the allowed line)
 ALLOWLIST = {
-    # e.g. ("app/commission/routes.py", "_reconcile"),  # Round 2 rebuilds this
+    # Per-plan member counts for the plan list (Policy.plan_id -> count); this is a
+    # plan-detail tally, not the agency book/money the guard targets. Round 3 audit
+    # may fold this into metrics.py.
+    ("app/carriers.py", "Policy.plan_id"),
 }
 
 COUNT_RE = re.compile(r"func\.count\(\s*Policy|\.filter_by\([^)]*\)\.count\(\)|Policy\.query[\s\S]{0,80}\.count\(\)")

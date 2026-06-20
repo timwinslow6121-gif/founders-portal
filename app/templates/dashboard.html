@@ -436,6 +436,20 @@
   </div>
 </div>
 
+{% if carrier_breakdown %}
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+  {% for row in carrier_breakdown %}
+  <a href="{{ url_for('carriers.carrier_detail', carrier=row.carrier) }}"
+     style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+            background:{{ row.color }};color:#fff;font-size:12px;font-weight:600;
+            letter-spacing:0.04em;text-decoration:none;text-transform:uppercase;">
+    {{ row.carrier }}
+    <span style="opacity:0.85;font-weight:500;">{{ row.count }} · {{ row.pct }}%</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- ── MAIN GRID ── -->
 <div class="dash-grid">
 

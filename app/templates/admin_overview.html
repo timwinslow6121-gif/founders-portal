@@ -38,6 +38,11 @@
   letter-spacing: 0.04em;
 }
 .metric-sub.warn { color: var(--status-error-text); }
+.metric-sub a, .metric-link {
+  color: var(--gold);
+  text-decoration: none;
+}
+.metric-sub a:hover, .metric-link:hover { text-decoration: underline; }
 
 /* ── Agent avatar ── */
 .agent-avatar {
@@ -74,13 +79,13 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  background: color-mix(in srgb, var(--gold) 10%, transparent);
-  color: var(--gold);
+  color: #fff;
   padding: 2px 7px;
   display: inline-block;
   margin-right: 3px;
   margin-bottom: 2px;
   text-transform: uppercase;
+  border-radius: 4px;
 }
 
 /* ── Carrier grid ── */
@@ -91,30 +96,28 @@
   padding: 16px;
 }
 .carrier-card {
-  background: var(--surface-mid);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px 14px;
   text-align: center;
+  color: #fff;
 }
 .carrier-card-name {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--slate);
+  opacity: 0.85;
   margin-bottom: 8px;
 }
 .carrier-card-count {
   font-family: var(--font-serif);
   font-size: 1.6rem;
   font-weight: 300;
-  color: var(--ivory-bright);
   line-height: 1;
 }
 .carrier-card-pct {
   font-size: 12px;
-  color: var(--slate);
+  opacity: 0.85;
   margin-top: 4px;
 }
 
@@ -174,22 +177,30 @@
   <div class="metric">
     <div class="metric-label">Total Active Policies</div>
     <div class="metric-value">{{ "{:,}".format(total_policies) }}</div>
-    <div class="metric-sub">Across all agents</div>
+    {% if coverage.pct >= 100 %}
+      <div class="metric-sub">✓ 100% attributed</div>
+    {% else %}
+      <div class="metric-sub warn">
+        <a href="{{ url_for('main.unattributed_policies') }}">{{ coverage.total - coverage.attributed }} unattributed →</a>
+      </div>
+    {% endif %}
   </div>
   <div class="metric">
     <div class="metric-label">Upcoming Terms (90d)</div>
-    <div class="metric-value">{{ total_terms_90 }}</div>
-    <div class="metric-sub {% if total_terms_30 > 0 %}warn{% endif %}">{{ total_terms_30 }} critical (&lt;30 days)</div>
+    <div class="metric-value">{{ terms_90 }}</div>
+    <div class="metric-sub {% if terms_30 > 0 %}warn{% endif %}">{{ terms_30 }} critical (&lt;30 days)</div>
   </div>
   <div class="metric">
-    <div class="metric-label">Est. Monthly Commission</div>
-    <div class="metric-value">{{ total_monthly_split }}</div>
-    <div class="metric-sub">{{ total_monthly_gross }} gross · 55% split</div>
+    <div class="metric-label">Commissions — {{ commission_period or "—" }}</div>
+    <div class="metric-value">{{ agency_payout }}</div>
+    <div class="metric-sub">Agent payout (actual ledger)</div>
   </div>
   <div class="metric">
-    <div class="metric-label">Est. Annual Commission</div>
-    <div class="metric-value">{{ total_annual_split }}</div>
-    <div class="metric-sub">MAPD flat rate only</div>
+    <div class="metric-label">Founders Keep — {{ commission_period or "—" }}</div>
+    <div class="metric-value">{{ founders_keep }}</div>
+    {% if reconciliation_url %}
+      <div class="metric-sub"><a href="{{ reconciliation_url }}">Reconcile →</a></div>
+    {% endif %}
   </div>
 </div>
 
@@ -199,8 +210,8 @@
     <span class="text-muted" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{{ total_policies }} total</span>
   </div>
   <div class="carrier-grid">
-    {% for row in agency_carrier_rows %}
-    <div class="carrier-card">
+    {% for row in carrier_rows %}
+    <div class="carrier-card" style="background:{{ row.color }}">
       <div class="carrier-card-name">{{ row.carrier }}</div>
       <div class="carrier-card-count">{{ "{:,}".format(row.count) }}</div>
       <div class="carrier-card-pct">{{ row.pct }}%</div>
@@ -222,8 +233,7 @@
           <th>Policies</th>
           <th style="width:140px">Share of Book</th>
           <th>Terms &lt;30d</th>
-          <th>Monthly Est.</th>
-          <th>Annual Est.</th>
+          <th>Commission Payout</th>
           <th>Top Carriers</th>
         </tr>
       </thead>
@@ -231,9 +241,9 @@
         {% for row in agent_rows %}
         <tr>
           <td>
-            <a href="{{ url_for('main.agent_detail', agent_id=row.agent.id) }}" style="text-decoration:none;display:inline-flex;align-items:center;">
-              <span class="agent-avatar">{{ row.agent.initials }}</span>
-              <span style="font-weight:500;color:var(--gold);">{{ row.agent.display_name }}</span>
+            <a href="{{ url_for('main.agent_detail', agent_id=row.agent_id) }}" style="text-decoration:none;display:inline-flex;align-items:center;">
+              <span class="agent-avatar">{{ row.name[:2]|upper }}</span>
+              <span style="font-weight:500;color:var(--gold);">{{ row.name }}</span>
             </a>
           </td>
           <td class="fw-medium">{{ "{:,}".format(row.count) }}</td>
@@ -243,12 +253,14 @@
           </td>
           <td>
             {% if row.terms_30 > 0 %}<span class="badge badge-red">{{ row.terms_30 }} critical</span>
-            {% elif row.terms_90 > 0 %}<span class="badge badge-amber">{{ row.terms_90 }} upcoming</span>
             {% else %}<span class="badge badge-green">None</span>{% endif %}
           </td>
-          <td class="fw-medium" style="color:var(--status-resolved);">{{ row.monthly_yours }}</td>
-          <td class="fw-medium">{{ row.annual_yours }}</td>
-          <td>{% for carrier, count in row.top_carriers %}<span class="carrier-tag">{{ carrier }} {{ count }}</span>{% endfor %}</td>
+          <td class="fw-medium" style="color:var(--status-resolved);">{{ row.payout }}</td>
+          <td>
+            {% for c in row.top_carriers %}
+            <span class="carrier-tag" style="background:{{ carrier_color(c.key) }}">{{ c.key }} {{ c.count }}</span>
+            {% endfor %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Unattributed Policies{% endblock %}
+
+{% block styles %}
+.unattr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.unattr-table th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-align: left;
+  padding: 11px 16px;
+  background: var(--surface-high);
+  white-space: nowrap;
+}
+.unattr-table td {
+  padding: 11px 16px;
+  color: var(--ivory);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+.unattr-table tr:last-child td { border-bottom: none; }
+.unattr-table tr:hover td { background: var(--surface-mid); }
+.unattr-table a { color: var(--gold); text-decoration: none; }
+.unattr-table a:hover { text-decoration: underline; }
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--slate);
+}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Unattributed Policies</h1>
+    <p class="page-sub">Active policies with no agent on file — fix attribution at the source (BOB upload writing-id mapping) or assign manually.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Policies</span>
+    <span class="text-muted" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{{ rows|length }} unattributed</span>
+  </div>
+  {% if rows %}
+  <div style="overflow-x:auto;">
+    <table class="unattr-table">
+      <thead>
+        <tr>
+          <th>Carrier</th>
+          <th>Writing ID</th>
+          <th>Member</th>
+          <th>Profile</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.carrier }}</td>
+          <td>{{ row.agent_id_carrier or "—" }}</td>
+          <td>{{ row.member or "—" }}</td>
+          <td>
+            {% if row.customer_id %}
+              <a href="{{ url_for('customers.customer_profile', customer_id=row.customer_id) }}">View profile →</a>
+            {% else %}
+              <span class="text-muted">No customer record</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">✓ All active policies are attributed to an agent.</div>
+  {% endif %}
+</div>
+{% endblock %}

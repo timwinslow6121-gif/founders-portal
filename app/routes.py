@@ -2,24 +2,14 @@ from datetime import date, timedelta
 from types import SimpleNamespace
 from flask import Blueprint, render_template, redirect, url_for, abort, request, Response
 from flask_login import login_required, current_user
-from sqlalchemy import func
 from app.extensions import db
 from app.models import Customer, CustomerNote, Policy, ImportBatch, User, AuditLog
 from app.metrics import (Scope, policy_count, book_breakdown,
-                         commission_totals, upcoming_terms)
+                         commission_totals, upcoming_terms, attribution_coverage)
 from app.branding import carrier_color
 from app.commission.recap import latest_period_with_data
 
 main = Blueprint('main', __name__)
-
-# NOTE: MAPD_MONTHLY_RATE / SPLIT_RATE used to live here as fake estimate
-# constants. _build_dashboard_context (used by /dashboard + /admin/agent/<id>)
-# no longer uses them — it routes through app/metrics.py + the commission
-# ledger for real money. admin_overview() below still has its own
-# MAPD_MONTHLY_RATE/SPLIT_RATE-based estimate (Task 9 scope, not this change);
-# those constants live inline there until that route is migrated too.
-MAPD_MONTHLY_RATE = 28.91
-SPLIT_RATE        = 0.55
 
 
 def _fmt(amount):
@@ -137,95 +127,71 @@ def admin_audit_log():
 def admin_overview():
     if not current_user.is_admin:
         abort(403)
+    today = date.today()
+    agency_id = current_user.agency_id
+    scope = Scope(agency_id=agency_id)
+    book = book_breakdown(scope)
+    period = latest_period_with_data(agency_id)
+    money = commission_totals(Scope(agency_id=agency_id, period=period))
+    cov = attribution_coverage(scope)
 
-    today       = date.today()
-    ninety_days = today + timedelta(days=90)
-    thirty_days = today + timedelta(days=30)
-
-    agency_id           = current_user.agency_id
-    total_policies      = Policy.query.filter_by(status='active', agency_id=agency_id).count()
-    total_terms_90      = (Policy.query.filter(
-                               Policy.status=='active',
-                               Policy.agency_id==agency_id,
-                               Policy.term_date.isnot(None),
-                               Policy.term_date >= today,
-                               Policy.term_date <= ninety_days).count())
-    total_terms_30      = (Policy.query.filter(
-                               Policy.status=='active',
-                               Policy.agency_id==agency_id,
-                               Policy.term_date.isnot(None),
-                               Policy.term_date >= today,
-                               Policy.term_date <= thirty_days).count())
-    total_monthly_gross = round(total_policies * MAPD_MONTHLY_RATE, 2)
-
-    agency_carriers = (
-        db.session.query(Policy.carrier, func.count(Policy.id).label('count'))
-        .filter_by(status='active', agency_id=agency_id)
-        .group_by(Policy.carrier)
-        .order_by(func.count(Policy.id).desc()).all()
-    )
-    agency_carrier_rows = [
-        {'carrier': r.carrier, 'count': r.count,
-         'pct': round(r.count / total_policies * 100, 1) if total_policies else 0}
-        for r in agency_carriers
-    ]
-
-    agents = (User.query
-              .filter(User.email != 'admin@foundersinsuranceagency.com')
-              .order_by(User.name).all())
+    carrier_rows = [{"carrier": r["key"], "count": r["count"], "pct": r["pct"],
+                     "color": carrier_color(r["key"])} for r in book["by_carrier"]]
 
     agent_rows = []
-    for agent in agents:
-        count = Policy.query.filter_by(
-            status='active', agent_id=agent.id, agency_id=agency_id
-        ).count()
-        if count == 0:
+    for r in book["by_agent"]:
+        if r["agent_id"] is None:
             continue
-        t30 = (Policy.query.filter(Policy.status=='active', Policy.agent_id==agent.id,
-                                    Policy.agency_id==agency_id,
-                                    Policy.term_date.isnot(None),
-                                    Policy.term_date >= today,
-                                    Policy.term_date <= thirty_days).count())
-        t90 = (Policy.query.filter(Policy.status=='active', Policy.agent_id==agent.id,
-                                    Policy.agency_id==agency_id,
-                                    Policy.term_date.isnot(None),
-                                    Policy.term_date >= today,
-                                    Policy.term_date <= ninety_days).count())
-        top_carriers = (
-            db.session.query(Policy.carrier, func.count(Policy.id).label('count'))
-            .filter_by(status='active', agent_id=agent.id, agency_id=agency_id)
-            .group_by(Policy.carrier)
-            .order_by(func.count(Policy.id).desc())
-            .limit(3).all()
-        )
-        monthly_gross = round(count * MAPD_MONTHLY_RATE, 2)
-        monthly_yours = round(monthly_gross * SPLIT_RATE, 2)
+        a_scope = Scope(agency_id=agency_id, agent_id=r["agent_id"])
+        a_money = commission_totals(Scope(agency_id=agency_id, agent_id=r["agent_id"], period=period))
+        a_terms = upcoming_terms(a_scope, days=30)
         agent_rows.append({
-            'agent':         agent,
-            'count':         count,
-            'pct_of_agency': round(count / total_policies * 100, 1) if total_policies else 0,
-            'terms_30':      t30,
-            'terms_90':      t90,
-            'term_urgency':  'red' if t30 > 0 else ('amber' if t90 > 0 else 'green'),
-            'monthly_gross': _fmt(monthly_gross),
-            'monthly_yours': _fmt(monthly_yours),
-            'annual_yours':  _fmt(monthly_yours * 12),
-            'top_carriers':  top_carriers,
+            "agent_id": r["agent_id"], "name": r["key"], "count": r["count"],
+            "pct_of_agency": r["pct"], "terms_30": len(a_terms),
+            "payout": _fmt(a_money["agent_payout"]),
+            "top_carriers": book_breakdown(a_scope)["by_carrier"][:3],
         })
 
-    agent_rows.sort(key=lambda x: x['count'], reverse=True)
-
     return render_template('admin_overview.html',
-        total_policies=total_policies,
-        total_terms_90=total_terms_90,
-        total_terms_30=total_terms_30,
-        total_monthly_gross=_fmt(total_monthly_gross),
-        total_monthly_split=_fmt(round(total_monthly_gross * SPLIT_RATE, 2)),
-        total_annual_split=_fmt(round(total_monthly_gross * SPLIT_RATE * 12, 2)),
-        agency_carrier_rows=agency_carrier_rows,
+        total_policies=policy_count(scope),
+        coverage=cov,
+        terms_30=len(upcoming_terms(scope, days=30)),
+        terms_90=len(upcoming_terms(scope, days=90)),
+        commission_period=period,
+        agency_payout=_fmt(money["agent_payout"]),
+        founders_keep=_fmt(money["founders_keep"]),
+        carrier_rows=carrier_rows,
         agent_rows=agent_rows,
-        today=today,
-    )
+        carrier_color=carrier_color,
+        reconciliation_url=url_for('commission.admin_reconciliation_view'),
+        today=today)
+
+
+@main.route('/admin/unattributed-policies')
+@login_required
+def unattributed_policies():
+    if not current_user.is_admin:
+        abort(403)
+    rows = (Policy.query
+            .filter(Policy.status == "active", Policy.agent_id.is_(None),
+                    Policy.agency_id == current_user.agency_id)
+            .order_by(Policy.carrier, Policy.agent_id_carrier).all())
+
+    mbis = [p.mbi for p in rows if p.mbi]
+    mbi_to_customer = {}
+    if mbis:
+        mbi_to_customer = dict(Customer.query
+            .filter(Customer.mbi.in_(mbis), Customer.agency_id == current_user.agency_id)
+            .with_entities(Customer.mbi, Customer.id).all())
+
+    policy_rows = [{
+        "carrier": p.carrier,
+        "agent_id_carrier": p.agent_id_carrier,
+        "member": f"{p.first_name} {p.last_name}".strip(),
+        "customer_id": mbi_to_customer.get(p.mbi),
+    } for p in rows]
+
+    return render_template('unattributed_policies.html', rows=policy_rows)
 
 
 def _term_priority(term_reason):

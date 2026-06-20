@@ -99,8 +99,9 @@
           <td>${{ "{:,.2f}".format(fv.agent_total) }}</td>
           <td>${{ "{:,.2f}".format(fv.founders_total) }}</td>
           <td class="l">
-            {% if fv.balances %}<span style="color:var(--green)">✓ Agent + Founders = Raw</span>
-            {% else %}<span style="color:var(--status-error)">✗ does not reconcile</span>{% endif %}
+            {% if fv.balances %}
+              <span style="color:var(--green)">✓ Agent + Founders = Raw{% if fv.split_delta %} (±${{ "{:,.2f}".format(fv.split_delta|abs) }} rounding){% endif %}</span>
+            {% else %}<span style="color:var(--status-error)">✗ off by ${{ "{:,.2f}".format(fv.split_delta|abs) }}</span>{% endif %}
           </td>
         </tr>
       </tfoot>

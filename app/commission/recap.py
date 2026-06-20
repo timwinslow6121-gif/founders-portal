@@ -380,9 +380,16 @@ def fidelity_view(statement_id, agency_id):
     raw_total = round(raw_total, 2)
     agent_total = round(agent_total, 2)
     founders_total = round(founders_total, 2)
+    # Per-row rounding (agent = raw × split rounded each row) makes Σagent + Σfounders
+    # drift from Σraw by a few cents across thousands of rows — that's expected, not an
+    # error. Tolerance scales with row count (½¢/row, min 1¢). The EXACT invariant is
+    # raw_total == ledger_total (no rounding); split_delta is shown honestly.
+    split_delta = round(raw_total - (agent_total + founders_total), 2)
+    tol = max(0.01, round(len(rows) * 0.005, 2))
     return {"rows": rows, "count": len(rows), "raw_total": raw_total,
             "agent_total": agent_total, "founders_total": founders_total,
-            "balances": abs(raw_total - (agent_total + founders_total)) <= 0.01}
+            "split_delta": split_delta,
+            "balances": abs(split_delta) <= tol}
 
 
 def recompute_ledger_total(stmt, agency_id):

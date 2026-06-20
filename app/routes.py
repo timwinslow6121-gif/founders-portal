@@ -5,9 +5,19 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 from app.extensions import db
 from app.models import Customer, CustomerNote, Policy, ImportBatch, User, AuditLog
+from app.metrics import (Scope, policy_count, book_breakdown,
+                         commission_totals, upcoming_terms)
+from app.branding import carrier_color
+from app.commission.recap import latest_period_with_data
 
 main = Blueprint('main', __name__)
 
+# NOTE: MAPD_MONTHLY_RATE / SPLIT_RATE used to live here as fake estimate
+# constants. _build_dashboard_context (used by /dashboard + /admin/agent/<id>)
+# no longer uses them — it routes through app/metrics.py + the commission
+# ledger for real money. admin_overview() below still has its own
+# MAPD_MONTHLY_RATE/SPLIT_RATE-based estimate (Task 9 scope, not this change);
+# those constants live inline there until that route is migrated too.
 MAPD_MONTHLY_RATE = 28.91
 SPLIT_RATE        = 0.55
 
@@ -25,78 +35,39 @@ def _urgency(term_date, today):
 
 
 def _build_dashboard_context(agent_id, today, agency_id):
-    ninety_days = today + timedelta(days=90)
-    thirty_days = today + timedelta(days=30)
+    scope = Scope(agency_id=agency_id, agent_id=agent_id)
+    book = book_breakdown(scope)
+    period = latest_period_with_data(agency_id)
+    money = commission_totals(Scope(agency_id=agency_id, agent_id=agent_id, period=period))
 
-    base         = Policy.query.filter_by(status='active', agent_id=agent_id, agency_id=agency_id)
-    policy_count = base.count()
-    carrier_count = (db.session.query(func.count(func.distinct(Policy.carrier)))
-                     .filter_by(status='active', agent_id=agent_id, agency_id=agency_id)
-                     .scalar() or 0)
+    raw_terms = upcoming_terms(scope, days=90)
+    terms_90 = len(raw_terms)
+    terms_30 = sum(1 for t in raw_terms
+                   if t["term_date"] is not None and (t["term_date"] - today).days <= 30)
 
-    raw_terms = (
-        base.filter(
-            Policy.term_date.isnot(None),
-            Policy.term_date >= today,
-            Policy.term_date <= ninety_days,
-        )
-        .order_by(Policy.term_date.asc()).all()
-    )
+    # Decorate with display-only derived fields (pure date math — not a count/rate
+    # recompute, so this stays out of the metrics-guard's scope).
+    terms = []
+    for t in raw_terms:
+        urgency, days = (_urgency(t["term_date"], today) if t["term_date"] else ('green', None))
+        terms.append(SimpleNamespace(
+            full_name=t["member"], plan_name=t["plan"], carrier=t["carrier"],
+            term_date=t["term_date"], reason=t["reason"], customer_id=t["customer_id"],
+            urgency_class=urgency, days_until_term=days,
+        ))
 
-    # Build MBI→customer_id lookup for clickable term links
-    mbis = [p.mbi for p in raw_terms if p.mbi]
-    mbi_to_customer = {}
-    if mbis:
-        rows = (Customer.query
-                .filter(Customer.mbi.in_(mbis), Customer.agency_id == agency_id)
-                .with_entities(Customer.mbi, Customer.id).all())
-        mbi_to_customer = {r.mbi: r.id for r in rows}
+    carrier_breakdown = [{"carrier": r["key"], "count": r["count"], "pct": r["pct"],
+                          "color": carrier_color(r["key"])} for r in book["by_carrier"]]
 
-    upcoming_terms = []
-    for p in raw_terms:
-        urgency, days = _urgency(p.term_date, today)
-        wrapped = SimpleNamespace(
-            **{col.name: getattr(p, col.name) for col in p.__table__.columns},
-            urgency_class=urgency,
-            days_until_term=days,
-            customer_id=mbi_to_customer.get(p.mbi),
-        )
-        upcoming_terms.append(wrapped)
-
-    terms_90 = len(upcoming_terms)
-    terms_30 = sum(1 for p in upcoming_terms if p.days_until_term <= 30)
-
-    carrier_rows = (
-        db.session.query(Policy.carrier, func.count(Policy.id).label('count'))
-        .filter_by(status='active', agent_id=agent_id, agency_id=agency_id)
-        .group_by(Policy.carrier)
-        .order_by(func.count(Policy.id).desc()).all()
-    )
-
-    carrier_breakdown = []
-    total_gross = 0.0
-    for row in carrier_rows:
-        pct      = round(row.count / policy_count * 100, 1) if policy_count else 0
-        gross    = round(row.count * MAPD_MONTHLY_RATE, 2)
-        your_cut = round(gross * SPLIT_RATE, 2)
-        total_gross += gross
-        carrier_breakdown.append({
-            'carrier':       row.carrier,
-            'count':         row.count,
-            'pct':           pct,
-            'gross_monthly': _fmt(gross),
-            'your_monthly':  _fmt(your_cut),
-        })
-
-    total_your  = round(total_gross * SPLIT_RATE, 2)
-    last_batch  = (ImportBatch.query.filter_by(status='success', agency_id=agency_id)
-                   .order_by(ImportBatch.upload_date.desc()).first())
+    last_batch = (ImportBatch.query.filter_by(status='success', agency_id=agency_id)
+                  .order_by(ImportBatch.upload_date.desc()).first())
     last_import = last_batch.upload_date.strftime('%b %d, %Y') if last_batch else None
 
     # TODO: upcoming appointments query stores appointment time in note_text as
     # "Appointment: {start_time}".  A proper datetime column would be better
     # but is out of scope for Plan 04.  Plan 05+ may add an appointment_at column.
-    upcoming = (CustomerNote.query
+    # (Not book/money data — kept here untouched by the metrics migration.)
+    upcoming_appointments = (CustomerNote.query
                 .filter_by(agent_id=agent_id, agency_id=agency_id,
                             note_type="appointment_scheduled")
                 .filter(CustomerNote.note_text.contains("Appointment:"))
@@ -105,17 +76,15 @@ def _build_dashboard_context(agent_id, today, agency_id):
                 .all())
 
     return dict(
-        policy_count=policy_count,
-        carrier_count=carrier_count,
-        terms_90=terms_90,
-        terms_30=terms_30,
-        upcoming_terms=upcoming_terms,
+        policy_count=policy_count(scope),
+        carrier_count=len(book["by_carrier"]),
+        terms_90=terms_90, terms_30=terms_30,
+        upcoming_terms=terms,
         carrier_breakdown=carrier_breakdown,
-        monthly_commission=_fmt(total_your),
-        annual_commission=_fmt(total_your * 12),
-        total_gross_monthly=_fmt(total_gross),
+        monthly_commission=_fmt(money["agent_payout"]),
+        commission_period=period,
         last_import=last_import,
-        upcoming_appointments=upcoming,
+        upcoming_appointments=upcoming_appointments,
     )
 
 

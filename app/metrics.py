@@ -93,7 +93,7 @@ def upcoming_terms(scope, days=30) -> list:
                          .with_entities(Customer.mbi, Customer.id).all()):
             cust[mbi] = cid
     return [{"member": f"{p.first_name} {p.last_name}".strip(), "plan": p.plan_name,
-             "term_date": p.term_date, "reason": p.term_reason,
+             "carrier": p.carrier, "term_date": p.term_date, "reason": p.term_reason,
              "customer_id": cust.get(p.mbi)} for p in rows]
 
 

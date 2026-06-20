@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% block title %}{{ carrier }} — Carrier Detail{% endblock %}
+
+{% block styles %}
+.cd-hero {
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  margin-bottom: 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.cd-hero-name {
+  font-family: var(--font-serif);
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.cd-hero-sub {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-top: 6px;
+  letter-spacing: 0.03em;
+}
+.cd-hero-stat {
+  text-align: right;
+}
+.cd-hero-stat-value {
+  font-family: var(--font-serif);
+  font-size: 2.1rem;
+  font-weight: 300;
+  line-height: 1;
+}
+.cd-hero-stat-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+.cd-toggle {
+  display: inline-flex;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  padding: 3px;
+  gap: 2px;
+}
+.cd-toggle a {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: #fff;
+  opacity: 0.75;
+}
+.cd-toggle a.active {
+  background: rgba(255,255,255,0.95);
+  color: #1A202C;   /* fixed dark — active pill is white in BOTH themes; var(--ivory) is light in dark mode and would vanish */
+  opacity: 1;
+}
+.cd-proof {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+}
+.cd-proof-item {
+  font-size: 13px;
+  color: var(--slate);
+}
+.cd-proof-item strong {
+  color: var(--ivory);
+  font-weight: 600;
+}
+.cd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cd-mix-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cd-mix-row:last-child { border-bottom: none; }
+.cd-mix-key {
+  flex: 0 0 150px;
+  font-size: 13px;
+  color: var(--ivory);
+  font-weight: 500;
+}
+.cd-mix-bar-wrap {
+  flex: 1;
+  background: color-mix(in srgb, var(--outline-var) 50%, transparent);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cd-mix-bar {
+  background: var(--gold);
+  height: 100%;
+}
+.cd-mix-pct {
+  flex: 0 0 50px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--slate);
+}
+@media (max-width: 768px) {
+  .cd-grid { grid-template-columns: 1fr; }
+  .cd-hero { flex-direction: column; align-items: flex-start; }
+  .cd-hero-stat { text-align: left; }
+}
+{% endblock %}
+
+{% block content %}
+<div class="cd-hero" style="background:{{ color }}">
+  <div>
+    <div class="cd-hero-name">{{ carrier }}</div>
+    <div class="cd-hero-sub">{{ period or "No commission data yet" }}</div>
+    {% if view_mine is not none %}
+    <div class="cd-toggle" style="margin-top:12px;">
+      <a href="{{ url_for('carriers.carrier_detail', carrier=carrier) }}" class="{{ 'active' if not view_mine else '' }}">Agency view</a>
+      <a href="{{ url_for('carriers.carrier_detail', carrier=carrier, view='mine') }}" class="{{ 'active' if view_mine else '' }}">My view</a>
+    </div>
+    {% endif %}
+  </div>
+  <div class="cd-hero-stat">
+    <div class="cd-hero-stat-value">{{ "{:,}".format(total) }}</div>
+    <div class="cd-hero-stat-label">policies · {{ pct_of_agency }}% of agency book</div>
+  </div>
+</div>
+
+<div class="card cd-proof">
+  <div class="cd-proof-item">
+    Attribution coverage:
+    <strong>{{ coverage.pct }}%</strong>
+    ({{ coverage.attributed }} / {{ coverage.total }})
+  </div>
+  <div class="cd-proof-item">
+    Agent payout ({{ period or "—" }}): <strong>${{ "{:,.2f}".format(money.agent_payout) }}</strong>
+  </div>
+  <div class="cd-proof-item">
+    Founders keep: <strong>${{ "{:,.2f}".format(money.founders_keep) }}</strong>
+  </div>
+  {% if balance %}
+  <div class="cd-proof-item">
+    {% if balance.state == 'ok' %}
+      <span class="badge badge-green">✓ Balances</span>
+    {% else %}
+      <span class="badge badge-red">✗ Off by ${{ "{:,.2f}".format(balance.delta) }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="cd-grid">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Policy-Type Mix</span>
+    </div>
+    {% for row in book.by_plan_type %}
+    <div class="cd-mix-row">
+      <div class="cd-mix-key">{{ row.key }}</div>
+      <div class="cd-mix-bar-wrap"><div class="cd-mix-bar" style="width:{{ row.pct }}%"></div></div>
+      <div class="cd-mix-pct">{{ row.count }} ({{ row.pct }}%)</div>
+    </div>
+    {% else %}
+    <p class="text-muted" style="font-size:13px;">No plan-type data.</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Agent Share</span>
+    </div>
+    {% for row in book.by_agent %}
+    <div class="cd-mix-row">
+      <div class="cd-mix-key">
+        {% if row.agent_id %}
+        <a href="{{ url_for('main.agent_detail', agent_id=row.agent_id) }}" style="text-decoration:none;color:var(--gold);">{{ row.key }}</a>
+        {% else %}
+        {{ row.key }}
+        {% endif %}
+      </div>
+      <div class="cd-mix-bar-wrap"><div class="cd-mix-bar" style="width:{{ row.pct }}%"></div></div>
+      <div class="cd-mix-pct">{{ row.count }} ({{ row.pct }}%)</div>
+    </div>
+    {% else %}
+    <p class="text-muted" style="font-size:13px;">No agent data.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <span class="card-title">Plans</span>
+    <span class="text-muted" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{{ book.by_plan|length }} plans</span>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Plan</th>
+        <th>Policies</th>
+        <th>Share</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in book.by_plan %}
+      <tr {% if plan_id_map.get(row.key) %}style="cursor:pointer;" onclick="window.location='{{ url_for('carriers.plan_detail', plan_id=plan_id_map.get(row.key)) }}'"{% endif %}>
+        <td>
+          {% if plan_id_map.get(row.key) %}
+          <a href="{{ url_for('carriers.plan_detail', plan_id=plan_id_map.get(row.key)) }}" style="text-decoration:none;color:var(--gold);">{{ row.key }}</a>
+          {% else %}
+          {{ row.key }}
+          {% endif %}
+        </td>
+        <td>{{ row.count }}</td>
+        <td>{{ row.pct }}%</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="text-muted">No plans found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Upcoming Terms (30 days)</span>
+    <span class="text-muted" style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{{ terms|length }} members</span>
+  </div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Plan</th>
+        <th>Term Date</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in terms %}
+      <tr>
+        <td>
+          {% if t.customer_id %}
+          <a href="{{ url_for('customers.customer_profile', customer_id=t.customer_id) }}" style="text-decoration:none;color:var(--gold);">{{ t.member }}</a>
+          {% else %}
+          {{ t.member }}
+          {% endif %}
+        </td>
+        <td>{{ t.plan or "—" }}</td>
+        <td>{{ t.term_date.strftime('%b %d, %Y') if t.term_date else "—" }}</td>
+        <td>{{ t.reason or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="text-muted">No upcoming terminations in the next 30 days.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

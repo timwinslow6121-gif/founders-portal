@@ -24,8 +24,6 @@ from app.commission.recap import (build_recap, get_or_create_period, is_visible_
                                    build_aggregate_matrix, quarantine_workbench)
 from app.commission.rollup import apply_rollup
 
-SPLIT_RATE = 0.55
-
 # Every carrier pays Founders (the agency) directly — no carrier pays an agent
 # directly. So EVERY statement is agency-level: the STATEMENT belongs to no
 # single agent (agent_id=NULL) and per-row PolicyPayment attribution is resolved

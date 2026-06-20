@@ -430,16 +430,25 @@
     <div class="m-detail">{% if terms_30 > 0 %}{{ terms_30 }} critical (under 30d){% else %}none critical{% endif %}</div>
   </div>
   <div class="metric-card c-gold">
-    <div class="m-label"><span class="m-dot" style="background:var(--gold-dim);"></span>Est. Monthly Commission</div>
+    <div class="m-label"><span class="m-dot" style="background:var(--gold-dim);"></span>Commission — {{ commission_period or 'no statements' }}</div>
     <div class="m-number" style="color:var(--gold);">{{ monthly_commission }}</div>
-    <div class="m-detail">at 55% · MAPD only</div>
-  </div>
-  <div class="metric-card c-sage">
-    <div class="m-label"><span class="m-dot" style="background:var(--status-resolved);"></span>Est. Annual Commission</div>
-    <div class="m-number" style="color:var(--status-resolved);">{{ annual_commission }}</div>
-    <div class="m-detail">projected from current BOB</div>
+    <div class="m-detail">actual, from statements</div>
   </div>
 </div>
+
+{% if carrier_breakdown %}
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+  {% for row in carrier_breakdown %}
+  <a href="{{ url_for('carriers.carrier_detail', carrier=row.carrier) }}"
+     style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;
+            background:{{ row.color }};color:#fff;font-size:12px;font-weight:600;
+            letter-spacing:0.04em;text-decoration:none;text-transform:uppercase;">
+    {{ row.carrier }}
+    <span style="opacity:0.85;font-weight:500;">{{ row.count }} · {{ row.pct }}%</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
 
 <!-- ── MAIN GRID ── -->
 <div class="dash-grid">

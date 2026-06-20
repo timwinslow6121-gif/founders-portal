@@ -349,6 +349,76 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
     return result
 
 
+_NAME_SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+
+def display_name(raw):
+    """Turn a carrier-file member name into a readable display name:
+    'WINECOFF, JACK J.' -> 'Jack J. Winecoff'; 'SMITH, JOHN' -> 'John Smith';
+    'BROWN JR, TOCARA A' -> 'Tocara A Brown Jr'. Title-cases, flips LAST, FIRST,
+    keeps initials/suffixes sensible. Falls back to title-case of the raw string.
+    (Reusable — the parsers can adopt this later for stored names.)"""
+    s = (raw or "").strip()
+    if not s:
+        return ""
+
+    def _tc(word):
+        w = word.strip()
+        if not w:
+            return w
+        low = w.lower().rstrip(".")
+        if low in _NAME_SUFFIXES:                 # Jr / Sr / III
+            return "Jr" if low == "jr" else ("Sr" if low == "sr" else low.upper())
+        if len(w.rstrip(".")) == 1:               # middle initial → keep + period
+            return w.rstrip(".").upper() + "."
+        # handle Mc / O' prefixes lightly; else simple title-case
+        return w[:1].upper() + w[1:].lower()
+
+    if "," in s:
+        last, first = s.split(",", 1)
+        last_parts = last.strip().split()
+        # a trailing suffix on the LAST part ("BROWN JR") moves to the end
+        suffix = ""
+        if len(last_parts) > 1 and last_parts[-1].lower().rstrip(".") in _NAME_SUFFIXES:
+            suffix = " " + _tc(last_parts[-1])
+            last_parts = last_parts[:-1]
+        last_tc = " ".join(_tc(p) for p in last_parts)
+        first_tc = " ".join(_tc(p) for p in first.strip().split())
+        out = f"{first_tc} {last_tc}{suffix}".strip()
+        return out or s.title()
+    return " ".join(_tc(p) for p in s.split())
+
+
+def _calc_explanation(li, agent, founders):
+    """A (short_label, full_rule) pair explaining how a line was split, for the
+    Fidelity View's calc tooltip. Reads classification + split_rate + payment_type."""
+    cls = li.classification
+    rate = li.split_rate
+    pt = (li.payment_type or "").lower()
+    raw = round(li.raw_amount or 0.0, 2)
+    if cls == "founders_override":
+        return ("100% Founders", f"Founders override — the whole ${abs(raw):,.2f} is Founders' "
+                f"(no agent split).")
+    if cls == "hra_bonus":
+        return (f"HRA · {rate:.0%}" if rate else "HRA",
+                f"HRA bonus of ${raw:,.2f}" + (f", split to the agent at {rate:.0%}." if rate else "."))
+    rate_lbl = f"{rate:.0%}" if rate is not None else "no contract"
+    if cls == "chargeback":
+        return (f"chargeback · {rate_lbl}",
+                f"Chargeback (clawback) of ${raw:,.2f}" +
+                (f", reversed at the agent's {rate:.0%} split (agent ${agent:,.2f})." if rate is not None else "."))
+    # agent_commission
+    if "prorated" in pt or "new (prorated)" in pt:
+        return (f"New (prorated) · {rate_lbl}",
+                f"New-to-Medicare, Comp Type R: agent commission ${raw:,.2f} is the standard "
+                f"renewal PMPM prorated over the months left in the year; splits at "
+                f"{rate:.0%} → agent ${agent:,.2f}, Founders ${founders:,.2f}.")
+    return (f"{pt or 'commission'} · {rate_lbl}",
+            f"{(pt or 'commission').title()}: ${raw:,.2f} splits at "
+            + (f"{rate:.0%} → agent ${agent:,.2f}, Founders keeps ${founders:,.2f}."
+               if rate is not None else "no active contract → 100% Founders."))
+
+
 def fidelity_view(statement_id, agency_id):
     """A2 — the Fidelity View: EVERY line item of a statement with its raw amount and
     its agent / Founders split (the G/H columns AJ adds by hand), so AJ/Brian can see
@@ -357,10 +427,15 @@ def fidelity_view(statement_id, agency_id):
       {rows:[{member_name, carrier, raw, agent, founders, classification, payment_type,
               agent_id}], raw_total, agent_total, founders_total, count, balances}
     where balances = (agent_total + founders_total == raw_total) by construction."""
+    from app.models import User
     items = (CommissionLineItem.query
              .filter_by(statement_id=statement_id, agency_id=agency_id)
              .order_by(CommissionLineItem.member_name, CommissionLineItem.source_ref)
              .all())
+    # batch-load agent names (avoid N+1)
+    agent_ids = {li.agent_id for li in items if li.agent_id}
+    agent_names = {u.id: u.display_name for u in
+                   User.query.filter(User.id.in_(agent_ids)).all()} if agent_ids else {}
     rows = []
     raw_total = agent_total = founders_total = 0.0
     for li in items:
@@ -368,11 +443,18 @@ def fidelity_view(statement_id, agency_id):
         agent = round(agent, 2)
         founders = round(founders, 2)
         raw = round(li.raw_amount or 0.0, 2)
+        calc_label, calc_rule = _calc_explanation(li, agent, founders)
         rows.append({
-            "member_name": li.member_name or "(non-customer)", "carrier": li.carrier,
+            "member_name": li.member_name or "(non-customer)",
+            "member_display": display_name(li.member_name) or "(non-customer)",
+            "customer_id": li.customer_id, "carrier": li.carrier,
             "raw": raw, "agent": agent, "founders": founders,
             "classification": li.classification, "payment_type": li.payment_type or "",
             "agent_id": li.agent_id,
+            "agent_name": agent_names.get(li.agent_id, "— unassigned —"),
+            "split_rate": li.split_rate,
+            "calc_label": calc_label, "calc_rule": calc_rule,
+            "is_chargeback": (li.classification == "chargeback" or raw < 0),
         })
         raw_total += raw
         agent_total += agent

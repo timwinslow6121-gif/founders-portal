@@ -86,7 +86,7 @@ def test_fidelity_page_renders_for_admin(db_session, app, client, agency):
     r = client.get(f"/admin/commissions/{sid}/fidelity")
     assert r.status_code == 200
     body = r.get_data(as_text=True)
-    assert "Fidelity" in body and "DOE, JANE" in body
+    assert "Fidelity" in body and "Jane Doe" in body   # name normalized for display
     assert "Balances to the penny" in body
 
 
@@ -165,6 +165,48 @@ def test_admin_commission_page_shows_trust_strip_and_fidelity_link(db_session, a
     assert "✓ UHC" in body or "UHC" in body        # carrier checklist
     assert f"/admin/commissions/{sid}/fidelity" in body   # Fidelity reachable as admin
     assert "✓ Balances" in body                    # per-statement balance badge
+
+
+def test_display_name_normalizes_carrier_names():
+    from app.commission.recap import display_name
+    assert display_name("WINECOFF, JACK J.") == "Jack J. Winecoff"
+    assert display_name("SMITH, JOHN") == "John Smith"
+    assert display_name("BROWN JR, TOCARA A") == "Tocara A. Brown Jr"
+    assert display_name("") == ""
+
+
+def test_fidelity_view_enriched_fields(db_session, app, agency, agent_user):
+    """Fidelity rows now carry agent name, split rate, a calc label + full rule, a
+    proper-case display name, customer link, and a chargeback flag."""
+    from app.extensions import db
+    from app.models import CommissionStatement, CommissionLineItem, Customer
+    from app.commission.recap import fidelity_view
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Jane", last_name="Doe",
+                        full_name="Jane Doe", mbi="MBIX1")
+        db.session.add(cust); db.session.flush()
+        s = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(s); db.session.flush()
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id, carrier="UHC",
+            source_ref="a", member_name="DOE, JANE", customer_id=cust.id, raw_amount=28.92,
+            split_rate=0.55, classification="agent_commission", payment_type="renewal",
+            agent_id=agent_user.id))
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id, carrier="UHC",
+            source_ref="b", member_name="DOE, JANE", raw_amount=-28.92, split_rate=0.55,
+            classification="chargeback", payment_type="renewal chargeback"))
+        db.session.commit()
+        fv = fidelity_view(s.id, agency.id)
+        comm = next(r for r in fv["rows"] if r["classification"] == "agent_commission")
+        assert comm["member_display"] == "Jane Doe"
+        assert comm["customer_id"] == cust.id
+        assert comm["agent_name"] == agent_user.display_name
+        assert comm["split_rate"] == 0.55
+        assert "55%" in comm["calc_label"]
+        assert "agent" in comm["calc_rule"].lower()
+        assert comm["is_chargeback"] is False
+        cb = next(r for r in fv["rows"] if r["classification"] == "chargeback")
+        assert cb["is_chargeback"] is True
 
 
 def test_recompute_ledger_total_from_line_items(db_session, app, agency):

@@ -1,0 +1,104 @@
+"""The ONLY place agency book/money numbers are computed (spec §1, §3a).
+Book numbers come from Policy (BOB); money comes from the commission ledger via
+split_breakdown. Every page is a thin caller passing a Scope. Enforced by
+tests/test_metrics_guard.py."""
+from dataclasses import dataclass
+from datetime import date, timedelta
+from sqlalchemy import func
+from app.extensions import db
+from app.models import Policy, CommissionLineItem, Customer, User
+from app.commission.ledger import split_breakdown
+
+
+@dataclass
+class Scope:
+    agency_id: int
+    agent_id: int | None = None
+    carrier: str | None = None
+    period: str | None = None
+
+
+def _policy_q(scope):
+    q = Policy.query.filter_by(status="active", agency_id=scope.agency_id)
+    if scope.agent_id is not None:
+        q = q.filter(Policy.agent_id == scope.agent_id)
+    if scope.carrier:
+        q = q.filter(Policy.carrier == scope.carrier)
+    return q
+
+
+def policy_count(scope) -> int:
+    return _policy_q(scope).count()
+
+
+def _grouped(scope, col):
+    base = _policy_q(scope)
+    total = base.count()
+    rows = (base.with_entities(col, func.count(Policy.id))
+            .group_by(col).order_by(func.count(Policy.id).desc()).all())
+    return [{"key": k if k is not None else "—", "count": n,
+             "pct": round(n / total * 100, 1) if total else 0.0} for k, n in rows]
+
+
+def book_breakdown(scope) -> dict:
+    by_agent_rows = (_policy_q(scope)
+                     .with_entities(Policy.agent_id, func.count(Policy.id))
+                     .group_by(Policy.agent_id)
+                     .order_by(func.count(Policy.id).desc()).all())
+    total = _policy_q(scope).count()
+    by_agent = []
+    for aid, n in by_agent_rows:
+        u = db.session.get(User, aid) if aid else None
+        by_agent.append({"key": u.display_name if u else "Unattributed", "agent_id": aid,
+                         "count": n, "pct": round(n / total * 100, 1) if total else 0.0})
+    return {
+        "by_carrier": _grouped(scope, Policy.carrier),
+        "by_plan_type": _grouped(scope, Policy.plan_type),
+        "by_plan": _grouped(scope, Policy.plan_name),
+        "by_agent": by_agent,
+    }
+
+
+def commission_totals(scope) -> dict:
+    q = CommissionLineItem.query.filter_by(agency_id=scope.agency_id)
+    if scope.agent_id is not None:
+        q = q.filter(CommissionLineItem.agent_id == scope.agent_id)
+    if scope.carrier:
+        q = q.filter(CommissionLineItem.carrier == scope.carrier)
+    if scope.period:
+        q = q.filter(CommissionLineItem.period_label == scope.period)
+    paid = payout = keep = 0.0
+    for li in q.all():
+        a, f = split_breakdown(li)
+        paid += li.raw_amount or 0.0
+        payout += a
+        keep += f
+    return {"paid": round(paid, 2), "agent_payout": round(payout, 2),
+            "founders_keep": round(keep, 2)}
+
+
+def upcoming_terms(scope, days=30) -> list:
+    today = date.today()
+    end = today + timedelta(days=days)
+    q = (_policy_q(scope)
+         .filter(Policy.term_date.isnot(None),
+                 Policy.term_date >= today, Policy.term_date <= end)
+         .order_by(Policy.term_date.asc()))
+    rows = q.all()
+    mbis = [p.mbi for p in rows if p.mbi]
+    cust = {}
+    if mbis:
+        for mbi, cid in (Customer.query
+                         .filter(Customer.mbi.in_(mbis), Customer.agency_id == scope.agency_id)
+                         .with_entities(Customer.mbi, Customer.id).all()):
+            cust[mbi] = cid
+    return [{"member": f"{p.first_name} {p.last_name}".strip(), "plan": p.plan_name,
+             "term_date": p.term_date, "reason": p.term_reason,
+             "customer_id": cust.get(p.mbi)} for p in rows]
+
+
+def attribution_coverage(scope) -> dict:
+    total = _policy_q(scope).count()
+    attributed = _policy_q(scope).filter(Policy.agent_id.isnot(None)).count()
+    return {"total": total, "attributed": attributed,
+            "pct": round(attributed / total * 100, 1) if total else 100.0}

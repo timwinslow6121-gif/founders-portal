@@ -26,34 +26,38 @@
   .qw-month-head h2 { margin:0; font-size:17px; color:var(--ivory-bright); }
   .qw-month-head .meta { color: var(--slate); font-size:13px; }
   .qw-card-title { margin: 8px 4px 4px; font-size:17px; color:var(--ivory-bright); }
-  table.qw-table { width:100%; border-collapse: collapse; font-size: 14px; }
+  /* fixed layout: every field is a REAL column so headers line up with content
+     and a long action string in the Member cell WRAPS instead of blowing out the row. */
+  table.qw-table { width:100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
+  table.qw-table col.col-member  { width: auto; }
+  table.qw-table col.col-amount  { width: 96px; }
+  table.qw-table col.col-agent   { width: 168px; }
+  table.qw-table col.col-ovr     { width: 120px; }
+  table.qw-table col.col-preview { width: 150px; }
+  table.qw-table col.col-action  { width: 96px; }
   table.qw-table th { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);
-                      color: var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
-  table.qw-table td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+                      color: var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+  table.qw-table th.th-r { text-align:right; }
+  table.qw-table td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
   table.qw-table tr:last-child td { border-bottom:none; }
   table.qw-table td.num { text-align:right; font-variant-numeric: tabular-nums; font-weight:600; }
   td.num.neg { color: var(--status-error); }
-  /* fixed layout so a long action string in the Member cell WRAPS instead of
-     blowing out the column widths and smooshing the resolve form. */
-  table.qw-table { table-layout: fixed; }
-  table.qw-table col.col-member { width: 230px; }
-  table.qw-table col.col-amount { width: 92px; }
-  table.qw-table col.col-resolve { width: auto; }
   td.qw-member { vertical-align: top; }
   td.qw-member .m-name { font-weight:600; }
   td.qw-member .m-meta { font-size:11px; color:var(--slate); margin-top:2px;
                          overflow-wrap:anywhere; word-break:break-word; line-height:1.35; }
-  /* resolve form — labeled fields + live agent-gets preview so it's unambiguous */
-  .qr-form { display:flex; gap:14px; align-items:flex-end; justify-content:flex-end; padding:4px 0; flex-wrap:wrap; }
-  .qr-field { display:flex; flex-direction:column; gap:3px; }
-  .qr-field label { font-size:10px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
-  .qr-form select { padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; min-width:150px; }
-  .qr-form input.qr-money { width:104px; padding:7px 9px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
-  .qr-preview { font-size:12px; color:var(--slate); align-self:center; min-width:150px; white-space:nowrap; }
-  .qr-preview b { color:var(--green); font-variant-numeric: tabular-nums; }
-  .qr-preview .keep { color:var(--slate); }
-  .qr-form button { padding:8px 16px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; align-self:center; }
-  .qr-form button:hover { filter:brightness(1.07); }
+  /* per-column resolve fields */
+  td.qw-agent select { width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px;
+                       background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; }
+  td.qw-ovr input.qr-money { width:100%; padding:7px 9px; border:1px solid var(--border); border-radius:8px;
+                       background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; text-align:right; }
+  td.qw-preview { font-size:12px; color:var(--slate); white-space:nowrap; }
+  td.qw-preview b { color:var(--green); font-variant-numeric: tabular-nums; }
+  td.qw-preview .keep { color:var(--slate); }
+  td.qw-action { text-align:right; }
+  td.qw-action button { padding:8px 16px; border:none; border-radius:8px; background:var(--gold);
+                        color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  td.qw-action button:hover { filter:brightness(1.07); }
   .qw-carrier { display:inline-block; font-size:11px; font-weight:600; color:var(--slate); }
   .qw-empty { background: var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
               padding:40px; text-align:center; color: var(--slate); }
@@ -85,28 +89,27 @@
       <div class="m-meta">{% if show_month %}{{ r.period_label }} · {% endif %}{% if r.mbi %}MBI {{ r.mbi }} · {% endif %}{{ r.action or '—' }}</div>
     </td>
     <td class="num{{ ' neg' if r.amount < 0 else '' }}">${{ '%.2f'|format(r.amount) }}</td>
-    <td colspan="3" style="padding:0;">
-      <form class="qr-form" method="post" action="{{ url_for('commission.commission_quarantine_resolve', line_id=r.id) }}">
-        <input type="hidden" name="next" value="{{ request.full_path }}">
-        <div class="qr-field">
-          <label for="agent-{{ r.id }}">Agent</label>
-          <select id="agent-{{ r.id }}" name="agent_id" required aria-label="Agent for {{ r.member_name }}">
-            <option value="">— pick agent —</option>
-            {% for a in agents %}
-            <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="qr-field">
-          <label for="ovr-{{ r.id }}">Founders override $</label>
-          <input id="ovr-{{ r.id }}" class="qr-money" type="number" step="0.01" name="override_amount" value="0.00"
-                 data-raw="{{ r.amount }}" data-preview="prev-{{ r.id }}"
-                 aria-label="Founders override amount for {{ r.member_name }}"
-                 title="The 100%-Founders override portion. The rest of ${{ '%.2f'|format(r.amount) }} goes to the agent, split at their contract rate.">
-        </div>
-        <div class="qr-preview" id="prev-{{ r.id }}">→ Agent: <b>${{ '%.2f'|format(r.amount) }}</b> <span class="keep">· Founders override $0.00</span></div>
-        <button type="submit">Resolve</button>
-      </form>
+    <td class="qw-agent">
+      {# one form per row, referenced by the inputs via the HTML form= attribute,
+         so each field is its OWN real column that lines up with its header. #}
+      <form id="qf-{{ r.id }}" method="post" action="{{ url_for('commission.commission_quarantine_resolve', line_id=r.id) }}"></form>
+      <input type="hidden" form="qf-{{ r.id }}" name="next" value="{{ request.full_path }}">
+      <select form="qf-{{ r.id }}" name="agent_id" required aria-label="Agent for {{ r.member_name }}">
+        <option value="">— pick agent —</option>
+        {% for a in agents %}
+        <option value="{{ a.id }}" {% if a.id == (r.agent_id or r.suggested_agent_id) %}selected{% endif %}>{{ a.display_name }}</option>
+        {% endfor %}
+      </select>
+    </td>
+    <td class="qw-ovr">
+      <input form="qf-{{ r.id }}" class="qr-money" type="number" step="0.01" name="override_amount" value="0.00"
+             data-raw="{{ r.amount }}" data-preview="prev-{{ r.id }}"
+             aria-label="Founders override amount for {{ r.member_name }}"
+             title="The 100%-Founders override portion. The rest of ${{ '%.2f'|format(r.amount) }} goes to the agent, split at their contract rate.">
+    </td>
+    <td class="qw-preview" id="prev-{{ r.id }}">→ <b>${{ '%.2f'|format(r.amount) }}</b><span class="keep"> to agent</span></td>
+    <td class="qw-action">
+      <button type="submit" form="qf-{{ r.id }}">Resolve</button>
     </td>
   </tr>
 {% endmacro %}
@@ -179,8 +182,8 @@
           <span class="meta">{{ g.count }} line{{ '' if g.count == 1 else 's' }} · ${{ '%.2f'|format(g.total) }}</span>
         </div>
         <table class="qw-table">
-          <colgroup><col class="col-member"><col class="col-amount"><col class="col-resolve"></colgroup>
-          <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Resolve — pick agent + Founders override</th></tr></thead>
+          <colgroup><col class="col-member"><col class="col-amount"><col class="col-agent"><col class="col-ovr"><col class="col-preview"><col class="col-action"></colgroup>
+          <thead><tr><th>Member</th><th class="th-r">Amount</th><th>Agent</th><th class="th-r">Founders override $</th><th>Agent receives</th><th></th></tr></thead>
           <tbody>
             {% for r in g.rows %}{{ qrow(r) }}{% endfor %}
           </tbody>
@@ -193,8 +196,8 @@
     <div class="qw-card">
       <div class="qw-card-title">Sorted by amount — identical amounts grouped together</div>
       <table class="qw-table">
-        <colgroup><col class="col-member"><col class="col-amount"><col class="col-resolve"></colgroup>
-        <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>Resolve — pick agent + Founders override</th></tr></thead>
+        <colgroup><col class="col-member"><col class="col-amount"><col class="col-agent"><col class="col-ovr"><col class="col-preview"><col class="col-action"></colgroup>
+        <thead><tr><th>Member</th><th class="th-r">Amount</th><th>Agent</th><th class="th-r">Founders override $</th><th>Agent receives</th><th></th></tr></thead>
         <tbody>
           {% for r in wb.flat %}{{ qrow(r, show_month=True) }}{% endfor %}
         </tbody>
@@ -211,7 +214,8 @@
     </div>
     <div class="qw-card">
     <table class="qw-table">
-      <thead><tr><th>Member</th><th style="text-align:right;">Amount</th><th>History</th><th></th></tr></thead>
+      <colgroup><col class="col-member"><col class="col-amount"><col><col class="col-action"></colgroup>
+      <thead><tr><th>Member</th><th class="th-r">Amount</th><th>History</th><th></th></tr></thead>
       <tbody>
         {% for r in resolved %}
         <tr>
@@ -273,8 +277,7 @@
       function update() {
         var ov = parseFloat(inp.value) || 0;
         var agent = Math.round((raw - ov) * 100) / 100;
-        prev.innerHTML = '→ Agent: <b>' + fmt(agent) + '</b> ' +
-                         '<span class="keep">· Founders override ' + fmt(ov) + '</span>';
+        prev.innerHTML = '→ <b>' + fmt(agent) + '</b><span class="keep"> to agent</span>';
       }
       inp.addEventListener('input', update);
       update();

@@ -247,6 +247,13 @@ class CommissionStatement(db.Model):
     paid_amount    = db.Column(db.Float, default=0.0)        # what AJ's summary row shows
     difference     = db.Column(db.Float, default=0.0)        # expected - paid (0 = verified)
 
+    # A3 — ledger balance gate. Persisted from verify_statement_balance() on upload so
+    # the "every dollar accounted for" check is a VISIBLE status, not just a log line.
+    # balanced: Σ line-item raw == independent re-sum of the carrier file's money rows.
+    balanced         = db.Column(db.Boolean)                 # NULL = not yet checked (pre-A3 rows)
+    ledger_total     = db.Column(db.Float)                   # Σ line-item raw_amount
+    money_rows_total = db.Column(db.Float)                   # independent re-sum of the file
+
     # Status
     # pending / verified / discrepancy / pending_review / accepted / disputed
     status         = db.Column(db.String(32), default="pending")

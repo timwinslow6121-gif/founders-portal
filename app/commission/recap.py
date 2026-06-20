@@ -349,6 +349,34 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
     return result
 
 
+def recompute_ledger_total(stmt, agency_id):
+    """Set stmt.ledger_total = Σ raw_amount of its persisted line items (the
+    provable internal total). Returns the total. Used to backfill pre-A3 statements
+    — money_rows_total (the independent file re-sum) can't be recovered without the
+    original file, so a backfilled statement that has no money_rows_total stays
+    'unknown' until re-uploaded."""
+    from app.models import CommissionLineItem
+    total = round(sum(
+        (li.raw_amount or 0.0) for li in
+        CommissionLineItem.query.filter_by(statement_id=stmt.id, agency_id=agency_id).all()
+    ), 2)
+    stmt.ledger_total = total
+    return total
+
+
+def balance_status(stmt):
+    """A3 — the balance gate's display state for a statement, from its persisted
+    balance result. Returns (state, delta):
+      'ok'      — Σ line items == the carrier file's money-row total (balances)
+      'off'     — they diverge by |delta| (a row was dropped/mis-summed — surface it)
+      'unknown' — not yet checked (pre-A3 statement, or a carrier with no extractor)
+    delta = ledger_total − money_rows_total (rounded)."""
+    if stmt.balanced is None or stmt.ledger_total is None or stmt.money_rows_total is None:
+        return ("unknown", 0.0)
+    delta = round((stmt.ledger_total or 0.0) - (stmt.money_rows_total or 0.0), 2)
+    return ("ok", 0.0) if stmt.balanced else ("off", delta)
+
+
 def quarantine_total_count(agency_id):
     """Total needs_manual_review line items for the agency — the nav badge count."""
     return CommissionLineItem.query.filter_by(

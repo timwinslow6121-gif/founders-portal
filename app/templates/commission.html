@@ -64,6 +64,10 @@
 /* ── Detail card ── */
 .detail-card { background: var(--surface-low); overflow: hidden; margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
 .detail-header { padding: 12px 18px; background: var(--surface-high); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.balance-proof { padding: 10px 18px; font-size: 0.8rem; line-height: 1.4; }
+.balance-proof.ok  { background: color-mix(in srgb, var(--status-resolved) 8%, transparent); color: var(--status-resolved); border-left: 3px solid var(--status-resolved); }
+.balance-proof.off { background: color-mix(in srgb, var(--status-error) 10%, transparent); color: var(--status-error); border-left: 3px solid var(--status-error); }
+.balance-proof strong { font-weight: 700; }
 .detail-title { font-family: var(--font-serif); font-size: 14px; font-weight: 400; color: var(--ivory-bright); }
 .detail-meta { font-size: 12px; color: var(--slate); letter-spacing: 0.08em; text-transform: uppercase; }
 
@@ -223,6 +227,15 @@
             <span class="badge badge-gold">Pending</span>
             <span class="carrier-card-diff">—</span>
           {% endif %}
+          {# A3 — ledger balance gate: a VISIBLE 'every dollar accounted for' status,
+             separate from the workflow status above. #}
+          {% if s.balanced is not none %}
+            {% if s.balanced %}
+              <span class="badge badge-green" title="Σ line items = the carrier file's total — every dollar accounted for">✓ Balances</span>
+            {% else %}
+              <span class="badge badge-red" title="The line-item total does not match the carrier file's total — a row was dropped or mis-summed">✗ Off by ${{ "{:,.2f}".format((s.ledger_total or 0) - (s.money_rows_total or 0))|abs }}</span>
+            {% endif %}
+          {% endif %}
         </div>
       </div>
       {% endfor %}
@@ -243,6 +256,23 @@
         </div>
         <span class="detail-meta">{{ s.line_items_parsed|length }} line items · uploaded {{ s.upload_date.strftime('%b %d, %Y') }}</span>
       </div>
+
+      {# A3 — ledger balance proof: every dollar from the file is accounted for. #}
+      {% if s.balanced is not none %}
+      <div class="balance-proof {{ 'ok' if s.balanced else 'off' }}">
+        {% if s.balanced %}
+          ✓ <strong>Balances to the penny</strong> — file total
+          ${{ "{:,.2f}".format(s.money_rows_total or 0) }} = ledger total
+          ${{ "{:,.2f}".format(s.ledger_total or 0) }}. Every dollar is accounted for.
+        {% else %}
+          ✗ <strong>Does not balance</strong> — file total
+          ${{ "{:,.2f}".format(s.money_rows_total or 0) }} vs ledger total
+          ${{ "{:,.2f}".format(s.ledger_total or 0) }}
+          (off by ${{ "{:,.2f}".format((s.ledger_total or 0) - (s.money_rows_total or 0))|abs }}).
+          A row was dropped or mis-summed — review before relying on this statement.
+        {% endif %}
+      </div>
+      {% endif %}
 
       {# ── Override review panel (agent view) ── #}
       {% if s.status == 'pending_review' %}

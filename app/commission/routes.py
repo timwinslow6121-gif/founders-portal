@@ -970,6 +970,10 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
                                agent_resolver=_rollup_resolver)
             db.session.flush()
             report = verify_statement_balance(carrier, drafts, sheets)
+            # A3 — persist the balance result so it's a VISIBLE status, not just a log.
+            stmt.balanced = bool(report.completeness_ok and report.internal_ok)
+            stmt.ledger_total = report.lineitem_total
+            stmt.money_rows_total = report.money_rows_total
             if not report.completeness_ok:
                 current_app.logger.warning(
                     "Commission ledger completeness check FAILED for "

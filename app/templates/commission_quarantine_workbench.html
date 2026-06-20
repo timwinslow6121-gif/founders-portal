@@ -26,24 +26,28 @@
   .qw-month-head h2 { margin:0; font-size:17px; color:var(--ivory-bright); }
   .qw-month-head .meta { color: var(--slate); font-size:13px; }
   .qw-card-title { margin: 8px 4px 4px; font-size:17px; color:var(--ivory-bright); }
-  /* fixed layout: every field is a REAL column so headers line up with content
-     and a long action string in the Member cell WRAPS instead of blowing out the row. */
+  /* fixed layout: every field is a REAL column so headers line up with content.
+     ALL columns have explicit widths (incl. Member) so a long action string wraps
+     inside its column instead of expanding the table. Percentages so it scales. */
   table.qw-table { width:100%; border-collapse: collapse; font-size: 14px; table-layout: fixed; }
-  table.qw-table col.col-member  { width: auto; }
-  table.qw-table col.col-amount  { width: 96px; }
-  table.qw-table col.col-agent   { width: 168px; }
-  table.qw-table col.col-ovr     { width: 120px; }
-  table.qw-table col.col-preview { width: 150px; }
-  table.qw-table col.col-action  { width: 96px; }
+  table.qw-table col.col-member  { width: 30%; }
+  table.qw-table col.col-amount  { width: 90px; }
+  table.qw-table col.col-agent   { width: 22%; }
+  table.qw-table col.col-ovr     { width: 130px; }
+  table.qw-table col.col-preview { width: 130px; }
+  table.qw-table col.col-action  { width: 92px; }
+  /* headers WRAP (don't nowrap) so 'Founders override $' / 'Agent receives' never
+     overflow into the next header. */
   table.qw-table th { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);
-                      color: var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.04em; white-space:nowrap; }
+                      color: var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+                      line-height:1.25; vertical-align:bottom; overflow-wrap:anywhere; }
   table.qw-table th.th-r { text-align:right; }
-  table.qw-table td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  table.qw-table td { padding:9px 10px; border-bottom:1px solid var(--border); vertical-align:middle; overflow:hidden; }
   table.qw-table tr:last-child td { border-bottom:none; }
   table.qw-table td.num { text-align:right; font-variant-numeric: tabular-nums; font-weight:600; }
   td.num.neg { color: var(--status-error); }
   td.qw-member { vertical-align: top; }
-  td.qw-member .m-name { font-weight:600; }
+  td.qw-member .m-name { font-weight:600; overflow-wrap:anywhere; }
   td.qw-member .m-meta { font-size:11px; color:var(--slate); margin-top:2px;
                          overflow-wrap:anywhere; word-break:break-word; line-height:1.35; }
   /* per-column resolve fields */

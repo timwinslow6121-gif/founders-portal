@@ -105,6 +105,68 @@ def test_fidelity_page_403_for_non_admin(db_session, app, client, agency):
     assert client.get(f"/admin/commissions/{sid}/fidelity").status_code == 403
 
 
+def test_commission_audit_overview_checklist_and_statements(db_session, app, agency, agent_user):
+    """The redesigned audit overview: statements for the period w/ balance + quarantine,
+    plus a carrier checklist (from active contracts) marking uploaded vs missing."""
+    from app.extensions import db
+    from app.models import (CommissionStatement, CommissionLineItem, AgentCarrierContract)
+    from app.commission.recap import commission_audit_overview
+    with app.app_context():
+        # agent contracted with UHC, Humana, GTL (3 expected carriers)
+        for c in ("UHC", "Humana", "GTL"):
+            db.session.add(AgentCarrierContract(agency_id=agency.id, agent_id=agent_user.id,
+                                                carrier=c, is_active=True, split_rate=0.55))
+        # only UHC uploaded for the period (balanced) with 2 quarantined
+        s = CommissionStatement(agency_id=agency.id, carrier="UHC",
+            statement_date=date(2026, 5, 1), period_label="May 2026",
+            balanced=True, ledger_total=100.0, money_rows_total=100.0)
+        db.session.add(s); db.session.flush()
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id, carrier="UHC",
+            source_ref="q1", raw_amount=50.0, split_rate=None,
+            classification="needs_manual_review"))
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id, carrier="UHC",
+            source_ref="q2", raw_amount=50.0, split_rate=None,
+            classification="needs_manual_review"))
+        db.session.commit()
+
+        ov = commission_audit_overview(agency.id, "May 2026")
+        assert ov["statement_count"] == 1
+        assert ov["total_quarantined"] == 2
+        assert ov["statements"][0]["balance_state"] == "ok"
+        assert ov["statements"][0]["quarantined"] == 2
+        # checklist: UHC uploaded ✓, Humana + GTL still missing
+        cl = {c["carrier"]: c["uploaded"] for c in ov["checklist"]}
+        assert cl == {"UHC": True, "Humana": False, "GTL": False}
+        assert ov["carriers_uploaded"] == 1 and ov["carriers_expected"] == 3
+
+
+def test_admin_commission_page_shows_trust_strip_and_fidelity_link(db_session, app, client, agency, agent_user):
+    """The redesigned admin Commission Audit page renders the trust strip + carrier
+    checklist + a per-statement Fidelity link (the bug: Fidelity was unreachable as
+    admin)."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, AgentCarrierContract
+    with app.app_context():
+        admin = User(name="AJ", email="adm@x.com", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        db.session.add(AgentCarrierContract(agency_id=agency.id, agent_id=agent_user.id,
+                                            carrier="UHC", is_active=True, split_rate=0.55))
+        s = CommissionStatement(agency_id=agency.id, carrier="UHC",
+            statement_date=date(2026, 5, 1), period_label="May 2026",
+            balanced=True, ledger_total=100.0, money_rows_total=100.0)
+        db.session.add(s); db.session.commit()
+        aid, sid = admin.id, s.id
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    r = client.get("/admin/commissions?period=May%202026")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "Statements uploaded" in body          # trust strip
+    assert "✓ UHC" in body or "UHC" in body        # carrier checklist
+    assert f"/admin/commissions/{sid}/fidelity" in body   # Fidelity reachable as admin
+    assert "✓ Balances" in body                    # per-statement balance badge
+
+
 def test_recompute_ledger_total_from_line_items(db_session, app, agency):
     from app.extensions import db
     from app.models import CommissionStatement, CommissionLineItem

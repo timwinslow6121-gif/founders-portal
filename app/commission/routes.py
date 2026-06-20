@@ -779,44 +779,27 @@ def commission_index():
 def commission_admin():
     if not current_user.is_admin:
         abort(403)
-    agents = (User.query
-              .filter(User.email != "admin@foundersinsuranceagency.com")
-              .order_by(User.name).all())
+    from app.commission.recap import (commission_audit_overview, all_periods_with_data,
+                                       latest_period_with_data)
     agency_id = current_user.agency_id
-    agent_summaries = []
-    for agent in agents:
-        stmts = (CommissionStatement.query
-                 .filter_by(agent_id=agent.id, agency_id=agency_id)
-                 .order_by(CommissionStatement.statement_date.desc())
-                 .limit(5).all())
-        # Agency-level statements (agent_id is NULL) where THIS agent has payments
-        agency_level = (CommissionStatement.query
-                        .join(PolicyPayment, PolicyPayment.statement_id == CommissionStatement.id)
-                        .filter(CommissionStatement.agency_id == agency_id,
-                                CommissionStatement.agent_id.is_(None),
-                                PolicyPayment.agent_id == agent.id)
-                        .order_by(CommissionStatement.statement_date.desc())
-                        .distinct()
-                        .limit(5).all())
-        combined = stmts + [s for s in agency_level if s not in stmts]
-        agent_summaries.append({"agent": agent, "statements": combined})
+    # Period: ?period=, else the latest period with data, else the current month.
+    periods = all_periods_with_data(agency_id) or []
+    period = (request.args.get("period") or latest_period_with_data(agency_id)
+              or date.today().strftime("%B %Y"))
+    # Always offer the current month in the picker (so AJ can target it before any upload).
+    current_month = date.today().strftime("%B %Y")
+    if current_month not in periods:
+        periods = [current_month] + periods
+    overview = commission_audit_overview(agency_id, period)
+    # Recent uploads (across all periods) — keep the delete-an-upload affordance.
     recent = (CommissionStatement.query
               .filter_by(agency_id=agency_id)
               .order_by(CommissionStatement.upload_date.desc())
               .limit(20).all())
-    # Quarantine counts per recent statement (one grouped query) → tab badge.
-    quar_counts = {}
-    if recent:
-        rows = (db.session.query(CommissionLineItem.statement_id,
-                                 db.func.count(CommissionLineItem.id))
-                .filter(CommissionLineItem.agency_id == agency_id,
-                        CommissionLineItem.classification == "needs_manual_review",
-                        CommissionLineItem.statement_id.in_([s.id for s in recent]))
-                .group_by(CommissionLineItem.statement_id).all())
-        quar_counts = {sid: n for sid, n in rows}
     return render_template("commission.html",
-        agent_summaries=agent_summaries, recent=recent, quar_counts=quar_counts,
-        is_admin=True, viewing_agent=None)
+        overview=overview, periods=periods, selected_period=period,
+        current_month=current_month, current_month_iso=date.today().strftime("%Y-%m"),
+        recent=recent, is_admin=True, viewing_agent=None)
 
 
 def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):

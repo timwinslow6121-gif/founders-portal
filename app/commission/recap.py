@@ -426,6 +426,69 @@ def quarantine_total_count(agency_id):
         agency_id=agency_id, classification="needs_manual_review").count()
 
 
+def commission_audit_overview(agency_id, period_label):
+    """The redesigned admin Commission Audit page data for ONE period:
+      - statements: every statement for the period, each with balance state + counts
+        + quarantine count, ready for the clean per-statement list.
+      - expected_carriers: the carrier checklist — every carrier any agent is actively
+        contracted with (from AgentCarrierContract), marked uploaded/missing for the
+        period, so AJ sees at a glance 'UHC ✓ uploaded, GTL ⬜ not yet'.
+      - totals: only exactly-true facts (statement count, total quarantined).
+    Returns a dict consumed by commission.html's admin view."""
+    from app.models import CommissionStatement, AgentCarrierContract
+    stmts = (CommissionStatement.query
+             .filter_by(agency_id=agency_id, period_label=period_label)
+             .order_by(CommissionStatement.carrier).all())
+    # quarantine counts per statement (one grouped query)
+    quar = {}
+    if stmts:
+        rows = (db.session.query(CommissionLineItem.statement_id,
+                                 db.func.count(CommissionLineItem.id))
+                .filter(CommissionLineItem.agency_id == agency_id,
+                        CommissionLineItem.classification == "needs_manual_review",
+                        CommissionLineItem.statement_id.in_([s.id for s in stmts]))
+                .group_by(CommissionLineItem.statement_id).all())
+        quar = {sid: n for sid, n in rows}
+
+    # line-item counts per statement (the real ledger rows) — one grouped query.
+    counts = {}
+    if stmts:
+        crows = (db.session.query(CommissionLineItem.statement_id,
+                                  db.func.count(CommissionLineItem.id))
+                 .filter(CommissionLineItem.agency_id == agency_id,
+                         CommissionLineItem.statement_id.in_([s.id for s in stmts]))
+                 .group_by(CommissionLineItem.statement_id).all())
+        counts = {sid: n for sid, n in crows}
+
+    statements = []
+    uploaded_carriers = set()
+    total_quarantined = 0
+    for s in stmts:
+        bstate, bdelta = balance_status(s)
+        qn = quar.get(s.id, 0)
+        total_quarantined += qn
+        uploaded_carriers.add(s.carrier)
+        statements.append({"stmt": s, "balance_state": bstate, "balance_delta": bdelta,
+                           "quarantined": qn, "line_count": counts.get(s.id, 0)})
+
+    # expected carriers = distinct carriers from active contracts (auto-updates).
+    expected = sorted({c.carrier for c in
+                       AgentCarrierContract.query.filter_by(agency_id=agency_id, is_active=True).all()
+                       if c.carrier})
+    # include any carrier that uploaded even if no contract maps it (don't hide data).
+    for c in uploaded_carriers:
+        if c not in expected:
+            expected.append(c)
+    checklist = [{"carrier": c, "uploaded": c in uploaded_carriers} for c in sorted(expected)]
+
+    return {"period_label": period_label, "statements": statements,
+            "checklist": checklist,
+            "carriers_uploaded": len(uploaded_carriers),
+            "carriers_expected": len(checklist),
+            "statement_count": len(statements),
+            "total_quarantined": total_quarantined}
+
+
 def recently_resolved_workbench(agency_id, *, period=None, carrier=None, agent_id=None, limit=100):
     """Resolved/edited commission lines across the WHOLE agency (every statement),
     for the Quarantine Workbench's 'Recently resolved' section so AJ can Undo/Edit a

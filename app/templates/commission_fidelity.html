@@ -50,6 +50,26 @@
                       font-size: 12px; line-height: 1.4; color: var(--ivory); box-shadow: var(--shadow); white-space: normal; text-align: left; }
   .fd-calc:hover .fd-rule { display: block; }
   .fd-type-pill { font-size: 11px; color: var(--slate); }
+  .fd-type { color: var(--ivory); }
+  .fd-type[title] { border-bottom: 1px dotted var(--slate); cursor: help; }
+  td.r { text-align: right; }
+  .fd-edit-btn { background:none; border:1px solid var(--border); border-radius:7px; color:var(--gold);
+                 font-size:12px; font-weight:600; padding:4px 11px; cursor:pointer; }
+  .fd-edit-btn:hover { background:color-mix(in srgb, var(--gold) 12%, transparent); }
+  .fd-editform { display:none; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 12px;
+                 background:color-mix(in srgb, var(--gold) 6%, transparent); border-top:1px solid var(--border); }
+  .fd-editform.open { display:flex; }
+  .fd-ef-lbl { font-size:12px; color:var(--slate); }
+  .fd-editform select, .fd-editform input { padding:6px 9px; border:1px solid var(--border); border-radius:8px;
+                 background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; }
+  .fd-editform label { font-size:11px; color:var(--slate); display:inline-flex; gap:5px; align-items:center; }
+  .fd-ef-amt { width:90px; text-align:right; }
+  .fd-ef-sum { font-size:12px; font-weight:600; }
+  .fd-ef-sum.ok  { color:var(--green); }
+  .fd-ef-sum.bad { color:var(--status-error); }
+  .fd-editform button[type=submit] { background:var(--gold); color:#fff; border:none; border-radius:8px;
+                 padding:7px 16px; font-weight:600; cursor:pointer; }
+  .fd-editform button[type=submit][disabled] { opacity:.5; cursor:not-allowed; }
 </style>
 {% endblock %}
 
@@ -65,7 +85,31 @@
     <td class="num agent{{ ' neg' if r.agent < 0 else '' }}">${{ "{:,.2f}".format(r.agent) }}</td>
     <td class="num founders{{ ' neg' if r.founders < 0 else '' }}">${{ "{:,.2f}".format(r.founders) }}</td>
     <td class="l">
-      <span class="fd-calc">{{ r.calc_label }}<span class="fd-rule">{{ r.calc_rule }}</span></span>
+      <span class="fd-type" {% if r.type_raw and r.type_raw|lower != r.type_label|lower %}title="carrier code: {{ r.type_raw }}"{% endif %}>{{ r.type_label }}</span>
+      <span class="fd-calc">· how<span class="fd-rule">{{ r.calc_rule }}</span></span>
+    </td>
+    <td class="r">
+      <button type="button" class="fd-edit-btn" onclick="document.getElementById('fdedit-{{ r.id }}').classList.toggle('open')">Edit</button>
+    </td>
+  </tr>
+  <tr class="fd-editrow">
+    <td colspan="6" style="padding:0;">
+      <form id="fdedit-{{ r.id }}" class="fd-editform" method="post"
+            action="{{ url_for('commission.commission_line_edit', line_id=r.id) }}"
+            data-raw="{{ r.raw }}">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+        <span class="fd-ef-lbl">Correct the split for <strong>{{ r.member_display }}</strong> (must total ${{ "{:,.2f}".format(r.raw) }}):</span>
+        <select name="agent_id" required>
+          <option value="">— agent —</option>
+          {% for a in agents %}
+          <option value="{{ a.id }}" {% if a.id == r.agent_id %}selected{% endif %}>{{ a.display_name }}</option>
+          {% endfor %}
+        </select>
+        <label>Agent $ <input type="number" step="0.01" name="agent_amount" class="fd-ef-amt" value="{{ "%.2f"|format(r.agent) }}"></label>
+        <label>Founders $ <input type="number" step="0.01" name="override_amount" class="fd-ef-amt" value="{{ "%.2f"|format(r.founders) }}"></label>
+        <span class="fd-ef-sum"></span>
+        <button type="submit">Save</button>
+      </form>
     </td>
   </tr>
 {% endmacro %}
@@ -77,7 +121,7 @@
     <table class="fd-table">
       <thead><tr>
         <th class="l">Member · Agent</th><th>Raw (file)</th><th>Agent commission</th>
-        <th>Founders override</th><th class="l">Type / how it was split</th>
+        <th>Founders override</th><th class="l">Type / how it was split</th><th></th>
       </tr></thead>
       <tbody>
         {% for r in rows %}{{ fdrow(r) }}{% endfor %}
@@ -88,7 +132,7 @@
           <td>${{ "{:,.2f}".format(rows|sum(attribute='raw')) }}</td>
           <td>${{ "{:,.2f}".format(rows|sum(attribute='agent')) }}</td>
           <td>${{ "{:,.2f}".format(rows|sum(attribute='founders')) }}</td>
-          <td></td>
+          <td></td><td></td>
         </tr>
       </tfoot>
     </table>
@@ -172,6 +216,25 @@
     }
     [search,typeSel,minI,maxI].forEach(function(el){ el.addEventListener('input',apply); el.addEventListener('change',apply); });
     clear.addEventListener('click',function(){ search.value=''; typeSel.value=''; minI.value=''; maxI.value=''; apply(); });
+  })();
+
+  // Inline edit: live-check that agent + Founders = the row's raw amount (the
+  // invariant the server also enforces). Show the running sum + block Save if off.
+  (function(){
+    document.querySelectorAll('form.fd-editform').forEach(function(f){
+      var raw=parseFloat(f.getAttribute('data-raw'))||0;
+      var ag=f.querySelector('input[name=agent_amount]'), ov=f.querySelector('input[name=override_amount]');
+      var sum=f.querySelector('.fd-ef-sum'), save=f.querySelector('button[type=submit]');
+      function fmt(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+      function check(){
+        var t=Math.round(((parseFloat(ag.value)||0)+(parseFloat(ov.value)||0))*100)/100;
+        var ok=Math.abs(t-raw)<0.005;
+        sum.textContent = '= '+fmt(t)+(ok?' ✓':' ✗ must equal '+fmt(raw));
+        sum.className='fd-ef-sum '+(ok?'ok':'bad');
+        save.disabled=!ok;
+      }
+      ag.addEventListener('input',check); ov.addEventListener('input',check); check();
+    });
   })();
 </script>
 {% endblock %}

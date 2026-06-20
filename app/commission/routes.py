@@ -1192,8 +1192,11 @@ def commission_fidelity(stmt_id):
         id=stmt_id, agency_id=current_user.agency_id).first_or_404()
     fv = fidelity_view(stmt.id, current_user.agency_id)
     bstate, bdelta = balance_status(stmt)
+    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+              .filter(User.email != "admin@foundersinsuranceagency.com")
+              .order_by(User.name).all())
     return render_template("commission_fidelity.html", stmt=stmt, fv=fv,
-                           bstate=bstate, bdelta=bdelta)
+                           bstate=bstate, bdelta=bdelta, agents=agents)
 
 
 @commission_bp.route("/admin/commissions/quarantine")

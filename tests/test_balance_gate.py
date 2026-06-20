@@ -167,6 +167,43 @@ def test_admin_commission_page_shows_trust_strip_and_fidelity_link(db_session, a
     assert "✓ Balances" in body                    # per-statement balance badge
 
 
+def test_friendly_payment_type_translates_carrier_codes():
+    from app.commission.recap import friendly_payment_type
+    assert friendly_payment_type("arcm")[0] == "Renewal commission (monthly)"
+    assert friendly_payment_type("fy")[0] == "First-year commission"
+    assert friendly_payment_type("initial - new to cms")[0] == "Initial — new to Medicare"
+    # raw code preserved for the hover
+    assert friendly_payment_type("arcm")[1] == "arcm"
+    # unknown passes through (nothing hidden)
+    assert friendly_payment_type("WeirdCode")[1] == "WeirdCode"
+    assert friendly_payment_type("")[0] == "—"
+
+
+def test_fidelity_page_has_inline_edit_form(db_session, app, client, agency, agent_user):
+    """AJ can correct a split right on the Fidelity View — the per-row Edit form
+    posts to the existing commission_line_edit route."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    with app.app_context():
+        admin = User(name="AJ", email="fe@x.com", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        s = CommissionStatement(agency_id=agency.id, carrier="Humana",
+            statement_date=date(2026, 5, 1), period_label="May 2026",
+            balanced=True, ledger_total=28.92, money_rows_total=28.92)
+        db.session.add(s); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=s.id, carrier="Humana",
+            source_ref="a", member_name="ROE, BOB", raw_amount=28.92, split_rate=0.55,
+            classification="agent_commission", payment_type="arcm", agent_id=agent_user.id)
+        db.session.add(li); db.session.commit()
+        sid, lid, aid = s.id, li.id, admin.id
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    body = client.get(f"/admin/commissions/{sid}/fidelity").get_data(as_text=True)
+    assert "Renewal commission (monthly)" in body         # friendly label for arcm
+    assert f"/admin/commissions/line/{lid}/edit" in body   # inline edit form present
+    assert "fdedit-" in body                                # the edit toggle
+
+
 def test_display_name_normalizes_carrier_names():
     from app.commission.recap import display_name
     assert display_name("WINECOFF, JACK J.") == "Jack J. Winecoff"

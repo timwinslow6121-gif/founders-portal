@@ -389,6 +389,50 @@ def display_name(raw):
     return " ".join(_tc(p) for p in s.split())
 
 
+# Plain-English translations of the cryptic carrier payment-type codes so the
+# Fidelity View is readable to a non-technical reviewer (Brian). Keyed by the raw
+# code (lowercased). '?' entries are best-effort interpretations to CONFIRM with AJ
+# — they're still shown in plain English but flagged uncertain in the source.
+_FRIENDLY_TYPE = {
+    # UHC
+    "renewal": "Renewal", "new": "New enrollment", "new (prorated)": "New (auto-split)",
+    "new override": "New-plan override ($125)", "partd override": "Part D override",
+    "new chargeback": "New enrollment — chargeback", "renewal chargeback": "Renewal — chargeback",
+    "hra": "HRA bonus",
+    # Humana transaction codes
+    "arcm": "Renewal commission (monthly)", "arcf": "Renewal commission (first-year)",
+    "med2": "Medicare payment (yr 2)?", "ispr": "Initial sale payment?",
+    "ispz": "Initial sale payment?", "ispo": "Initial sale payment?",
+    "crcf": "Renewal commission?", "msra": "Med-Supp renewal?",
+    # Devoted
+    "initial - new": "Initial enrollment (new member)",
+    "initial - not new": "Initial enrollment (existing member)",
+    "renewal - monthly": "Renewal (monthly)", "override": "Founders override",
+    # BCBS
+    "renew": "Renewal", "fy": "First-year commission", "adjustment": "Adjustment",
+    # Healthspring
+    "initial - new to cms": "Initial — new to Medicare",
+    "initial - not new to cms": "Initial — already in Medicare",
+    "disenrollment initial": "Disenrollment (initial)",
+    # Aetna
+    "pro-rata payment": "Pro-rata payment", "pro-rata disenroll": "Pro-rata disenrollment",
+}
+
+
+def friendly_payment_type(payment_type):
+    """Plain-English label for a carrier's raw payment-type code, for the Fidelity
+    View. Returns (label, raw) — label is human-readable; raw is the original code
+    (shown on hover). Unknown codes pass through title-cased so nothing is hidden."""
+    raw = (payment_type or "").strip()
+    if not raw:
+        return ("—", "")
+    label = _FRIENDLY_TYPE.get(raw.lower())
+    if label is None:
+        # unknown / long DVH-style string: show a trimmed title-case version
+        label = raw[:48].title() if len(raw) <= 48 else raw[:45].title() + "…"
+    return (label, raw)
+
+
 def _calc_explanation(li, agent, founders):
     """A (short_label, full_rule) pair explaining how a line was split, for the
     Fidelity View's calc tooltip. Reads classification + split_rate + payment_type."""
@@ -444,12 +488,15 @@ def fidelity_view(statement_id, agency_id):
         founders = round(founders, 2)
         raw = round(li.raw_amount or 0.0, 2)
         calc_label, calc_rule = _calc_explanation(li, agent, founders)
+        type_label, type_raw = friendly_payment_type(li.payment_type)
         rows.append({
+            "id": li.id,
             "member_name": li.member_name or "(non-customer)",
             "member_display": display_name(li.member_name) or "(non-customer)",
             "customer_id": li.customer_id, "carrier": li.carrier,
             "raw": raw, "agent": agent, "founders": founders,
             "classification": li.classification, "payment_type": li.payment_type or "",
+            "type_label": type_label, "type_raw": type_raw,
             "agent_id": li.agent_id,
             "agent_name": agent_names.get(li.agent_id, "— unassigned —"),
             "split_rate": li.split_rate,

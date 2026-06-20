@@ -349,6 +349,42 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
     return result
 
 
+def fidelity_view(statement_id, agency_id):
+    """A2 — the Fidelity View: EVERY line item of a statement with its raw amount and
+    its agent / Founders split (the G/H columns AJ adds by hand), so AJ/Brian can see
+    the portal reflects the file exactly — nothing dropped or mutated. Reuses
+    split_breakdown (no new math). Returns:
+      {rows:[{member_name, carrier, raw, agent, founders, classification, payment_type,
+              agent_id}], raw_total, agent_total, founders_total, count, balances}
+    where balances = (agent_total + founders_total == raw_total) by construction."""
+    items = (CommissionLineItem.query
+             .filter_by(statement_id=statement_id, agency_id=agency_id)
+             .order_by(CommissionLineItem.member_name, CommissionLineItem.source_ref)
+             .all())
+    rows = []
+    raw_total = agent_total = founders_total = 0.0
+    for li in items:
+        agent, founders = split_breakdown(li)
+        agent = round(agent, 2)
+        founders = round(founders, 2)
+        raw = round(li.raw_amount or 0.0, 2)
+        rows.append({
+            "member_name": li.member_name or "(non-customer)", "carrier": li.carrier,
+            "raw": raw, "agent": agent, "founders": founders,
+            "classification": li.classification, "payment_type": li.payment_type or "",
+            "agent_id": li.agent_id,
+        })
+        raw_total += raw
+        agent_total += agent
+        founders_total += founders
+    raw_total = round(raw_total, 2)
+    agent_total = round(agent_total, 2)
+    founders_total = round(founders_total, 2)
+    return {"rows": rows, "count": len(rows), "raw_total": raw_total,
+            "agent_total": agent_total, "founders_total": founders_total,
+            "balances": abs(raw_total - (agent_total + founders_total)) <= 0.01}
+
+
 def recompute_ledger_total(stmt, agency_id):
     """Set stmt.ledger_total = Σ raw_amount of its persisted line items (the
     provable internal total). Returns the total. Used to backfill pre-A3 statements

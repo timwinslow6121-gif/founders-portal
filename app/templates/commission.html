@@ -254,7 +254,11 @@
           {% elif s.status == 'disputed' %}<span class="badge badge-orange">⚠ Disputed</span>
           {% else %}<span class="badge badge-gold">Pending</span>{% endif %}
         </div>
-        <span class="detail-meta">{{ s.line_items_parsed|length }} line items · uploaded {{ s.upload_date.strftime('%b %d, %Y') }}</span>
+        <span class="detail-meta">{{ s.line_items_parsed|length }} line items · uploaded {{ s.upload_date.strftime('%b %d, %Y') }}
+          {% if current_user.is_admin %}
+          · <a href="{{ url_for('commission.commission_fidelity', stmt_id=s.id) }}" style="color:var(--gold);text-decoration:none;">View every line (Fidelity) →</a>
+          {% endif %}
+        </span>
       </div>
 
       {# A3 — ledger balance proof: every dollar from the file is accounted for. #}

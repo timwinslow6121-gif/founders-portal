@@ -1196,6 +1196,23 @@ def commission_delete(stmt_id):
     return redirect(url_for("commission.commission_admin"))
 
 
+@commission_bp.route("/admin/commissions/<int:stmt_id>/fidelity")
+@login_required
+def commission_fidelity(stmt_id):
+    """A2 — the Fidelity View: every raw line of a statement beside its agent /
+    Founders-override split (G/H), with a footer proving file total = ledger total.
+    Lets AJ/Brian confirm the portal reflects the carrier file EXACTLY. Admin-only."""
+    if not current_user.is_admin:
+        abort(403)
+    from app.commission.recap import fidelity_view, balance_status
+    stmt = CommissionStatement.query.filter_by(
+        id=stmt_id, agency_id=current_user.agency_id).first_or_404()
+    fv = fidelity_view(stmt.id, current_user.agency_id)
+    bstate, bdelta = balance_status(stmt)
+    return render_template("commission_fidelity.html", stmt=stmt, fv=fv,
+                           bstate=bstate, bdelta=bdelta)
+
+
 @commission_bp.route("/admin/commissions/quarantine")
 @login_required
 def commission_quarantine_workbench():

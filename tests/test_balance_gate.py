@@ -37,6 +37,74 @@ def test_balance_status_helper():
     assert balance_status(S(None, None, None)) == ("unknown", 0.0)
 
 
+def test_fidelity_view_shows_every_row_with_split_that_ties(db_session, app, agency):
+    """A2 — the Fidelity View lists every line item with raw/agent/founders, and the
+    agent + founders columns sum back to raw (G+H=F), proving nothing is lost."""
+    from app.extensions import db
+    from app.models import CommissionStatement, CommissionLineItem
+    from app.commission.recap import fidelity_view
+    with app.app_context():
+        s = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(s); db.session.flush()
+        # an agent_commission row (splits) + a founders_override row (100% Founders)
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id,
+            carrier="UHC", source_ref="a", member_name="DOE, JANE", raw_amount=28.92,
+            split_rate=0.55, classification="agent_commission"))
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id,
+            carrier="UHC", source_ref="b", member_name="DOE, JANE", raw_amount=4.59,
+            split_rate=None, classification="founders_override"))
+        db.session.commit()
+        fv = fidelity_view(s.id, agency.id)
+        assert fv["count"] == 2
+        assert fv["raw_total"] == round(28.92 + 4.59, 2)
+        # agent + founders columns reconcile to the raw total (G+H=F)
+        assert round(fv["agent_total"] + fv["founders_total"], 2) == fv["raw_total"]
+        assert fv["balances"] is True
+        # the override row gives the agent nothing, Founders the whole amount
+        ovr = next(r for r in fv["rows"] if r["classification"] == "founders_override")
+        assert ovr["agent"] == 0.0 and ovr["founders"] == 4.59
+
+
+def test_fidelity_page_renders_for_admin(db_session, app, client, agency):
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    with app.app_context():
+        admin = User(name="AJ", email="fa@x.com", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        s = CommissionStatement(agency_id=agency.id, carrier="UHC",
+            statement_date=date(2026, 5, 1), period_label="May 2026",
+            balanced=True, ledger_total=33.51, money_rows_total=33.51)
+        db.session.add(s); db.session.flush()
+        db.session.add(CommissionLineItem(agency_id=agency.id, statement_id=s.id,
+            carrier="UHC", source_ref="a", member_name="DOE, JANE", raw_amount=28.92,
+            split_rate=0.55, classification="agent_commission"))
+        db.session.commit()
+        sid, aid = s.id, admin.id
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+    r = client.get(f"/admin/commissions/{sid}/fidelity")
+    assert r.status_code == 200
+    body = r.get_data(as_text=True)
+    assert "Fidelity" in body and "DOE, JANE" in body
+    assert "Balances to the penny" in body
+
+
+def test_fidelity_page_403_for_non_admin(db_session, app, client, agency):
+    from app.extensions import db
+    from app.models import User, CommissionStatement
+    with app.app_context():
+        agent = User(name="Reg", email="fr@x.com", is_admin=False, agency_id=agency.id)
+        db.session.add(agent)
+        s = CommissionStatement(agency_id=agency.id, carrier="UHC",
+            statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(s); db.session.commit()
+        sid, gid = s.id, agent.id
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(gid)
+    assert client.get(f"/admin/commissions/{sid}/fidelity").status_code == 403
+
+
 def test_recompute_ledger_total_from_line_items(db_session, app, agency):
     from app.extensions import db
     from app.models import CommissionStatement, CommissionLineItem

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Fidelity — {{ stmt.carrier }} {{ stmt.period_label }}{% endblock %}
+
+{% block styles %}
+<style>
+  .fd-wrap { max-width: 1100px; margin: 0 auto; }
+  .fd-wrap h1 { color: var(--ivory-bright); margin: 0 0 4px; }
+  .fd-sub { color: var(--slate); font-size: 13px; margin-bottom: 18px; }
+  .back-link { color: var(--gold); font-size: 13px; text-decoration: none; }
+  /* the proof banner — file total = ledger total */
+  .fd-proof { border-radius: 14px; box-shadow: var(--shadow); padding: 14px 18px; margin: 0 0 18px;
+              font-size: 0.9rem; line-height: 1.45; }
+  .fd-proof.ok  { background: color-mix(in srgb, var(--green) 10%, transparent); border: 1px solid color-mix(in srgb, var(--green) 35%, transparent); color: var(--ivory); }
+  .fd-proof.off { background: color-mix(in srgb, var(--status-error) 10%, transparent); border: 1px solid color-mix(in srgb, var(--status-error) 40%, transparent); color: var(--ivory); }
+  .fd-proof b { color: var(--green); font-variant-numeric: tabular-nums; }
+  .fd-proof.off b { color: var(--status-error); }
+  .fd-totals { display: flex; gap: 16px; margin: 0 0 18px; flex-wrap: wrap; }
+  .fd-stat { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 12px 18px; }
+  .fd-stat .n { font-size: 20px; font-weight: 700; color: var(--ivory-bright); font-variant-numeric: tabular-nums; }
+  .fd-stat .l { font-size: 11px; color: var(--slate); text-transform: uppercase; letter-spacing: .04em; }
+  .fd-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 4px 14px 8px; overflow-x: auto; }
+  table.fd-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.fd-table th { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface);
+                      color: var(--slate); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  table.fd-table th:first-child, table.fd-table th.l { text-align: left; }
+  table.fd-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  table.fd-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.fd-table td.agent { color: var(--green); }
+  table.fd-table td.founders { color: var(--gold); }
+  table.fd-table td.neg { color: var(--status-error); }
+  table.fd-table tfoot td { padding: 11px 10px; border-top: 2px solid var(--border); font-weight: 700; color: var(--ivory-bright);
+                            font-variant-numeric: tabular-nums; text-align: right; position: sticky; bottom: 0; background: var(--surface); }
+  table.fd-table tfoot td.l { text-align: left; }
+  .fd-type { font-size: 11px; color: var(--slate); }
+  .fd-meta { font-size: 11px; color: var(--slate); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fd-wrap">
+  <a class="back-link" href="{{ url_for('commission.commission_admin') }}">← Commission Audit</a>
+
+  <h1 style="margin-top:12px;">Fidelity — {{ stmt.carrier }} {{ stmt.period_label }}</h1>
+  <div class="fd-sub">
+    Every line of the uploaded carrier file, exactly as recorded, beside its split into
+    <strong style="color:var(--green)">Agent commission</strong> +
+    <strong style="color:var(--gold)">Founders override</strong> (the two columns AJ adds by hand).
+    Nothing is dropped or changed — the columns reconcile to the file total below.
+  </div>
+
+  {% if bstate != 'unknown' %}
+  <div class="fd-proof {{ 'ok' if bstate == 'ok' else 'off' }}">
+    {% if bstate == 'ok' %}
+      ✓ <strong>Balances to the penny.</strong> File total
+      <b>${{ "{:,.2f}".format(stmt.money_rows_total or fv.raw_total) }}</b> = ledger total
+      <b>${{ "{:,.2f}".format(fv.raw_total) }}</b>. Every dollar from the carrier is accounted for.
+    {% else %}
+      ✗ <strong>Does not balance.</strong> File total
+      <b>${{ "{:,.2f}".format(stmt.money_rows_total or 0) }}</b> vs ledger total
+      <b>${{ "{:,.2f}".format(fv.raw_total) }}</b> (off by ${{ "{:,.2f}".format(bdelta|abs) }}).
+      A row was dropped or mis-summed — do not rely on this statement until resolved.
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="fd-totals">
+    <div class="fd-stat"><div class="n">{{ fv.count }}</div><div class="l">Lines (1:1 with the file)</div></div>
+    <div class="fd-stat"><div class="n">${{ "{:,.2f}".format(fv.raw_total) }}</div><div class="l">Raw total</div></div>
+    <div class="fd-stat"><div class="n" style="color:var(--green)">${{ "{:,.2f}".format(fv.agent_total) }}</div><div class="l">Agent commission</div></div>
+    <div class="fd-stat"><div class="n" style="color:var(--gold)">${{ "{:,.2f}".format(fv.founders_total) }}</div><div class="l">Founders override / keep</div></div>
+  </div>
+
+  <div class="fd-card">
+    <table class="fd-table">
+      <thead>
+        <tr>
+          <th class="l">Member</th>
+          <th>Raw (file)</th>
+          <th>Agent commission</th>
+          <th>Founders override</th>
+          <th class="l">Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in fv.rows %}
+        <tr>
+          <td>{{ r.member_name }} <span class="fd-meta">· {{ r.carrier }}</span></td>
+          <td class="num{{ ' neg' if r.raw < 0 else '' }}">${{ "{:,.2f}".format(r.raw) }}</td>
+          <td class="num agent{{ ' neg' if r.agent < 0 else '' }}">${{ "{:,.2f}".format(r.agent) }}</td>
+          <td class="num founders{{ ' neg' if r.founders < 0 else '' }}">${{ "{:,.2f}".format(r.founders) }}</td>
+          <td><span class="fd-type">{{ r.classification.replace('_', ' ') }}{% if r.payment_type %} · {{ r.payment_type[:40] }}{% endif %}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="l">TOTAL — {{ fv.count }} lines</td>
+          <td>${{ "{:,.2f}".format(fv.raw_total) }}</td>
+          <td>${{ "{:,.2f}".format(fv.agent_total) }}</td>
+          <td>${{ "{:,.2f}".format(fv.founders_total) }}</td>
+          <td class="l">
+            {% if fv.balances %}<span style="color:var(--green)">✓ Agent + Founders = Raw</span>
+            {% else %}<span style="color:var(--status-error)">✗ does not reconcile</span>{% endif %}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}

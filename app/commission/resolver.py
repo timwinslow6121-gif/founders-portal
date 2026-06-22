@@ -6,8 +6,9 @@ MemberFact into a resolved (Customer, Policy) with lifecycle side effects
 (carrier-switch terming, new AOR interval, rapid_disenroll flag) and, when it
 cannot confidently match, a stub + a MatchSuggestion for human confirm.
 
-Resolution order: crosswalk (Policy by carrier+member_id) → MBI → suggest-link →
-stub. See docs/superpowers/specs/2026-06-03-commission-customer-sync-design.md §2.
+Resolution order: crosswalk (Policy by carrier+member_id) → MBI → carrier_member_id
+(existing Policy by carrier+member_id with a different effective id shape) →
+suggest-link → stub. See docs/superpowers/specs/2026-06-03-commission-customer-sync-design.md §2.
 """
 import json
 from dataclasses import dataclass, field
@@ -98,6 +99,22 @@ def _match_by_mbi(fact: MemberFact, agency_id: int):
         if fact.mbi:
             return Customer.query.filter_by(mbi=fact.mbi, agency_id=agency_id).first()
     return None
+
+
+def _match_by_carrier_member_id(fact: MemberFact, agency_id: int):
+    """Return the Customer of an existing active Policy whose (carrier, member_id)
+    equals this fact's (carrier, carrier_member_id). Resolves commission rows that
+    carry the carrier's member id but no MBI (the matcher previously only tried MBI).
+    no_autoflush: must not autoflush a pending stub mid-import."""
+    cmid = (fact.carrier_member_id or "").strip()
+    if not cmid:
+        return None
+    with db.session.no_autoflush:
+        p = (Policy.query
+             .filter_by(carrier=fact.carrier, member_id=cmid, agency_id=agency_id)
+             .filter(Policy.customer_id.isnot(None))
+             .first())
+    return Customer.query.get(p.customer_id) if p else None
 
 
 def _create_stub(fact: MemberFact, agency_id: int, agent_id: Optional[int],
@@ -322,6 +339,23 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
             result.policy = _attach_policy(fact, customer, agency_id, agent_id)
             result.created_policy = True
         result.match_path = "mbi"
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+        return result
+
+    # 2b. carrier_member_id match — a real carrier id is as good as an MBI.
+    customer = _match_by_carrier_member_id(fact, agency_id)
+    if customer is not None:
+        result.customer = customer
+        existing = _crosswalk(fact, agency_id)
+        if existing is not None:
+            existing.customer_id = existing.customer_id or customer.id
+            result.policy = existing
+        else:
+            result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+            result.created_policy = True
+        result.match_path = "carrier_member_id"
         _apply_rapid_disenroll(result.policy, fact, result)
         _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
         _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)

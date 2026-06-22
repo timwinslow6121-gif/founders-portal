@@ -15,7 +15,7 @@ from flask_login import login_required, current_user
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from app.extensions import db
-from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView
+from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView, CommissionLineItem
 from app import customer_provenance as cp
 from app.audit import log_event
 
@@ -926,26 +926,117 @@ def _suggested_agent_id(customer):
     return None, ""
 
 
+def _needs_interval_count(aid):
+    have_iv = (db.session.query(CustomerAorHistory.customer_id)
+               .filter(CustomerAorHistory.agency_id == aid).distinct())
+    return (Customer.query
+            .filter(Customer.agency_id == aid, Customer.primary_agent_id.isnot(None))
+            .filter(~Customer.id.in_(have_iv)).count())
+
+
+def _needs_interval_items(aid):
+    have_iv = (db.session.query(CustomerAorHistory.customer_id)
+               .filter(CustomerAorHistory.agency_id == aid).distinct())
+    rows = (Customer.query
+            .filter(Customer.agency_id == aid, Customer.primary_agent_id.isnot(None))
+            .filter(~Customer.id.in_(have_iv))
+            .order_by(Customer.full_name).all())
+    return [{"c": c, "agent_name": (c.primary_agent.display_name if c.primary_agent else None)}
+            for c in rows]
+
+
+def _needs_match_items(aid):
+    """NULL-customer agent_commission/chargeback line items — payments that never
+    got tied to a Customer record. Shows what's known + a resolve_payment_identity
+    suggestion (tier + would-be customer) without writing anything."""
+    rows = (CommissionLineItem.query
+            .filter_by(agency_id=aid, customer_id=None)
+            .filter(CommissionLineItem.classification.in_(["agent_commission", "chargeback"]))
+            .order_by(CommissionLineItem.statement_date.desc()).all())
+    items = []
+    for li in rows:
+        sid = None
+        sname = None
+        tier = None
+        try:
+            sid, sname, tier = _peek_match_suggestion(li, aid)
+        except Exception:
+            pass
+        items.append({"li": li, "suggested_customer_id": sid, "suggested_customer_name": sname,
+                      "tier": tier})
+    return items
+
+
+def _peek_match_suggestion(li, aid):
+    """Read-only preview of resolve_payment_identity's match — runs the matchers
+    inside a SAVEPOINT and rolls back so nothing is written by viewing the hub."""
+    from app.identity import resolve_payment_identity
+    nested = db.session.begin_nested()
+    try:
+        result = resolve_payment_identity(li, aid)
+    finally:
+        nested.rollback()
+    if result.get("action") == "linked" and result.get("customer_id"):
+        cust = db.session.get(Customer, result["customer_id"])
+        return result["customer_id"], (cust.display_name if cust else None), result.get("tier")
+    return None, None, None
+
+
+def _needs_name_items(aid):
+    """Active policies with no first/last name — Policy has no member_name column,
+    so this is a blank-name check (matches the counts query)."""
+    rows = (Policy.query
+            .filter(Policy.agency_id == aid, Policy.status == "active",
+                    db.or_(Policy.first_name.is_(None), Policy.first_name == ""),
+                    db.or_(Policy.last_name.is_(None), Policy.last_name == ""))
+            .order_by(Policy.id).all())
+    return [{"p": p} for p in rows]
+
+
 @customers_bp.route("/customers/unassigned")
 @login_required
 def customers_unassigned():
-    """Admin: customers with no primary agent (commission stubs that couldn't be
-    resolved). Each shows a suggested agent (from its commission line item) so AJ
-    can confirm/assign in one click — with the BASIS shown for transparency."""
+    """Needs Identity hub: every record lacking a known identity/origin, in one
+    place. Categories: agent | match | name | interval. (Repurposed from the old
+    unassigned-only view per the 2026-06-22 identity-recovery spec.) Each category
+    shows a suggested action (assign agent / confirm match / fill name / interval
+    auto-recovers via the derivation script) so AJ can resolve in one click — with
+    the basis shown for transparency."""
     if not current_user.is_admin:
         abort(403)
-    rows = (Customer.query
-            .filter_by(agency_id=current_user.agency_id, primary_agent_id=None)
-            .order_by(Customer.full_name).all())
-    agents = (User.query.filter_by(agency_id=current_user.agency_id)
+    aid = current_user.agency_id
+    cat = request.args.get("cat", "agent")
+    agents = (User.query.filter_by(agency_id=aid)
               .filter(User.email != "admin@foundersinsuranceagency.com")
               .order_by(User.name).all())
+
+    counts = {
+        "agent": Customer.query.filter_by(agency_id=aid, primary_agent_id=None).count(),
+        "match": CommissionLineItem.query.filter_by(agency_id=aid, customer_id=None)
+                 .filter(CommissionLineItem.classification.in_(["agent_commission", "chargeback"])).count(),
+        "name": Policy.query.filter(Policy.agency_id == aid, Policy.status == "active",
+                 db.or_(Policy.first_name.is_(None), Policy.first_name == ""),
+                 db.or_(Policy.last_name.is_(None), Policy.last_name == "")).count(),
+        "interval": _needs_interval_count(aid),
+    }
+
     items = []
-    for c in rows:
-        sid, basis = _suggested_agent_id(c)
-        sname = next((a.display_name for a in agents if a.id == sid), None)
-        items.append({"c": c, "suggested_id": sid, "suggested_name": sname, "basis": basis})
-    return render_template("customers_unassigned.html", items=items, agents=agents)
+    if cat == "agent":
+        rows = (Customer.query.filter_by(agency_id=aid, primary_agent_id=None)
+                .order_by(Customer.full_name).all())
+        for c in rows:
+            sid, basis = _suggested_agent_id(c)
+            sname = next((a.display_name for a in agents if a.id == sid), None)
+            items.append({"c": c, "suggested_id": sid, "suggested_name": sname, "basis": basis})
+    elif cat == "match":
+        items = _needs_match_items(aid)
+    elif cat == "name":
+        items = _needs_name_items(aid)
+    elif cat == "interval":
+        items = _needs_interval_items(aid)
+
+    return render_template("customers_unassigned.html",
+        items=items, agents=agents, cat=cat, counts=counts)
 
 
 @customers_bp.route("/customers/<int:customer_id>/set-agent", methods=["POST"])

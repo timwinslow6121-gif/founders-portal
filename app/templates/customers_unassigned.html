@@ -1,11 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Unassigned Customers{% endblock %}
+{% block title %}Needs Identity{% endblock %}
 
 {% block styles %}
   {# base.html wraps {% block styles %} in its own <style> — no <style> here. #}
-  .ua-wrap{ max-width:1000px; margin:0 auto; }
+  .ua-wrap{ max-width:1100px; margin:0 auto; }
   .ua-wrap h1{ color:var(--ivory-bright); margin:0 0 4px; }
-  .ua-lead{ color:var(--slate); font-size:.88rem; margin:0 0 20px; }
+  .ua-lead{ color:var(--slate); font-size:.88rem; margin:0 0 18px; }
+  .ua-tabs{ display:flex; gap:8px; margin:0 0 20px; flex-wrap:wrap; }
+  .ua-tab{ display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:999px;
+           border:1px solid var(--border); background:var(--surface); color:var(--slate);
+           font-size:.82rem; font-weight:600; text-decoration:none; transition:all .15s; }
+  .ua-tab:hover{ border-color:var(--gold); color:var(--ivory); }
+  .ua-tab.active{ background:var(--gold); color:#fff; border-color:var(--gold); }
+  .ua-tab .ua-badge{ background:rgba(0,0,0,.18); color:inherit; border-radius:999px; padding:1px 8px; font-size:.74rem; }
+  .ua-tab.active .ua-badge{ background:rgba(255,255,255,.25); }
+  .ua-tab:not(.active) .ua-badge{ background:var(--ink); color:var(--slate); }
   .ua-card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; }
   table.ua{ width:100%; border-collapse:collapse; font-size:.9rem; }
   table.ua th{ text-align:left; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; color:var(--slate); padding:11px 14px; border-bottom:2px solid var(--border); }
@@ -19,53 +28,153 @@
   .ua-form select{ padding:7px 10px; border:1px solid var(--border); border-radius:8px; background:var(--ink); color:var(--ivory); font:inherit; font-size:.82rem; }
   .ua-form button{ padding:7px 13px; border:none; border-radius:8px; background:var(--gold); color:#fff; font:inherit; font-size:.82rem; font-weight:600; cursor:pointer; }
   .ua-empty{ padding:40px; text-align:center; color:var(--slate); }
+  .ua-amount{ font-weight:600; color:var(--ivory); }
+  .ua-amount.neg{ color:#c0392b; }
 {% endblock %}
 
 {% block content %}
 <div class="ua-wrap">
-  <h1>Unassigned Customers</h1>
-  <p class="ua-lead">Customers with no agent yet — usually commission stubs the importer couldn't tie to an agent.
-     The <strong>suggested agent</strong> comes from the member's commission line item; the basis is shown so you can confirm before assigning.</p>
+  <h1>Needs Identity</h1>
+  <p class="ua-lead">Every record lacking a known identity or origin, in one place — pick a category below.</p>
 
-  {% if items %}
-  <div class="ua-card">
-    <table class="ua">
-      <thead>
-        <tr><th>Customer</th><th>Suggested agent</th><th>Assign</th></tr>
-      </thead>
-      <tbody>
-        {% for it in items %}
-        {% set c = it.c %}
-        <tr>
-          <td>
-            <a class="ua-name" href="{{ url_for('customers.customer_profile', customer_id=c.id) }}">{{ c.display_name or c.full_name or '(no name)' }}</a>
-            <div class="ua-meta">{% if c.mbi %}MBI {{ c.mbi }}{% else %}no MBI{% endif %}{% if c.source %} · {{ c.source }}{% endif %}</div>
-          </td>
-          <td>
-            {% if it.suggested_name %}
-              <span class="ua-suggest">{{ it.suggested_name }}</span>
-              <div class="ua-basis">{{ it.basis }}</div>
-            {% else %}
-              <span class="ua-meta">— no commission hint —</span>
-            {% endif %}
-          </td>
-          <td>
-            <form class="ua-form" method="post" action="{{ url_for('customers.customer_set_agent', customer_id=c.id) }}">
-              <select name="agent_id" aria-label="Agent for {{ c.full_name }}">
-                {% for a in agents %}
-                <option value="{{ a.id }}" {% if a.id == it.suggested_id %}selected{% endif %}>{{ a.display_name }}</option>
-                {% endfor %}
-              </select>
-              <button type="submit">Assign</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="ua-tabs">
+    <a class="ua-tab {% if cat == 'agent' %}active{% endif %}" href="{{ url_for('customers.customers_unassigned', cat='agent') }}">
+      Needs agent <span class="ua-badge">{{ counts.agent }}</span>
+    </a>
+    <a class="ua-tab {% if cat == 'match' %}active{% endif %}" href="{{ url_for('customers.customers_unassigned', cat='match') }}">
+      Needs match <span class="ua-badge">{{ counts.match }}</span>
+    </a>
+    <a class="ua-tab {% if cat == 'name' %}active{% endif %}" href="{{ url_for('customers.customers_unassigned', cat='name') }}">
+      Needs name <span class="ua-badge">{{ counts.name }}</span>
+    </a>
+    <a class="ua-tab {% if cat == 'interval' %}active{% endif %}" href="{{ url_for('customers.customers_unassigned', cat='interval') }}">
+      Needs interval <span class="ua-badge">{{ counts.interval }}</span>
+    </a>
   </div>
-  {% else %}
-  <div class="ua-card"><div class="ua-empty">✓ No unassigned customers — every customer has an agent.</div></div>
+
+  {% if cat == 'agent' %}
+    <p class="ua-lead">Customers with no agent yet — usually commission stubs the importer couldn't tie to an agent.
+       The <strong>suggested agent</strong> comes from the member's commission line item; the basis is shown so you can confirm before assigning.</p>
+    {% if items %}
+    <div class="ua-card">
+      <table class="ua">
+        <thead><tr><th>Customer</th><th>Suggested agent</th><th>Assign</th></tr></thead>
+        <tbody>
+          {% for it in items %}
+          {% set c = it.c %}
+          <tr>
+            <td>
+              <a class="ua-name" href="{{ url_for('customers.customer_profile', customer_id=c.id) }}">{{ c.display_name or c.full_name or '(no name)' }}</a>
+              <div class="ua-meta">{% if c.mbi %}MBI {{ c.mbi }}{% else %}no MBI{% endif %}{% if c.source %} · {{ c.source }}{% endif %}</div>
+            </td>
+            <td>
+              {% if it.suggested_name %}
+                <span class="ua-suggest">{{ it.suggested_name }}</span>
+                <div class="ua-basis">{{ it.basis }}</div>
+              {% else %}
+                <span class="ua-meta">— no commission hint —</span>
+              {% endif %}
+            </td>
+            <td>
+              <form class="ua-form" method="post" action="{{ url_for('customers.customer_set_agent', customer_id=c.id) }}">
+                <select name="agent_id" aria-label="Agent for {{ c.full_name }}">
+                  {% for a in agents %}
+                  <option value="{{ a.id }}" {% if a.id == it.suggested_id %}selected{% endif %}>{{ a.display_name }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit">Assign</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="ua-card"><div class="ua-empty">✓ No unassigned customers — every customer has an agent.</div></div>
+    {% endif %}
+
+  {% elif cat == 'match' %}
+    <p class="ua-lead">Commission payments (agent commission / chargeback) that never got tied to a customer record.
+       The <strong>suggested match</strong> previews what <code>resolve_payment_identity</code> would do — confirm to link it.</p>
+    {% if items %}
+    <div class="ua-card">
+      <table class="ua">
+        <thead><tr><th>Carrier</th><th>Member</th><th>Amount</th><th>Period</th><th>Suggested match</th></tr></thead>
+        <tbody>
+          {% for it in items %}
+          {% set li = it.li %}
+          <tr>
+            <td>{{ li.carrier }}</td>
+            <td>
+              <span class="ua-name">{{ li.member_name or '(no name)' }}</span>
+              <div class="ua-meta">{% if li.mbi %}MBI {{ li.mbi }}{% elif li.carrier_member_id %}ID {{ li.carrier_member_id }}{% else %}no ID{% endif %}</div>
+            </td>
+            <td><span class="ua-amount {% if li.raw_amount < 0 %}neg{% endif %}">${{ "%.2f"|format(li.raw_amount) }}</span></td>
+            <td class="ua-meta">{{ li.period_label or '—' }}</td>
+            <td>
+              {% if it.suggested_customer_name %}
+                <span class="ua-suggest">{{ it.suggested_customer_name }}</span>
+                <div class="ua-basis">{{ it.tier }} match</div>
+              {% else %}
+                <span class="ua-meta">— no match found, queued —</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="ua-card"><div class="ua-empty">✓ Every commission payment is tied to a customer.</div></div>
+    {% endif %}
+
+  {% elif cat == 'name' %}
+    <p class="ua-lead">Active policies with no first/last name on file — these need the name filled in (commission ledger lookup, or manual entry) before they can be matched to a customer.</p>
+    {% if items %}
+    <div class="ua-card">
+      <table class="ua">
+        <thead><tr><th>Carrier</th><th>Member ID</th><th>MBI</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for it in items %}
+          {% set p = it.p %}
+          <tr>
+            <td>{{ p.carrier }}</td>
+            <td class="ua-name">{{ p.member_id or '—' }}</td>
+            <td class="ua-meta">{{ p.mbi or '—' }}</td>
+            <td class="ua-meta">{{ p.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="ua-card"><div class="ua-empty">✓ Every active policy has a name.</div></div>
+    {% endif %}
+
+  {% elif cat == 'interval' %}
+    <p class="ua-lead">Customers with an agent assigned but no <strong>CustomerAorHistory</strong> interval yet — these auto-recover from policy facts via <code>scripts/recover_aor_intervals.py</code>.</p>
+    {% if items %}
+    <div class="ua-card">
+      <table class="ua">
+        <thead><tr><th>Customer</th><th>Agent</th></tr></thead>
+        <tbody>
+          {% for it in items %}
+          {% set c = it.c %}
+          <tr>
+            <td>
+              <a class="ua-name" href="{{ url_for('customers.customer_profile', customer_id=c.id) }}">{{ c.display_name or c.full_name or '(no name)' }}</a>
+              <div class="ua-meta">{% if c.mbi %}MBI {{ c.mbi }}{% else %}no MBI{% endif %}</div>
+            </td>
+            <td>{{ it.agent_name or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="ua-card"><div class="ua-empty">✓ Every agent'd customer has a dated AOR interval.</div></div>
+    {% endif %}
   {% endif %}
 </div>
 {% endblock %}

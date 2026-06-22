@@ -23,7 +23,7 @@ audited 2026-06-22:
 
 | Link | Guarantee | Gap today |
 | --- | --- | --- |
-| **1. Payment → customer** | every `CommissionLineItem` resolves to a real customer, OR is explicitly a non-customer payment (override/hra/adjustment) | **428** NULL-customer line items that are agent_commission/chargeback (469 NULL total − 41 legit override/hra). Only ~5 have an MBI; rest need name/member-id match |
+| **1. Payment → customer** | every `CommissionLineItem` resolves to a real customer, OR is explicitly a non-customer payment (override/hra/adjustment) | 469 NULL-customer total. **Re-audited 2026-06-22: this is mostly a MISSING JOIN, not lost data** — of the 418 agent_commission/chargeback NULLs, **393 resolve to an existing Policy by `(carrier, member_id == carrier_member_id)`** (the matcher only ever tried MBI); ~28 are Devoted "HRA for member NAME" rows (name in a description string, mis-classified as agent_commission); only a small remainder is genuinely name-only → queue. 41 override/hra are legit non-customer. |
 | **2. Policy → identity** | every active `Policy` has a name + member_id (no "- " rows) | **103** no-name active policies (94 UHC, 9 Aetna) |
 | **3. Customer → agent** | every `Customer` has a `primary_agent_id`, or sits in "needs agent" | **38** unassigned customers |
 | **4. Owned record → dated AOR interval** | every agent'd customer has a `CustomerAorHistory` interval (agent + carrier + effective + end) — ownership traceable through TIME | **2,353** customers have an agent but NO interval |
@@ -44,7 +44,11 @@ reconciliation engine.
 Per item, highest-confidence first:
 
 1. **MBI exact** → auto-apply. Zero ambiguity.
-2. **member_id / carrier_member_id exact** → auto-apply. A real carrier ID is as good as an MBI.
+2. **member_id / carrier_member_id exact** → auto-apply. A real carrier ID is as good as an
+   MBI. **For payments this is the big one:** matching a `CommissionLineItem.carrier_member_id`
+   to an existing `Policy.member_id` (same carrier) resolves ~393 of the NULL-customer
+   payments — a join the matcher previously skipped (it only tried MBI). Adopt that policy's
+   `customer_id`.
 3. **Strong composite** — name + DOB + **at least one** corroborating field (zip, phone,
    email, or address) all agree → auto-apply. Requires extending `_find_name_dob_match`
    (today name+DOB only) to demand a corroborating field for the auto-apply tier.

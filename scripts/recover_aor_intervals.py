@@ -35,15 +35,25 @@ def derive_interval_for_customer(customer, agency_id):
 def main(apply):
     app = create_app()
     with app.app_context():
-        with_agent = Customer.query.filter(Customer.primary_agent_id.isnot(None))
-        have_iv = db.session.query(CustomerAorHistory.customer_id).distinct()
-        rows = with_agent.filter(~Customer.id.in_(have_iv)).all()
+        # Per-agency sweep (multi-tenant rule: never select across agencies). Each
+        # agency's "has an interval" set is computed within that agency's scope so
+        # idempotency + counts can't conflate two tenants.
         out = Counter()
-        for c in rows:
-            out[derive_interval_for_customer(c, c.agency_id)["action"]] += 1
+        total = 0
+        agency_ids = [a for (a,) in db.session.query(Customer.agency_id).distinct().all()]
+        for agency_id in agency_ids:
+            have_iv = (db.session.query(CustomerAorHistory.customer_id)
+                       .filter(CustomerAorHistory.agency_id == agency_id).distinct())
+            rows = (Customer.query
+                    .filter(Customer.agency_id == agency_id,
+                            Customer.primary_agent_id.isnot(None))
+                    .filter(~Customer.id.in_(have_iv)).all())
+            total += len(rows)
+            for c in rows:
+                out[derive_interval_for_customer(c, agency_id)["action"]] += 1
         if apply:
             db.session.commit()
-        print(f"{'APPLIED' if apply else 'DRY-RUN'} — {len(rows)} customers w/ agent but no interval:")
+        print(f"{'APPLIED' if apply else 'DRY-RUN'} — {total} customers w/ agent but no interval:")
         for a, n in out.most_common():
             print(f"  {n:5d}  {a}")
 

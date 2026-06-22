@@ -1,6 +1,6 @@
 # Policy / Payment Identity Recovery & AOR Traceability — Design
 
-_Date: 2026-06-22 · Status: approved, ready for implementation plan_
+_Date: 2026-06-22 · Status: BUILT (suite 338, opus review clean), awaiting live cleanup run_
 
 ## 0. Why this exists
 

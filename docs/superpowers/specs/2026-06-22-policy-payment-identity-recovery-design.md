@@ -45,13 +45,18 @@ Per item, highest-confidence first:
 
 1. **MBI exact** → auto-apply. Zero ambiguity.
 2. **member_id / carrier_member_id exact** → auto-apply. A real carrier ID is as good as an MBI.
-3. **Name (+ DOB where present)** → **queue for AJ**, confidence-scored, never auto-applied.
-4. **No match** → queue, flagged "no candidate."
+3. **Strong composite** — name + DOB + **at least one** corroborating field (zip, phone,
+   email, or address) all agree → auto-apply. Requires extending `_find_name_dob_match`
+   (today name+DOB only) to demand a corroborating field for the auto-apply tier.
+4. **Weak composite** — name + DOB only, OR name + one field but not the full set → **queue
+   for AJ**, confidence-scored, never auto-applied.
+5. **Name alone / no match** → queue, flagged "insufficient identity / no candidate."
+   **Name alone is never sufficient** to match or to write.
 
-**Stop rule:** the engine writes only on tiers 1–2 (exact). Everything fuzzier is a
-*suggestion*, never a silent write. This is the "auto-apply exact, queue the rest" line.
+**Stop rule:** the engine writes only on tiers 1–3 (a real ID, or a corroborated composite).
+Anything weaker is a *suggestion*, never a silent write. Name-alone never matches.
 
-**When a stub IS resolved (tier 1–2 or AJ-confirmed):** re-point its
+**When a stub IS resolved (tier 1–3 auto, or AJ-confirmed):** re-point its
 `CommissionLineItem.customer_id` to the real customer, then **delete the fake
 `uhc::0::N` Policy row**. The payment lives in the ledger; the placeholder policy is gone.
 Book counts clean up automatically.
@@ -78,7 +83,9 @@ name are the trivial copy customer→policy.
 
 For each agent'd customer with no `CustomerAorHistory` interval, **derive** one from its
 policy — agent + carrier + `effective_date` + (`term_date` end, `None` for BCBS) — exactly
-as `customer_set_agent()` already does on assignment. Auto-applies where the policy carries
+as `customer_set_agent()` already does on assignment. **The carrier-provided start/end dates
+on the policy are the source of truth** (this is what the agency already treats as
+authoritative; we do not invent or shift them). Auto-applies where the policy carries
 the facts. A customer whose policy LACKS `effective_date`/`carrier` (can't derive) → Needs
 Identity hub ("needs AOR interval"). Idempotent (skip if an equivalent interval exists).
 This likely clears most of the 2,353 automatically.
@@ -92,7 +99,11 @@ the show-known-data + suggested-match + one-click-resolve pattern, into the broa
 the SAME page:
 
 - **Needs agent** — today's behavior (the 38). Keep `_suggested_agent_id` + `customer_set_agent`.
-- **Needs match** — NULL-customer payments (428) + the 51 stub payments; suggested customer + confidence + confirm.
+- **Needs match** — NULL-customer payments (428) + the 51 stub payments. Each row carries
+  ALL the info a human needs to attribute correctly (carrier, member name as written,
+  amount, period, writing agent, source) + a suggested customer + confidence + confirm.
+  A row may resolve to "match an existing customer" OR "create a new customer" — the human
+  decides when the identity was too weak for the engine to auto-create.
 - **Needs name** — no-name policies recovery couldn't auto-fill.
 - **Needs AOR interval** — agent'd customers whose policy lacked facts to derive an interval.
 
@@ -107,12 +118,28 @@ deleted or hidden.
 
 ## 6. Prevention (stop the gaps refilling)
 
-- **Commission ingest:** an unmatched commission row currently spawns a fake `uhc::0::N`
-  Policy. Change it so an unmatched row **records the payment in the ledger + enqueues a
-  Needs-match item**, and does NOT create a phantom Policy.
+Creating a new customer/policy from a commission row is **intended and correct** for a
+genuinely new-to-Medicare member (no existing customer should match — that's a real new
+enrollment, not an error, and must flow without manual clicks during AEP). The problem is
+only the *ambiguous* case: a row that doesn't match but might be an existing customer we
+failed to match (which is how the `uhc::0::N` name-only stubs were born). So the rule is a
+**confidence boundary, not "never create":**
+
+- **Commission ingest — strong identity → CREATE:** an unmatched row that carries a
+  **strong identity** (MBI, carrier ID, or a full composite name+DOB+zip-or-phone) is
+  confidently new → create the new customer + policy as today. We can trust it isn't a
+  duplicate of someone we already have.
+- **Commission ingest — weak identity → HUB (no phantom policy):** an unmatched row with
+  only a **weak identity** (e.g. name + amount, no MBI/DOB/corroboration) records the
+  payment in the ledger and **enqueues a Needs-match item with ALL the info a human needs
+  to attribute it** (carrier, member name as written, amount, period, writing agent, source
+  file) — and does **NOT** create a phantom `uhc::0::N` Policy. AJ decides "new customer"
+  vs "match existing."
 - **BOB import:** an import that would create a no-name policy gets flagged into the hub
   rather than landing silently in the book.
-- The four-link guarantee is the durable contract; prevention keeps it true going forward.
+
+The four-link guarantee is the durable contract; this boundary keeps it true going forward
+without blocking legitimate new enrollments.
 
 ## 7. Components (small, mostly reuse)
 

@@ -19,7 +19,8 @@ class Scope:
 
 
 def _policy_q(scope):
-    q = Policy.query.filter_by(status="active", agency_id=scope.agency_id)
+    q = (Policy.query.filter_by(status="active", agency_id=scope.agency_id)
+         .filter(~Policy.member_id.like("%::0::%")))  # exclude commission stub placeholders
     if scope.agent_id is not None:
         q = q.filter(Policy.agent_id == scope.agent_id)
     if scope.carrier:

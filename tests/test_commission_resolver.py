@@ -127,11 +127,13 @@ def test_stub_created_once_then_crosswalk_relinks(db_session, app, agency, agent
             carrier_member_id="106999999", mbi=None,
             row_class=RowClass.ENROLLMENT, amount=0.0, effective_date=date(2026, 4, 1),
         )
-        # First upload → stub created
+        # First upload → stub created. carrier_member_id present → strong identity
+        # → §6 "new_strong" path (label changed by the prevention-boundary rewrite;
+        # behavior unchanged: a real carrier id still creates a stub + policy).
         r1 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
                               source="commission_import")
         assert r1.created_customer is True
-        assert r1.match_path == "stub"
+        assert r1.match_path == "new_strong"
         assert r1.customer.stub is True
         assert r1.customer.source == "commission_import"
         db.session.commit()
@@ -355,10 +357,14 @@ def test_bob_aor_plan_name_preserved(db_session, app, agency, agent_user):
 
 
 def test_humana_rows_without_carrier_id_or_mbi_do_not_collide(db_session, app, agency, agent_user):
-    """Real Humana files have rows with neither PID nor MBI. They must each get a
-    unique policy member_id (via source_ref), not collide on empty string."""
+    """Real Humana files have rows with neither PID nor MBI nor DOB — i.e. WEAK
+    identity per the §6 prevention boundary (task 2). Pre-prevention, these used
+    to fall through to an unconditional stub+policy keyed by source_ref; now they
+    correctly enqueue a needs-identity MatchSuggestion instead of fabricating a
+    phantom policy off a bare name. Verify each row gets its OWN suggestion (not
+    collapsed/collided) and neither creates a customer or policy."""
     from app.extensions import db
-    from app.models import Policy
+    from app.models import Policy, Customer, MatchSuggestion
     from app.commission.member_fact import MemberFact, RowClass
     from app.commission.resolver import resolve_customer
 
@@ -371,18 +377,24 @@ def test_humana_rows_without_carrier_id_or_mbi_do_not_collide(db_session, app, a
                         last_name="Bollinger", mbi=None, carrier_member_id=None,
                         row_class=RowClass.RENEWAL, amount=23.66,
                         source_ref="humana::CommissionData_1::227")
-        resolve_customer(f1, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
-        resolve_customer(f2, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        r1 = resolve_customer(f1, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        r2 = resolve_customer(f2, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
         db.session.commit()  # must NOT raise IntegrityError
-        # two distinct policies, keyed by their source_refs
-        assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 2
-        mids = {p.member_id for p in Policy.query.filter_by(carrier="Humana").all()}
-        assert mids == {"humana::CommissionData_1::226", "humana::CommissionData_1::227"}
+
+        assert r1.match_path == "needs_identity"
+        assert r2.match_path == "needs_identity"
+        assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 0
+        assert Customer.query.filter_by(agency_id=agency.id).count() == 0
+        assert MatchSuggestion.query.filter_by(agency_id=agency.id, status="pending").count() == 2
 
 
 def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
+    """Weak-identity Humana row with no MBI/carrier_member_id/dob: each upload
+    enqueues its own needs-identity suggestion (no policy/customer to dedupe
+    against via crosswalk, since none is created) — verify re-upload doesn't
+    crash and doesn't fabricate a policy."""
     from app.extensions import db
-    from app.models import Policy
+    from app.models import Policy, MatchSuggestion
     from app.commission.member_fact import MemberFact, RowClass
     from app.commission.resolver import resolve_customer
     with app.app_context():
@@ -390,11 +402,13 @@ def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
                        last_name="Helms", mbi=None, carrier_member_id=None,
                        row_class=RowClass.RENEWAL, amount=29.94,
                        source_ref="humana::CommissionData_1::226")
-        resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        r1 = resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
         db.session.commit()
-        resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
+        r2 = resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
         db.session.commit()
-        assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 1
+        assert r1.match_path == "needs_identity"
+        assert r2.match_path == "needs_identity"
+        assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 0
 
 
 # ---------------------------------------------------------------------------

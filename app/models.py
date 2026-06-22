@@ -638,7 +638,7 @@ class MatchSuggestion(db.Model):
     # The existing customer we think it might really be
     suggested_customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), index=True)
 
-    confidence  = db.Column(db.String(16))   # name_dob | name_only
+    confidence  = db.Column(db.String(16))   # name_dob | name_only | composite | weak_identity
     status      = db.Column(db.String(16), default="pending", index=True)  # pending|confirmed|rejected
 
     source_member_fact_json = db.Column(db.Text)

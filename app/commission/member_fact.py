@@ -31,6 +31,8 @@ class MemberFact:
     mbi: Optional[str] = None
     carrier_member_id: Optional[str] = None
     dob: Optional[date] = None
+    zip_code: Optional[str] = None
+    phone: Optional[str] = None
 
     # lifecycle
     effective_date: Optional[date] = None

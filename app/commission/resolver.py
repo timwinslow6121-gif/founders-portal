@@ -111,7 +111,8 @@ def _match_by_carrier_member_id(fact: MemberFact, agency_id: int):
         return None
     with db.session.no_autoflush:
         p = (Policy.query
-             .filter_by(carrier=fact.carrier, member_id=cmid, agency_id=agency_id)
+             .filter_by(carrier=fact.carrier, member_id=cmid, agency_id=agency_id,
+                        status="active")
              .filter(Policy.customer_id.isnot(None))
              .first())
     return Customer.query.get(p.customer_id) if p else None

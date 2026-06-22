@@ -253,18 +253,24 @@ def _open_aor_interval(fact: MemberFact, customer: Customer, agency_id: int,
                 result.actions.append("aor_superseded")
 
 
-def _enqueue_suggestion(fact: MemberFact, stub_customer: Customer, candidate: Customer,
-                        confidence, agency_id: int, result: ResolveResult):
-    """Record a MatchSuggestion for human confirm (no automerge)."""
+def _enqueue_suggestion(fact: MemberFact, stub_customer: Optional[Customer],
+                        candidate: Optional[Customer], confidence, agency_id: int,
+                        result: ResolveResult):
+    """Record a MatchSuggestion for human confirm (no automerge).
+
+    NULL-tolerant: the §6 weak-identity tail calls this with stub_customer=None
+    AND candidate=None (no customer was created at all — nothing to link yet,
+    the hub triages from the fact JSON alone). Both FK columns are nullable."""
     ms = MatchSuggestion(
         agency_id=agency_id,
-        stub_customer_id=stub_customer.id,
-        suggested_customer_id=candidate.id,
+        stub_customer_id=stub_customer.id if stub_customer else None,
+        suggested_customer_id=candidate.id if candidate else None,
         confidence=confidence,
         status="pending",
         source_member_fact_json=json.dumps({
             "carrier": fact.carrier, "carrier_member_id": fact.carrier_member_id,
             "full_name": fact.full_name, "dob": fact.dob.isoformat() if fact.dob else None,
+            "amount": fact.amount, "writing_agent_raw": fact.writing_agent_raw,
         }),
     )
     db.session.add(ms)
@@ -289,6 +295,46 @@ def _find_name_dob_match(fact: MemberFact, agency_id: int):
     if c:
         return c, "name_dob"
     return None, None
+
+
+def _composite_match(fact: MemberFact, agency_id: int):
+    """Auto-match tier: name + DOB + at least one corroborating field (zip/phone).
+    Name+DOB alone is NOT enough (the prevention boundary — see §6). Returns
+    (customer, 'composite') or (None, None).
+
+    no_autoflush: see _crosswalk — must not autoflush a pending stub mid-import."""
+    fn = (fact.first_name or "").strip().lower()
+    ln = (fact.last_name or "").strip().lower()
+    if not fn or not ln or not fact.dob:
+        return None, None
+    corrob_zip = (getattr(fact, "zip_code", None) or "").strip() or None
+    phone = (getattr(fact, "phone", None) or "").strip() or None
+    if not corrob_zip and not phone:
+        return None, None      # name+dob only → not enough
+    with db.session.no_autoflush:
+        q = (Customer.query.filter(
+                Customer.agency_id == agency_id,
+                db.func.lower(Customer.first_name) == fn,
+                db.func.lower(Customer.last_name) == ln,
+                Customer.dob == fact.dob))
+        if corrob_zip:
+            q = q.filter(Customer.zip_code == corrob_zip)
+        if phone:
+            q = q.filter(Customer.phone_primary == phone)
+        c = q.first()
+    return (c, "composite") if c else (None, None)
+
+
+def has_strong_identity(fact: MemberFact, agency_id: Optional[int] = None) -> bool:
+    """True if the fact carries an MBI, a carrier_member_id, or (when agency_id
+    given) a composite match exists. Used by the §6 prevention tail to decide
+    create-vs-queue on the final no-match branch."""
+    if (fact.mbi or "").strip() or (fact.carrier_member_id or "").strip():
+        return True
+    if agency_id is not None:
+        c, _ = _composite_match(fact, agency_id)
+        return c is not None
+    return False
 
 
 def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int],
@@ -362,13 +408,23 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
         return result
 
-    # 3. Suggest-link — no crosswalk, no MBI, but a name+DOB near-match exists.
-    #    Create a stub (so no payment is lost) AND a MatchSuggestion for human confirm.
+    # 3. Composite auto-match (name+DOB+corroborating field) — adopt, no queue.
+    cand, conf = _composite_match(fact, agency_id)
+    if cand is not None:
+        result.customer = cand
+        result.policy = _attach_policy(fact, cand, agency_id, agent_id)
+        result.created_policy = True
+        result.match_path = "composite"
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+        return result
+
+    # 4. Name+DOB-only near-match → suggest-link (stub + MatchSuggestion for human confirm).
     candidate, confidence = _find_name_dob_match(fact, agency_id)
     if candidate is not None:
         customer = _create_stub(fact, agency_id, agent_id, source)
-        result.customer = customer
-        result.created_customer = True
+        result.customer = customer; result.created_customer = True
         result.policy = _attach_policy(fact, customer, agency_id, agent_id)
         result.created_policy = True
         result.match_path = "suggest_link"
@@ -378,17 +434,22 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
         return result
 
-    # 4. Stub — nothing matched; create stub customer + policy (at most once per member,
-    #    because next time the crosswalk in step 1 will find this policy).
-    customer = _create_stub(fact, agency_id, agent_id, source)
-    result.customer = customer
-    result.created_customer = True
-    result.policy = _attach_policy(fact, customer, agency_id, agent_id)
-    result.created_policy = True
-    result.match_path = "stub"
-    _apply_rapid_disenroll(result.policy, fact, result)
-    _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
-    _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+    # 5. No candidate. §6 boundary: strong identity → create (legit new-to-Medicare);
+    #    weak identity → enqueue a needs-match item, NO phantom policy.
+    if has_strong_identity(fact):
+        customer = _create_stub(fact, agency_id, agent_id, source)
+        result.customer = customer; result.created_customer = True
+        result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+        result.created_policy = True
+        result.match_path = "new_strong"
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+        return result
+
+    # weak identity → no policy; enqueue with full info for the hub
+    _enqueue_suggestion(fact, None, None, "weak_identity", agency_id, result)
+    result.match_path = "needs_identity"
     return result
 
 

@@ -66,8 +66,15 @@ def test_bob_humana_matches_by_humana_id(db_session, app, agency, agent_user):
 
 
 def test_bob_bcbs_aor_end_date_is_none(db_session, app, agency, agent_user):
+    """UPDATED for task 2 (prevention boundary, §6): this rec has NO mbi, NO
+    carrier_member_id, and NO dob — genuinely weak identity (a bare BCBS name
+    row). Pre-prevention this fell through to an unconditional stub+policy;
+    now it correctly enqueues a needs-identity MatchSuggestion instead of
+    fabricating a customer off a name alone, so there is no AOR interval to
+    assert on. Kept here (not deleted) so a future regression that makes weak
+    identity create a phantom customer again is caught."""
     from app.extensions import db
-    from app.models import Customer, CustomerAorHistory
+    from app.models import Customer, CustomerAorHistory, MatchSuggestion
     from app.upload import _upsert_customer_from_policy
 
     with app.app_context():
@@ -77,6 +84,6 @@ def test_bob_bcbs_aor_end_date_is_none(db_session, app, agency, agent_user):
         _upsert_customer_from_policy(rec, agent_user.id, None, agency.id)
         db.session.commit()
         c = Customer.query.filter_by(agency_id=agency.id, last_name="Cee").first()
-        aor = CustomerAorHistory.query.filter_by(customer_id=c.id, carrier="BCBS").first()
-        assert aor is not None
-        assert aor.end_date is None
+        assert c is None  # weak identity → no phantom customer created
+        ms = MatchSuggestion.query.filter_by(agency_id=agency.id, confidence="weak_identity").first()
+        assert ms is not None

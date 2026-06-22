@@ -49,3 +49,26 @@ def test_policy_name_recovered_from_ledger(fixt, app):
         r = recover_policy_name(np, ag)
         assert r["action"] == "filled"
         assert np.last_name == "Smith" and np.first_name == "Robert"
+
+def test_name_recovery_does_not_cross_carrier(fixt, app):
+    """A no-name UHC policy with member_id X must NOT pick up a DIFFERENT carrier's
+    line item that happens to share member_id X (carrier_member_id is not globally
+    unique). It must stay queued, not be filled with the wrong person's name."""
+    ag, li_id, cid, np_id = fixt
+    with app.app_context():
+        u = User.query.filter_by(agency_id=ag).first()
+        st = CommissionStatement.query.first()
+        # A no-name Humana policy with member_id "55501"
+        hp = Policy(agency_id=ag, carrier="Humana", member_id="55501", status="active",
+                    customer_id=cid, agent_id=u.id)
+        db.session.add(hp); db.session.flush()
+        # A BCBS line item for a DIFFERENT member who happens to share id "55501"
+        bad = CommissionLineItem(agency_id=ag, statement_id=st.id, carrier="BCBS",
+            period_label="May 2026", source_ref="bcbs::x::99", raw_amount=3.0, split_rate=0.55,
+            classification="agent_commission", carrier_member_id="55501",
+            member_name="WRONG, PERSON")
+        db.session.add(bad); db.session.commit()
+        r = recover_policy_name(hp, ag)
+        # no Humana line item for 55501 exists → must queue, NOT borrow the BCBS name
+        assert r["action"] == "queued"
+        assert not hp.first_name and not hp.last_name

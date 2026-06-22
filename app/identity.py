@@ -50,10 +50,13 @@ def recover_policy_name(policy, agency_id):
     if (policy.first_name or policy.last_name):
         return {"action": "skip", "source": "already named"}
     # ledger-first: a line item carrying this policy's identity + a member_name.
-    # Only OR in the mbi clause when policy.mbi is set — otherwise `mbi == None`
-    # becomes `IS NULL` and matches every other no-MBI line item (a different
-    # member), not just this policy's.
-    id_clause = CommissionLineItem.carrier_member_id == policy.member_id
+    # carrier_member_id is NOT globally unique — two carriers can issue the same
+    # numeric member id — so that clause MUST be carrier-scoped, or a UHC policy
+    # could pick up a Humana member's name. MBI IS globally unique, so its clause
+    # is carrier-agnostic. Only OR in the mbi clause when policy.mbi is set —
+    # otherwise `mbi == None` becomes `IS NULL` and matches every no-MBI line item.
+    id_clause = ((CommissionLineItem.carrier_member_id == policy.member_id) &
+                 (CommissionLineItem.carrier == policy.carrier))
     if policy.mbi:
         id_clause = id_clause | (CommissionLineItem.mbi == policy.mbi)
     li = (CommissionLineItem.query
@@ -61,6 +64,8 @@ def recover_policy_name(policy, agency_id):
                   CommissionLineItem.member_name.isnot(None),
                   CommissionLineItem.member_name != "")
           .filter(id_clause)
+          .order_by(CommissionLineItem.statement_date.desc().nullslast(),
+                    CommissionLineItem.id.desc())   # deterministic: most recent wins
           .first())
     if not li:
         return {"action": "queued", "source": "no ledger name"}

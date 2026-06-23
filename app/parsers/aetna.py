@@ -1,67 +1,61 @@
 """
-Aetna BOB parser.
+Aetna BOB parser (rewritten 2026-06-23 to the REAL format).
 
-Format: CSV
-Unique ID: Medicare Number (MBI)
-Active filter: Member Status == "A"  (must filter — export includes inactive)
-Name fields: First Name / Last Name
+Both upload paths share core columns by NAME (so AJ's agency-wide file and the
+per-agent download both parse): Medicare Number, Member ID, Member Name, Member State,
+Plan ID, Coverage Period, Effective Date, Writing Agent Name, CMS New. There is NO
+Term Date column. Reads .xlsx (header row 0). Extra commission/tax columns are ignored.
+Names → "First MI. Last" via app.names.normalize_person_name.
 """
-
 import pandas as pd
+from app.names import normalize_person_name
 
-
-REQUIRED_COLUMNS = {"First Name", "Last Name", "Medicare Number"}
+REQUIRED_COLUMNS = {"Medicare Number", "Member Name", "Writing Agent Name"}
 
 
 def parse(filepath: str) -> list[dict]:
-    """
-    Parse an Aetna CSV export and return a list of normalized policy dicts.
-    Filters to Member Status == 'A' (active) only.
-    """
     try:
-        df = pd.read_csv(filepath, dtype=str)
+        df = pd.read_excel(filepath, dtype=str)
     except Exception as e:
         raise ValueError(f"Could not read Aetna file: {e}")
-
     df.columns = df.columns.str.strip()
 
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
         raise ValueError(f"Aetna file missing required columns: {missing}")
 
-    # Filter to active members only
-    if "Member Status" in df.columns:
-        df = df[df["Member Status"].str.strip().str.upper() == "A"]
-    elif "MemberStatus" in df.columns:
-        df = df[df["MemberStatus"].str.strip().str.upper() == "A"]
-
-    df = df[df["Medicare Number"].notna() & (df["Medicare Number"].str.strip() != "")]
+    # Keep only real member rows (a Medicare Number present); drops summary/blank rows.
+    df = df[df["Medicare Number"].notna() & (df["Medicare Number"].astype(str).str.strip() != "")]
     df = df.copy()
 
     records = []
     for _, row in df.iterrows():
         mbi = _str(row, "Medicare Number").upper()
-        first = _str(row, "First Name")
-        last = _str(row, "Last Name")
-
+        if not mbi:
+            continue
+        first, _mi, last, full = normalize_person_name(_str(row, "Member Name"))
+        cms_new = _str(row, "CMS New").upper()
         records.append({
             "carrier": "Aetna",
             "member_id": mbi,
             "mbi": mbi,
+            "carrier_member_id": _str(row, "Member ID"),
             "first_name": first,
             "last_name": last,
-            "full_name": f"{first} {last}".strip(),
-            "plan_name": _str(row, "Plan Name") or _str(row, "PlanName"),
-            "plan_type": _str(row, "Plan Type") or _str(row, "PlanType"),
-            "effective_date": _parse_date(row, "Effective Date") or _parse_date(row, "EffectiveDate"),
-            "term_date": _parse_date(row, "Term Date") or _parse_date(row, "TermDate"),
-            "dob": _parse_date(row, "Date of Birth") or _parse_date(row, "DOB"),
-            "phone": _str(row, "Phone") or _str(row, "Phone Number"),
-            "county": _str(row, "County"),
-            "agent_id": _str(row, "Agent ID") or _str(row, "AgentID"),
+            "full_name": full,
+            "agent_id": _str(row, "Writing Agent Name"),   # raw name; resolved in upload
+            "effective_date": _parse_date(row, "Effective Date"),
+            "term_date": None,                              # Aetna BOB has no term column
+            "renewal_date": _parse_date(row, "Coverage Period"),
+            "state": _str(row, "Member State"),
+            "plan_name": _str(row, "Plan ID"),
+            "plan_type": "",
+            "commission_type": "initial" if cms_new.startswith("Y") else "renewal",
+            "phone": "",
+            "county": "",
+            "dob": None,
             "status": "active",
         })
-
     return records
 
 

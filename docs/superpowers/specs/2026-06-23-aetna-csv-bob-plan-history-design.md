@@ -159,6 +159,39 @@ BOB going forward, not just Aetna.
 They are different code paths and must coexist: §4.2 never closes an open interval; §6b
 only closes the open interval of the just-termed carrier.
 
+## 6c. The whole AOR timeline — how the pieces work synergistically (not against each other)
+
+The full traceable timeline Tim wants ("Aetna Signature PPO → termed May 31; Humana Gold
+Plus → eff June 1 → now") is built by THREE pieces that must coordinate, NOT fight:
+
+1. **Enroll OPENS an interval** — `_open_aor_interval` in `app/commission/resolver.py`
+   already does this (per-carrier, carries `plan_name`), and the BOB upload routes through
+   the resolver. It has an **exact-duplicate guard** (skip if a `(customer, carrier,
+   effective_date)` interval exists) and its own **per-carrier supersession** (an
+   enrollment closes open, strictly-earlier intervals for the SAME carrier — the Tocara
+   rule). This is the "start" of each timeline chapter. **Do NOT reimplement interval
+   creation — reuse this.**
+2. **Termination CLOSES the open interval** — §6b adds the missing piece: a termed BOB row
+   closes the customer's open interval *for the termed carrier* (`end_date=term_date`).
+   This is the "→ termed" end of a chapter. It complements the resolver (the resolver
+   supersedes on a *new enrollment*; §6b closes on an explicit *termination*).
+3. **One-time past backfill** — §4.2 seeds OLD closed Aetna chapters from this June file
+   (history no future BOB will re-report), using the **same exact-duplicate guard** so it
+   never double-writes or conflicts with #1.
+
+**Coordination rules (so they don't undo each other):**
+- §4.2 and §6b reuse the resolver's existing duplicate guard / model conventions — they do
+  not invent parallel interval logic.
+- §4.2 is **add-only across carriers**: it writes a closed Aetna interval and touches NO
+  open interval of ANY carrier (so a customer currently active on Humana keeps that open).
+- §6b closes ONLY the open interval of the carrier on the termed row — never another
+  carrier's.
+- The resolver's per-carrier supersession is unchanged; §6b/§4.2 add the term-close and the
+  past-seed it doesn't cover. Net effect: each carrier chapter opens on enroll and closes on
+  term/supersession, chaining into the profile timeline. A regression test asserts a
+  cross-carrier switch (Aetna term + Humana enroll) yields TWO correct chapters with the
+  Humana one open.
+
 ## 7. Components
 
 - `app/parsers/aetna.py` — add `_parse_csv_format(df)` + a shape check in `parse()`
@@ -192,7 +225,12 @@ Real June CSV as a fixture:
 - **§6b lifecycle: a termed row closes the customer's OPEN interval for that carrier**
   (`end_date=term_date`); BCBS open interval stays None; a member termed on Aetna who is
   open on Humana keeps the Humana interval open (only the Aetna open interval, if any,
-  closes).
+  closes);
+- **§6c timeline synergy (regression): a cross-carrier switch yields a correct 2-chapter
+  timeline** — start with an open Aetna interval; process an Aetna-term row (closes it) +
+  a Humana enrollment (opens a new one); assert the customer ends with a CLOSED Aetna
+  interval (end_date set) AND an OPEN Humana interval (end_date None) — neither undone by
+  the other.
 
 Real-Postgres verify on re-import (per project discipline).
 

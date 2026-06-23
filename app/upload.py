@@ -47,6 +47,27 @@ def _close_open_aor_on_term(customer, carrier, term_date):
         open_iv.end_date = term_date
 
 
+def _seed_closed_history(customer, rec, agency_id):
+    """§4.2 ADD-ONLY: write a CLOSED CustomerAorHistory chapter for a PAST enrollment.
+    Idempotent on (customer, carrier, effective_date). NEVER modifies an open interval."""
+    carrier = rec["carrier"]
+    eff = rec.get("effective_date")
+    if not eff:
+        return
+    exists = CustomerAorHistory.query.filter_by(
+        customer_id=customer.id, carrier=carrier, effective_date=eff).first()
+    if exists:
+        return
+    agent_id = customer.primary_agent_id
+    if agent_id is None:
+        return   # agent_id is NOT NULL on the model; can't seed without one
+    db.session.add(CustomerAorHistory(
+        agency_id=agency_id, customer_id=customer.id, agent_id=agent_id,
+        carrier=carrier, plan_name=rec.get("plan_name"),
+        effective_date=eff, end_date=rec.get("term_date"),
+        source="aetna_bob_history"))
+
+
 def _dedupe_bob_records(records):
     """Collapse BOB rows that share a (carrier, member_id) so a member listed on
     multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide
@@ -76,6 +97,23 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
     Customer master. Returns "new", "updated", or "skipped" (for an unresolvable
     no-MBI row). Runs inside a per-row savepoint in the caller, so a raise here
     rolls back only this row."""
+    if rec.get("status") == "termed":
+        # Find the existing customer by MBI; if none, this is a departed member -> skip.
+        cust = None
+        if rec.get("mbi"):
+            cust = Customer.query.filter_by(mbi=rec["mbi"], agency_id=bulk_agency_id).first()
+        if cust is None:
+            return "skipped"
+        # Term the existing active policy for this carrier+member, if present.
+        pol = Policy.query.filter_by(carrier=rec["carrier"], member_id=rec["member_id"],
+                                     agency_id=bulk_agency_id).first()
+        if pol and pol.status == "active":
+            pol.term_date = rec.get("term_date")
+            pol.status = "termed"
+        _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))   # close-aor
+        _seed_closed_history(cust, rec, bulk_agency_id)                       # seed-history
+        return "updated"
+
     # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
     is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
     if is_unresolvable:

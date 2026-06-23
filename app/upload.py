@@ -366,13 +366,14 @@ def process_upload():
             existing.effective_date = rec["effective_date"]
             existing.term_date = rec["term_date"]
             _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
-            existing.dob = rec["dob"]
-            existing.phone = rec["phone"]
-            existing.address1 = rec.get("address1", "")
-            existing.city = rec.get("city", "")
+            # §6 fill-blanks PII: never overwrite a non-blank value with a BOB value.
+            _fill_if_blank(existing, "dob", rec["dob"])
+            _fill_if_blank(existing, "phone", rec["phone"])
+            _fill_if_blank(existing, "address1", rec.get("address1"))
+            _fill_if_blank(existing, "city", rec.get("city"))
             _fill_if_blank(existing, "state", rec.get("state"))
-            existing.zip_code = rec.get("zip_code", "")
-            existing.county = rec["county"]
+            _fill_if_blank(existing, "zip_code", rec.get("zip_code"))
+            _fill_if_blank(existing, "county", rec["county"])
             existing.agent_id_carrier = rec["agent_id"]
             existing.status = rec["status"]
             existing.last_seen_date = today

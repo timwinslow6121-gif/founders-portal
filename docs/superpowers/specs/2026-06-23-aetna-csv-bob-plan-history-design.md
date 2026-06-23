@@ -43,8 +43,11 @@ the agency entirely.
 4. Termed-row handling (§4): term existing policies + record closed plan-history for
    existing customers; skip departed members.
 5. Agent resolution: **NPN-first, name-fallback**.
-6. Fill-blanks-only for all freshness fields incl. PII, respecting `manually_edited`.
-7. Re-import the June file + verify.
+6. Fill-blanks-only for all freshness fields incl. PII, respecting `manually_edited`
+   (incl. **fixing the half-applied fill-blanks bug** in `_upsert_customer_from_policy` —
+   DOB/phone/address/city/zip/county still overwrite today; §6).
+7. **Add the missing termination→close-open-AOR lifecycle** (carrier-agnostic; §6b).
+8. Re-import the June file + verify.
 
 **Out of scope:** changing the April XLSX path; the other parsers' freshness retrofit
 (still the logged fast-follow); a new history UI (the profile already renders
@@ -126,6 +129,36 @@ customer's PII (the existing guard in `_upsert_customer_from_policy`). Identity 
 member_id), agent, effective_date, and the termination (§4.1) follow the carrier-
 authoritative path. BOB only ADDs freshness; newer-wins is Round 2's job.
 
+**⚠ BUG TO FIX (found in `_upsert_customer_from_policy`, upload.py ~200-207):** the prior
+task only converted `state` to `_fill_if_blank`. The other PII lines still use the
+overwrite pattern `customer.dob = rec.get("dob") or customer.dob` (and the same for
+`phone_primary`, `address1`, `city`, `zip_code`, `county`) — i.e. a BOB value OVERWRITES
+the existing one. That contradicts fill-blanks-only and would let the new Aetna CSV clobber
+good PII. **This spec converts all of those to `_fill_if_blank`** (inside the existing
+`if not customer.manually_edited:` guard), completing the rule.
+
+## 6b. Termination → close the open AOR interval (the ongoing lifecycle)
+
+**Finding:** today the BOB upload closes an open `CustomerAorHistory` interval ONLY on an
+agent *ownership transfer* (upload.py ~210). It does **not** close the open interval when
+a member is **termed** — it only sets `policy.term_date`/`status`. So "a termination closes
+the AOR like normal" is not actually true yet.
+
+**This spec adds the missing live lifecycle (carrier-agnostic, every future BOB):** when a
+BOB row terms a member's currently-active policy (its `term_date` is set / status flips to
+termed), also **close that customer's OPEN `CustomerAorHistory` interval for that carrier**
+— set `end_date = term_date` (BCBS stays None per the existing rule). This is the normal
+"catch a termination → close the AOR → mark termed" flow, and it runs on every carrier's
+BOB going forward, not just Aetna.
+
+**Keep these two AOR operations distinct:**
+- **§4.2 plan-history backfill** = appends a NEW *closed* interval for a PAST Aetna
+  enrollment of a member who already left; **add-only, never touches an open interval.**
+- **§6b live lifecycle** = closes the customer's *currently-open* interval when a member is
+  termed *now*; this is a present-tense event and SHOULD close the open interval.
+They are different code paths and must coexist: §4.2 never closes an open interval; §6b
+only closes the open interval of the just-termed carrier.
+
 ## 7. Components
 
 - `app/parsers/aetna.py` — add `_parse_csv_format(df)` + a shape check in `parse()`
@@ -133,8 +166,10 @@ authoritative path. BOB only ADDs freshness; newer-wins is Round 2's job.
   rec emission live here; the upload path acts on `status="termed"`.
 - `app/upload.py` — (a) the Aetna agent-fallback reads `rec.get("agent_name") or
   rec["agent_id"]`; (b) a small termed-rec handler (§4: term existing policy + write
-  closed history for existing customers, skip departed); (c) confirm DOB/phone/address
-  flow through `_fill_if_blank` + the `manually_edited` guard.
+  closed history for existing customers, skip departed); (c) **convert the PII lines in
+  `_upsert_customer_from_policy` (~200-207) to `_fill_if_blank`** (§6 bug fix); (d) **add
+  the termination→close-open-AOR lifecycle** (§6b) — on a termed row, close the customer's
+  open interval for that carrier (`end_date=term_date`, BCBS stays None).
 
 ## 8. Testing (TDD)
 
@@ -152,8 +187,12 @@ Real June CSV as a fixture:
 - Line 2 of the address is preserved (folded into address1, not dropped);
 - a termed row for a non-customer → skipped (no policy, no customer, no interval);
 - the April XLSX parser tests still pass (both formats coexist);
-- fill-blanks-only: a non-blank DOB/phone/address is not overwritten; a `manually_edited`
-  customer's PII is untouched.
+- fill-blanks-only: a non-blank DOB/phone/address is not overwritten (the §6 bug fix); a
+  `manually_edited` customer's PII is untouched;
+- **§6b lifecycle: a termed row closes the customer's OPEN interval for that carrier**
+  (`end_date=term_date`); BCBS open interval stays None; a member termed on Aetna who is
+  open on Humana keeps the Humana interval open (only the Aetna open interval, if any,
+  closes).
 
 Real-Postgres verify on re-import (per project discipline).
 
@@ -171,7 +210,10 @@ Re-import the June CSV on the VPS (DB backed up first). Verify:
 ## 10. Acceptance criteria
 
 After parser extension + re-import: the June CSV parses as Aetna; active members get
-attribution + freshness PII (fill-blanks, manually_edited-safe); the remaining unresolved
-Aetna hub entries clear; termed members who are still customers gain an accurate closed
-plan-history interval on their profile; departed members create no junk; both Aetna
-formats (April XLSX + June CSV) parse through the one parser; no migration.
+attribution + freshness PII (**fill-blanks, manually_edited-safe — non-blank PII never
+overwritten**, §6 bug fixed); the remaining unresolved Aetna hub entries clear; termed
+members who are still customers gain an accurate **closed (add-only, never supersedes an
+open interval)** plan-history interval on their profile; **a termination now closes the
+customer's open AOR interval for that carrier (§6b lifecycle), carrier-agnostic for all
+future BOBs**; departed members create no junk; both Aetna formats (April XLSX + June CSV)
+parse through the one parser; no migration.

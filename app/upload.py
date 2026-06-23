@@ -731,8 +731,9 @@ def _detect_carrier(filepath: str, filename: str) -> str:
         # Devoted BOB: "Agent NPN" + "Member HICN"
         if "agent npn" in header_set and "member hicn" in header_set:
             return "Devoted"
-        # Aetna BOB: "Medicare Number" + "Sales Event" + "Writing Agent Name"
-        if "medicare number" in header_set and "sales event" in header_set:
+        # Aetna BOB: "Medicare Number" + "Writing Agent Name" (both agency-wide
+        # and per-agent files share these; the old "sales event" col does not exist)
+        if "medicare number" in header_set and "writing agent name" in header_set:
             return "Aetna"
         # Healthspring BOB portal: "Medicare Number" + "First Name" + "Disenroll Effective Date"
         if "medicare number" in header_set and "first name" in header_set and "disenroll effective date" in header_str:

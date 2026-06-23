@@ -4,7 +4,7 @@
 
 **Goal:** Rewrite the Aetna BOB parser to the real file format so Aetna uploads capture the writing agent, dates, proper-cased names, and freshness fields (state/plan/renewal/carrier_member_id/commission_type) — fixing the Needs-agent + Needs-interval hub entries at their source.
 
-**Architecture:** A header-based `app/parsers/aetna.py` (serves both AJ's agency-wide file and the per-agent download, which share core columns by name), a shared `normalize_person_name()` producing "First MI. Last" (built on the existing `display_name()`), agent resolution by name via the existing `_match_agent_name`, a fill-blanks-only freshness write rule, and a fixed detection fingerprint. No migration (all target columns exist).
+**Architecture:** A header-based `app/parsers/aetna.py` (serves both AJ's agency-wide file and the per-agent download, which share core columns by name), a shared standalone `normalize_person_name()` producing "First MI. Last" (handles the Aetna middle-initial-before-comma order that `display_name` mishandles), agent resolution by name via the existing `_match_agent_name`, a fill-blanks-only freshness write rule, and a fixed detection fingerprint. No migration (all target columns exist).
 
 **Tech Stack:** Python 3.10, Flask, pandas (xlsx via openpyxl), pytest. PostgreSQL on VPS / SQLite in tests.
 

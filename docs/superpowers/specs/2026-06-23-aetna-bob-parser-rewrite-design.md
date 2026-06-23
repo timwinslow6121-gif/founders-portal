@@ -71,7 +71,7 @@ from it.
 | BOB column | Portal field | Notes |
 | --- | --- | --- |
 | `Medicare Number` | `mbi` + `member_id` | identity key |
-| `Member ID` (`NG…`) | `carrier_member_id` | **powers payment→customer matching (Link 1)**; column already exists on Policy |
+| `Member ID` (`NG…`) | (captured in the parser rec as `carrier_member_id`) | **CORRECTION (build, 2026-06-23): `Policy` has NO `carrier_member_id` column** — it lives on `CommissionLineItem`/`PolicyPayment`. `Policy.member_id` is the carrier-authoritative key (set to the MBI here). Aetna payment→customer matching still works because Aetna **commission** rows carry an MBI and match by MBI; the NG id is a secondary matcher only. The parser still emits the key (harmless; ignored by the Policy upsert). |
 | `Member Name` | `first_name`/`last_name`/`full_name` | via the shared normalizer (§5) |
 | `Writing Agent Name` | `agent_id` (raw name) | resolved by name in the upload path (§4) |
 | `Effective Date` | `effective_date` | fixes the Needs-interval gap |

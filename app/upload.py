@@ -24,6 +24,18 @@ from app.attribution import resolve_writing_agent
 upload_bp = Blueprint("upload", __name__)
 
 
+def _fill_if_blank(obj, attr, value):
+    """BOB freshness rule: write a captured value ONLY when the current one is blank.
+    Never overwrites a non-blank field (Round 2 owns newer-wins). Returns True if set."""
+    if value in (None, ""):
+        return False
+    cur = getattr(obj, attr, None)
+    if cur in (None, ""):
+        setattr(obj, attr, value)
+        return True
+    return False
+
+
 def _dedupe_bob_records(records):
     """Collapse BOB rows that share a (carrier, member_id) so a member listed on
     multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide
@@ -87,18 +99,19 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         existing.plan_type = rec["plan_type"]
         existing.effective_date = rec["effective_date"]
         existing.term_date = rec["term_date"]
-        existing.renewal_date = rec.get("renewal_date")
+        _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
         existing.dob = rec["dob"]
         existing.phone = rec["phone"]
         existing.county = rec["county"]
         existing.address1 = rec.get("address1", "")
         existing.city = rec.get("city", "")
-        existing.state = rec.get("state", "")
+        _fill_if_blank(existing, "state", rec.get("state"))
         existing.zip_code = rec.get("zip_code", "")
         existing.agent_id_carrier = rec["agent_id"]
         existing.status = rec["status"]
         existing.last_seen_date = today
         existing.import_batch_id = batch.id
+        _fill_if_blank(existing, "commission_type", rec.get("commission_type"))
         if bulk_agent_id:
             existing.agent_id = bulk_agent_id
         outcome = "updated"
@@ -134,6 +147,9 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         # Admin upload (no self-attributing agent): resolve the carrier writing-id
         # to a portal agent so the book is actually attributed, not left NULL.
         resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], bulk_agency_id)
+        if resolved is None and rec["carrier"] == "Aetna" and rec.get("agent_id"):
+            from app.commission.routes import _match_agent_name   # local import avoids circular
+            resolved = _match_agent_name(rec["agent_id"])
         if resolved:
             effective_agent_id = resolved
             target_policy = existing if existing else policy
@@ -185,7 +201,7 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
         customer.phone_primary = rec.get("phone") or customer.phone_primary
         customer.address1 = rec.get("address1") or customer.address1
         customer.city = rec.get("city") or customer.city
-        customer.state = rec.get("state") or customer.state
+        _fill_if_blank(customer, "state", rec.get("state"))
         customer.zip_code = rec.get("zip_code") or customer.zip_code
         customer.county = rec.get("county") or customer.county
 
@@ -348,18 +364,19 @@ def process_upload():
             existing.plan_type = rec["plan_type"]
             existing.effective_date = rec["effective_date"]
             existing.term_date = rec["term_date"]
-            existing.renewal_date = rec.get("renewal_date")
+            _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
             existing.dob = rec["dob"]
             existing.phone = rec["phone"]
             existing.address1 = rec.get("address1", "")
             existing.city = rec.get("city", "")
-            existing.state = rec.get("state", "")
+            _fill_if_blank(existing, "state", rec.get("state"))
             existing.zip_code = rec.get("zip_code", "")
             existing.county = rec["county"]
             existing.agent_id_carrier = rec["agent_id"]
             existing.status = rec["status"]
             existing.last_seen_date = today
             existing.import_batch_id = batch.id
+            _fill_if_blank(existing, "commission_type", rec.get("commission_type"))
             if upload_agent_id:
                 existing.agent_id = upload_agent_id
             existing.plan_id = alias_map.get((rec["plan_name"] or "").strip().lower())
@@ -401,6 +418,9 @@ def process_upload():
             # Admin upload (no self-attributing agent): resolve the carrier writing-id
             # to a portal agent so the book is actually attributed, not left NULL.
             resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], upload_agency_id)
+            if resolved is None and rec["carrier"] == "Aetna" and rec.get("agent_id"):
+                from app.commission.routes import _match_agent_name   # local import avoids circular
+                resolved = _match_agent_name(rec["agent_id"])
             if resolved:
                 effective_agent_id = resolved
                 target_policy = existing if existing else policy

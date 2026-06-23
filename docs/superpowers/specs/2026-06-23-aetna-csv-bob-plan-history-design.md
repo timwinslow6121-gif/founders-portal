@@ -59,7 +59,7 @@ the agency entirely.
 | `First Name`/`Middle Initial`/`Last Name` | `first_name`/`last_name`/`full_name` | proper-cased; `full_name` = "First MI. Last" (build directly from the separate columns) |
 | `Date of Birth` | `dob` | **NEW freshness** (fill-blanks) |
 | `Phone Number` | `phone` | **NEW freshness** (fill-blanks) |
-| `Address Line 1` (+ `Address Line 2` folded in) / `City` / `State` / `Zip Code` | `address1`/`city`/`state`/`zip_code` | **NEW freshness** (fill-blanks). **There is NO `address2` column on Customer/Policy** — fold Line 2 into address1 when present (e.g. "123 Main St, Apt 4"); else just Line 1. |
+| `Address Line 1` + `Address Line 2` → `address1`; `City`/`State`/`Zip Code` | `address1`/`city`/`state`/`zip_code` | **NEW freshness** (fill-blanks). **KEEP Line 2** — there is NO `address2` column, so fold Line 2 into address1 (e.g. "4908 Cameron Valley Pkwy, Apt 4") so no part of the address is lost; just Line 1 when Line 2 is blank. |
 | `Coverage Effective Date` | `effective_date` | |
 | `Term Date` | `term_date` | `3000-01-01` → None |
 | `Plan Name` (+ `CMS Contract Number`+`PBP Code`) | `plan_name` (+ contract/pbp available) | |
@@ -79,14 +79,22 @@ path handles a termed rec:
 1. **Term an existing active policy:** if a matching policy exists (carrier+member_id, or
    MBI) and is active, set its `term_date` + `status='termed'` from the file (the carrier
    says they left → feeds the terminations view). Respect fill-blanks for term_reason etc.
-2. **Record closed plan-history — existing customers only:** if the member is already a
-   `Customer` in the portal, write a **closed `CustomerAorHistory` interval** —
+2. **Record closed plan-history — existing customers only, ADD-ONLY:** if the member is
+   already a `Customer` in the portal, write a **closed `CustomerAorHistory` interval** —
    `carrier="Aetna"`, `plan_name`, `effective_date` (the row's Coverage Effective Date),
-   `end_date` (the row's Term Date), `source="aetna_bob_history"`. This builds the
-   "Aetna [plan] [eff]→[term]" entry the profile already renders. **Idempotent:** skip if
-   an equivalent (customer, carrier, plan_name, effective_date) interval already exists.
-   (The agent for the interval: resolve via NPN/name as in §5; if unresolved, use the
-   customer's `primary_agent_id`. `agent_id` is non-nullable on the model.)
+   `end_date` (the row's Term Date — always set, this is a PAST chapter),
+   `source="aetna_bob_history"`. This builds the "Aetna [plan] [eff]→[term]" entry the
+   profile already renders.
+   - **⚠ ADD-ONLY — NEVER overrides or supersedes current AOR.** This writes ONLY a new
+     *closed* interval. It MUST NOT modify, end-date, or supersede any **open** interval
+     (`end_date IS NULL` = the customer's CURRENT AOR). If a customer is currently active
+     on Humana/UHC, that open interval is left completely untouched; we only append the
+     past Aetna chapter. (This is the OPPOSITE of the identity-recovery supersession logic
+     — no supersession here, ever.)
+   - **Idempotent:** skip if an equivalent (customer, carrier, plan_name, effective_date)
+     closed interval already exists.
+   - **Agent for the interval:** resolve via NPN/name as in §5; if unresolved, use the
+     customer's `primary_agent_id` (`agent_id` is non-nullable on the model).
 3. **Departed members skipped:** a termed row whose member is NOT a customer is skipped
    entirely — no stub, no record (no profile to show it on; avoids ~112 junk records).
 
@@ -138,6 +146,10 @@ Real June CSV as a fixture:
   term_date/status set;
 - a termed row whose member is an existing customer → a closed `CustomerAorHistory`
   interval written (carrier/plan/eff/end); idempotent on re-run;
+- **ADD-ONLY guardrail: a termed row does NOT modify/end-date any OPEN interval** — a
+  customer with a current open (Humana/UHC) interval keeps it untouched; only the closed
+  Aetna chapter is appended;
+- Line 2 of the address is preserved (folded into address1, not dropped);
 - a termed row for a non-customer → skipped (no policy, no customer, no interval);
 - the April XLSX parser tests still pass (both formats coexist);
 - fill-blanks-only: a non-blank DOB/phone/address is not overwritten; a `manually_edited`

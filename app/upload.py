@@ -36,6 +36,17 @@ def _fill_if_blank(obj, attr, value):
     return False
 
 
+def _close_open_aor_on_term(customer, carrier, term_date):
+    """§6b: when a member is termed, close their OPEN AOR interval for that carrier.
+    BCBS term_date is a renewal, not a termination → leave its interval open."""
+    if carrier == "BCBS" or not term_date:
+        return
+    open_iv = CustomerAorHistory.query.filter_by(
+        customer_id=customer.id, carrier=carrier, end_date=None).first()
+    if open_iv:
+        open_iv.end_date = term_date
+
+
 def _dedupe_bob_records(records):
     """Collapse BOB rows that share a (carrier, member_id) so a member listed on
     multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide

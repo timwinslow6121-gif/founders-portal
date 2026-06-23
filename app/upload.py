@@ -100,13 +100,13 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         existing.effective_date = rec["effective_date"]
         existing.term_date = rec["term_date"]
         _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
-        existing.dob = rec["dob"]
-        existing.phone = rec["phone"]
-        existing.county = rec["county"]
-        existing.address1 = rec.get("address1", "")
-        existing.city = rec.get("city", "")
+        _fill_if_blank(existing, "dob", rec["dob"])
+        _fill_if_blank(existing, "phone", rec["phone"])
+        _fill_if_blank(existing, "county", rec["county"])
+        _fill_if_blank(existing, "address1", rec.get("address1"))
+        _fill_if_blank(existing, "city", rec.get("city"))
         _fill_if_blank(existing, "state", rec.get("state"))
-        existing.zip_code = rec.get("zip_code", "")
+        _fill_if_blank(existing, "zip_code", rec.get("zip_code"))
         existing.agent_id_carrier = rec["agent_id"]
         existing.status = rec["status"]
         existing.last_seen_date = today
@@ -150,7 +150,7 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], bulk_agency_id)
         if resolved is None and rec["carrier"] == "Aetna" and rec.get("agent_id"):
             from app.commission.routes import _match_agent_name   # local import avoids circular
-            resolved = _match_agent_name(rec["agent_id"])
+            resolved = _match_agent_name(rec.get("agent_name") or rec.get("agent_id"))
         if resolved:
             effective_agent_id = resolved
             target_policy = existing if existing else policy
@@ -198,13 +198,13 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
         customer.first_name = rec.get("first_name") or customer.first_name
         customer.last_name = rec.get("last_name") or customer.last_name
         customer.full_name = full_name or customer.full_name
-        customer.dob = rec.get("dob") or customer.dob
-        customer.phone_primary = rec.get("phone") or customer.phone_primary
-        customer.address1 = rec.get("address1") or customer.address1
-        customer.city = rec.get("city") or customer.city
+        _fill_if_blank(customer, "dob", rec.get("dob"))
+        _fill_if_blank(customer, "phone_primary", rec.get("phone"))
+        _fill_if_blank(customer, "address1", rec.get("address1"))
+        _fill_if_blank(customer, "city", rec.get("city"))
         _fill_if_blank(customer, "state", rec.get("state"))
-        customer.zip_code = rec.get("zip_code") or customer.zip_code
-        customer.county = rec.get("county") or customer.county
+        _fill_if_blank(customer, "zip_code", rec.get("zip_code"))
+        _fill_if_blank(customer, "county", rec.get("county"))
 
     # Agent ownership transfer: close previous agent's open AOR row for this carrier.
     if customer.primary_agent_id and customer.primary_agent_id != agent_id:
@@ -422,7 +422,7 @@ def process_upload():
             resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], upload_agency_id)
             if resolved is None and rec["carrier"] == "Aetna" and rec.get("agent_id"):
                 from app.commission.routes import _match_agent_name   # local import avoids circular
-                resolved = _match_agent_name(rec["agent_id"])
+                resolved = _match_agent_name(rec.get("agent_name") or rec.get("agent_id"))
             if resolved:
                 effective_agent_id = resolved
                 target_policy = existing if existing else policy

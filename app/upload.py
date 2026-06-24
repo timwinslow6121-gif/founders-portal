@@ -256,14 +256,18 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
         _fill_if_blank(customer, "county", rec.get("county"))
 
     # Agent ownership transfer: close previous agent's open AOR row for this carrier.
-    if customer.primary_agent_id and customer.primary_agent_id != agent_id:
-        open_aor = CustomerAorHistory.query.filter_by(
-            customer_id=customer.id, agent_id=customer.primary_agent_id,
-            carrier=rec.get("carrier", ""), end_date=None,
-        ).first()
-        if open_aor:
-            open_aor.end_date = now.date()
-    customer.primary_agent_id = agent_id
+    # Only when the row actually RESOLVED to an agent — an unresolved row (agent_id
+    # None, more common now that the CSV attributes by NPN) must NOT blank a known
+    # owner; leave the existing primary_agent_id intact.
+    if agent_id is not None:
+        if customer.primary_agent_id and customer.primary_agent_id != agent_id:
+            open_aor = CustomerAorHistory.query.filter_by(
+                customer_id=customer.id, agent_id=customer.primary_agent_id,
+                carrier=rec.get("carrier", ""), end_date=None,
+            ).first()
+            if open_aor:
+                open_aor.end_date = now.date()
+        customer.primary_agent_id = agent_id
 
 # File extensions allowed per carrier
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
@@ -398,6 +402,28 @@ def process_upload():
     updated_count = 0
 
     for rec in records:
+        # Termed rows NEVER create a policy. Mirror _import_bob_row: for an existing
+        # customer, term the active policy + close the open AOR + seed closed history;
+        # a departed member (no customer) is skipped. (Keeps this legacy /upload path
+        # consistent with /upload/bulk so a termed CSV row can't spawn a termed policy.)
+        if rec.get("status") == "termed":
+            cust = None
+            if rec.get("mbi"):
+                cust = Customer.query.filter_by(
+                    mbi=rec["mbi"], agency_id=upload_agency_id).first()
+            if cust is None:
+                continue
+            pol = Policy.query.filter_by(
+                carrier=rec["carrier"], member_id=rec["member_id"],
+                agency_id=upload_agency_id).first()
+            if pol and pol.status == "active":
+                pol.term_date = rec.get("term_date")
+                pol.status = "termed"
+            _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))
+            _seed_closed_history(cust, rec, upload_agency_id)
+            updated_count += 1
+            continue
+
         existing = Policy.query.filter_by(
             carrier=rec["carrier"],
             member_id=rec["member_id"],

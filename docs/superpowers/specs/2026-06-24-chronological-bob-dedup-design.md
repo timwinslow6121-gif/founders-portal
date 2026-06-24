@@ -63,6 +63,17 @@ falls AFTER the prior chapter's term date.
 exhibits the A+T pattern today); a gap/overlap audit of the timeline (the rule produces
 chronologically-ordered chapters; an explicit integrity report is a future item).
 
+**⚠ KNOWN GAP — AEP same-effective-date conflict (deferred, Tim 2026-06-24).** The §1
+tie-break (equal effective_date → later/sentinel term → last-in-file) is correct for the
+non-AEP world where a customer should never have two same-effective plans. **But during
+AEP it's wrong:** two apps for two DIFFERENT plans can both be effective Jan 1, and CMS
+honors the **LAST application submitted** (Dec 7 beats Nov 7), NOT last-in-file. The real
+tie-break is the **latest Application Signed/Received Date** — which the Aetna CSV HAS
+(`Application Signed Date`, `Application Received Date`) but the parser does NOT capture
+today. Deferred to a future task (capture the signed date + make it the same-eff
+tie-break). **Trigger: AEP ~Oct 2026, or the first real same-eff 2-plan conflict.** Logged
+in `BACKLOG.md`.
+
 ## 4. Component
 
 - `app/upload.py` `_dedupe_bob_records` — change the collision branch from

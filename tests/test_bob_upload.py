@@ -7,22 +7,24 @@ and per-row isolation so one bad row can't 500 the whole upload.
 """
 
 
-def test_dedupe_collapses_repeated_carrier_member_id_last_wins():
+def test_dedupe_collapses_repeated_active_segments_last_wins():
     from app.upload import _dedupe_bob_records
+    from datetime import date
+    eff = date(2026, 1, 1)
     records = [
-        {"carrier": "UHC", "member_id": "M1", "plan_name": "Plan A", "status": "active"},
-        {"carrier": "UHC", "member_id": "M2", "plan_name": "Other"},
-        {"carrier": "UHC", "member_id": "M1", "plan_name": "Plan B", "status": "termed"},
+        {"carrier": "UHC", "member_id": "M1", "plan_name": "Plan A",
+         "status": "active", "effective_date": eff, "term_date": None},
+        {"carrier": "UHC", "member_id": "M2", "plan_name": "Other",
+         "status": "active", "effective_date": eff, "term_date": None},
+        {"carrier": "UHC", "member_id": "M1", "plan_name": "Plan B",
+         "status": "active", "effective_date": eff, "term_date": None},
     ]
     out = _dedupe_bob_records(records)
-    # M1 collapsed to ONE row, last occurrence wins, M2 untouched
     assert len(out) == 2
     m1 = [r for r in out if r["member_id"] == "M1"]
     assert len(m1) == 1
-    assert m1[0]["plan_name"] == "Plan B"      # last wins
-    assert m1[0]["status"] == "termed"
-    # original order preserved (M1 slot first, M2 second)
-    assert [r["member_id"] for r in out] == ["M1", "M2"]
+    assert m1[0]["plan_name"] == "Plan B"      # tie on effective date -> last wins
+    assert [r["member_id"] for r in out] == ["M1", "M2"]   # original order preserved
 
 
 def test_dedupe_passes_through_rows_without_member_id():
@@ -97,32 +99,27 @@ def test_import_row_per_savepoint_isolates_a_failing_row(db_session, app, agency
 
 
 def test_dedupe_prevents_in_file_duplicate_collision(db_session, app, agency, agent_user):
-    """The real June bug: the SAME (carrier, member_id) on two file rows collides on
-    uq_carrier_member. Dedup collapses them to one BEFORE import so it never hits the
-    constraint, and the surviving row carries the LAST occurrence's data."""
+    """In-file duplicate ACTIVE rows for the same (carrier, member_id) must collapse
+    to one BEFORE import so they never hit uq_carrier_member, and the surviving row is
+    the chronologically latest active enrollment."""
     from app.extensions import db
-    from app.models import ImportBatch, Policy, Customer
+    from app.models import ImportBatch, Policy
     from app.upload import _import_bob_row, _dedupe_bob_records
     from datetime import date
 
     with app.app_context():
         batch = ImportBatch(agency_id=agency.id, carrier="UHC", filename="f.xlsx",
                             uploaded_by_id=agent_user.id, status="pending")
-        # The surviving (last-wins) row is status="termed" — the termed-rec router
-        # (§4.2) only acts on an EXISTING customer (departed members are skipped),
-        # so this member must already exist as a customer for the dedup assertion
-        # below to exercise the policy-term path rather than a no-op skip.
         db.session.add(Policy(agency_id=agency.id, carrier="UHC", member_id="DUP1",
                               mbi="MBIDUP0001", first_name="A", last_name="B",
                               full_name="A B", plan_name="Plan A", status="active"))
-        db.session.add(Customer(agency_id=agency.id, first_name="A", last_name="B",
-                                full_name="A B", mbi="MBIDUP0001",
-                                primary_agent_id=agent_user.id))
         db.session.add(batch); db.session.commit()
 
         records = [
-            _bob_rec("UHC", "DUP1", "MBIDUP0001", plan_name="Plan A"),
-            _bob_rec("UHC", "DUP1", "MBIDUP0001", plan_name="Plan B", status="termed"),
+            _bob_rec("UHC", "DUP1", "MBIDUP0001", plan_name="Plan A",
+                     effective_date=date(2024, 1, 1)),
+            _bob_rec("UHC", "DUP1", "MBIDUP0001", plan_name="Plan B",
+                     effective_date=date(2026, 1, 1)),
         ]
         for rec in _dedupe_bob_records(records):
             with db.session.begin_nested():
@@ -131,7 +128,8 @@ def test_dedupe_prevents_in_file_duplicate_collision(db_session, app, agency, ag
 
         pols = Policy.query.filter_by(agency_id=agency.id, member_id="DUP1").all()
         assert len(pols) == 1                 # collapsed, no collision
-        assert pols[0].status == "termed"     # last (termed) row wins and terms it
+        assert pols[0].status == "active"
+        assert pols[0].plan_name == "Plan B"  # latest effective date wins
 
 
 def test_rec_more_current_untermed_beats_real_term():

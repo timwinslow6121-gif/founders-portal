@@ -23,24 +23,30 @@ wrongly became the termed Value Plus.
 ## 1. The rule — dates are the source of truth, not row order or status
 
 Among BOB rows sharing `(carrier, member_id)`, the **surviving current policy** is chosen
-**chronologically**:
+by **term date first, then effective date** (Tim 2026-06-24):
 
-1. **Latest `effective_date` wins.** The row with the most recent effective date is the
-   current policy. (Robbie: 2026-01-01 C-SNP beats 2023-01-01 Value Plus.)
-2. **Tie-break** (equal or both-missing `effective_date`): the row with the later
-   `term_date` wins, treating the sentinel `3000-01-01`/None ("no termination") as the
-   latest/current. (UHC plan-segments share ONE effective date → this is a tie → falls
-   through to last-wins, so UHC behavior is IDENTICAL to today.)
-3. **Final tie** (same eff, same term): **last-wins** (unchanged — preserves the UHC
-   plan-segment outcome exactly).
+1. **Un-termed wins.** A row whose `term_date` is the sentinel (`3000-01-01`/`2300-01-01`,
+   stripped to `None` by the parser) or blank is a LIVE policy and beats a row carrying a
+   real (past) term date. (Robbie: C-SNP with no term beats Value Plus termed 2025-12-31.)
+   Rationale: a term date is an *affirmative carrier action* — carriers default to a far-
+   future sentinel and must explicitly apply a real term. No real term = the policy is
+   current. This is the single most trustworthy signal, and it correctly handles a **rapid
+   disenroll**: a newer enrollment that already termed (e.g. eff 2026-01, term 2026-02)
+   must NOT win over an older still-open policy the member fell back to.
+2. **Tie-break** (both un-termed, or both carrying a real term): the row with the later
+   `term_date` wins (sentinel/`None` already treated as the latest in step 1); if term
+   dates are equal, the row with the later `effective_date` wins.
+3. **Final tie** (same term, same eff): **last-wins** (unchanged — preserves the UHC
+   plan-segment outcome exactly). UHC plan-segments share one effective date AND the
+   far-future sentinel term → they tie through steps 1–2 → last-wins → IDENTICAL to today.
 
-**Row order in the file is NOT a source of truth.** The effective/term dates are; the rule
+**Row order in the file is NOT a source of truth.** The term/effective dates are; the rule
 must produce the same result regardless of the order the rows appear.
 
-**Carrier-agnostic + UHC-safe:** the rule only changes the outcome when rows have
-*different* effective dates (a genuine plan change / history — the Aetna case), where the
-later effective date *should* win. UHC segments of one enrollment share an effective date
-→ tie → last-wins → no change.
+**Carrier-agnostic + UHC-safe:** the rule only changes the outcome when rows differ on
+term status or effective date (a genuine plan change / history — the Aetna case). UHC
+segments of one enrollment share the sentinel term AND one effective date → tie →
+last-wins → no change.
 
 ## 2. The earlier enrollment(s) become plan-history
 

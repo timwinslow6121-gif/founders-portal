@@ -36,6 +36,38 @@ def _fill_if_blank(obj, attr, value):
     return False
 
 
+def _close_open_aor_on_term(customer, carrier, term_date):
+    """§6b: when a member is termed, close their OPEN AOR interval for that carrier.
+    BCBS term_date is a renewal, not a termination → leave its interval open."""
+    if carrier == "BCBS" or not term_date:
+        return
+    open_iv = CustomerAorHistory.query.filter_by(
+        customer_id=customer.id, carrier=carrier, end_date=None).first()
+    if open_iv:
+        open_iv.end_date = term_date
+
+
+def _seed_closed_history(customer, rec, agency_id):
+    """§4.2 ADD-ONLY: write a CLOSED CustomerAorHistory chapter for a PAST enrollment.
+    Idempotent on (customer, carrier, effective_date). NEVER modifies an open interval."""
+    carrier = rec["carrier"]
+    eff = rec.get("effective_date")
+    if not eff:
+        return
+    exists = CustomerAorHistory.query.filter_by(
+        customer_id=customer.id, carrier=carrier, effective_date=eff).first()
+    if exists:
+        return
+    agent_id = customer.primary_agent_id
+    if agent_id is None:
+        return   # agent_id is NOT NULL on the model; can't seed without one
+    db.session.add(CustomerAorHistory(
+        agency_id=agency_id, customer_id=customer.id, agent_id=agent_id,
+        carrier=carrier, plan_name=rec.get("plan_name"),
+        effective_date=eff, end_date=rec.get("term_date"),
+        source="aetna_bob_history"))
+
+
 def _dedupe_bob_records(records):
     """Collapse BOB rows that share a (carrier, member_id) so a member listed on
     multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide
@@ -65,6 +97,23 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
     Customer master. Returns "new", "updated", or "skipped" (for an unresolvable
     no-MBI row). Runs inside a per-row savepoint in the caller, so a raise here
     rolls back only this row."""
+    if rec.get("status") == "termed":
+        # Find the existing customer by MBI; if none, this is a departed member -> skip.
+        cust = None
+        if rec.get("mbi"):
+            cust = Customer.query.filter_by(mbi=rec["mbi"], agency_id=bulk_agency_id).first()
+        if cust is None:
+            return "skipped"
+        # Term the existing active policy for this carrier+member, if present.
+        pol = Policy.query.filter_by(carrier=rec["carrier"], member_id=rec["member_id"],
+                                     agency_id=bulk_agency_id).first()
+        if pol and pol.status == "active":
+            pol.term_date = rec.get("term_date")
+            pol.status = "termed"
+        _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))   # close-aor
+        _seed_closed_history(cust, rec, bulk_agency_id)                       # seed-history
+        return "updated"
+
     # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
     is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
     if is_unresolvable:
@@ -100,13 +149,13 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         existing.effective_date = rec["effective_date"]
         existing.term_date = rec["term_date"]
         _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
-        existing.dob = rec["dob"]
-        existing.phone = rec["phone"]
-        existing.county = rec["county"]
-        existing.address1 = rec.get("address1", "")
-        existing.city = rec.get("city", "")
+        _fill_if_blank(existing, "dob", rec["dob"])
+        _fill_if_blank(existing, "phone", rec["phone"])
+        _fill_if_blank(existing, "county", rec["county"])
+        _fill_if_blank(existing, "address1", rec.get("address1"))
+        _fill_if_blank(existing, "city", rec.get("city"))
         _fill_if_blank(existing, "state", rec.get("state"))
-        existing.zip_code = rec.get("zip_code", "")
+        _fill_if_blank(existing, "zip_code", rec.get("zip_code"))
         existing.agent_id_carrier = rec["agent_id"]
         existing.status = rec["status"]
         existing.last_seen_date = today
@@ -150,7 +199,7 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], bulk_agency_id)
         if resolved is None and rec["carrier"] == "Aetna" and rec.get("agent_id"):
             from app.commission.routes import _match_agent_name   # local import avoids circular
-            resolved = _match_agent_name(rec["agent_id"])
+            resolved = _match_agent_name(rec.get("agent_name") or rec.get("agent_id"))
         if resolved:
             effective_agent_id = resolved
             target_policy = existing if existing else policy
@@ -198,23 +247,27 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
         customer.first_name = rec.get("first_name") or customer.first_name
         customer.last_name = rec.get("last_name") or customer.last_name
         customer.full_name = full_name or customer.full_name
-        customer.dob = rec.get("dob") or customer.dob
-        customer.phone_primary = rec.get("phone") or customer.phone_primary
-        customer.address1 = rec.get("address1") or customer.address1
-        customer.city = rec.get("city") or customer.city
+        _fill_if_blank(customer, "dob", rec.get("dob"))
+        _fill_if_blank(customer, "phone_primary", rec.get("phone"))
+        _fill_if_blank(customer, "address1", rec.get("address1"))
+        _fill_if_blank(customer, "city", rec.get("city"))
         _fill_if_blank(customer, "state", rec.get("state"))
-        customer.zip_code = rec.get("zip_code") or customer.zip_code
-        customer.county = rec.get("county") or customer.county
+        _fill_if_blank(customer, "zip_code", rec.get("zip_code"))
+        _fill_if_blank(customer, "county", rec.get("county"))
 
     # Agent ownership transfer: close previous agent's open AOR row for this carrier.
-    if customer.primary_agent_id and customer.primary_agent_id != agent_id:
-        open_aor = CustomerAorHistory.query.filter_by(
-            customer_id=customer.id, agent_id=customer.primary_agent_id,
-            carrier=rec.get("carrier", ""), end_date=None,
-        ).first()
-        if open_aor:
-            open_aor.end_date = now.date()
-    customer.primary_agent_id = agent_id
+    # Only when the row actually RESOLVED to an agent — an unresolved row (agent_id
+    # None, more common now that the CSV attributes by NPN) must NOT blank a known
+    # owner; leave the existing primary_agent_id intact.
+    if agent_id is not None:
+        if customer.primary_agent_id and customer.primary_agent_id != agent_id:
+            open_aor = CustomerAorHistory.query.filter_by(
+                customer_id=customer.id, agent_id=customer.primary_agent_id,
+                carrier=rec.get("carrier", ""), end_date=None,
+            ).first()
+            if open_aor:
+                open_aor.end_date = now.date()
+        customer.primary_agent_id = agent_id
 
 # File extensions allowed per carrier
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
@@ -349,6 +402,28 @@ def process_upload():
     updated_count = 0
 
     for rec in records:
+        # Termed rows NEVER create a policy. Mirror _import_bob_row: for an existing
+        # customer, term the active policy + close the open AOR + seed closed history;
+        # a departed member (no customer) is skipped. (Keeps this legacy /upload path
+        # consistent with /upload/bulk so a termed CSV row can't spawn a termed policy.)
+        if rec.get("status") == "termed":
+            cust = None
+            if rec.get("mbi"):
+                cust = Customer.query.filter_by(
+                    mbi=rec["mbi"], agency_id=upload_agency_id).first()
+            if cust is None:
+                continue
+            pol = Policy.query.filter_by(
+                carrier=rec["carrier"], member_id=rec["member_id"],
+                agency_id=upload_agency_id).first()
+            if pol and pol.status == "active":
+                pol.term_date = rec.get("term_date")
+                pol.status = "termed"
+            _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))
+            _seed_closed_history(cust, rec, upload_agency_id)
+            updated_count += 1
+            continue
+
         existing = Policy.query.filter_by(
             carrier=rec["carrier"],
             member_id=rec["member_id"],
@@ -366,13 +441,14 @@ def process_upload():
             existing.effective_date = rec["effective_date"]
             existing.term_date = rec["term_date"]
             _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
-            existing.dob = rec["dob"]
-            existing.phone = rec["phone"]
-            existing.address1 = rec.get("address1", "")
-            existing.city = rec.get("city", "")
+            # §6 fill-blanks PII: never overwrite a non-blank value with a BOB value.
+            _fill_if_blank(existing, "dob", rec["dob"])
+            _fill_if_blank(existing, "phone", rec["phone"])
+            _fill_if_blank(existing, "address1", rec.get("address1"))
+            _fill_if_blank(existing, "city", rec.get("city"))
             _fill_if_blank(existing, "state", rec.get("state"))
-            existing.zip_code = rec.get("zip_code", "")
-            existing.county = rec["county"]
+            _fill_if_blank(existing, "zip_code", rec.get("zip_code"))
+            _fill_if_blank(existing, "county", rec["county"])
             existing.agent_id_carrier = rec["agent_id"]
             existing.status = rec["status"]
             existing.last_seen_date = today
@@ -422,7 +498,7 @@ def process_upload():
             resolved = resolve_writing_agent(rec["carrier"], rec["agent_id"], upload_agency_id)
             if resolved is None and rec["carrier"] == "Aetna" and rec.get("agent_id"):
                 from app.commission.routes import _match_agent_name   # local import avoids circular
-                resolved = _match_agent_name(rec["agent_id"])
+                resolved = _match_agent_name(rec.get("agent_name") or rec.get("agent_id"))
             if resolved:
                 effective_agent_id = resolved
                 target_policy = existing if existing else policy

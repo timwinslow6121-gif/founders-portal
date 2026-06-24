@@ -101,13 +101,23 @@ def test_dedupe_prevents_in_file_duplicate_collision(db_session, app, agency, ag
     uq_carrier_member. Dedup collapses them to one BEFORE import so it never hits the
     constraint, and the surviving row carries the LAST occurrence's data."""
     from app.extensions import db
-    from app.models import ImportBatch, Policy
+    from app.models import ImportBatch, Policy, Customer
     from app.upload import _import_bob_row, _dedupe_bob_records
     from datetime import date
 
     with app.app_context():
         batch = ImportBatch(agency_id=agency.id, carrier="UHC", filename="f.xlsx",
                             uploaded_by_id=agent_user.id, status="pending")
+        # The surviving (last-wins) row is status="termed" — the termed-rec router
+        # (§4.2) only acts on an EXISTING customer (departed members are skipped),
+        # so this member must already exist as a customer for the dedup assertion
+        # below to exercise the policy-term path rather than a no-op skip.
+        db.session.add(Policy(agency_id=agency.id, carrier="UHC", member_id="DUP1",
+                              mbi="MBIDUP0001", first_name="A", last_name="B",
+                              full_name="A B", plan_name="Plan A", status="active"))
+        db.session.add(Customer(agency_id=agency.id, first_name="A", last_name="B",
+                                full_name="A B", mbi="MBIDUP0001",
+                                primary_agent_id=agent_user.id))
         db.session.add(batch); db.session.commit()
 
         records = [
@@ -121,4 +131,4 @@ def test_dedupe_prevents_in_file_duplicate_collision(db_session, app, agency, ag
 
         pols = Policy.query.filter_by(agency_id=agency.id, member_id="DUP1").all()
         assert len(pols) == 1                 # collapsed, no collision
-        assert pols[0].plan_name == "Plan B"  # last wins
+        assert pols[0].status == "termed"     # last (termed) row wins and terms it

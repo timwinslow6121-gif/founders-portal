@@ -132,3 +132,58 @@ def test_dedupe_prevents_in_file_duplicate_collision(db_session, app, agency, ag
         pols = Policy.query.filter_by(agency_id=agency.id, member_id="DUP1").all()
         assert len(pols) == 1                 # collapsed, no collision
         assert pols[0].status == "termed"     # last (termed) row wins and terms it
+
+
+def test_rec_more_current_untermed_beats_real_term():
+    """Robbie Belk core: an un-termed (None term) row beats a real-past-termed row,
+    even when the un-termed row has the EARLIER effective date is not the case here,
+    but term date is checked first regardless of effective date."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    new = {"effective_date": date(2026, 1, 1), "term_date": None}            # current
+    kept = {"effective_date": date(2023, 1, 1), "term_date": date(2025, 12, 31)}
+    assert _rec_is_more_current(new, kept) is True
+    # reverse: a real-past-termed row does NOT replace an un-termed one
+    assert _rec_is_more_current(kept, new) is False
+
+
+def test_rec_more_current_untermed_beats_real_term_even_when_older_effective():
+    """Rapid-disenroll: a NEWER enrollment that already termed must NOT beat an OLDER
+    still-open policy the member fell back to. Term date wins over effective date."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    open_older = {"effective_date": date(2025, 1, 1), "term_date": None}
+    termed_newer = {"effective_date": date(2026, 1, 1), "term_date": date(2026, 2, 28)}
+    # the older-but-open policy is the survivor
+    assert _rec_is_more_current(open_older, termed_newer) is True
+    assert _rec_is_more_current(termed_newer, open_older) is False
+
+
+def test_rec_more_current_both_real_term_later_term_wins():
+    """Both rows carry a real term -> the later term date wins; if those tie, the
+    later effective date breaks it."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    new = {"effective_date": date(2024, 1, 1), "term_date": date(2026, 12, 31)}
+    kept = {"effective_date": date(2024, 1, 1), "term_date": date(2025, 12, 31)}
+    assert _rec_is_more_current(new, kept) is True
+
+
+def test_rec_more_current_term_tie_later_effective_wins():
+    """Term dates tie (both un-termed) -> later effective date wins."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    new = {"effective_date": date(2026, 1, 1), "term_date": None}
+    kept = {"effective_date": date(2023, 1, 1), "term_date": None}
+    assert _rec_is_more_current(new, kept) is True
+    assert _rec_is_more_current(kept, new) is False
+
+
+def test_rec_more_current_full_tie_last_wins():
+    """Full tie (same term, same effective) -> later-iterated row wins (UHC parity)."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    eff = date(2026, 1, 1)
+    new = {"effective_date": eff, "term_date": None}
+    kept = {"effective_date": eff, "term_date": None}
+    assert _rec_is_more_current(new, kept) is True

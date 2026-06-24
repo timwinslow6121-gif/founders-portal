@@ -68,6 +68,39 @@ def _seed_closed_history(customer, rec, agency_id):
         source="aetna_bob_history"))
 
 
+from datetime import date as _date
+
+
+def _rec_is_more_current(new, kept):
+    """True iff BOB rec `new` should replace `kept` as the surviving CURRENT policy
+    for a shared (carrier, member_id). TERM DATE FIRST, then effective date — dates,
+    not row order, decide (Tim 2026-06-24):
+      1. un-termed wins: a None/sentinel-stripped term_date is the LIVE policy and beats
+         a row carrying a real past term (handles rapid-disenroll: a newer-but-already-
+         termed row must NOT beat an older still-open one). A term date is an affirmative
+         carrier action — no real term = current.
+      2. if both un-termed (None) or both real-termed, the later term_date wins;
+      3. on a term-date tie, the later effective_date wins (None effective sorts EARLIEST
+         so a dated row beats an undated one);
+      4. on a full tie, `new` wins -> with the file-order caller this makes LAST-in-file
+         win, preserving UHC plan-segment last-wins behavior.
+    The parser already strips the 3000-01-01 / 2300-01-01 sentinel to None, so a None
+    term_date here means BOTH 'blank' and 'sentinel far-future' — i.e. 'current'."""
+    _MIN = _date.min
+    _MAX = _date.max
+    # term date first: None/sentinel == "no termination" == latest == current
+    nt = new.get("term_date") or _MAX
+    kt = kept.get("term_date") or _MAX
+    if nt != kt:
+        return nt > kt
+    # term-date tie -> later effective_date wins; None effective sorts earliest
+    ne = new.get("effective_date") or _MIN
+    ke = kept.get("effective_date") or _MIN
+    if ne != ke:
+        return ne > ke
+    return True   # full tie -> last-in-file wins (UHC parity)
+
+
 def _dedupe_bob_records(records):
     """Collapse BOB rows that share a (carrier, member_id) so a member listed on
     multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide

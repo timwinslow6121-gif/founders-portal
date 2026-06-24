@@ -249,3 +249,99 @@ def test_dedupe_passes_through_rows_without_member_id_still():
     ]
     out = _dedupe_bob_records(records)
     assert len(out) == 3
+
+
+def test_active_plus_termed_import_keeps_active_policy_and_seeds_history(
+        db_session, app, agency, agent_user):
+    """Robbie Belk end-to-end: a member with an old TERMED enrollment and a current
+    ACTIVE enrollment imports to an ACTIVE policy (latest plan) AND a closed
+    plan-history chapter for the old enrollment."""
+    from app.extensions import db
+    from app.models import ImportBatch, Policy, Customer, CustomerAorHistory
+    from app.upload import _import_bob_row, _dedupe_bob_records
+    from datetime import date
+
+    with app.app_context():
+        # Member already exists as a customer (so the termed router acts, not skips).
+        db.session.add(Customer(agency_id=agency.id, first_name="Robbie",
+                                last_name="Belk", full_name="Robbie Belk",
+                                mbi="MBIROBBIE01", primary_agent_id=agent_user.id))
+        db.session.add(Policy(agency_id=agency.id, carrier="Aetna", member_id="6274",
+                              mbi="MBIROBBIE01", first_name="Robbie", last_name="Belk",
+                              full_name="Robbie Belk", plan_name="Value Plus",
+                              status="active", effective_date=date(2023, 1, 1)))
+        batch = ImportBatch(agency_id=agency.id, carrier="Aetna", filename="f.csv",
+                            uploaded_by_id=agent_user.id, status="pending")
+        db.session.add(batch); db.session.commit()
+
+        records = [
+            _bob_rec("Aetna", "6274", "MBIROBBIE01", status="active",
+                     plan_name="Chronic Care C-SNP",
+                     effective_date=date(2026, 1, 1), term_date=None,
+                     first_name="Robbie", last_name="Belk", full_name="Robbie Belk"),
+            _bob_rec("Aetna", "6274", "MBIROBBIE01", status="termed",
+                     plan_name="Value Plus",
+                     effective_date=date(2023, 1, 1), term_date=date(2025, 12, 31),
+                     first_name="Robbie", last_name="Belk", full_name="Robbie Belk"),
+        ]
+        for rec in _dedupe_bob_records(records):
+            with db.session.begin_nested():
+                _import_bob_row(rec, batch, agency.id, agent_user.id, date.today(), [])
+        db.session.commit()
+
+        pols = Policy.query.filter_by(agency_id=agency.id, member_id="6274").all()
+        assert len(pols) == 1
+        assert pols[0].status == "active"
+        assert pols[0].plan_name == "Chronic Care C-SNP"
+        assert pols[0].effective_date == date(2026, 1, 1)
+
+        cust = Customer.query.filter_by(mbi="MBIROBBIE01").first()
+        hist = CustomerAorHistory.query.filter_by(
+            customer_id=cust.id, carrier="Aetna").all()
+        closed = [h for h in hist if h.effective_date == date(2023, 1, 1)]
+        assert len(closed) == 1
+        assert closed[0].plan_name == "Value Plus"
+        assert closed[0].end_date == date(2025, 12, 31)
+
+
+def test_active_plus_termed_import_termed_row_first_still_active(
+        db_session, app, agency, agent_user):
+    """Order-independence: even when the OLD termed row appears BEFORE the active row
+    in the file, the surviving policy is still the current active enrollment — the
+    termed-history row must not leave the live policy terminated."""
+    from app.extensions import db
+    from app.models import ImportBatch, Policy, Customer
+    from app.upload import _import_bob_row, _dedupe_bob_records
+    from datetime import date
+
+    with app.app_context():
+        db.session.add(Customer(agency_id=agency.id, first_name="Robbie",
+                                last_name="Belk", full_name="Robbie Belk",
+                                mbi="MBIROBBIE02", primary_agent_id=agent_user.id))
+        db.session.add(Policy(agency_id=agency.id, carrier="Aetna", member_id="6275",
+                              mbi="MBIROBBIE02", first_name="Robbie", last_name="Belk",
+                              full_name="Robbie Belk", plan_name="Value Plus",
+                              status="active", effective_date=date(2023, 1, 1)))
+        batch = ImportBatch(agency_id=agency.id, carrier="Aetna", filename="f.csv",
+                            uploaded_by_id=agent_user.id, status="pending")
+        db.session.add(batch); db.session.commit()
+
+        records = [
+            _bob_rec("Aetna", "6275", "MBIROBBIE02", status="termed",
+                     plan_name="Value Plus",
+                     effective_date=date(2023, 1, 1), term_date=date(2025, 12, 31),
+                     first_name="Robbie", last_name="Belk", full_name="Robbie Belk"),
+            _bob_rec("Aetna", "6275", "MBIROBBIE02", status="active",
+                     plan_name="Chronic Care C-SNP",
+                     effective_date=date(2026, 1, 1), term_date=None,
+                     first_name="Robbie", last_name="Belk", full_name="Robbie Belk"),
+        ]
+        for rec in _dedupe_bob_records(records):
+            with db.session.begin_nested():
+                _import_bob_row(rec, batch, agency.id, agent_user.id, date.today(), [])
+        db.session.commit()
+
+        pols = Policy.query.filter_by(agency_id=agency.id, member_id="6275").all()
+        assert len(pols) == 1
+        assert pols[0].status == "active"
+        assert pols[0].plan_name == "Chronic Care C-SNP"

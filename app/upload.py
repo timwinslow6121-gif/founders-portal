@@ -147,12 +147,23 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
             cust = Customer.query.filter_by(mbi=rec["mbi"], agency_id=bulk_agency_id).first()
         if cust is None:
             return "skipped"
-        # Term the existing active policy for this carrier+member, if present.
+        # Term the existing active policy for this carrier+member — but ONLY if this
+        # termed row IS that current enrollment, not an older history chapter. We
+        # identify policies by (carrier, member_id) today (member_ids are reused across
+        # a member's successive enrollments), so an OLD termed row (e.g. Robbie Belk's
+        # 2023 Value Plus) shares the member_id of his CURRENT active C-SNP policy. Only
+        # term the live policy when the termed row's effective_date is not OLDER than the
+        # policy's — i.e. it refers to the same/current enrollment. An older termed row
+        # seeds plan-history + closes AOR but must NOT term the current active policy.
+        # (Long-term fix = a Founders-internal per-enrollment surrogate ID; see BACKLOG.)
         pol = Policy.query.filter_by(carrier=rec["carrier"], member_id=rec["member_id"],
                                      agency_id=bulk_agency_id).first()
         if pol and pol.status == "active":
-            pol.term_date = rec.get("term_date")
-            pol.status = "termed"
+            p_eff = pol.effective_date
+            r_eff = rec.get("effective_date")
+            if p_eff is None or r_eff is None or r_eff >= p_eff:
+                pol.term_date = rec.get("term_date")
+                pol.status = "termed"
         _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))   # close-aor
         _seed_closed_history(cust, rec, bulk_agency_id)                       # seed-history
         return "updated"

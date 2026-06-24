@@ -135,9 +135,8 @@ def test_dedupe_prevents_in_file_duplicate_collision(db_session, app, agency, ag
 
 
 def test_rec_more_current_untermed_beats_real_term():
-    """Robbie Belk core: an un-termed (None term) row beats a real-past-termed row,
-    even when the un-termed row has the EARLIER effective date is not the case here,
-    but term date is checked first regardless of effective date."""
+    """Robbie Belk core: an un-termed (None term) row beats a real-past-termed row.
+    Term date is checked before effective date."""
     from app.upload import _rec_is_more_current
     from datetime import date
     new = {"effective_date": date(2026, 1, 1), "term_date": None}            # current

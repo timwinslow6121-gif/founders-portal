@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace `_dedupe_bob_records`'s blind last-wins collision rule with a chronological rule (latest effective date wins) that only collapses policy-creating (active) rows, so an active enrollment is never overwritten by a member's older termed history row — and the older enrollment survives as a plan-history chapter.
+**Goal:** Replace `_dedupe_bob_records`'s blind last-wins collision rule with a chronological rule (un-termed wins; then later term date; then later effective date) that only collapses policy-creating (active) rows, so an active enrollment is never overwritten by a member's older termed history row — and the older enrollment survives as a plan-history chapter.
 
-**Architecture:** `_dedupe_bob_records` (app/upload.py) currently collapses every row sharing `(carrier, member_id)` to one via last-wins. We change it so (a) **termed rows are never collapsed onto active rows** — they pass through untouched so the shipped §4.2 termed-router can seed plan-history; and (b) when two *active* rows share `(carrier, member_id)`, the chronologically more-current one wins (latest `effective_date`; tie → later/`None` `term_date`; final tie → last-in-file). A small pure helper `_rec_is_more_current(new, kept)` encodes the precedence. No schema change, no migration.
+**Architecture:** `_dedupe_bob_records` (app/upload.py) currently collapses every row sharing `(carrier, member_id)` to one via last-wins. We change it so (a) **termed rows are never collapsed onto active rows** — they pass through untouched so the shipped §4.2 termed-router can seed plan-history; and (b) when two *active* rows share `(carrier, member_id)`, the chronologically more-current one wins by **term date first, then effective date**: an un-termed row (sentinel/`None` term) beats a row with a real past term; tie → later `term_date`; tie → later `effective_date`; final tie → last-in-file. A small pure helper `_rec_is_more_current(new, kept)` encodes the precedence. No schema change, no migration.
 
 **Tech Stack:** Python 3.10, Flask-SQLAlchemy, pytest. Records are plain dicts from `app/parsers/*` carrying `effective_date`/`term_date` as `datetime.date` or `None` (the parser already strips the `3000-01-01` sentinel to `None`), and `status` ∈ {`"active"`, `"termed"`}.
 
@@ -13,7 +13,8 @@
 - No DB migration. The fix is pure logic in `_dedupe_bob_records` plus one helper.
 - The rule must be **order-independent**: the same input rows in any order must produce the same surviving policy.
 - **UHC must be unchanged.** UHC lists a member's plan-segments as multiple rows that all share ONE `effective_date` and are all `active` → they tie on effective date → fall through to last-wins → identical outcome to today.
-- Records carry `effective_date`/`term_date` as `datetime.date` or `None`. `None` term_date means "no termination / current" and must sort as the LATEST.
+- Records carry `effective_date`/`term_date` as `datetime.date` or `None`. `None`/sentinel term_date means "no termination / current" and is the STRONGEST signal of the live policy — it sorts as the LATEST and is checked BEFORE effective date.
+- Precedence is **term date first, then effective date** (Tim 2026-06-24): un-termed beats a real past term (handles rapid-disenroll: a newer-but-already-termed row must not beat an older still-open one); then later term; then later effective; then last-in-file.
 - `_dedupe_bob_records` runs once, BEFORE the per-row import loop (app/upload.py:912); only surviving recs reach `_import_bob_row`.
 - The termed-rec router in `_import_bob_row` (app/upload.py:100-115) NEVER creates/updates a policy via the upsert path — it only terms an existing policy and seeds a closed history chapter. Therefore termed rows cannot trigger the `uq_carrier_member` collision the dedup exists to prevent, and may safely coexist with an active row of the same key.
 
@@ -26,7 +27,7 @@
 - Test: `tests/test_bob_upload.py`
 
 **Interfaces:**
-- Produces: `_rec_is_more_current(new: dict, kept: dict) -> bool` — returns `True` iff `new` should replace `kept` as the surviving current policy for a shared `(carrier, member_id)`. Precedence: (1) later `effective_date` wins; (2) on equal/both-`None` effective_date, later `term_date` wins, treating `None` term_date as the latest; (3) on a full tie, return `False` (keep the already-stored rec, which is earlier in file → preserves last-wins because the caller stores the new one only when this returns `True` and it iterates in file order... see Task 2 for the exact caller contract).
+- Produces: `_rec_is_more_current(new: dict, kept: dict) -> bool` — returns `True` iff `new` should replace `kept` as the surviving current policy for a shared `(carrier, member_id)`. Precedence (term date FIRST): (1) un-termed (`term_date` `None`/sentinel) beats a real past term; (2) if both un-termed or both real-termed, later `term_date` wins; (3) on a term-date tie, later `effective_date` wins; (4) on a full tie, return `True` (see caller contract below).
 
 **Caller contract note (read before writing the helper):** In Task 2 the caller iterates rows in file order and, on a key collision, replaces the kept rec **only if `_rec_is_more_current(new, kept)` is True**. So for the final-tie case we want LAST-in-file to win (UHC parity). That means on a full tie the helper must return **`True`** (so the later-iterated row replaces the earlier one), NOT `False`. The §1 spec text says "last-wins" on the final tie; with this caller shape that requires returning `True` on a tie. Encode it that way.
 
@@ -35,42 +36,58 @@
 Add to `tests/test_bob_upload.py`:
 
 ```python
-def test_rec_more_current_later_effective_date_wins():
+def test_rec_more_current_untermed_beats_real_term():
+    """Robbie Belk core: an un-termed (None term) row beats a real-past-termed row,
+    even when the un-termed row has the EARLIER effective date is not the case here,
+    but term date is checked first regardless of effective date."""
     from app.upload import _rec_is_more_current
     from datetime import date
-    new = {"effective_date": date(2026, 1, 1), "term_date": None}
+    new = {"effective_date": date(2026, 1, 1), "term_date": None}            # current
     kept = {"effective_date": date(2023, 1, 1), "term_date": date(2025, 12, 31)}
     assert _rec_is_more_current(new, kept) is True
-    # and the reverse: an older effective date does NOT replace a newer one
+    # reverse: a real-past-termed row does NOT replace an un-termed one
     assert _rec_is_more_current(kept, new) is False
 
 
-def test_rec_more_current_tie_on_effective_none_term_beats_real_term():
+def test_rec_more_current_untermed_beats_real_term_even_when_older_effective():
+    """Rapid-disenroll: a NEWER enrollment that already termed must NOT beat an OLDER
+    still-open policy the member fell back to. Term date wins over effective date."""
     from app.upload import _rec_is_more_current
     from datetime import date
-    same_eff = date(2026, 1, 1)
-    new = {"effective_date": same_eff, "term_date": None}          # not terminated
-    kept = {"effective_date": same_eff, "term_date": date(2026, 6, 30)}
+    open_older = {"effective_date": date(2025, 1, 1), "term_date": None}
+    termed_newer = {"effective_date": date(2026, 1, 1), "term_date": date(2026, 2, 28)}
+    # the older-but-open policy is the survivor
+    assert _rec_is_more_current(open_older, termed_newer) is True
+    assert _rec_is_more_current(termed_newer, open_older) is False
+
+
+def test_rec_more_current_both_real_term_later_term_wins():
+    """Both rows carry a real term -> the later term date wins; if those tie, the
+    later effective date breaks it."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    new = {"effective_date": date(2024, 1, 1), "term_date": date(2026, 12, 31)}
+    kept = {"effective_date": date(2024, 1, 1), "term_date": date(2025, 12, 31)}
     assert _rec_is_more_current(new, kept) is True
-    # reverse: a real term does NOT beat a None term on an effective tie
+
+
+def test_rec_more_current_term_tie_later_effective_wins():
+    """Term dates tie (both un-termed) -> later effective date wins."""
+    from app.upload import _rec_is_more_current
+    from datetime import date
+    new = {"effective_date": date(2026, 1, 1), "term_date": None}
+    kept = {"effective_date": date(2023, 1, 1), "term_date": None}
+    assert _rec_is_more_current(new, kept) is True
     assert _rec_is_more_current(kept, new) is False
 
 
 def test_rec_more_current_full_tie_last_wins():
+    """Full tie (same term, same effective) -> later-iterated row wins (UHC parity)."""
     from app.upload import _rec_is_more_current
     from datetime import date
     eff = date(2026, 1, 1)
     new = {"effective_date": eff, "term_date": None}
     kept = {"effective_date": eff, "term_date": None}
-    # full tie -> later-iterated row wins (UHC plan-segment parity)
-    assert _rec_is_more_current(new, kept) is True
-
-
-def test_rec_more_current_both_effective_none_later_term_wins():
-    from app.upload import _rec_is_more_current
-    from datetime import date
-    new = {"effective_date": None, "term_date": None}
-    kept = {"effective_date": None, "term_date": date(2025, 1, 1)}
     assert _rec_is_more_current(new, kept) is True
 ```
 
@@ -89,31 +106,38 @@ from datetime import date as _date
 
 def _rec_is_more_current(new, kept):
     """True iff BOB rec `new` should replace `kept` as the surviving CURRENT policy
-    for a shared (carrier, member_id). Dates, not row order, decide:
-      1. later effective_date wins;
-      2. on an effective-date tie (equal or both None), later term_date wins,
-         treating a None/sentinel-stripped term_date as the LATEST (not terminated);
-      3. on a full tie, `new` wins -> with the file-order caller this makes
-         LAST-in-file win, preserving UHC plan-segment last-wins behavior.
-    A None effective_date sorts as the EARLIEST so a dated row beats an undated one."""
+    for a shared (carrier, member_id). TERM DATE FIRST, then effective date — dates,
+    not row order, decide (Tim 2026-06-24):
+      1. un-termed wins: a None/sentinel-stripped term_date is the LIVE policy and beats
+         a row carrying a real past term (handles rapid-disenroll: a newer-but-already-
+         termed row must NOT beat an older still-open one). A term date is an affirmative
+         carrier action — no real term = current.
+      2. if both un-termed (None) or both real-termed, the later term_date wins;
+      3. on a term-date tie, the later effective_date wins (None effective sorts EARLIEST
+         so a dated row beats an undated one);
+      4. on a full tie, `new` wins -> with the file-order caller this makes LAST-in-file
+         win, preserving UHC plan-segment last-wins behavior.
+    The parser already strips the 3000-01-01 / 2300-01-01 sentinel to None, so a None
+    term_date here means BOTH 'blank' and 'sentinel far-future' — i.e. 'current'."""
     _MIN = _date.min
     _MAX = _date.max
-    ne = new.get("effective_date") or _MIN
-    ke = kept.get("effective_date") or _MIN
-    if ne != ke:
-        return ne > ke
-    # effective-date tie -> compare term_date; None term == "current" == latest
+    # term date first: None/sentinel == "no termination" == latest == current
     nt = new.get("term_date") or _MAX
     kt = kept.get("term_date") or _MAX
     if nt != kt:
         return nt > kt
+    # term-date tie -> later effective_date wins; None effective sorts earliest
+    ne = new.get("effective_date") or _MIN
+    ke = kept.get("effective_date") or _MIN
+    if ne != ke:
+        return ne > ke
     return True   # full tie -> last-in-file wins (UHC parity)
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `python3 -m pytest tests/test_bob_upload.py -k rec_more_current -v`
-Expected: PASS (4 tests)
+Expected: PASS (5 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -221,9 +245,10 @@ def _dedupe_bob_records(records):
     times can't collide on the uq_carrier_member unique constraint mid-upload.
 
     Only ACTIVE (policy-creating) rows are deduped. Among active rows sharing a key,
-    the CHRONOLOGICALLY most-current one wins (latest effective_date; tie -> later/None
-    term_date; full tie -> last-in-file), via _rec_is_more_current — NOT blind row
-    order. The surviving rec keeps its original slot so import order is stable.
+    the CHRONOLOGICALLY most-current one wins (TERM DATE first: un-termed beats a real
+    past term; then later term_date; then later effective_date; full tie -> last-in-file),
+    via _rec_is_more_current — NOT blind row order. The surviving rec keeps its original
+    slot so import order is stable.
 
     Termed rows and member_id-less rows are passed through UNTOUCHED: a termed row for
     the same key as an active row coexists with it (the termed-rec router only seeds

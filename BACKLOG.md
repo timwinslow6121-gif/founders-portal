@@ -105,7 +105,7 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 - ⬜ 🟢 **S4 — optional pentest pass** (dep CVEs + `/security-review`) on the S0/S1/S2 stack.
 
 ## 🔭 Future / when-relevant
-- ⏸ HealthSherpa + Google Meet Pub/Sub provisioning (external blockers, Phase 3.06).
+- ⏸ HealthSherpa + Google Meet Pub/Sub provisioning (external blockers, Phase 3.06). **↳ When HealthSherpa is provisioned, brainstorm `docs/superpowers/Ideas/multi-source-enrollment-truth.md`** — HealthSherpa API/webhooks = a high-fidelity REAL-TIME enrollment-event source (carries the app/signed date = the AEP same-eff tie-break datum) that COMPLEMENTS but NEVER replaces BOB. BOB stays the universal backstop because HealthSherpa structurally misses (1) agents who don't use it + (2) **carrier-suppressed plans** that are portal-only (no third-party tools). Events feed the AOR timeline in real time + reconcile against (not duplicate) BOB.
 - ⬜ Termination outcome tracker; dedicated AEP page; Medicare.gov annual plan refresh. — see `docs/superpowers/Ideas/BACKLOG-triaged-2026-06-03.md` for the fuller idea list.
 
 ---

@@ -102,23 +102,33 @@ def _rec_is_more_current(new, kept):
 
 
 def _dedupe_bob_records(records):
-    """Collapse BOB rows that share a (carrier, member_id) so a member listed on
-    multiple rows (UHC lists multi-plan/segment members repeatedly) doesn't collide
-    on the uq_carrier_member unique constraint mid-upload. LAST occurrence wins (the
-    later row carries the more current plan/status), but the row keeps its ORIGINAL
-    position so import order is stable. Rows missing a member_id are passed through
-    untouched (each is unique; never collapse them onto an empty key)."""
-    seen = {}          # (carrier, member_id) -> index in `out`
+    """Collapse repeated (carrier, member_id) BOB rows so a member listed multiple
+    times can't collide on the uq_carrier_member unique constraint mid-upload.
+
+    Only ACTIVE (policy-creating) rows are deduped. Among active rows sharing a key,
+    the CHRONOLOGICALLY most-current one wins (TERM DATE first: un-termed beats a real
+    past term; then later term_date; then later effective_date; full tie -> last-in-file),
+    via _rec_is_more_current — NOT blind row order. The surviving rec keeps its original
+    slot so import order is stable.
+
+    Termed rows and member_id-less rows are passed through UNTOUCHED: a termed row for
+    the same key as an active row coexists with it (the termed-rec router only seeds
+    plan-history + terms an existing policy, never upserts, so it can't trip the unique
+    constraint). This is the fix for the active-enrollment-overwritten-by-old-termed-row
+    bug (Robbie Belk): the latest active enrollment becomes the policy and every earlier
+    enrollment's termed row becomes a closed plan-history chapter."""
+    seen = {}          # (carrier, member_id) -> index in `out` of the kept ACTIVE rec
     out = []
     for rec in records:
         mid = rec.get("member_id")
-        carrier = rec.get("carrier")
-        if not mid:
-            out.append(rec)
+        if not mid or rec.get("status") != "active":
+            out.append(rec)               # termed / id-less rows pass through
             continue
-        key = (carrier, mid)
+        key = (rec.get("carrier"), mid)
         if key in seen:
-            out[seen[key]] = rec          # last wins, keep original slot
+            kept_idx = seen[key]
+            if _rec_is_more_current(rec, out[kept_idx]):
+                out[kept_idx] = rec        # chronologically newer active rec wins its slot
         else:
             seen[key] = len(out)
             out.append(rec)

@@ -186,3 +186,68 @@ def test_rec_more_current_full_tie_last_wins():
     new = {"effective_date": eff, "term_date": None}
     kept = {"effective_date": eff, "term_date": None}
     assert _rec_is_more_current(new, kept) is True
+
+
+def test_dedupe_active_and_termed_coexist():
+    """Robbie Belk: an ACTIVE current enrollment and a TERMED old enrollment share
+    the same (carrier, member_id). They must NOT collapse — both survive so the
+    termed row can seed plan-history and the active row owns the policy."""
+    from app.upload import _dedupe_bob_records
+    from datetime import date
+    records = [
+        {"carrier": "Aetna", "member_id": "6274", "status": "termed",
+         "plan_name": "Value Plus", "effective_date": date(2023, 1, 1),
+         "term_date": date(2025, 12, 31)},
+        {"carrier": "Aetna", "member_id": "6274", "status": "active",
+         "plan_name": "Chronic Care C-SNP", "effective_date": date(2026, 1, 1),
+         "term_date": None},
+    ]
+    out = _dedupe_bob_records(records)
+    assert len(out) == 2
+    statuses = sorted(r["status"] for r in out)
+    assert statuses == ["active", "termed"]
+
+
+def test_dedupe_two_active_latest_effective_wins_order_independent():
+    """Two ACTIVE rows, same key, different effective dates -> the later-effective
+    one is the surviving policy regardless of input order."""
+    from app.upload import _dedupe_bob_records
+    from datetime import date
+    older = {"carrier": "Aetna", "member_id": "M1", "status": "active",
+             "plan_name": "Old", "effective_date": date(2023, 1, 1), "term_date": None}
+    newer = {"carrier": "Aetna", "member_id": "M1", "status": "active",
+             "plan_name": "New", "effective_date": date(2026, 1, 1), "term_date": None}
+    for records in ([older, newer], [newer, older]):
+        out = _dedupe_bob_records(records)
+        survivors = [r for r in out if r["member_id"] == "M1"]
+        assert len(survivors) == 1
+        assert survivors[0]["plan_name"] == "New"
+
+
+def test_dedupe_uhc_plan_segments_last_wins_unchanged():
+    """UHC plan-segments: multiple ACTIVE rows sharing key AND effective_date ->
+    last-in-file wins, exactly as before this change."""
+    from app.upload import _dedupe_bob_records
+    from datetime import date
+    eff = date(2026, 1, 1)
+    records = [
+        {"carrier": "UHC", "member_id": "U1", "status": "active",
+         "plan_name": "Seg A", "effective_date": eff, "term_date": None},
+        {"carrier": "UHC", "member_id": "U1", "status": "active",
+         "plan_name": "Seg B", "effective_date": eff, "term_date": None},
+    ]
+    out = _dedupe_bob_records(records)
+    survivors = [r for r in out if r["member_id"] == "U1"]
+    assert len(survivors) == 1
+    assert survivors[0]["plan_name"] == "Seg B"   # last wins
+
+
+def test_dedupe_passes_through_rows_without_member_id_still():
+    from app.upload import _dedupe_bob_records
+    records = [
+        {"carrier": "UHC", "member_id": None, "full_name": "A", "status": "active"},
+        {"carrier": "UHC", "member_id": "", "full_name": "B", "status": "active"},
+        {"carrier": "UHC", "member_id": "M9", "full_name": "C", "status": "active"},
+    ]
+    out = _dedupe_bob_records(records)
+    assert len(out) == 3

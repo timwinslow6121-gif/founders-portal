@@ -190,3 +190,51 @@ def _carrier_counts_agree():
         return 1, [{"id": "carrier_sum", "label": f"sum {per_carrier_sum} != total {total}",
                     "url": None}]
     return 0, []
+
+
+# Route-domain invariants
+from flask import current_app
+
+_URLFOR_RE = re.compile(r"url_for\(\s*['\"]([a-zA-Z0-9_.]+)['\"]")
+_ROUTE_PREFIX_EXEMPT = ("auth.", "comms.", "static")   # webhooks/oauth/static unlinked-ok
+_ORPHAN_ALLOWLIST = {"main.healthz"}                    # intentionally unlinked endpoints
+
+
+def _template_endpoints(template_dir=None):
+    """Set of endpoint names referenced via url_for(...) in template files."""
+    base = pathlib.Path(template_dir) if template_dir else (_ROOT / "app" / "templates")
+    eps = set()
+    for p in base.rglob("*.html"):
+        for m in _URLFOR_RE.finditer(p.read_text()):
+            eps.add(m.group(1))
+    return eps
+
+
+@invariant("links_resolve", severity="med", domain="route",
+           description="Template url_for() targets that don't resolve to a real route.")
+def _links_resolve():
+    valid = {r.endpoint for r in current_app.url_map.iter_rules()}
+    referenced = _template_endpoints()
+    broken = sorted(e for e in referenced if e not in valid)
+    return len(broken), [{"id": e, "label": e, "url": None} for e in broken[:10]]
+
+
+@invariant("no_orphan_routes", severity="low", domain="route",
+           description="GET view routes not reachable from any template link.")
+def _no_orphan_routes():
+    referenced = _template_endpoints()
+    orphans = []
+    for r in current_app.url_map.iter_rules():
+        ep = r.endpoint
+        if ep in _ORPHAN_ALLOWLIST:
+            continue
+        if any(ep.startswith(pfx) for pfx in _ROUTE_PREFIX_EXEMPT):
+            continue
+        if "GET" not in (r.methods or set()):
+            continue
+        if "<" in r.rule:          # parameterized detail routes are linked dynamically
+            continue
+        if ep not in referenced:
+            orphans.append(ep)
+    orphans.sort()
+    return len(orphans), [{"id": e, "label": e, "url": None} for e in orphans[:10]]

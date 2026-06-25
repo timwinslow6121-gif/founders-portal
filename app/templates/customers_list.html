@@ -747,7 +747,6 @@ function renderResults(data) {
         <div class="cust-cards">${cards}</div>
       </div>`;
   } else {
-    const agentCol = isAdmin ? `<td>${c.agent || '—'}</td>` : '<td style="display:none"></td>';
     const rows = data.map(c => `
       <tr style="cursor:pointer" onclick="window.location='${c.url}'">
         <td class="fw-medium">${c.name}</td>
@@ -792,8 +791,21 @@ searchInput.addEventListener('input', () => {
   debounce = setTimeout(() => {
     fullList.style.display = 'none';
     fetch(`/customers/search?q=${encodeURIComponent(q)}`)
-      .then(r => r.json())
-      .then(renderResults);
+      .then(r => {
+        if (!r.ok) throw new Error('Search request failed (' + r.status + ')');
+        return r.json();
+      })
+      .then(renderResults)
+      .catch(err => {
+        // Never leave the page blank on a search error — restore the full list
+        // and show a clear message instead of an empty table (this masked a render
+        // bug as "no results" before).
+        console.error('Customer search failed:', err);
+        searchResults.innerHTML =
+          '<div class="card"><div class="card-body"><p class="empty-cell" style="padding:24px">' +
+          'Search failed — showing the full list. Try again or reload the page.</p></div></div>';
+        fullList.style.display = '';
+      });
   }, 250);
 });
 </script>

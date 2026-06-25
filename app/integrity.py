@@ -45,16 +45,10 @@ def run_all():
 
 
 import re
-from sqlalchemy import func
 from app.extensions import db
 from app.models import Policy, Customer, CommissionLineItem, CustomerAorHistory
 
 _STUB_LIKE = "%::0::%"
-_CUSTOMER_STAGES = ("Active", "Termed")   # held to customer-grade invariants
-
-
-def _sample(rows, n=10):
-    return rows[:n]
 
 
 @invariant("plan_id_orphans", severity="high", domain="data",
@@ -116,7 +110,7 @@ def _duplicate_customers():
     # Group non-stub-distinct customers by (normalized name, dob). A person with two
     # concurrent policies/AORs is still ONE customer row, so grouping by name+dob (not
     # by policy/agent) cannot mistake a multi-AOR customer for a duplicate.
-    rows = Customer.query.with_entities(
+    rows = Customer.query.filter(Customer.stub.is_(False)).with_entities(
         Customer.id, Customer.full_name, Customer.dob).all()
     from collections import defaultdict
     clusters = defaultdict(list)

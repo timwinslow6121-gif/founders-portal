@@ -87,6 +87,21 @@ def test_duplicate_customers_groups_by_name_dob_not_multi_aor(app, db_session):
         assert v.count == 2          # the 2 excess Connelly rows; Multi Aor not counted
 
 
+def test_duplicate_customers_excludes_stubs(app, db_session):
+    from app.integrity import REGISTRY
+    with app.app_context():
+        a = Agency(name="T"); db.session.add(a); db.session.flush()
+        # Two stub customers with the SAME full_name and dob=None (pre-enrichment state)
+        # These should NOT be clustered as a duplicate pair since stubs are excluded
+        db.session.add(Customer(agency_id=a.id, full_name="Mystery Person", first_name="Mystery",
+                                last_name="Person", dob=None, stub=True, source="commission_import"))
+        db.session.add(Customer(agency_id=a.id, full_name="Mystery Person", first_name="Mystery",
+                                last_name="Person", dob=None, stub=True, source="commission_import"))
+        db.session.commit()
+        v = REGISTRY["duplicate_customers"]()
+        assert v.count == 0  # stubs are excluded; no duplicates detected
+
+
 def test_orphan_stub_customers_exempts_manual_lead(app, db_session):
     from app.integrity import REGISTRY
     with app.app_context():

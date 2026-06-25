@@ -124,17 +124,36 @@ def _is_current_aor(customer):
     return customer.primary_agent_id == current_user.id
 
 
+def _name_search_filter(q_str):
+    """Build a token-aware search filter for a free-text customer query.
+
+    Splits the query on whitespace; EACH token must match the name (first/last/full)
+    OR the phone OR the MBI. Tokens are AND-ed so 'robbie belk' narrows, but because
+    each token matches full_name/first/last independently it tolerates a middle
+    initial ('Robbie A. Belk') and any word order ('belk robbie'). A single-substring
+    ILIKE on full_name alone could not match 'robbie belk' across the 'A.' — that was
+    the bug. Returns a SQLAlchemy filter clause, or None for an empty query."""
+    tokens = q_str.split()
+    if not tokens:
+        return None
+    per_token = []
+    for tok in tokens:
+        like = f"%{tok}%"
+        per_token.append(db.or_(
+            Customer.full_name.ilike(like),
+            Customer.first_name.ilike(like),
+            Customer.last_name.ilike(like),
+            Customer.phone_primary.ilike(like),
+            Customer.mbi.ilike(like),
+        ))
+    return db.and_(*per_token)
+
+
 def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid):
     """Apply the standard customer list filters to a query. Used by both list and export routes."""
-    if q_str:
-        like = f"%{q_str}%"
-        query = query.filter(
-            db.or_(
-                Customer.full_name.ilike(like),
-                Customer.phone_primary.ilike(like),
-                Customer.mbi.ilike(like),
-            )
-        )
+    name_filter = _name_search_filter(q_str)
+    if name_filter is not None:
+        query = query.filter(name_filter)
     if f_carrier or f_plan_type:
         # Base policy filter (carrier / plan_type), scoped to agency.
         base = Policy.query.filter(Policy.agency_id == current_user.agency_id)
@@ -396,14 +415,11 @@ def customers_search():
     if len(q) < 2:
         return jsonify([])
 
-    like = f"%{q}%"
-    query = _customer_query().filter(
-        db.or_(
-            Customer.full_name.ilike(like),
-            Customer.phone_primary.ilike(like),
-            Customer.mbi.ilike(like),
-        )
-    ).limit(20)
+    name_filter = _name_search_filter(q)
+    query = _customer_query()
+    if name_filter is not None:
+        query = query.filter(name_filter)
+    query = query.limit(20)
 
     results = [
         {

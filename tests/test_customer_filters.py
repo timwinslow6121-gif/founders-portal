@@ -78,3 +78,82 @@ def test_carrier_filter_excludes_other_carrier(client, app, agency, db_session):
     resp = client.get("/customers?carrier=Humana", follow_redirects=True)
     assert resp.status_code == 200
     assert b"Personne" not in resp.data
+
+
+def test_name_search_matches_first_last_despite_middle_initial(client, app, agency, db_session):
+    """Searching 'robbie belk' must find a customer stored as 'Robbie A. Belk'.
+    Regression: the search did a single substring ILIKE on full_name, so a middle
+    initial between first and last broke the contiguous 'robbie belk' match
+    (Aetna parser stores names as 'First MI. Last')."""
+    from app.extensions import db
+    from app.models import User, Customer
+    with app.app_context():
+        admin = User(email="adminsrch@t.com", name="AdminSrch", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        c = Customer(agency_id=agency.id, first_name="Robbie", last_name="Belk",
+                     full_name="Robbie A. Belk", mbi="MBISRCH001")
+        db.session.add(c); db.session.commit()
+        adminid = admin.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(adminid)
+    resp = client.get("/customers?q=robbie+belk", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"Belk" in resp.data
+
+
+def test_name_search_matches_last_first_order(client, app, agency, db_session):
+    """Searching 'belk robbie' (last first) must also find 'Robbie A. Belk' —
+    each token matches the name in any order."""
+    from app.extensions import db
+    from app.models import User, Customer
+    with app.app_context():
+        admin = User(email="adminsrch2@t.com", name="AdminSrch2", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        c = Customer(agency_id=agency.id, first_name="Robbie", last_name="Belk",
+                     full_name="Robbie A. Belk", mbi="MBISRCH002")
+        db.session.add(c); db.session.commit()
+        adminid = admin.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(adminid)
+    resp = client.get("/customers?q=belk+robbie", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"Belk" in resp.data
+
+
+def test_name_search_excludes_partial_token_mismatch(client, app, agency, db_session):
+    """Multi-token search is an AND: 'robbie smith' must NOT match 'Robbie A. Belk'
+    (only one token matches) — so the fix doesn't over-broaden to OR-any-token."""
+    from app.extensions import db
+    from app.models import User, Customer
+    with app.app_context():
+        admin = User(email="adminsrch3@t.com", name="AdminSrch3", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        c = Customer(agency_id=agency.id, first_name="Robbie", last_name="Belk",
+                     full_name="Robbie A. Belk", mbi="MBISRCH003")
+        db.session.add(c); db.session.commit()
+        adminid = admin.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(adminid)
+    resp = client.get("/customers?q=robbie+smith", follow_redirects=True)
+    assert resp.status_code == 200
+    assert b"Belk" not in resp.data   # not matched (Smith != Belk)
+
+
+def test_ajax_search_matches_first_last_despite_middle_initial(client, app, agency, db_session):
+    """The live-type AJAX endpoint (/customers/search) — what the search box actually
+    calls — must also find 'Robbie A. Belk' by 'robbie belk'."""
+    from app.extensions import db
+    from app.models import User, Customer
+    with app.app_context():
+        admin = User(email="adminajax@t.com", name="AdminAjax", is_admin=True, agency_id=agency.id)
+        db.session.add(admin)
+        c = Customer(agency_id=agency.id, first_name="Robbie", last_name="Belk",
+                     full_name="Robbie A. Belk", mbi="MBIAJAX001")
+        db.session.add(c); db.session.commit()
+        adminid = admin.id
+    with client.session_transaction() as s:
+        s["_user_id"] = str(adminid)
+    resp = client.get("/customers/search?q=robbie+belk")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert any("Belk" in r["name"] for r in data)

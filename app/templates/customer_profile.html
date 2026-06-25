@@ -320,8 +320,18 @@
             <span class="badge badge-blue">{{ aor.carrier }}</span>
             <span style="color:var(--ivory);flex:1;">{{ aor.plan_name or '' }}</span>
             <span class="text-muted">{{ aor.agent.display_name if aor.agent else '—' }}</span>
-            <span class="text-muted">{{ aor.effective_date.strftime('%m/%d/%Y') if aor.effective_date else '' }}</span>
-            {% if not aor.end_date %}<span class="badge badge-green" style="font-size:10px;">Active</span>{% endif %}
+            {# Date range: show eff → term. A MISSING term date means "still active" in
+               Medicare, so we must render the term date when present (a closed chapter
+               with no visible end date reads as a phantom 2nd active policy). #}
+            <span class="text-muted">
+              {{ aor.effective_date.strftime('%m/%d/%Y') if aor.effective_date else '—' }}
+              {% if aor.end_date %}&nbsp;–&nbsp;{{ aor.end_date.strftime('%m/%d/%Y') }}{% endif %}
+            </span>
+            {% if not aor.end_date %}
+              <span class="badge badge-green" style="font-size:10px;">Active</span>
+            {% else %}
+              <span class="badge badge-gray" style="font-size:10px;">Ended</span>
+            {% endif %}
           </div>
           {% endfor %}
         {% else %}

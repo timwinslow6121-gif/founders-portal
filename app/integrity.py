@@ -140,3 +140,53 @@ def _orphan_stub_customers():
     rows = [{"id": c.id, "label": f"{c.full_name} (source={c.source})", "url": None}
             for c in q.limit(10).all()]
     return q.count(), rows
+
+
+# Consistency domain invariants (absorb metrics guard + add customers.py scanning)
+import pathlib
+from app.metrics import Scope, book_breakdown
+
+_SCANNED = ["app/routes.py", "app/carriers.py", "app/commission/routes.py",
+            "app/customers.py"]
+_ALLOWLIST = {
+    ("app/carriers.py", "Policy.plan_id"),     # per-plan tally, not agency book
+    # customers.py legitimate non-book counts (deal-stage stat strip, hub categories):
+    ("app/customers.py", "deal_stage"),
+    ("app/customers.py", "primary_agent_id=None"),
+    ("app/customers.py", "CommissionLineItem.classification"),
+}
+_COUNT_RE = re.compile(r"func\.count\(\s*Policy|\.filter_by\([^)]*\)\.count\(\)"
+                       r"|Policy\.query[\s\S]{0,80}\.count\(\)")
+_RATE_RE = re.compile(r"MAPD_MONTHLY_RATE|SPLIT_RATE\s*=")
+_ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+
+@invariant("count_only_via_metrics", severity="high", domain="consistency",
+           description="Book/money counts computed outside app/metrics.py "
+                       "in scanned route files.")
+def _count_only_via_metrics():
+    offenders = []
+    for rel in _SCANNED:
+        text = (_ROOT / rel).read_text()
+        for ln, line in enumerate(text.splitlines(), 1):
+            if _COUNT_RE.search(line) or _RATE_RE.search(line):
+                if any(rel == a and sub in line for a, sub in _ALLOWLIST):
+                    continue
+                offenders.append({"id": f"{rel}:{ln}", "label": line.strip()[:80],
+                                  "url": None})
+    return len(offenders), offenders[:10]
+
+
+@invariant("carrier_counts_agree", severity="high", domain="consistency",
+           description="Per-carrier policy counts sum to the agency total (metrics "
+                       "layer self-coherence).")
+def _carrier_counts_agree():
+    # agency_id=1 is the live single tenant; guard the metrics layer's own coherence.
+    book = book_breakdown(Scope(agency_id=1))
+    per_carrier_sum = sum(r["count"] for r in book["by_carrier"])
+    from app.metrics import policy_count
+    total = policy_count(Scope(agency_id=1))
+    if per_carrier_sum != total:
+        return 1, [{"id": "carrier_sum", "label": f"sum {per_carrier_sum} != total {total}",
+                    "url": None}]
+    return 0, []

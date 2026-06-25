@@ -1,6 +1,9 @@
 # Chronological BOB Dedup (latest effective date wins) — Design
 
-_Date: 2026-06-24 · Status: approved, ready for implementation plan_
+_Date: 2026-06-24 · Status: ✅ SHIPPED + DEPLOYED + VERIFIED 2026-06-25 (commit f320232). The bug
+had THREE layers (dedup + policy-term + AOR-close); all fixed. Robbie Belk + the 13 repaired on live
+Postgres (Aetna 74→87 active, 15→2 termed); 1 backwards AOR interval cleaned. UHC unaffected.
+Precedence shipped as TERM-DATE-FIRST (un-termed wins), not effective-date-first._
 
 ## 0. Why this exists (the bug)
 

@@ -302,6 +302,14 @@ def test_active_plus_termed_import_keeps_active_policy_and_seeds_history(
         assert len(closed) == 1
         assert closed[0].plan_name == "Value Plus"
         assert closed[0].end_date == date(2025, 12, 31)
+        # The LIVE 2026 AOR interval must stay OPEN — the old termed row must NOT close
+        # it (opus-caught AOR clobber layer). No interval may be backwards (eff > end).
+        open_ivs = [h for h in hist if h.end_date is None]
+        assert len(open_ivs) == 1
+        assert open_ivs[0].effective_date == date(2026, 1, 1)
+        for h in hist:
+            if h.end_date is not None:
+                assert h.effective_date <= h.end_date   # no backwards interval
 
 
 def test_active_plus_termed_import_termed_row_first_still_active(

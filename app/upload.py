@@ -112,8 +112,10 @@ def _route_termed_rec(rec, agency_id):
     across a member's successive enrollments, so an OLD termed row (e.g. Robbie Belk's
     2023 Value Plus) shares the member_id of his CURRENT active C-SNP policy. Only term
     the live policy when the termed row's effective_date is not OLDER than the policy's.
-    An older termed row seeds plan-history + closes the open AOR but must NOT term the
-    current active policy. (Long-term fix = a per-enrollment surrogate ID; see BACKLOG.)"""
+    An older termed row seeds plan-history ONLY — it must NOT term the current active
+    policy NOR close the member's live AOR interval (both would clobber the current
+    enrollment; the AOR close is its own parallel layer of the same bug, opus-caught).
+    (Long-term fix = a per-enrollment surrogate ID; see BACKLOG.)"""
     cust = None
     if rec.get("mbi"):
         cust = Customer.query.filter_by(mbi=rec["mbi"], agency_id=agency_id).first()
@@ -121,13 +123,20 @@ def _route_termed_rec(rec, agency_id):
         return "skipped"
     pol = Policy.query.filter_by(carrier=rec["carrier"], member_id=rec["member_id"],
                                  agency_id=agency_id).first()
+    # Is this termed row the member's CURRENT enrollment (vs an older history chapter)?
+    # It is unless there is a NEWER active policy whose effective_date post-dates it.
+    is_current_enrollment = True
     if pol and pol.status == "active":
         p_eff = pol.effective_date
         r_eff = rec.get("effective_date")
-        if p_eff is None or r_eff is None or r_eff >= p_eff:
-            pol.term_date = rec.get("term_date")
-            pol.status = "termed"
-    _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))   # close-aor
+        is_current_enrollment = (p_eff is None or r_eff is None or r_eff >= p_eff)
+    if pol and pol.status == "active" and is_current_enrollment:
+        pol.term_date = rec.get("term_date")
+        pol.status = "termed"
+    if is_current_enrollment:
+        # Only close the live AOR for the CURRENT enrollment ending; an older termed
+        # history row must leave the live (newer) AOR interval open.
+        _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))
     _seed_closed_history(cust, rec, agency_id)                            # seed-history
     return "updated"
 

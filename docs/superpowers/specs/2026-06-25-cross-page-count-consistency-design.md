@@ -1,6 +1,11 @@
 # Cross-Page Count Consistency (single source of truth, labeled) — Design
 
-_Date: 2026-06-25 · Status: approved, ready for implementation plan_
+_Date: 2026-06-25 · Status: ABSORBED as **item 5** of `2026-06-25-data-integrity-
+remediation-roadmap.md`. Tim's stress-test (John Connelly ×5, plan 250-vs-1701) showed
+this narrow display-consistency fix was too shallow — the underlying numbers are wrong
+(dup-stub inflation + 90% orphaned plan_id), so making two pages agree would agree on
+WRONG numbers. This spec is correct but deferred to LAST in the roadmap, after items 1-3
+fix the underlying data. Build the roadmap's item 1 first._
 
 ## 0. Why this exists (the bug)
 

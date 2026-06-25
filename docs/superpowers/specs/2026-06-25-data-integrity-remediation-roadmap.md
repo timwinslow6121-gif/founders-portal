@@ -45,7 +45,17 @@ Tim wrote these policies; he is certain it's one customer. The fix must (a) stop
 import from creating these stubs when the person already exists, and (b) merge the 5
 into 1, reconciling MBI/DOB/name/policies/AOR onto the keeper.
 
-## The roadmap (build in this order — prevention before/with cure, linkage, then display)
+## The roadmap (build in this order — radar first, then prevention, cure, linkage, display)
+
+### 0. Data-Integrity Radar & Guard Suite (BUILD FIRST)
+**Goal:** the radar + ratchet that ends whack-a-mole. One `@invariant` registry
+(`app/integrity.py`) feeding a CLI, an `/admin/integrity` dashboard, and a CI guard with
+a baseline ratchet (fails only if a count goes ABOVE its frozen baseline → existing debt
+doesn't block, nothing gets worse). Covers data + cross-page-consistency + route/page
+invariants. Written **lifecycle-aware** (manual leads with no MBI are VALID, not
+violations) and **multi-AOR-aware** (a person with 2 concurrent AORs is ONE customer,
+not a dup). Full design: `2026-06-25-data-integrity-radar-design.md`. **Why first:** it's
+how we PROVE items 1-5 worked and the net that stops new corruption while we fix.
 
 ### 1. Stub-creation PREVENTION (fix the source)
 **Goal:** commission import must MATCH an existing customer instead of spawning a new
@@ -103,11 +113,35 @@ over duplicate customers. Hub actions (4) reuse 1-2's matchers. Count consistenc
 last so it displays already-correct numbers. Each item is independently shippable and
 DB-backed-up + Postgres-verified per the project protocol.
 
+### 6. Lead lifecycle (stage-driven) + auto-advance
+**Goal:** make the existing `deal_stage` (`Lead/Enrolled/.../Active/Termed`) +
+`source='manual'` actually govern who is a Lead vs a Customer. Agents add a
+new-to-Medicare person (demographics, no MBI yet) as a Lead; they don't count in
+book/customer metrics until `deal_stage='Active'`, which **auto-advances when
+effective_date passes** (nightly job) OR a BOB/commission row confirms them. A Leads
+filter/view so leads are visible but not polluting customer counts. (Radar item 0
+already EXEMPTS non-Active stages; this item makes the transition real.) Grounding:
+a new-to-Medicare lead entered mid-month stays a Lead until their 1st-of-month eff date.
+
+### 7. AOR is per-policy (multi-AOR model-truth fix)
+**Goal:** retire the single `Customer.primary_agent_id` as "the agent." A person can have
+2 concurrent policies with 2 different AORs (Rebekah=MAPD, Tim=hospital-indemnity, same
+person). AOR truth already lives in `CustomerAorHistory` (per carrier, own agent_id).
+Migrate attribution / access-control / counts to derive the agent(s) from the POLICY's
+AOR; a customer's agents = the SET across their active policies. **Likely a root cause of
+some dup stubs** (a 2nd agent's commission row can't fit the single field → a 2nd
+customer gets spawned), so this reinforces items 1-2. Bigger blast radius (touches
+metrics, access, attribution) → its own spec when reached. Grounding: the Rebekah+Tim
+shared customer shows both, each scoped to their policy, as ONE customer row.
+
 ## Out of scope (separate, later)
 Round 2 (date-aware BOB↔commission reconciliation) — depends on this being done.
 The 103 no-name policies overlap item 1/2 (name recovery) and will be folded into
 whichever lands first. UI/Material-3, breadcrumbs, infra (backup/cert) unchanged.
 
 ## Next step
-Brainstorm **item 1 (stub-creation prevention)** into a full design spec, then plan →
-build → deploy. Then item 2, etc.
+Build **item 0 (the radar)** first — brainstorm done, design at
+`2026-06-25-data-integrity-radar-design.md`, ready for writing-plans. Then item 1
+(stub-creation prevention), item 2 (merge), etc. Items 6-7 (lifecycle, multi-AOR) are
+sequenced after the core cleanup but the radar is already written aware of both so it
+never false-positives on leads or multi-AOR persons.

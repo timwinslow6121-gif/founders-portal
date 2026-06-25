@@ -37,3 +37,39 @@ def test_termed_departed_member_creates_nothing(db_session, app):
         # No customer with this MBI exists → the routing 'continue'/skip leaves nothing.
         assert Customer.query.filter_by(mbi="ZZZ").first() is None
         assert Policy.query.filter_by(member_id="ZZZ").first() is None
+
+
+def test_route_termed_rec_old_row_does_not_term_newer_active(db_session, app):
+    """SHARED termed path (both /upload and /upload/bulk): an OLD termed row must NOT
+    term a member's NEWER active policy that shares the same member_id (Robbie Belk).
+    It seeds a closed history chapter and leaves the live policy active."""
+    from app.upload import _route_termed_rec
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        u = User(name="Ag", email="a@x.com", agency_id=ag.id)
+        db.session.add(u); db.session.flush()
+        c = Customer(agency_id=ag.id, full_name="Robbie Belk", first_name="Robbie",
+                     last_name="Belk", mbi="MBIRB", primary_agent_id=u.id)
+        db.session.add(c)
+        # Current active policy: C-SNP eff 2026 (member_id reused from the old plan).
+        p = Policy(agency_id=ag.id, carrier="Aetna", member_id="RB1", mbi="MBIRB",
+                   status="active", plan_name="Chronic Care C-SNP",
+                   effective_date=date(2026, 1, 1),
+                   first_name="Robbie", last_name="Belk", full_name="Robbie Belk")
+        db.session.add(p); db.session.commit()
+
+        old_termed = {"carrier": "Aetna", "member_id": "RB1", "mbi": "MBIRB",
+                      "plan_name": "Value Plus", "effective_date": date(2023, 1, 1),
+                      "term_date": date(2025, 12, 31)}
+        assert _route_termed_rec(old_termed, ag.id) == "updated"
+        db.session.commit()
+
+        # Live policy stays ACTIVE (the old termed row did NOT clobber it).
+        pol = Policy.query.filter_by(agency_id=ag.id, member_id="RB1").first()
+        assert pol.status == "active"
+        assert pol.plan_name == "Chronic Care C-SNP"
+        # Old enrollment seeded as a closed history chapter.
+        h = CustomerAorHistory.query.filter_by(
+            customer_id=c.id, carrier="Aetna", effective_date=date(2023, 1, 1)).first()
+        assert h is not None
+        assert h.end_date == date(2025, 12, 31)

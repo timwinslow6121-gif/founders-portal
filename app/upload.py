@@ -101,6 +101,37 @@ def _rec_is_more_current(new, kept):
     return True   # full tie -> last-in-file wins (UHC parity)
 
 
+def _route_termed_rec(rec, agency_id):
+    """Route a status=="termed" BOB row WITHOUT creating/updating a policy via the
+    upsert path. SINGLE source of truth for termed handling — both _import_bob_row
+    (/upload/bulk) and process_upload (/upload) call this so the two paths can never
+    drift. Returns "skipped" (departed member, no customer) or "updated".
+
+    Terms the existing active policy for (carrier, member_id) ONLY if this termed row
+    IS that current enrollment, not an older history chapter. member_ids are reused
+    across a member's successive enrollments, so an OLD termed row (e.g. Robbie Belk's
+    2023 Value Plus) shares the member_id of his CURRENT active C-SNP policy. Only term
+    the live policy when the termed row's effective_date is not OLDER than the policy's.
+    An older termed row seeds plan-history + closes the open AOR but must NOT term the
+    current active policy. (Long-term fix = a per-enrollment surrogate ID; see BACKLOG.)"""
+    cust = None
+    if rec.get("mbi"):
+        cust = Customer.query.filter_by(mbi=rec["mbi"], agency_id=agency_id).first()
+    if cust is None:
+        return "skipped"
+    pol = Policy.query.filter_by(carrier=rec["carrier"], member_id=rec["member_id"],
+                                 agency_id=agency_id).first()
+    if pol and pol.status == "active":
+        p_eff = pol.effective_date
+        r_eff = rec.get("effective_date")
+        if p_eff is None or r_eff is None or r_eff >= p_eff:
+            pol.term_date = rec.get("term_date")
+            pol.status = "termed"
+    _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))   # close-aor
+    _seed_closed_history(cust, rec, agency_id)                            # seed-history
+    return "updated"
+
+
 def _dedupe_bob_records(records):
     """Collapse repeated (carrier, member_id) BOB rows so a member listed multiple
     times can't collide on the uq_carrier_member unique constraint mid-upload.
@@ -141,32 +172,7 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
     no-MBI row). Runs inside a per-row savepoint in the caller, so a raise here
     rolls back only this row."""
     if rec.get("status") == "termed":
-        # Find the existing customer by MBI; if none, this is a departed member -> skip.
-        cust = None
-        if rec.get("mbi"):
-            cust = Customer.query.filter_by(mbi=rec["mbi"], agency_id=bulk_agency_id).first()
-        if cust is None:
-            return "skipped"
-        # Term the existing active policy for this carrier+member — but ONLY if this
-        # termed row IS that current enrollment, not an older history chapter. We
-        # identify policies by (carrier, member_id) today (member_ids are reused across
-        # a member's successive enrollments), so an OLD termed row (e.g. Robbie Belk's
-        # 2023 Value Plus) shares the member_id of his CURRENT active C-SNP policy. Only
-        # term the live policy when the termed row's effective_date is not OLDER than the
-        # policy's — i.e. it refers to the same/current enrollment. An older termed row
-        # seeds plan-history + closes AOR but must NOT term the current active policy.
-        # (Long-term fix = a Founders-internal per-enrollment surrogate ID; see BACKLOG.)
-        pol = Policy.query.filter_by(carrier=rec["carrier"], member_id=rec["member_id"],
-                                     agency_id=bulk_agency_id).first()
-        if pol and pol.status == "active":
-            p_eff = pol.effective_date
-            r_eff = rec.get("effective_date")
-            if p_eff is None or r_eff is None or r_eff >= p_eff:
-                pol.term_date = rec.get("term_date")
-                pol.status = "termed"
-        _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))   # close-aor
-        _seed_closed_history(cust, rec, bulk_agency_id)                       # seed-history
-        return "updated"
+        return _route_termed_rec(rec, bulk_agency_id)   # shared termed path
 
     # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
     is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
@@ -456,26 +462,12 @@ def process_upload():
     updated_count = 0
 
     for rec in records:
-        # Termed rows NEVER create a policy. Mirror _import_bob_row: for an existing
-        # customer, term the active policy + close the open AOR + seed closed history;
-        # a departed member (no customer) is skipped. (Keeps this legacy /upload path
-        # consistent with /upload/bulk so a termed CSV row can't spawn a termed policy.)
+        # Termed rows NEVER create a policy — route through the SHARED termed path so
+        # this legacy /upload route stays identical to /upload/bulk (incl. the
+        # chronological guard that an OLD termed row can't term a NEWER active policy).
         if rec.get("status") == "termed":
-            cust = None
-            if rec.get("mbi"):
-                cust = Customer.query.filter_by(
-                    mbi=rec["mbi"], agency_id=upload_agency_id).first()
-            if cust is None:
-                continue
-            pol = Policy.query.filter_by(
-                carrier=rec["carrier"], member_id=rec["member_id"],
-                agency_id=upload_agency_id).first()
-            if pol and pol.status == "active":
-                pol.term_date = rec.get("term_date")
-                pol.status = "termed"
-            _close_open_aor_on_term(cust, rec["carrier"], rec.get("term_date"))
-            _seed_closed_history(cust, rec, upload_agency_id)
-            updated_count += 1
+            if _route_termed_rec(rec, upload_agency_id) == "updated":
+                updated_count += 1
             continue
 
         existing = Policy.query.filter_by(

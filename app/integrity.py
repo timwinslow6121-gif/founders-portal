@@ -42,3 +42,107 @@ def run_all():
     results = [fn() for fn in REGISTRY.values()]
     results.sort(key=lambda v: (v.domain, _SEV_RANK.get(v.severity, 9), v.key))
     return results
+
+
+import re
+from sqlalchemy import func
+from app.extensions import db
+from app.models import Policy, Customer, CommissionLineItem, CustomerAorHistory
+
+_STUB_LIKE = "%::0::%"
+_CUSTOMER_STAGES = ("Active", "Termed")   # held to customer-grade invariants
+
+
+def _sample(rows, n=10):
+    return rows[:n]
+
+
+@invariant("plan_id_orphans", severity="high", domain="data",
+           description="Active non-stub policies not linked to a Plan record (plan_id NULL).")
+def _plan_id_orphans():
+    q = (Policy.query.filter(Policy.status == "active",
+                             Policy.plan_id.is_(None),
+                             ~Policy.member_id.like(_STUB_LIKE)))
+    rows = [{"id": p.id, "label": f"{p.carrier} {p.plan_name or '—'} ({p.member_id})",
+             "url": None} for p in q.limit(10).all()]
+    return q.count(), rows
+
+
+@invariant("no_name_policies", severity="high", domain="data",
+           description="Active policies with no first AND no last name.")
+def _no_name_policies():
+    blank = lambda c: db.or_(c.is_(None), c == "")
+    q = Policy.query.filter(Policy.status == "active",
+                            blank(Policy.first_name), blank(Policy.last_name))
+    rows = [{"id": p.id, "label": f"{p.carrier} {p.member_id}", "url": None}
+            for p in q.limit(10).all()]
+    return q.count(), rows
+
+
+@invariant("payment_without_customer", severity="high", domain="data",
+           description="Commission line items (money facts) not linked to any customer.")
+def _payment_without_customer():
+    q = CommissionLineItem.query.filter(CommissionLineItem.customer_id.is_(None))
+    rows = [{"id": li.id, "label": f"{li.carrier} {li.classification} {li.raw_amount}",
+             "url": None} for li in q.limit(10).all()]
+    return q.count(), rows
+
+
+@invariant("backwards_date_interval", severity="high", domain="data",
+           description="AOR intervals whose effective_date is after their end_date.")
+def _backwards_date_interval():
+    q = CustomerAorHistory.query.filter(
+        CustomerAorHistory.effective_date.isnot(None),
+        CustomerAorHistory.end_date.isnot(None),
+        CustomerAorHistory.effective_date > CustomerAorHistory.end_date)
+    rows = [{"id": h.id, "label": f"cust {h.customer_id} {h.carrier} "
+             f"{h.effective_date}->{h.end_date}", "url": None}
+            for h in q.limit(10).all()]
+    return q.count(), rows
+
+
+def _norm_name(full_name):
+    if not full_name:
+        return ""
+    toks = re.sub(r"[^a-z ]", "", full_name.lower().replace(",", " ")).split()
+    toks = [t for t in toks if t not in ("iii", "ii", "iv", "jr", "sr")]
+    return " ".join(sorted(toks))
+
+
+@invariant("duplicate_customers", severity="high", domain="data",
+           description="Multiple customer rows that are the same person "
+                       "(same normalized name + DOB). Multi-AOR persons are ONE customer.")
+def _duplicate_customers():
+    # Group non-stub-distinct customers by (normalized name, dob). A person with two
+    # concurrent policies/AORs is still ONE customer row, so grouping by name+dob (not
+    # by policy/agent) cannot mistake a multi-AOR customer for a duplicate.
+    rows = Customer.query.with_entities(
+        Customer.id, Customer.full_name, Customer.dob).all()
+    from collections import defaultdict
+    clusters = defaultdict(list)
+    for cid, name, dob in rows:
+        key = (_norm_name(name), dob)
+        if key[0]:
+            clusters[key].append(cid)
+    excess = 0
+    sample = []
+    for (nm, dob), ids in clusters.items():
+        if len(ids) > 1:
+            excess += len(ids) - 1
+            if len(sample) < 10:
+                sample.append({"id": ids[0], "label": f"{nm} ({dob}) x{len(ids)}",
+                               "url": None})
+    return excess, sample
+
+
+@invariant("orphan_stub_customers", severity="med", domain="data",
+           description="Stub customers of unknown origin (excludes legitimate manual leads).")
+def _orphan_stub_customers():
+    # A stub from import is garbage; a manual lead (source='manual') is legitimate even
+    # with no MBI, so it is EXEMPT (lifecycle-aware).
+    q = Customer.query.filter(Customer.stub.is_(True),
+                              db.or_(Customer.source.is_(None),
+                                     Customer.source != "manual"))
+    rows = [{"id": c.id, "label": f"{c.full_name} (source={c.source})", "url": None}
+            for c in q.limit(10).all()]
+    return q.count(), rows

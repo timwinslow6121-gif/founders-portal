@@ -2,11 +2,11 @@
   "backwards_date_interval": 0,
   "carrier_counts_agree": 0,
   "count_only_via_metrics": 0,
-  "duplicate_customers": 0,
+  "duplicate_customers": 18,
   "links_resolve": 0,
-  "no_name_policies": 0,
+  "no_name_policies": 56,
   "no_orphan_routes": 7,
-  "orphan_stub_customers": 0,
-  "payment_without_customer": 0,
-  "plan_id_orphans": 0
+  "orphan_stub_customers": 571,
+  "payment_without_customer": 76,
+  "plan_id_orphans": 4611
 }

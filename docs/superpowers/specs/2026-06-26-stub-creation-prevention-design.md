@@ -34,7 +34,7 @@ to people the BOB already knows, or waits (parked) until it does.
 | ID matchers `_crosswalk` / `_match_by_mbi` / `_match_by_carrier_member_id` | ✅ built |
 | `source="commission_import"` already passed into `resolve_customer()` | ✅ built (`app/commission/ingest.py:154`) |
 | `MatchSuggestion` model + Needs-Identity hub `/customers/unassigned` | ✅ built (`app/models.py:624`, `app/customers.py:1012`) |
-| Parked payment = `PolicyPayment(customer_id=NULL, match_confidence='unmatched')` | ✅ model already supports it (`app/models.py:687`, columns nullable) |
+| Parked payment = `PolicyPayment(policy_id=NULL, match_confidence='unmatched')` (no `customer_id` column; linkage is via `policy_id → Policy.customer_id`) | ✅ model already supports it (`app/models.py:687`, columns nullable) |
 | `normalize_person_name()` → "First MI. Last" standard | ✅ built (`app/names.py`) |
 | Every carrier carries a unique ID on every real commission row | ✅ verified (table below) |
 
@@ -93,9 +93,11 @@ path trivially auditable: it has exactly three attach tiers and one park terminu
 
 A parked payment is **not** a new entity — it is the data we already write:
 
-- `PolicyPayment` with `customer_id = NULL`, `policy_id = NULL`,
-  `match_confidence = 'unmatched'` (model already supports all three; `payments.py`
-  already defaults `match_confidence='unmatched'` for no-match rows).
+- `PolicyPayment` with `policy_id = NULL` and `match_confidence = 'unmatched'`
+  (`payments.py` already defaults `match_confidence='unmatched'` for no-match rows).
+  **NOTE (corrected during build):** `PolicyPayment` has **no `customer_id` column** — a
+  payment links to a customer ONLY transitively via `policy_id → Policy.customer_id`. So
+  "parked / unattached" means `policy_id IS NULL`; there is no customer link to null out.
 - It carries everything needed to resolve later: full_name, mbi, carrier_member_id,
   carrier, writing agent, plan, amount, effective/term dates, statement_date.
 - Surfaced in the existing Needs-Identity hub (`/customers/unassigned`) so a human can
@@ -120,14 +122,16 @@ genuinely-unmatched member payment HOLDS.)
 
 When a BOB import creates or updates a customer (the ONLY path that creates identity), and
 that customer's MBI / humana_id / carrier_member_id matches a parked `PolicyPayment`
-(`customer_id IS NULL`), the parked payment **auto-attaches**: set its `customer_id`,
-resolve/attach its `policy_id`, and ensure the AOR interval. No human step, no stub,
-guaranteed-correct because it is an ID match.
+(`policy_id IS NULL`), the parked payment **auto-attaches**: set its `policy_id` to the
+customer's matching `Policy` (which carries `customer_id` + the AOR), and bump
+`match_confidence` off `'unmatched'`. No human step, no stub, guaranteed-correct because it
+is an ID match. (Linkage is via the policy — there is no `customer_id` on the payment to
+set.)
 
 This runs inside the BOB upsert flow (`app/upload.py` `_upsert_customer_from_policy` /
 the `resolve_customer` BOB branch). Confirm in planning whether an existing re-match hook
 covers this; if not, add a small `_sweep_parked_payments(customer)` called after a BOB
-customer's IDs are known. Idempotent: a re-run finds no `customer_id IS NULL` rows to sweep.
+customer's IDs are known. Idempotent: a re-run finds no `policy_id IS NULL` rows to sweep.
 
 ### D. Name normalization for the commission normalizers (folded in)
 
@@ -200,7 +204,7 @@ its own backlog item; this guard just makes their absence loud instead of silent
   count in the admin commission view. Keeps the parking lot from silently growing into
   lost money. (Reuse the existing `unmatched_count` plumbing in `routes.py:1446/1668`.)
 - Unit tests (`tests/`): commission row with matching MBI → attach, no stub; with matching
-  carrier_member_id → attach; with no ID match → parked PolicyPayment, `customer_id IS NULL`,
+  carrier_member_id → attach; with no ID match → parked PolicyPayment, `policy_id IS NULL`,
   no Customer/Policy/AOR created and NO agent payout (held); BOB import of a matching MBI →
   parked payment auto-sweeps onto the customer; name normalizer output is "First MI. Last"
   for each carrier shape; an unknown-carrier file → upload rejected, 0 rows imported.

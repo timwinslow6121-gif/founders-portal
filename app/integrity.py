@@ -238,3 +238,17 @@ def _no_orphan_routes():
             orphans.append(ep)
     orphans.sort()
     return len(orphans), [{"id": e, "label": e, "url": None} for e in orphans[:10]]
+
+
+# Baseline ratchet (Task 5)
+import json
+
+BASELINE_PATH = _ROOT / "integrity_baseline.json"
+
+
+def load_baseline():
+    """Frozen per-invariant debt levels. Missing file or key => 0 (strictest)."""
+    try:
+        return json.loads(BASELINE_PATH.read_text())
+    except FileNotFoundError:
+        return {}

@@ -101,14 +101,31 @@ def test_compute_fingerprint_is_stable_and_sensitive(db_session, app, agency):
     assert compute_fingerprint("Devoted", "June 2026", facts) == fp1
 
 
-def test_ingest_statement_devoted_creates_customers_and_payments(db_session, app, agency, agent_user):
+def test_ingest_statement_devoted_attaches_existing_customers_and_writes_payments(
+        db_session, app, agency, agent_user):
+    """Commission ingest is ID-only match-or-park (see resolver.py) — it never
+    creates a Customer. Pre-seed customers/policies keyed to the carrier_member_ids
+    present in the real Devoted fixture so the rows ATTACH, and prove payments
+    (incl. the chargeback row) are written regardless."""
     from app.extensions import db
     from app.models import Customer, Policy, PolicyPayment, CommissionStatement
     from app.commission.sheet_loader import load_sheets
+    from app.commission.normalizers import NORMALIZERS
     from app.commission.ingest import ingest_statement
 
     with app.app_context():
         sheets = load_sheets(os.path.join(FIXTURES, "devoted_sample.xlsx"))
+        facts = NORMALIZERS["Devoted"](sheets)
+        member_ids = {f.carrier_member_id for f in facts if f.carrier_member_id}
+        for mid in member_ids:
+            c = Customer(agency_id=agency.id, first_name="Pre", last_name=f"Seed{mid}",
+                         full_name=f"Pre Seed{mid}")
+            db.session.add(c); db.session.flush()
+            db.session.add(Policy(agency_id=agency.id, carrier="Devoted", member_id=mid,
+                                  status="active", customer_id=c.id))
+        db.session.flush()
+        before = Customer.query.filter_by(agency_id=agency.id).count()
+
         stmt = CommissionStatement(agency_id=agency.id, carrier="Devoted",
                                    statement_date=date(2026, 5, 1), period_label="May 2026")
         db.session.add(stmt); db.session.flush()
@@ -116,13 +133,13 @@ def test_ingest_statement_devoted_creates_customers_and_payments(db_session, app
         result = ingest_statement(stmt, "Devoted", agent_user.id, agency.id, sheets)
         db.session.commit()
 
-        assert Customer.query.filter_by(agency_id=agency.id).count() > 0
+        assert Customer.query.filter_by(agency_id=agency.id).count() == before  # no new stubs
         payments = PolicyPayment.query.filter_by(statement_id=stmt.id).all()
         assert len(payments) > 0
         bolder = [p for p in payments if p.carrier_member_id == "DS97W3"]
         assert bolder and bolder[0].is_chargeback is True
         assert result.payments_written == len(payments)
-        assert result.customers_created > 0
+        assert result.customers_created == 0   # commission path never creates
         assert result.fingerprint
 
 
@@ -201,7 +218,10 @@ def test_route_blocks_exact_duplicate(client, app, agency, db_session):
 
 def test_ingest_resolves_agent_per_row(db_session, app, agency):
     """Agency-level file: each row's writing agent should own that member's
-    customer/AOR/payment, not one statement-level agent."""
+    PAYMENT attribution, not one statement-level agent. (Commission ingest is
+    ID-only match-or-park — it never creates/updates a Customer's
+    primary_agent_id; PolicyPayment.agent_id is the per-row signal that's
+    always written regardless of attach/park, so that's what we assert here.)"""
     from app.extensions import db
     from app.models import User, Customer, Policy, PolicyPayment, CommissionStatement, CustomerAorHistory
     from app.commission.member_fact import MemberFact, RowClass
@@ -243,11 +263,10 @@ def test_ingest_resolves_agent_per_row(db_session, app, agency):
             if orig is not None:
                 ingest_mod.NORMALIZERS["Devoted"] = orig
 
-        m1 = Customer.query.filter_by(agency_id=agency.id, last_name="One").first()
-        m2 = Customer.query.filter_by(agency_id=agency.id, last_name="Two").first()
-        assert m1.primary_agent_id == brian.id      # row 1 → Brian
-        assert m2.primary_agent_id == rebekah.id     # row 2 → Rebekah
-        # payments attribute per-row too
+        # No pre-existing customers for M1/M2 → both rows PARK, no stubs created
+        assert Customer.query.filter_by(agency_id=agency.id, last_name="One").first() is None
+        assert Customer.query.filter_by(agency_id=agency.id, last_name="Two").first() is None
+        # but payments still attribute per-row to the resolved writing agent
         p1 = PolicyPayment.query.filter_by(statement_id=stmt.id, carrier_member_id="M1").first()
         p2 = PolicyPayment.query.filter_by(statement_id=stmt.id, carrier_member_id="M2").first()
         assert p1.agent_id == brian.id
@@ -255,9 +274,13 @@ def test_ingest_resolves_agent_per_row(db_session, app, agency):
 
 
 def test_ingest_falls_back_to_statement_agent_when_no_resolver(db_session, app, agency, agent_user):
-    """Backward compatible: no agent_resolver → statement-level agent_id used for all."""
+    """Backward compatible: no agent_resolver → statement-level agent_id used for
+    all rows. The row has no pre-existing customer so it PARKs (commission is
+    ID-only match-or-park, never creates a stub) — but the written PolicyPayment
+    still carries the statement-level agent_id, which is the behavior this test
+    actually protects."""
     from app.extensions import db
-    from app.models import Customer, CommissionStatement
+    from app.models import Customer, CommissionStatement, PolicyPayment
     from app.commission.member_fact import MemberFact, RowClass
     from app.commission.ingest import ingest_statement
     import app.commission.ingest as ingest_mod
@@ -279,8 +302,11 @@ def test_ingest_falls_back_to_statement_agent_when_no_resolver(db_session, app, 
         finally:
             if orig is not None:
                 ingest_mod.NORMALIZERS["Devoted"] = orig
-        c = Customer.query.filter_by(agency_id=agency.id, last_name="One").first()
-        assert c.primary_agent_id == agent_user.id   # fell back to statement agent
+        # no pre-existing customer for S1 → row PARKs, no stub created
+        assert Customer.query.filter_by(agency_id=agency.id, last_name="One").first() is None
+        p = PolicyPayment.query.filter_by(statement_id=stmt.id, carrier_member_id="S1").first()
+        assert p is not None
+        assert p.agent_id == agent_user.id   # fell back to statement agent
 
 
 def test_agency_level_statement_has_null_agent(client, app, agency, db_session):

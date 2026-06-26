@@ -337,10 +337,63 @@ def has_strong_identity(fact: MemberFact, agency_id: Optional[int] = None) -> bo
     return False
 
 
+def _resolve_commission_match_or_park(fact: MemberFact, agency_id: int,
+                                      agent_id, batch_id, source: str) -> ResolveResult:
+    """Commission path: attach ONLY by a unique carrier ID, else PARK.
+    Never creates a customer, never matches on name. See
+    docs/superpowers/specs/2026-06-26-stub-creation-prevention-design.md."""
+    result = ResolveResult()
+
+    def _attach(customer, match_path):
+        result.customer = customer
+        existing = _crosswalk(fact, agency_id)
+        if existing is not None:
+            existing.customer_id = existing.customer_id or customer.id
+            result.policy = existing
+        else:
+            result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+            result.created_policy = True
+        result.match_path = match_path
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, customer, agency_id, agent_id, batch_id, result, source)
+        return result
+
+    # 1. crosswalk — deterministic re-link to an existing policy's customer.
+    policy = _crosswalk(fact, agency_id)
+    if policy is not None and policy.customer_id:
+        result.policy = policy
+        result.customer = Customer.query.get(policy.customer_id)
+        result.match_path = "crosswalk"
+        _apply_rapid_disenroll(policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+        return result
+
+    # 2. MBI / humana_id
+    customer = _match_by_mbi(fact, agency_id)
+    if customer is not None:
+        return _attach(customer, "mbi")
+
+    # 2b. carrier_member_id (a real carrier id is as good as an MBI)
+    customer = _match_by_carrier_member_id(fact, agency_id)
+    if customer is not None:
+        return _attach(customer, "carrier_member_id")
+
+    # 3. No unique-ID match → PARK. No customer, no policy, no AOR, no payout.
+    #    Enqueue a needs-identity item so the held payment is visible in the hub.
+    _enqueue_suggestion(fact, None, None, "parked", agency_id, result)
+    result.match_path = "parked"
+    return result
+
+
 def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int],
                      batch_id: Optional[int] = None, source: str = "commission_import"
                      ) -> ResolveResult:
     result = ResolveResult()
+
+    if source == "commission_import":
+        return _resolve_commission_match_or_park(fact, agency_id, agent_id, batch_id, source)
 
     # 1. Crosswalk — deterministic re-link. A policy may already exist either from a
     #    prior import OR from the BOB outer loop that just added it this same flow.

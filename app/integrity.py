@@ -134,6 +134,34 @@ def _duplicate_customers():
     return excess, sample
 
 
+@invariant("commission_import_stubs", severity="med", domain="data",
+           description="Stub customers created by commission import (must only decrease; "
+                       "commission no longer creates customers).")
+def _commission_import_stubs():
+    q = Customer.query.filter(Customer.stub.is_(True),
+                              Customer.source == "commission_import")
+    rows = [{"id": c.id, "label": c.full_name or f"{c.first_name} {c.last_name}"}
+            for c in q.limit(20)]
+    return q.count(), rows
+
+
+@invariant("statement_balance_complete", severity="high", domain="data",
+           description="Per statement, Sigma(commission line items) must equal "
+                       "Sigma(payments) within $0.01 — proves no payment was lost.")
+def _statement_balance_complete():
+    from app.models import CommissionStatement, CommissionLineItem, PolicyPayment
+    violations = []
+    for s in CommissionStatement.query.all():
+        li = sum(x.raw_amount or 0.0 for x in
+                 CommissionLineItem.query.filter_by(statement_id=s.id).all())
+        pay = sum(x.paid_amount or 0.0 for x in
+                  PolicyPayment.query.filter_by(statement_id=s.id).all())
+        if li and abs(round(li - pay, 2)) > 0.01:
+            violations.append({"id": s.id,
+                               "label": f"{s.carrier} {s.period_label}: lineitems={li:.2f} payments={pay:.2f}"})
+    return len(violations), violations[:20]
+
+
 @invariant("orphan_stub_customers", severity="med", domain="data",
            description="Stub customers of unknown origin (excludes legitimate manual leads).")
 def _orphan_stub_customers():

@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment, CommissionLineItem, AgentRecapPeriod
 from app.commission import commission_bp
-from app.commission.payments import build_payments
+from app.commission.payments import build_payments, parked_payments_older_than
 from app.commission.ingest import ingest_statement, compute_fingerprint
 from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
@@ -548,6 +548,19 @@ def _parse_date_from_filename(filename):
     return None
 
 
+def _carrier_supported_or_reason(carrier):
+    """Return (True, '') if we can ingest this carrier, else (False, reason)."""
+    from app.commission.normalizers import NORMALIZERS
+    if not carrier:
+        return False, ("Could not detect the carrier from this file's headers. "
+                       "Nothing was imported.")
+    if carrier not in NORMALIZERS:
+        supported = ", ".join(sorted(NORMALIZERS))
+        return False, (f"Cannot parse this file — carrier '{carrier}' is not yet "
+                       f"supported (supported: {supported}). Nothing was imported.")
+    return True, ""
+
+
 def _detect_carrier(ws):
     headers = [str(c.value or "").lower() for c in ws[1]]
     header_str = " ".join(headers)
@@ -1038,8 +1051,9 @@ def commission_upload():
         return redirect(url_for("commission.commission_admin"))
 
     carrier = _detect_carrier(ws)
-    if not carrier:
-        flash("Could not detect carrier. Check column headers.", "error")
+    ok, reason = _carrier_supported_or_reason(carrier)
+    if not ok:
+        flash(reason, "error")
         return redirect(url_for("commission.commission_admin"))
 
     try:
@@ -1484,6 +1498,8 @@ def commission_ledger_admin():
 
     selected_agent_id = agent_id_arg or (agents[0].id if agents else None)
 
+    stale_parked_count = parked_payments_older_than(30, agency_id)
+
     periods = []
     if selected_agent_id:
         periods = (db.session.query(PolicyPayment.period_label, PolicyPayment.statement_date)
@@ -1541,6 +1557,7 @@ def commission_ledger_admin():
         viewing_agent=User.query.get(selected_agent_id) if selected_agent_id else None,
         agents=agents,
         selected_agent_id=selected_agent_id,
+        stale_parked_count=stale_parked_count,
     )
 
 

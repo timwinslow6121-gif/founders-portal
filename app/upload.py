@@ -338,6 +338,9 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
                 open_aor.end_date = now.date()
         customer.primary_agent_id = agent_id
 
+    from app.commission.payments import sweep_parked_payments
+    sweep_parked_payments(customer, agency_id)
+
 # File extensions allowed per carrier
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 

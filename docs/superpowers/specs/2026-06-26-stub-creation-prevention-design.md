@@ -34,7 +34,7 @@ to people the BOB already knows, or waits (parked) until it does.
 | ID matchers `_crosswalk` / `_match_by_mbi` / `_match_by_carrier_member_id` | ✅ built |
 | `source="commission_import"` already passed into `resolve_customer()` | ✅ built (`app/commission/ingest.py:154`) |
 | `MatchSuggestion` model + Needs-Identity hub `/customers/unassigned` | ✅ built (`app/models.py:624`, `app/customers.py:1012`) |
-| Parked payment = `PolicyPayment(customer_id=NULL, match_confidence='unmatched')` | ✅ model already supports it (`app/models.py:687`, columns nullable) |
+| Parked payment = `PolicyPayment(policy_id=NULL, match_confidence='unmatched')` (no `customer_id` column; linkage is via `policy_id → Policy.customer_id`) | ✅ model already supports it (`app/models.py:687`, columns nullable) |
 | `normalize_person_name()` → "First MI. Last" standard | ✅ built (`app/names.py`) |
 | Every carrier carries a unique ID on every real commission row | ✅ verified (table below) |
 
@@ -93,9 +93,11 @@ path trivially auditable: it has exactly three attach tiers and one park terminu
 
 A parked payment is **not** a new entity — it is the data we already write:
 
-- `PolicyPayment` with `customer_id = NULL`, `policy_id = NULL`,
-  `match_confidence = 'unmatched'` (model already supports all three; `payments.py`
-  already defaults `match_confidence='unmatched'` for no-match rows).
+- `PolicyPayment` with `policy_id = NULL` and `match_confidence = 'unmatched'`
+  (`payments.py` already defaults `match_confidence='unmatched'` for no-match rows).
+  **NOTE (corrected during build):** `PolicyPayment` has **no `customer_id` column** — a
+  payment links to a customer ONLY transitively via `policy_id → Policy.customer_id`. So
+  "parked / unattached" means `policy_id IS NULL`; there is no customer link to null out.
 - It carries everything needed to resolve later: full_name, mbi, carrier_member_id,
   carrier, writing agent, plan, amount, effective/term dates, statement_date.
 - Surfaced in the existing Needs-Identity hub (`/customers/unassigned`) so a human can
@@ -104,30 +106,39 @@ A parked payment is **not** a new entity — it is the data we already write:
 The agency's money math stays whole: parked payments are recorded and counted (the
 recap/balance still sums correctly), shown as "unattached — needs review," not dropped.
 
-**Park HOLDS THE WHOLE PAYMENT — no payout until 100% confident on BOTH customer AND
-pay-split (Tim's decision).** A parked payment is *recorded and counted* but *paid to
-nobody* — neither the agent nor the agency — until it is resolved. Rationale: the
-split/payout is itself a confidence problem, not a given. Agent pay nuance is real
-(LOA arrangements, the retired-agent rollup Cyndi/Don→Brian, Betty's 52.5%, UHC overrides),
-so a shaky agent-match would produce a *mismatched payment* — the exact failure this whole
-effort exists to eliminate. Holding the payment is therefore correct: an agent's correct
-pay is never delayed by a *known-good* match, and a *not-yet-trusted* one never goes out
-wrong. (NB: this is stricter than NON_CUSTOMER rows like HRA bonuses, which DO pay an agent
-with no customer — those are a distinct, already-trusted case and are unchanged. A
-genuinely-unmatched member payment HOLDS.)
+**Park holds the CUSTOMER LINKAGE — the payment is recorded, counted, and unattached
+to a person until resolved.** A parked `PolicyPayment` has no `policy_id` (no customer),
+sits in the needs-identity hub, and auto-attaches when a BOB import supplies the matching
+ID. The agency's money math stays whole (Σ still balances); the parked row simply isn't
+tied to a customer profile yet.
+
+**⚠ SCOPE NOTE (corrected after the whole-branch review, 2026-06-26 — Tim's decision):**
+this branch does NOT enforce "no payout until customer + split are confident." Agent payout
+is computed from the `CommissionLineItem` ledger via the recap (`split_breakdown`), which is
+written for every amount-bearing row regardless of park-state — so a parked member's money
+still appears in the agent's recap, exactly as it did pre-branch (when an unmatched row
+created a stub and still paid out). **Payout behavior is therefore UNCHANGED by item 1.**
+The stricter guarantee — *hold the payout itself until both the customer AND the pay-split
+are 100% confident* — is real and desirable but belongs with the commission-trust /
+reconciliation work (it carries split-confidence nuance: LOA arrangements, the Cyndi/Don→Brian
+rollup, Betty's 52.5%, UHC overrides). It is split out as its own follow-up item (see
+BACKLOG) rather than expanded into this stub-prevention merge. NON_CUSTOMER rows (HRA
+bonuses etc.) are a distinct, already-trusted, paid case and are explicitly NOT parked.
 
 ### C. Auto-sweep on BOB import (the thing that empties the parking lot)
 
 When a BOB import creates or updates a customer (the ONLY path that creates identity), and
 that customer's MBI / humana_id / carrier_member_id matches a parked `PolicyPayment`
-(`customer_id IS NULL`), the parked payment **auto-attaches**: set its `customer_id`,
-resolve/attach its `policy_id`, and ensure the AOR interval. No human step, no stub,
-guaranteed-correct because it is an ID match.
+(`policy_id IS NULL`), the parked payment **auto-attaches**: set its `policy_id` to the
+customer's matching `Policy` (which carries `customer_id` + the AOR), and bump
+`match_confidence` off `'unmatched'`. No human step, no stub, guaranteed-correct because it
+is an ID match. (Linkage is via the policy — there is no `customer_id` on the payment to
+set.)
 
 This runs inside the BOB upsert flow (`app/upload.py` `_upsert_customer_from_policy` /
 the `resolve_customer` BOB branch). Confirm in planning whether an existing re-match hook
 covers this; if not, add a small `_sweep_parked_payments(customer)` called after a BOB
-customer's IDs are known. Idempotent: a re-run finds no `customer_id IS NULL` rows to sweep.
+customer's IDs are known. Idempotent: a re-run finds no `policy_id IS NULL` rows to sweep.
 
 ### D. Name normalization for the commission normalizers (folded in)
 
@@ -200,7 +211,7 @@ its own backlog item; this guard just makes their absence loud instead of silent
   count in the admin commission view. Keeps the parking lot from silently growing into
   lost money. (Reuse the existing `unmatched_count` plumbing in `routes.py:1446/1668`.)
 - Unit tests (`tests/`): commission row with matching MBI → attach, no stub; with matching
-  carrier_member_id → attach; with no ID match → parked PolicyPayment, `customer_id IS NULL`,
+  carrier_member_id → attach; with no ID match → parked PolicyPayment, `policy_id IS NULL`,
   no Customer/Policy/AOR created and NO agent payout (held); BOB import of a matching MBI →
   parked payment auto-sweeps onto the customer; name normalizer output is "First MI. Last"
   for each carrier shape; an unknown-carrier file → upload rejected, 0 rows imported.

@@ -12,11 +12,11 @@
 
 - **Commission import NEVER creates or edits a Customer.** `_create_stub` must be unreachable when `source == "commission_import"`. Verbatim spec rule.
 - **Auto-attach ONLY via a 100%-unique carrier ID** (MBI / humana_id / carrier_member_id, carrier-scoped). NEVER match on name for auto-attach. No ID match → park.
-- **Park HOLDS THE WHOLE PAYMENT** — no payout to agent OR agency until customer AND pay-split are both confident. A parked payment is recorded + counted, paid to nobody.
+- **Park holds the CUSTOMER LINKAGE** — a parked payment is recorded + counted but has no `policy_id` (unattached to a person) until resolved. **NOTE (corrected post-review, Tim's call):** this branch does NOT hold the *payout* — agent payout flows from the `CommissionLineItem` ledger regardless of park-state (unchanged from before). Enforcing "no payout until customer+split confident" is a separate follow-up item (see BACKLOG), not in this merge.
 - **NON_CUSTOMER rows (HRA bonuses etc.) are unchanged** — they already pay an agent with `customer=None` and are handled before `resolve_customer` in `ingest.py`. Do not touch that path.
 - **BOB path (`source="bob" / source != "commission_import"`) keeps full creation rights** — its ladder is untouched.
 - **8 carriers:** UHC, Humana, Devoted, BCBS, Aetna, Healthspring, Medico/Wellable, GTL. `NORMALIZERS` covers 6 (no Medico/Wellable, no GTL). Unknown/unsupported carrier upload → block with a clear reason, import nothing.
-- **No model change, no migration.** A parked payment is `PolicyPayment(customer_id=NULL, policy_id=NULL, match_confidence='unmatched')` — all columns already nullable.
+- **No model change, no migration.** A parked payment is `PolicyPayment(policy_id=NULL, match_confidence='unmatched')` — `PolicyPayment` has NO `customer_id` column (linkage is via `policy_id → Policy.customer_id`); columns already nullable.
 - **Tests run:** `python3 -m pytest -q` locally (SQLite). Frequent commits, one deliverable per task.
 
 ---
@@ -234,7 +234,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `resolve_customer` (Task 1), `write_payment_from_fact(fact, statement, policy, agency_id, agent_id)`.
-- Produces: `IngestResult` gains `parked_payments: int`. A parked row → `PolicyPayment(customer_id=NULL, policy_id=NULL, match_confidence='unmatched')`, counted in `payments_written` AND `parked_payments`.
+- Produces: `IngestResult` gains `parked_payments: int`. A parked row → `PolicyPayment(policy_id=NULL, match_confidence='unmatched')` (no `customer_id` column), counted in `payments_written` AND `parked_payments`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -256,7 +256,7 @@ def test_parked_row_writes_held_unattached_payment(db_session, app, agency, agen
         p = ingest_mod.write_payment_from_fact(fact, stmt, res.policy, agency.id, agent_user.id)
         db.session.flush()
         assert Customer.query.count() == before        # nothing created
-        assert p.customer_id is None                   # held, unattached
+        assert p.policy_id is None                     # held, unattached (no customer_id column)
         assert p.policy_id is None
         assert p.match_confidence == "unmatched"
         assert p.paid_amount == 100.0                  # recorded + counted (not lost)
@@ -269,7 +269,7 @@ Expected: may already PASS (the writer handles `policy=None`). If `match_confide
 
 - [ ] **Step 3: Ensure a no-policy payment is marked unmatched + add the counter**
 
-In `app/commission/ingest.py`, in `write_payment_from_fact`, where `PolicyPayment` fields are set, ensure: when `policy is None`, `match_confidence` defaults to `"unmatched"` and `customer_id`/`policy_id` stay `None` (do not invent them). In the ingest loop (after `res = resolve_customer(...)`), add:
+In `app/commission/ingest.py`, in `write_payment_from_fact`, where `PolicyPayment` fields are set, ensure: when `policy is None`, `match_confidence` is `"unmatched"` and `policy_id` stays `None` (do not invent a policy). `PolicyPayment` has no `customer_id` column. In the ingest loop (after `res = resolve_customer(...)`), add:
 
 ```python
         if res.match_path == "parked":
@@ -303,14 +303,18 @@ When a BOB import produces a customer with a known ID, attach every parked payme
 - Modify: `app/upload.py` — call it at the end of `_upsert_customer_from_policy` once IDs are known.
 - Test: `tests/test_parked_payment_sweep.py` (new).
 
+**IMPORTANT MODEL FACT (corrected during build):** `PolicyPayment` has **NO `customer_id` column.** A payment links to a customer ONLY via `policy_id → Policy.customer_id`. So:
+- A **parked** payment = `policy_id IS NULL` + `match_confidence='unmatched'`.
+- **Attaching** a parked payment = setting its `policy_id` to the customer's matching `Policy` (which already carries `customer_id` + the AOR). There is no `customer_id` on the payment to set — do NOT reference `PolicyPayment.customer_id` anywhere (it does not exist).
+- A BOB import that just created/updated this customer also created/updated their `Policy`, so the matching policy exists by the time the sweep runs.
+
 **Interfaces:**
-- Consumes: `Customer` (with `mbi` / `humana_id`), `PolicyPayment` (`customer_id` NULL = parked, fields `mbi`, `carrier_member_id`, `carrier`), `Policy`.
-- Produces: `sweep_parked_payments(customer, agency_id) -> int` — number of parked payments attached. Attaches ALL parked rows matching the customer's MBI/humana_id (and carrier_member_id via the customer's active policies); sets `customer_id`, resolves `policy_id`, bumps `match_confidence` off `'unmatched'`. Idempotent (only touches `customer_id IS NULL` rows).
+- Consumes: `Customer` (with `mbi` / `humana_id`), `PolicyPayment` (`policy_id` NULL = parked; fields `mbi`, `carrier_member_id`, `carrier`, `match_confidence`), `Policy` (`carrier`, `member_id`, `customer_id`, `status`).
+- Produces: `sweep_parked_payments(customer, agency_id) -> int` — number of parked payments attached. Finds ALL parked rows (`policy_id IS NULL`, `match_confidence='unmatched'`) matching the customer's MBI/humana_id OR the customer's active-policy `member_id`s, sets each row's `policy_id` to that matching `Policy`, and bumps `match_confidence` off `'unmatched'` to `'swept'`. Idempotent (only touches `policy_id IS NULL` rows; a row with no resolvable policy stays parked and is not counted).
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-import os
 from datetime import date
 
 def _agency_and_user(db, app):
@@ -320,32 +324,47 @@ def _agency_and_user(db, app):
     return a, u
 
 def test_sweep_attaches_all_parked_for_matching_mbi(db_session, app):
+    """BOB creates the customer + their Policy; both parked payments for that MBI
+    attach by getting policy_id set (PolicyPayment has no customer_id column —
+    linkage is via the policy)."""
     from app.extensions import db
-    from app.models import Customer, PolicyPayment, CommissionStatement
+    from app.models import Customer, Policy, PolicyPayment, CommissionStatement
     from app.commission.payments import sweep_parked_payments
     with app.app_context():
         a, u = _agency_and_user(db, app)
         stmt = CommissionStatement(agency_id=a.id, carrier="UHC",
                                    statement_date=date(2026, 5, 1), period_label="May 2026")
         db.session.add(stmt); db.session.flush()
-        # two parked payments, same MBI, no customer yet
+        # two parked payments, same MBI, not yet linked to any policy
         for i in range(2):
             db.session.add(PolicyPayment(agency_id=a.id, statement_id=stmt.id, carrier="UHC",
-                                         mbi="1AB2C", paid_amount=50.0, customer_id=None,
+                                         member_name="Bob Jones", period_label="May 2026",
+                                         commission_action="renewal",
+                                         mbi="1AB2C", paid_amount=50.0,
                                          policy_id=None, match_confidence="unmatched",
                                          source_ref=f"uhc::x::S::{i}"))
         db.session.flush()
-        # BOB now creates the customer with that MBI
+        # BOB now creates the customer AND their policy (member_id == the MBI for UHC)
         c = Customer(agency_id=a.id, first_name="Bob", last_name="Jones",
                      full_name="Bob Jones", mbi="1AB2C")
         db.session.add(c); db.session.flush()
+        pol = Policy(agency_id=a.id, carrier="UHC", member_id="1AB2C",
+                     status="active", customer_id=c.id)
+        db.session.add(pol); db.session.flush()
 
         n = sweep_parked_payments(c, a.id)
         db.session.flush()
         assert n == 2
-        assert PolicyPayment.query.filter_by(customer_id=c.id).count() == 2
-        assert PolicyPayment.query.filter_by(customer_id=None).count() == 0
+        # attached == both now carry the customer's policy_id
+        assert PolicyPayment.query.filter_by(policy_id=pol.id).count() == 2
+        assert PolicyPayment.query.filter_by(policy_id=None).count() == 0
+        # and they trace to the customer through the policy
+        for pay in PolicyPayment.query.filter_by(policy_id=pol.id).all():
+            assert pay.policy.customer_id == c.id
+            assert pay.match_confidence != "unmatched"
 ```
+
+(Note: `member_name`, `period_label`, `commission_action` are NOT NULL on `PolicyPayment` — set them so the row inserts. Confirm any other NOT NULL columns by `grep -n "nullable=False" app/models.py` within the `PolicyPayment` class and set them too.)
 
 - [ ] **Step 2: Run it to verify it fails**
 
@@ -358,15 +377,17 @@ In `app/commission/payments.py`:
 
 ```python
 def sweep_parked_payments(customer, agency_id) -> int:
-    """Attach every parked (customer_id IS NULL) PolicyPayment whose unique carrier
-    ID matches this just-known customer. Idempotent. Returns count attached."""
+    """Attach every parked (policy_id IS NULL, unmatched) PolicyPayment whose unique
+    carrier ID matches this just-known customer, by setting its policy_id to the
+    customer's matching Policy. PolicyPayment has no customer_id column — linkage is
+    via the policy. Idempotent. Returns count attached."""
     from app.models import PolicyPayment, Policy
+    # (matcher, value) pairs keyed on the payment's columns
     ids = []
     if customer.mbi:
         ids.append(("mbi", customer.mbi))
     if getattr(customer, "humana_id", None):
         ids.append(("carrier_member_id", customer.humana_id))
-    # carrier_member_ids from this customer's active policies
     for p in Policy.query.filter_by(agency_id=agency_id, customer_id=customer.id,
                                     status="active").all():
         if p.member_id:
@@ -375,21 +396,26 @@ def sweep_parked_payments(customer, agency_id) -> int:
         return 0
 
     attached = 0
+    seen = set()
     for field, value in ids:
         q = (PolicyPayment.query
-             .filter_by(agency_id=agency_id, customer_id=None)
+             .filter_by(agency_id=agency_id, policy_id=None)
              .filter(getattr(PolicyPayment, field) == value))
         for pay in q.all():
-            pay.customer_id = customer.id
-            # resolve a policy by (carrier, member_id) if one exists
+            if pay.id in seen:
+                continue
+            # find the customer's policy for this payment's carrier+id
             pol = (Policy.query
-                   .filter_by(agency_id=agency_id, carrier=pay.carrier,
-                              member_id=(pay.carrier_member_id or pay.mbi))
+                   .filter_by(agency_id=agency_id, customer_id=customer.id,
+                              carrier=pay.carrier)
+                   .filter(Policy.member_id == (pay.carrier_member_id or pay.mbi))
                    .first())
-            if pol is not None:
-                pay.policy_id = pol.id
+            if pol is None:
+                continue                 # no resolvable policy yet → stays parked
+            pay.policy_id = pol.id
             if pay.match_confidence == "unmatched":
                 pay.match_confidence = "swept"
+            seen.add(pay.id)
             attached += 1
     return attached
 ```
@@ -401,12 +427,14 @@ Expected: PASS.
 
 - [ ] **Step 5: Wire it into the BOB upsert**
 
-In `app/upload.py`, at the END of `_upsert_customer_from_policy` (after the customer's MBI/humana_id/policy are set/flushed, before return), add:
+In `app/upload.py`, at the END of `_upsert_customer_from_policy` (after the customer's MBI/humana_id are set AND its Policy has been created/flushed — so the policy the sweep needs exists — before return), add:
 
 ```python
     from app.commission.payments import sweep_parked_payments
     sweep_parked_payments(customer, agency_id)
 ```
+
+(If the Policy for this BOB row is created by the resolver/caller AFTER `_upsert_customer_from_policy` returns rather than inside it, place the sweep call at the point where both the customer and its policy are committed — confirm by reading the BOB flow around the `_upsert_customer_from_policy` call site and the `resolve_customer(source="bob")` policy creation. The invariant that matters: the sweep must run after the matching Policy exists.)
 
 - [ ] **Step 6: Add an idempotency test (re-run sweeps nothing)**
 
@@ -415,7 +443,7 @@ Append to `tests/test_parked_payment_sweep.py`:
 ```python
 def test_sweep_is_idempotent(db_session, app):
     from app.extensions import db
-    from app.models import Customer, PolicyPayment, CommissionStatement
+    from app.models import Customer, Policy, PolicyPayment, CommissionStatement
     from app.commission.payments import sweep_parked_payments
     from datetime import date
     with app.app_context():
@@ -424,14 +452,18 @@ def test_sweep_is_idempotent(db_session, app):
                                    statement_date=date(2026,5,1), period_label="May 2026")
         db.session.add(stmt); db.session.flush()
         db.session.add(PolicyPayment(agency_id=a.id, statement_id=stmt.id, carrier="UHC",
-                                     mbi="ZZ9", paid_amount=10.0, customer_id=None,
+                                     member_name="Z Z", period_label="May 2026",
+                                     commission_action="renewal",
+                                     mbi="ZZ9", paid_amount=10.0,
                                      policy_id=None, match_confidence="unmatched",
                                      source_ref="uhc::x::S::0"))
         c = Customer(agency_id=a.id, first_name="Z", last_name="Z", full_name="Z Z", mbi="ZZ9")
         db.session.add(c); db.session.flush()
+        db.session.add(Policy(agency_id=a.id, carrier="UHC", member_id="ZZ9",
+                              status="active", customer_id=c.id)); db.session.flush()
         assert sweep_parked_payments(c, a.id) == 1
         db.session.flush()
-        assert sweep_parked_payments(c, a.id) == 0      # nothing left to sweep
+        assert sweep_parked_payments(c, a.id) == 0      # nothing left to sweep (policy_id set)
 ```
 
 - [ ] **Step 7: Run + commit**
@@ -729,7 +761,7 @@ Surface parked payments older than 30 days, run the whole suite, then verify on 
 - Test: `tests/test_parked_payment_sweep.py` (add age test).
 
 **Interfaces:**
-- Consumes: `PolicyPayment` (`customer_id IS NULL`, `created_at` or `statement_date`), `datetime`.
+- Consumes: `PolicyPayment` (parked = `policy_id IS NULL` + `match_confidence='unmatched'`; aged by `statement_date`), `datetime`. (`PolicyPayment` has NO `customer_id` — parked is `policy_id IS NULL`.)
 - Produces: `parked_payments_older_than(days, agency_id) -> int`.
 
 - [ ] **Step 1: Write the failing test**
@@ -747,7 +779,9 @@ def test_parked_older_than_counts_aged_holds(db_session, app):
                                   period_label="old")
         db.session.add(old); db.session.flush()
         db.session.add(PolicyPayment(agency_id=a.id, statement_id=old.id, carrier="UHC",
-                                     mbi="OLD1", paid_amount=10.0, customer_id=None,
+                                     member_name="Old Hold", period_label="old",
+                                     commission_action="renewal",
+                                     mbi="OLD1", paid_amount=10.0, policy_id=None,
                                      match_confidence="unmatched",
                                      statement_date=date.today() - timedelta(days=45),
                                      source_ref="uhc::x::S::99"))
@@ -766,13 +800,13 @@ In `app/commission/payments.py`:
 
 ```python
 def parked_payments_older_than(days, agency_id) -> int:
-    """Count parked (customer_id IS NULL, unmatched) payments older than `days`,
+    """Count parked (policy_id IS NULL, unmatched) payments older than `days`,
     by statement_date. The stale-park aging signal."""
     from app.models import PolicyPayment
     from datetime import date, timedelta
     cutoff = date.today() - timedelta(days=days)
     return (PolicyPayment.query
-            .filter_by(agency_id=agency_id, customer_id=None, match_confidence="unmatched")
+            .filter_by(agency_id=agency_id, policy_id=None, match_confidence="unmatched")
             .filter(PolicyPayment.statement_date <= cutoff)
             .count())
 ```
@@ -814,7 +848,7 @@ ssh ... "systemctl show founders-portal -p ActiveEnterTimestamp"
 ssh ... "cd /var/www/founders-portal && PYTHONPATH=. ./venv/bin/python3 scripts/audit_integrity.py --update-baseline"
 # re-upload a UHC + a BCBS + a Humana statement via the admin UI; confirm:
 #   - stubs_created = 0  (commission upload flash / ingest result)
-#   - payments either attach by ID or land parked (customer_id NULL)
+#   - payments either attach by ID or land parked (policy_id NULL)
 #   - then run a BOB import containing a parked MBI → confirm the parked payment swept on
 ```
 

@@ -309,13 +309,14 @@ def test_normalize_uhc_reduces_sheet_to_member_facts():
     assert len(facts) == 3
     assert all(f.carrier == "UHC" for f in facts)
     assert all(f.source_ref.startswith("uhc::0::") for f in facts)
+    # full_name is now routed through normalize_person_name -> "First MI. Last"
     by_member = {f.full_name: f for f in facts}
-    assert by_member["DOE, JANE"].row_class == RowClass.RENEWAL
-    assert by_member["DOE, JANE"].mbi == "1AB2CD3EF45"
-    assert by_member["DOE, JANE"].writing_agent_raw == "WINSLOW, TIMOTHY"
-    assert by_member["SMITH, BOB"].row_class == RowClass.ENROLLMENT
-    assert by_member["LEE, ANN"].row_class == RowClass.CHARGEBACK
-    assert by_member["LEE, ANN"].amount == -268.0
+    assert by_member["Jane Doe"].row_class == RowClass.RENEWAL
+    assert by_member["Jane Doe"].mbi == "1AB2CD3EF45"
+    assert by_member["Jane Doe"].writing_agent_raw == "WINSLOW, TIMOTHY"
+    assert by_member["Bob Smith"].row_class == RowClass.ENROLLMENT
+    assert by_member["Ann Lee"].row_class == RowClass.CHARGEBACK
+    assert by_member["Ann Lee"].amount == -268.0
 
 
 def test_normalize_uhc_skips_zero_and_empty_rows():
@@ -328,7 +329,8 @@ def test_normalize_uhc_skips_zero_and_empty_rows():
     ]}
     facts = normalize_uhc(sheets)
     assert len(facts) == 1
-    assert facts[0].full_name == "REAL, ONE"
+    # full_name is now routed through normalize_person_name -> "First MI. Last"
+    assert facts[0].full_name == "One Real"
 
 
 def test_normalize_uhc_override_and_ha_are_non_customer():
@@ -340,9 +342,10 @@ def test_normalize_uhc_override_and_ha_are_non_customer():
         _uhc_row(member="HA, BONUS", action="HA Payment", amount=50.0),
     ]}
     facts = normalize_uhc(sheets)
+    # full_name is now routed through normalize_person_name -> "First MI. Last"
     assert {f.full_name: f.row_class for f in facts} == {
-        "OVR, ONLY": RowClass.NON_CUSTOMER,
-        "HA, BONUS": RowClass.NON_CUSTOMER,
+        "Only Ovr": RowClass.NON_CUSTOMER,
+        "Bonus Ha": RowClass.NON_CUSTOMER,
     }
 
 

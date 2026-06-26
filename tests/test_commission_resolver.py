@@ -115,7 +115,13 @@ def test_mbi_match_reuses_customer_and_creates_policy(db_session, app, agency, a
         assert result.policy.customer_id == c.id
 
 
-def test_stub_created_once_then_crosswalk_relinks(db_session, app, agency, agent_user):
+def test_unmatched_commission_row_parks_on_every_resolve_no_stub_ever(db_session, app, agency, agent_user):
+    """Commission path is ID-only match-or-park: a carrier_member_id with NO
+    existing customer/policy to attach to must PARK, not create a stub —
+    replaces the old new_strong-then-crosswalk-relink behavior (which assumed
+    the commission path creates new customers; it no longer does, see Task 1).
+    Re-resolving the same unmatched fact parks again every time — it can never
+    self-heal into a stub+crosswalk pair because nothing was ever created."""
     from app.extensions import db
     from app.models import Customer, Policy
     from app.commission.member_fact import MemberFact, RowClass
@@ -127,35 +133,39 @@ def test_stub_created_once_then_crosswalk_relinks(db_session, app, agency, agent
             carrier_member_id="106999999", mbi=None,
             row_class=RowClass.ENROLLMENT, amount=0.0, effective_date=date(2026, 4, 1),
         )
-        # First upload → stub created. carrier_member_id present → strong identity
-        # → §6 "new_strong" path (label changed by the prevention-boundary rewrite;
-        # behavior unchanged: a real carrier id still creates a stub + policy).
         r1 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
                               source="commission_import")
-        assert r1.created_customer is True
-        assert r1.match_path == "new_strong"
-        assert r1.customer.stub is True
-        assert r1.customer.source == "commission_import"
+        assert r1.created_customer is False
+        assert r1.match_path == "parked"
+        assert r1.customer is None
         db.session.commit()
 
-        # Second upload of the SAME fact → crosswalk re-link, NO new stub
+        # Second resolve of the SAME fact → parks again, still no customer/policy.
         r2 = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
                               source="commission_import")
         assert r2.created_customer is False
-        assert r2.match_path == "crosswalk"
-        assert r2.customer.id == r1.customer.id
+        assert r2.match_path == "parked"
+        assert r2.customer is None
 
-        # Exactly one customer + one policy exist for this member
-        assert Customer.query.filter_by(agency_id=agency.id).count() == 1
-        assert Policy.query.filter_by(agency_id=agency.id, member_id="106999999").count() == 1
+        # No customer or policy ever materialized for this member.
+        assert Customer.query.filter_by(agency_id=agency.id).count() == 0
+        assert Policy.query.filter_by(agency_id=agency.id, member_id="106999999").count() == 0
 
 
 def test_rapid_disenroll_flag_set_when_under_90_days(db_session, app, agency, agent_user):
+    """rapid_disenroll still applies on the commission path's ID-attach branch
+    (an existing customer matched by MBI), not on a parked/no-match row."""
     from app.extensions import db
+    from app.models import Customer
     from app.commission.member_fact import MemberFact, RowClass
     from app.commission.resolver import resolve_customer
 
     with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Elizabeth", last_name="Bolder",
+                     full_name="Elizabeth Bolder", mbi="1X57MJ7FA64",
+                     primary_agent_id=agent_user.id, source="bob")
+        db.session.add(c); db.session.flush()
+
         fact = MemberFact(
             carrier="Devoted", full_name="Elizabeth Bolder", first_name="Elizabeth",
             last_name="Bolder", carrier_member_id="DS97W3", mbi="1X57MJ7FA64",
@@ -164,6 +174,8 @@ def test_rapid_disenroll_flag_set_when_under_90_days(db_session, app, agency, ag
         )
         r = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
                              source="commission_import")
+        assert r.match_path == "mbi"
+        assert r.customer.id == c.id
         assert r.policy.rapid_disenroll is True
         assert "rapid_disenroll" in r.actions
 
@@ -201,7 +213,12 @@ def test_carrier_switch_terms_old_policy_and_opens_new_interval(db_session, app,
         assert intervals[0].end_date is None
 
 
-def test_suggest_link_creates_stub_and_suggestion_no_automerge(db_session, app, agency, agent_user):
+def test_name_dob_only_match_parks_no_stub_on_commission_path(db_session, app, agency, agent_user):
+    """A name+DOB near-match candidate exists, but the fact carries no MBI/
+    carrier_member_id that resolves to an existing Policy/Customer — the
+    commission path never matches on name, so this PARKS (no stub, no
+    suggest-link). Replaces the old suggest_link-creates-a-stub behavior,
+    which was a BOB-path-only tier prior to this task."""
     from app.extensions import db
     from app.models import Customer, MatchSuggestion
     from app.commission.member_fact import MemberFact, RowClass
@@ -212,6 +229,7 @@ def test_suggest_link_creates_stub_and_suggestion_no_automerge(db_session, app, 
                             full_name="Mark Brown", dob=date(1950, 4, 2),
                             primary_agent_id=agent_user.id, source="bob")
         db.session.add(existing); db.session.flush()
+        before = Customer.query.count()
 
         fact = MemberFact(
             carrier="BCBS", full_name="Brown,Mark", first_name="Mark", last_name="Brown",
@@ -221,17 +239,17 @@ def test_suggest_link_creates_stub_and_suggestion_no_automerge(db_session, app, 
         r = resolve_customer(fact, agency_id=agency.id, agent_id=agent_user.id,
                              source="commission_import")
 
-        assert r.created_customer is True
-        assert r.customer.id != existing.id
-        assert r.customer.stub is True
-        assert r.match_path == "suggest_link"
+        assert r.created_customer is False
+        assert r.customer is None
+        assert r.match_path == "parked"
         assert "match_suggestion" in r.actions
+        assert Customer.query.count() == before    # no stub created
 
         ms = MatchSuggestion.query.filter_by(agency_id=agency.id, status="pending").first()
         assert ms is not None
-        assert ms.suggested_customer_id == existing.id
-        assert ms.stub_customer_id == r.customer.id
-        assert ms.confidence == "name_dob"
+        assert ms.stub_customer_id is None
+        assert ms.suggested_customer_id is None
+        assert ms.confidence == "parked"
 
 
 def test_mbi_only_fact_is_idempotent_no_duplicate_policy(db_session, app, agency, agent_user):
@@ -282,16 +300,30 @@ def test_get_customer_policies_finds_fk_linked_bcbs_no_mbi(db_session, app, agen
 
 def test_two_facts_same_mbi_one_transaction_no_autoflush_collision(db_session, app, agency, agent_user):
     """A member appears in MULTIPLE rows of one UHC file (renewal + chargeback +
-    override). Resolving the 2nd fact must MATCH the customer the 1st fact created
-    in the SAME uncommitted transaction — not autoflush a duplicate INSERT and hit
-    ix_customers_mbi. This is the real UHC re-upload crash.
-    """
+    override). Resolving the 2nd fact must MATCH the SAME existing customer the
+    1st fact attached to, in the SAME uncommitted transaction, without an
+    autoflush collision on ix_customers_mbi.
+
+    NOTE: this used to test the commission path CREATING a stub on f1 then
+    re-finding it via crosswalk on f2 (the real UHC re-upload crash, the
+    'Sweatt→AJ' incident). Under Task 1's ID-only match-or-park rule, the
+    commission path never creates a customer, so that specific stub-creation
+    autoflush race is now structurally impossible here — there's nothing to
+    autoflush. The no-autoflush guarantee on the MBI matcher itself
+    (_match_by_mbi's `with db.session.no_autoflush`) still matters whenever a
+    customer already exists, so this test now seeds the customer up front and
+    proves two same-MBI facts in one transaction both attach to it cleanly."""
     from app.extensions import db
     from app.models import Customer, Policy
     from app.commission.member_fact import MemberFact, RowClass
     from app.commission.resolver import resolve_customer
 
     with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Ricky", last_name="Sweatt",
+                     full_name="Ricky Sweatt", mbi="8NP5GM6TK40",
+                     primary_agent_id=agent_user.id, source="bob")
+        db.session.add(c); db.session.flush()
+
         f1 = MemberFact(carrier="UHC", full_name="SWEATT, RICKY L.", mbi="8NP5GM6TK40",
                         carrier_member_id=None, row_class=RowClass.RENEWAL, amount=28.92,
                         effective_date=date(2026, 1, 1))
@@ -305,7 +337,9 @@ def test_two_facts_same_mbi_one_transaction_no_autoflush_collision(db_session, a
                               source="commission_import")
         db.session.commit()  # MUST NOT raise UniqueViolation on ix_customers_mbi
 
-        assert r2.customer.id == r1.customer.id
+        assert r1.match_path == "mbi"
+        assert r2.match_path in ("mbi", "crosswalk")
+        assert r2.customer.id == r1.customer.id == c.id
         assert Customer.query.filter_by(agency_id=agency.id, mbi="8NP5GM6TK40").count() == 1
 
 
@@ -357,12 +391,11 @@ def test_bob_aor_plan_name_preserved(db_session, app, agency, agent_user):
 
 
 def test_humana_rows_without_carrier_id_or_mbi_do_not_collide(db_session, app, agency, agent_user):
-    """Real Humana files have rows with neither PID nor MBI nor DOB — i.e. WEAK
-    identity per the §6 prevention boundary (task 2). Pre-prevention, these used
-    to fall through to an unconditional stub+policy keyed by source_ref; now they
-    correctly enqueue a needs-identity MatchSuggestion instead of fabricating a
-    phantom policy off a bare name. Verify each row gets its OWN suggestion (not
-    collapsed/collided) and neither creates a customer or policy."""
+    """Real Humana files have rows with neither PID nor MBI nor DOB — i.e. NO
+    unique carrier ID per the Task 1 ID-only rule. These now correctly PARK
+    (enqueue a MatchSuggestion) instead of fabricating a phantom policy off a
+    bare name. Verify each row gets its OWN suggestion (not collapsed/collided)
+    and neither creates a customer or policy."""
     from app.extensions import db
     from app.models import Policy, Customer, MatchSuggestion
     from app.commission.member_fact import MemberFact, RowClass
@@ -381,16 +414,15 @@ def test_humana_rows_without_carrier_id_or_mbi_do_not_collide(db_session, app, a
         r2 = resolve_customer(f2, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
         db.session.commit()  # must NOT raise IntegrityError
 
-        assert r1.match_path == "needs_identity"
-        assert r2.match_path == "needs_identity"
+        assert r1.match_path == "parked"
+        assert r2.match_path == "parked"
         assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 0
         assert Customer.query.filter_by(agency_id=agency.id).count() == 0
         assert MatchSuggestion.query.filter_by(agency_id=agency.id, status="pending").count() == 2
 
 
 def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
-    """Weak-identity Humana row with no MBI/carrier_member_id/dob: each upload
-    enqueues its own needs-identity suggestion (no policy/customer to dedupe
+    """No-ID Humana row: each resolve PARKS (no policy/customer to dedupe
     against via crosswalk, since none is created) — verify re-upload doesn't
     crash and doesn't fabricate a policy."""
     from app.extensions import db
@@ -406,8 +438,8 @@ def test_humana_no_id_row_is_idempotent(db_session, app, agency, agent_user):
         db.session.commit()
         r2 = resolve_customer(f, agency_id=agency.id, agent_id=agent_user.id, source="commission_import")
         db.session.commit()
-        assert r1.match_path == "needs_identity"
-        assert r2.match_path == "needs_identity"
+        assert r1.match_path == "parked"
+        assert r2.match_path == "parked"
         assert Policy.query.filter_by(agency_id=agency.id, carrier="Humana").count() == 0
 
 
@@ -641,10 +673,13 @@ def test_backfill_reconciles_existing_duplicate_open_intervals(db_session, app, 
         assert (groups2, closed2) == (0, 0)
 
 
-def test_unresolved_commission_stub_is_unassigned_not_uploader(db_session, app, agency):
-    """A commission row that can't resolve to a real agent must create an
-    UNASSIGNED stub (primary_agent_id NULL) and NO AOR interval — never silently
-    attribute the customer to the uploading admin. (The Sweatt→AJ bug.)"""
+def test_unresolved_commission_row_with_no_agent_parks_never_attributes_to_uploader(db_session, app, agency):
+    """A commission row that can't resolve to a real agent AND has no existing
+    customer to attach to must PARK — under Task 1's ID-only match-or-park rule
+    the commission path never creates a customer at all, which subsumes the
+    older guarantee (never silently attribute an unresolved row to the
+    uploading admin, the Sweatt→AJ bug): there's no customer for it to be
+    mis-attributed to in the first place."""
     from app.extensions import db
     from app.models import Customer, CustomerAorHistory
     from app.commission.member_fact import MemberFact, RowClass
@@ -652,6 +687,7 @@ def test_unresolved_commission_stub_is_unassigned_not_uploader(db_session, app, 
     from datetime import date
 
     with app.app_context():
+        before = Customer.query.count()
         fact = MemberFact(
             carrier="UHC", full_name="SWEATT, RICKY L.", mbi="8NP5GM6TK40",
             row_class=RowClass.RENEWAL, amount=28.92, effective_date=date(2026, 1, 1),
@@ -661,7 +697,8 @@ def test_unresolved_commission_stub_is_unassigned_not_uploader(db_session, app, 
                              source="commission_import")
         db.session.commit()
 
-        assert r.customer.stub is True
-        assert r.customer.primary_agent_id is None          # UNASSIGNED, not the uploader
-        # no fabricated AOR interval for an unassigned customer
-        assert CustomerAorHistory.query.filter_by(customer_id=r.customer.id).count() == 0
+        assert r.match_path == "parked"
+        assert r.customer is None
+        assert Customer.query.count() == before              # no stub, no misattribution
+        # no fabricated AOR interval at all (parking opens none)
+        assert CustomerAorHistory.query.count() == 0

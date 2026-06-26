@@ -139,3 +139,42 @@ def test_duplicate_customers_ignores_null_dob_names(app, db_session):
         # Only the two John Doe rows (same name+real dob) count as 1 excess;
         # the two Jane Smith rows (same name+NULL dob) do NOT count
         assert v.count == 1
+
+
+def test_commission_import_stubs_invariant_counts_only_commission_stubs(app, db_session):
+    from app.integrity import REGISTRY
+    with app.app_context():
+        a = Agency(name="T"); db.session.add(a); db.session.flush()
+        db.session.add(Customer(agency_id=a.id, first_name="A", last_name="B", full_name="A B",
+                                stub=True, source="commission_import"))
+        db.session.add(Customer(agency_id=a.id, first_name="C", last_name="D", full_name="C D",
+                                stub=True, source="bob"))            # not counted
+        db.session.commit()
+        v = REGISTRY["commission_import_stubs"]()
+        assert v.count == 1
+
+
+def test_statement_balance_complete_flags_a_dropped_payment(app, db_session):
+    """Sigma(line items) must equal Sigma(payments). A line item with no matching
+    payment is a 'lost payment' violation."""
+    from app.integrity import REGISTRY
+    with app.app_context():
+        a = Agency(name="T"); db.session.add(a); db.session.flush()
+        st = CommissionStatement(agency_id=a.id, carrier="UHC", period_label="March 2026",
+                                 statement_date=date(2026, 3, 1))
+        db.session.add(st); db.session.flush()
+        db.session.add(CommissionLineItem(agency_id=a.id, statement_id=st.id,
+            carrier="UHC", source_ref="uhc::x::1", raw_amount=10.0,
+            classification="agent_commission", customer_id=None))
+        db.session.commit()
+        v = REGISTRY["statement_balance_complete"]()
+        assert v.count >= 1
+
+        # Now add a matching payment -> balanced -> no longer flagged for this statement
+        from app.models import PolicyPayment
+        db.session.add(PolicyPayment(agency_id=a.id, statement_id=st.id, carrier="UHC",
+            period_label="March 2026", statement_date=date(2026, 3, 1),
+            member_name="Test Member", commission_action="New", paid_amount=10.0))
+        db.session.commit()
+        v2 = REGISTRY["statement_balance_complete"]()
+        assert all(s["id"] != st.id for s in v2.sample)

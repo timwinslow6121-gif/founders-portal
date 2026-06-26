@@ -117,6 +117,13 @@
   </select>
 </div>
 
+{% if is_admin and stale_parked_count %}
+<div class="summary-card" style="margin-bottom:12px;">
+  <div class="sc-label">⚠ Held &gt;30d</div>
+  <div class="sc-value warning">{{ stale_parked_count }} held &gt;30d</div>
+</div>
+{% endif %}
+
 {# Summary cards #}
 {% if summary %}
 <div class="summary-grid">

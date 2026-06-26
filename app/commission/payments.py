@@ -565,14 +565,20 @@ def sweep_parked_payments(customer, agency_id) -> int:
     """Attach every parked (policy_id IS NULL, unmatched) PolicyPayment whose unique
     carrier ID matches this just-known customer, by setting its policy_id to the
     customer's matching Policy. PolicyPayment has no customer_id column — linkage is
-    via the policy. Idempotent. Returns count attached."""
+    via the policy. Idempotent. Returns count attached.
+
+    NON_CUSTOMER rows (commission_action == 'non_customer': HRA bonuses, UHC
+    pure-overrides, PARTD dust) are deliberately member-less and already paid —
+    they are excluded so they never get swept onto a policy."""
     from app.models import PolicyPayment, Policy
     # (matcher, value) pairs keyed on the payment's columns
     ids = []
     if customer.mbi:
         ids.append(("mbi", customer.mbi))
     if getattr(customer, "humana_id", None):
-        ids.append(("carrier_member_id", customer.humana_id))
+        # Humana's UMID is stored in PolicyPayment.mbi (the carrier_member_id column
+        # holds the PID instead) — see app/commission/normalizers.py normalize_humana.
+        ids.append(("mbi", customer.humana_id))
     for p in Policy.query.filter_by(agency_id=agency_id, customer_id=customer.id,
                                     status="active").all():
         if p.member_id:
@@ -585,15 +591,24 @@ def sweep_parked_payments(customer, agency_id) -> int:
     for field, value in ids:
         q = (PolicyPayment.query
              .filter_by(agency_id=agency_id, policy_id=None)
+             .filter(PolicyPayment.commission_action != "non_customer")
              .filter(getattr(PolicyPayment, field) == value))
         for pay in q.all():
             if pay.id in seen:
                 continue
-            # find the customer's policy for this payment's carrier+id
+            # Find the customer's policy for this payment's carrier+id. Try both
+            # carrier_member_id and mbi as candidate Policy.member_id values — for
+            # Humana the payment's carrier_member_id is the PID but the Policy
+            # (and customer.humana_id) is keyed by the UMID (payment.mbi), so a
+            # single-field lookup misses; other carriers only ever populate one of
+            # the two so the extra candidate is a harmless no-op.
+            candidates = [v for v in (pay.carrier_member_id, pay.mbi) if v]
+            if not candidates:
+                continue
             pol = (Policy.query
                    .filter_by(agency_id=agency_id, customer_id=customer.id,
                               carrier=pay.carrier)
-                   .filter(Policy.member_id == (pay.carrier_member_id or pay.mbi))
+                   .filter(Policy.member_id.in_(candidates))
                    .first())
             if pol is None:
                 continue                 # no resolvable policy yet → stays parked
@@ -607,11 +622,13 @@ def sweep_parked_payments(customer, agency_id) -> int:
 
 def parked_payments_older_than(days, agency_id) -> int:
     """Count parked (policy_id IS NULL, unmatched) payments older than `days`,
-    by statement_date. The stale-park aging signal."""
+    by statement_date. The stale-park aging signal. NON_CUSTOMER rows are
+    deliberately member-less and paid, not held — excluded from the count."""
     from app.models import PolicyPayment
     from datetime import date, timedelta
     cutoff = date.today() - timedelta(days=days)
     return (PolicyPayment.query
             .filter_by(agency_id=agency_id, policy_id=None, match_confidence="unmatched")
+            .filter(PolicyPayment.commission_action != "non_customer")
             .filter(PolicyPayment.statement_date <= cutoff)
             .count())

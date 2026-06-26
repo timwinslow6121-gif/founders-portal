@@ -54,6 +54,27 @@ def test_write_payment_from_fact_inserts_then_updates(db_session, app, agency, a
         assert PolicyPayment.query.filter_by(statement_id=stmt.id).count() == 1
 
 
+def test_write_payment_normalizes_name_with_middle_initial(db_session, app, agency, agent_user):
+    """fact.full_name is "First MI. Last" (app/names.py normalize_person_name).
+    _norm() expects raw carrier "LAST, FIRST" or a plain 2-word name; feeding it a
+    3-word "First MI. Last" string hits its name-swap branch and produces garbage
+    (e.g. "j. john" for "John J. Connelly"). member_name_normalized must come out
+    as the correct "first last" key, with no middle initial and no reversal."""
+    from app.extensions import db
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.ingest import write_payment_from_fact
+
+    with app.app_context():
+        stmt = _statement(db, agency, carrier="Humana")
+        fact = MemberFact(carrier="Humana", full_name="John J. Connelly",
+                          first_name="John", last_name="Connelly",
+                          row_class=RowClass.RENEWAL, amount=50.0)
+
+        p = write_payment_from_fact(fact, stmt, None, agency.id, agent_user.id)
+        db.session.flush()
+        assert p.member_name_normalized == "john connelly"
+
+
 def test_write_payment_flags_chargeback_on_negative(db_session, app, agency, agent_user):
     from app.extensions import db
     from app.models import Customer, Policy

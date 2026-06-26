@@ -29,7 +29,14 @@ def write_payment_from_fact(fact: MemberFact, statement, policy, agency_id: int,
     """Insert or update (in place) a PolicyPayment for this fact within the statement."""
     key = _payment_key(fact)
     action = fact.row_class  # canonical: enrollment|renewal|chargeback|non_customer
-    norm_name = _norm(fact.full_name)
+    # fact.full_name is "First MI. Last" (app/names.py normalize_person_name) —
+    # _norm() expects raw carrier "LAST, FIRST" or a plain 2-word name; a 3-word
+    # "First MI. Last" string hits its 3+-word swap branch and produces garbage
+    # (e.g. "j. john" for "John J. Connelly"). Build the normalized key from the
+    # structured last/first fields instead, via _norm's own comma-form parsing,
+    # so this agrees with the legacy build_payments() normalized key.
+    norm_name = _norm(f"{fact.last_name}, {fact.first_name}") if fact.last_name or fact.first_name \
+        else _norm(fact.full_name)
     source_ref = (fact.source_ref or "").strip() or None
 
     if source_ref:

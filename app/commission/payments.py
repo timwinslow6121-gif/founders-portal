@@ -559,3 +559,47 @@ def build_payments(statement, carrier, agent_id, agency_id, ws):
 
     db.session.flush()
     return count
+
+
+def sweep_parked_payments(customer, agency_id) -> int:
+    """Attach every parked (policy_id IS NULL, unmatched) PolicyPayment whose unique
+    carrier ID matches this just-known customer, by setting its policy_id to the
+    customer's matching Policy. PolicyPayment has no customer_id column — linkage is
+    via the policy. Idempotent. Returns count attached."""
+    from app.models import PolicyPayment, Policy
+    # (matcher, value) pairs keyed on the payment's columns
+    ids = []
+    if customer.mbi:
+        ids.append(("mbi", customer.mbi))
+    if getattr(customer, "humana_id", None):
+        ids.append(("carrier_member_id", customer.humana_id))
+    for p in Policy.query.filter_by(agency_id=agency_id, customer_id=customer.id,
+                                    status="active").all():
+        if p.member_id:
+            ids.append(("carrier_member_id", p.member_id))
+    if not ids:
+        return 0
+
+    attached = 0
+    seen = set()
+    for field, value in ids:
+        q = (PolicyPayment.query
+             .filter_by(agency_id=agency_id, policy_id=None)
+             .filter(getattr(PolicyPayment, field) == value))
+        for pay in q.all():
+            if pay.id in seen:
+                continue
+            # find the customer's policy for this payment's carrier+id
+            pol = (Policy.query
+                   .filter_by(agency_id=agency_id, customer_id=customer.id,
+                              carrier=pay.carrier)
+                   .filter(Policy.member_id == (pay.carrier_member_id or pay.mbi))
+                   .first())
+            if pol is None:
+                continue                 # no resolvable policy yet → stays parked
+            pay.policy_id = pol.id
+            if pay.match_confidence == "unmatched":
+                pay.match_confidence = "swept"
+            seen.add(pay.id)
+            attached += 1
+    return attached

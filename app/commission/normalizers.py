@@ -19,6 +19,7 @@ Healthspring Detail column layout (0-indexed, verified against fixture):
 from app.commission.member_fact import MemberFact, RowClass
 from app.commission.payments import _parse_date
 from app.commission.ledger import _devoted_format, _devoted_filetoken
+from app.names import normalize_person_name
 
 
 def _to_float(v):
@@ -70,11 +71,12 @@ def normalize_healthspring(sheets):
             continue
 
         name = str(row[10] or "").strip()
+        first_n, mi, last_n, full = normalize_person_name(name)
         fact = MemberFact(
             carrier="Healthspring",
-            full_name=name,
-            first_name=name.split()[0] if name else "",
-            last_name=name.split()[-1] if name else "",
+            full_name=full,
+            first_name=first_n,
+            last_name=last_n,
             mbi=str(row[9] or "").strip() or None,
             carrier_member_id=member_id,
             effective_date=_parse_date(row[12]),
@@ -146,12 +148,13 @@ def _normalize_devoted_agency(sheets, filetoken):
         amount = _to_float(row[17])
         first = str(row[5] or "").strip()
         last = str(row[6] or "").strip()
+        first_n, mi, last_n, full = normalize_person_name(f"{last}, {first}")
         disen = _parse_date(row[10])
         facts[member_id] = MemberFact(
             carrier="Devoted",
-            full_name=f"{first} {last}".strip(),
-            first_name=first,
-            last_name=last,
+            full_name=full,
+            first_name=first_n,
+            last_name=last_n,
             mbi=str(row[4] or "").strip() or None,    # HICN (MBI-shaped)
             carrier_member_id=member_id,
             effective_date=_parse_date(row[9]),
@@ -212,12 +215,13 @@ def _normalize_devoted_statement(sheets, filetoken):
         amount = _to_float(row[17])
         first = str(row[5] or "").strip()
         last = str(row[6] or "").strip()
+        first_n, mi, last_n, full = normalize_person_name(f"{last}, {first}")
         disen = _parse_date(row[10])
         out.append(MemberFact(
             carrier="Devoted",
-            full_name=f"{first} {last}".strip(),
-            first_name=first,
-            last_name=last,
+            full_name=full,
+            first_name=first_n,
+            last_name=last_n,
             mbi=str(row[4] or "").strip() or None,
             carrier_member_id=member_id,
             effective_date=_parse_date(row[9]),
@@ -289,17 +293,13 @@ def normalize_bcbs(sheets):
         customer_no = str(row[5] or "").strip()
         if not name or not customer_no:        # skips Total: row
             continue
-        if "," in name:
-            last, first_rest = [p.strip() for p in name.split(",", 1)]
-            first = first_rest.split()[0] if first_rest else ""
-        else:
-            last, first = name, ""
+        first_n, mi, last_n, full = normalize_person_name(name)
         amount = _to_float(row[14])
         out.append(MemberFact(
             carrier="BCBS",
-            full_name=name,
-            first_name=first,
-            last_name=last,
+            full_name=full,
+            first_name=first_n,
+            last_name=last_n,
             mbi=None,
             carrier_member_id=customer_no,
             effective_date=_parse_date(row[6]),
@@ -364,11 +364,14 @@ def normalize_aetna(sheets):
         name = str(row[4] or "").strip()
         if not name:
             continue
+        first, mi, last, full = normalize_person_name(name)
         amount = _to_float(row[20])
         contract, pbp = _split_plan_id(row[9])
         out.append(MemberFact(
             carrier="Aetna",
-            full_name=name,
+            full_name=full,
+            first_name=first,
+            last_name=last,
             mbi=str(row[1] or "").strip() or None,
             carrier_member_id=str(row[2] or "").strip() or None,
             effective_date=_parse_date(row[12]),
@@ -478,9 +481,12 @@ def normalize_uhc(sheets, writing_id_to_name=None, agency_id=None):
         agent = writing_id_to_name.get(wid) or str(row[_UHC_AGENT] or "").strip()
         plan_type = str(row[_UHC_PLANTYPE] or "").strip() or None
         action = str(row[_UHC_ACTION] or "").strip()
+        first, mi, last, full = normalize_person_name(member)
         out.append(MemberFact(
             carrier="UHC",
-            full_name=member,
+            full_name=full,
+            first_name=first,
+            last_name=last,
             mbi=str(row[_UHC_MBI] or "").strip() or None,
             effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
             plan_contract=str(row[_UHC_CONTRACT] or "").strip() or None,
@@ -518,7 +524,8 @@ def normalize_humana(sheets):
         if not umid and not grp:
             continue
         amount = _to_float(g(row, "PaidAmount"))
-        full, first, last = _humana_name(grp)
+        _, guess_first, guess_last = _humana_name(grp)
+        first, mi, last, full = normalize_person_name(f"{guess_last}, {guess_first}")
         out.append(MemberFact(
             carrier="Humana",
             full_name=full,

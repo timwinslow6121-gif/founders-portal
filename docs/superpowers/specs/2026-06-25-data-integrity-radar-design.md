@@ -1,6 +1,11 @@
 # Item 0 — Data-Integrity Radar & Guard Suite — Design
 
-_Date: 2026-06-25 · Status: approved, ready for implementation plan. This is **item 0**
+_Date: 2026-06-25 · Status: ✅ SHIPPED + DEPLOYED + LIVE 2026-06-26 (merge edbc991, baseline
+7da4dd9). Radar live on VPS; opus whole-branch review clean (1 minor NULL-dob false-positive
+caught + fixed). Frozen production baseline: plan_id_orphans=4611, orphan_stub_customers=571,
+payment_without_customer=76, no_name_policies=56, duplicate_customers=18 (NULL-dob excluded =
+high-confidence), backwards_date/carrier_agree/count_via_metrics/links_resolve=0, no_orphan_routes=7.
+`/admin/integrity` live (admin-only). Ratchet active (CI fails if any count > baseline). This is **item 0**
 of `2026-06-25-data-integrity-remediation-roadmap.md` — built BEFORE remediation items
 1-5 because it's the radar that proves each fix worked and the net that stops new
 corruption._

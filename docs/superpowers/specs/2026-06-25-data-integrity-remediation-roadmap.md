@@ -47,7 +47,14 @@ into 1, reconciling MBI/DOB/name/policies/AOR onto the keeper.
 
 ## The roadmap (build in this order — radar first, then prevention, cure, linkage, display)
 
-### 0. Data-Integrity Radar & Guard Suite (BUILD FIRST)
+### 0. Data-Integrity Radar & Guard Suite (BUILD FIRST) — ✅ SHIPPED + LIVE 2026-06-26
+**Status:** Done (merge edbc991, baseline 7da4dd9). `app/integrity.py` registry + 10 invariants +
+`scripts/audit_integrity.py` CLI + `/admin/integrity` dashboard + `tests/test_integrity_guards.py`
+ratchet against `integrity_baseline.json`. Frozen prod baseline = the live debt (see below). Opus
+whole-branch review clean. **LIVE DEBT (the work items 1-5 drive to 0):** plan_id_orphans=4611,
+orphan_stub_customers=571, payment_without_customer=76, no_name_policies=56, duplicate_customers=18
+(high-confidence; NULL-dob name matches excluded). Each remediation item below now = "clean its
+invariant to 0 + ratchet the baseline down."
 **Goal:** the radar + ratchet that ends whack-a-mole. One `@invariant` registry
 (`app/integrity.py`) feeding a CLI, an `/admin/integrity` dashboard, and a CI guard with
 a baseline ratchet (fails only if a count goes ABOVE its frozen baseline → existing debt

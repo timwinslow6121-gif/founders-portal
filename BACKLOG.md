@@ -9,7 +9,7 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-06-25_
+_Last updated: 2026-06-26_
 
 ---
 
@@ -114,8 +114,21 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 
 ---
 
+## 🩺 DATA-INTEGRITY REMEDIATION (roadmap `docs/superpowers/specs/2026-06-25-data-integrity-remediation-roadmap.md`)
+- ✅ **Item 0 — DATA-INTEGRITY RADAR — SHIPPED + LIVE 2026-06-26** (merge edbc991, baseline 7da4dd9). `app/integrity.py` invariant registry + CLI + `/admin/integrity` + CI baseline-ratchet guard (fails only if a count rises above its frozen baseline). Lifecycle- + multi-AOR-aware. Opus review clean (1 NULL-dob false-positive fixed). **Frozen live debt = the to-do list:** plan_id_orphans 4611, orphan_stub_customers 571, payment_without_customer 76, no_name_policies 56, duplicate_customers 18 (NULL-dob excluded); rest 0 except no_orphan_routes 7. **The remaining roadmap items 1-7 each clean their invariant to 0 + ratchet down.**
+- 🔴 **Item 1 — stub-creation PREVENTION (NEXT — brainstorm).** Commission import spawns dup customer stubs instead of matching the existing person (John Connelly = 1 person, Tim confirmed, split into 5 rows). Strengthen the match ladder (reuse `app/identity.py` corroborated matcher); only create a stub when no corroboration. Cleans `orphan_stub_customers` going forward.
+- 🔴 **Item 2 — no-MBI customer MERGE.** Collapse the 18 high-confidence (+ the wider name+dob) dup clusters into one profile, reattach policies/payments/AOR/notes; also delivers "merge when MBI already used" (#4). John Connelly → 1.
+- 🔴 **Item 3 — plan_id LINKAGE repair.** Backfill the 4,611 orphans from plan aliases so plan-page counts == carrier counts (the 250-vs-1701 bug). Guard against re-orphaning.
+- 🟠 **Item 4 — hub RESOLVE actions.** Make Needs-Identity needs-match/needs-name actionable (currently "no match found, queued" with no picker).
+- 🟠 **Item 5 — count consistency + guard** (absorbed the narrow `2026-06-25-cross-page-count-consistency-design.md`). Members·policies labeled, all via metrics; migrate `customers.py` onto metrics; the `count_only_via_metrics` invariant tightens here.
+- 🟠 **Item 6 — lead lifecycle (stage-driven + auto-advance).** `deal_stage` + `source='manual'` govern Lead vs Customer; auto-advance to Active on eff date; Leads filter. Radar already EXEMPTS non-Active stages.
+- 🟠 **Item 7 — AOR is per-policy (multi-AOR model-truth).** Retire single `Customer.primary_agent_id`; derive agents from policy AORs (Rebekah=MAPD + Tim=hospital-indemnity, same customer). Likely a dup-stub root cause; bigger blast radius, own spec.
+- 🟢 **Radar deferred minors (final-review triage):** `_META` dict unused (kept for dashboard); `count_only_via_metrics` regex is Policy-rooted so customers.py subquery counts aren't flagged (item 5 tightens); base.html nav uses hardcoded `href=` not `url_for` so `links_resolve` can't catch a broken nav link there; admin_integrity.html dropped severity color-coding (correctness over guessed CSS); suggest a `_relogin(client,uid)` test helper.
+
 ## ✅ Recently shipped (prune after ~1 week)
 _Keep this short — it's a confidence check that things landed, not a permanent log (CLAUDE.md Build Status is the permanent record)._
 
+- ✅ 2026-06-26 — **DATA-INTEGRITY RADAR (item 0) LIVE** — see the 🩺 section above. The radar/ratchet that ends whack-a-mole; `/admin/integrity` shows every violation; CI can't let any count grow.
+- ✅ 2026-06-25 — **Chronological BOB dedup (Robbie Belk + 13)** (commit f320232, 3-layer fix: dedup + policy-term + AOR-close, all opus-reviewed) + **3 customer-page bugs** (blank All-Customers table = ReferenceError in search-render JS w/ no .catch(); token-aware name search for middle initials; AOR History shows term dates). See ⚠ Regressions for detail.
 - ✅ 2026-06-23 — **BOB DATA-INTEGRITY MARATHON (4 rounds, all LIVE on VPS):** (1) Agency Metrics + Attribution — `app/metrics.py` single source + guard test, honest dashboard, `/carriers/c/<carrier>` + Brian toggle; **Brian 481→1,216, unassigned customers 2,833→38.** (2) Identity Recovery — four-link traceability + Needs Identity hub; **393 payments + 2,350 AOR intervals recovered.** (3) Aetna XLSX parser rewrite (was agent 0%). (4) Aetna CSV BOB + plan-history — **attribution 58→74 (100%), DOB/phone/address freshness, term→close-open-AOR lifecycle, plan-history timeline LIVE.** Each round: spec→plan→subagent build + opus whole-branch review (caught a real bug every time) + DB-backup + Postgres verify. Full detail: `memory/session-handoff-2026-06-23-bob-data-integrity.md`.
 - ✅ 2026-06-18 — Humana BOB now uploads as **XLSX** (AJ's export switched CSV→XLSX); `_detect_carrier` BOB fingerprint added + `humana.parse` reads .xlsx. Commit e532d86. Verified: 2,271 active policies.

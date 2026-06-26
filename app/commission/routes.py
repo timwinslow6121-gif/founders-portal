@@ -548,6 +548,19 @@ def _parse_date_from_filename(filename):
     return None
 
 
+def _carrier_supported_or_reason(carrier):
+    """Return (True, '') if we can ingest this carrier, else (False, reason)."""
+    from app.commission.normalizers import NORMALIZERS
+    if not carrier:
+        return False, ("Could not detect the carrier from this file's headers. "
+                       "Nothing was imported.")
+    if carrier not in NORMALIZERS:
+        supported = ", ".join(sorted(NORMALIZERS))
+        return False, (f"Cannot parse this file — carrier '{carrier}' is not yet "
+                       f"supported (supported: {supported}). Nothing was imported.")
+    return True, ""
+
+
 def _detect_carrier(ws):
     headers = [str(c.value or "").lower() for c in ws[1]]
     header_str = " ".join(headers)
@@ -1038,8 +1051,9 @@ def commission_upload():
         return redirect(url_for("commission.commission_admin"))
 
     carrier = _detect_carrier(ws)
-    if not carrier:
-        flash("Could not detect carrier. Check column headers.", "error")
+    ok, reason = _carrier_supported_or_reason(carrier)
+    if not ok:
+        flash(reason, "error")
         return redirect(url_for("commission.commission_admin"))
 
     try:

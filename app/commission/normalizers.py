@@ -354,11 +354,11 @@ def normalize_aetna(sheets):
     """Agency-level Aetna file: one sheet, named after the agency."""
     if not sheets:
         return []
-    first = next(iter(sheets.values()))
-    if not first:
+    rows = next(iter(sheets.values()))
+    if not rows:
         return []
     out = []
-    for idx, row in enumerate(first[1:], start=1):
+    for idx, row in enumerate(rows[1:], start=1):
         if not any(row) or len(row) < 21:
             continue
         name = str(row[4] or "").strip()

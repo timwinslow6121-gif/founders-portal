@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment, CommissionLineItem, AgentRecapPeriod
 from app.commission import commission_bp
-from app.commission.payments import build_payments
+from app.commission.payments import build_payments, parked_payments_older_than
 from app.commission.ingest import ingest_statement, compute_fingerprint
 from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
@@ -1498,6 +1498,8 @@ def commission_ledger_admin():
 
     selected_agent_id = agent_id_arg or (agents[0].id if agents else None)
 
+    stale_parked_count = parked_payments_older_than(30, agency_id)
+
     periods = []
     if selected_agent_id:
         periods = (db.session.query(PolicyPayment.period_label, PolicyPayment.statement_date)
@@ -1555,6 +1557,7 @@ def commission_ledger_admin():
         viewing_agent=User.query.get(selected_agent_id) if selected_agent_id else None,
         agents=agents,
         selected_agent_id=selected_agent_id,
+        stale_parked_count=stale_parked_count,
     )
 
 

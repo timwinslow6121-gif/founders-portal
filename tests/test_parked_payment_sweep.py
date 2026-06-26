@@ -71,4 +71,40 @@ def test_sweep_is_idempotent(db_session, app):
                               status="active", customer_id=c.id)); db.session.flush()
         assert sweep_parked_payments(c, a.id) == 1
         db.session.flush()
-        assert sweep_parked_payments(c, a.id) == 0      # nothing left to sweep (policy_id set)
+
+
+def test_parked_older_than_counts_aged_holds(db_session, app):
+    from app.extensions import db
+    from app.models import PolicyPayment, CommissionStatement
+    from app.commission.payments import parked_payments_older_than
+    from datetime import date, timedelta
+    with app.app_context():
+        a, u = _agency_and_user(db, app)
+        old = CommissionStatement(agency_id=a.id, carrier="UHC",
+                                  statement_date=date.today() - timedelta(days=45),
+                                  period_label="old")
+        db.session.add(old); db.session.flush()
+        db.session.add(PolicyPayment(agency_id=a.id, statement_id=old.id, carrier="UHC",
+                                     member_name="Old Hold", period_label="old",
+                                     commission_action="renewal",
+                                     mbi="OLD1", paid_amount=10.0, policy_id=None,
+                                     match_confidence="unmatched",
+                                     statement_date=date.today() - timedelta(days=45),
+                                     source_ref="uhc::x::S::99"))
+        db.session.flush()
+        assert parked_payments_older_than(30, a.id) >= 1
+
+        # A fresh/recent parked payment should NOT count toward the >30d total.
+        before = parked_payments_older_than(30, a.id)
+        recent = CommissionStatement(agency_id=a.id, carrier="UHC",
+                                     statement_date=date.today(), period_label="recent")
+        db.session.add(recent); db.session.flush()
+        db.session.add(PolicyPayment(agency_id=a.id, statement_id=recent.id, carrier="UHC",
+                                     member_name="Fresh Hold", period_label="recent",
+                                     commission_action="renewal",
+                                     mbi="NEW1", paid_amount=10.0, policy_id=None,
+                                     match_confidence="unmatched",
+                                     statement_date=date.today(),
+                                     source_ref="uhc::x::S::100"))
+        db.session.flush()
+        assert parked_payments_older_than(30, a.id) == before

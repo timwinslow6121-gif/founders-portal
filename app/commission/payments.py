@@ -603,3 +603,15 @@ def sweep_parked_payments(customer, agency_id) -> int:
             seen.add(pay.id)
             attached += 1
     return attached
+
+
+def parked_payments_older_than(days, agency_id) -> int:
+    """Count parked (policy_id IS NULL, unmatched) payments older than `days`,
+    by statement_date. The stale-park aging signal."""
+    from app.models import PolicyPayment
+    from datetime import date, timedelta
+    cutoff = date.today() - timedelta(days=days)
+    return (PolicyPayment.query
+            .filter_by(agency_id=agency_id, policy_id=None, match_confidence="unmatched")
+            .filter(PolicyPayment.statement_date <= cutoff)
+            .count())

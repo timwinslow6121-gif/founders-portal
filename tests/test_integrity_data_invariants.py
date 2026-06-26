@@ -115,3 +115,27 @@ def test_orphan_stub_customers_exempts_manual_lead(app, db_session):
         db.session.commit()
         v = REGISTRY["orphan_stub_customers"]()
         assert v.count == 1          # only the import stub
+
+
+def test_duplicate_customers_ignores_null_dob_names(app, db_session):
+    """Two non-stub customers with the SAME name but BOTH dob=None should NOT be
+    clustered as a duplicate. Name alone (without DOB) is not identity."""
+    from app.integrity import REGISTRY
+    with app.app_context():
+        a = Agency(name="T"); db.session.add(a); db.session.flush()
+        u = User(name="Ag", email="ag@x.com", agency_id=a.id); db.session.add(u); db.session.flush()
+        # Two different real people who share a name, both with missing DOB
+        db.session.add(Customer(agency_id=a.id, full_name="Jane Smith", first_name="Jane", last_name="Smith",
+                                dob=None, stub=False, primary_agent_id=u.id))
+        db.session.add(Customer(agency_id=a.id, full_name="Jane Smith", first_name="Jane", last_name="Smith",
+                                dob=None, stub=False, primary_agent_id=u.id))
+        # Also verify the positive case: same name + same real DOB STILL counts as duplicate
+        db.session.add(Customer(agency_id=a.id, full_name="John Doe", first_name="John", last_name="Doe",
+                                dob=date(1960,5,15), stub=False, primary_agent_id=u.id))
+        db.session.add(Customer(agency_id=a.id, full_name="John Doe", first_name="John", last_name="Doe",
+                                dob=date(1960,5,15), stub=False, primary_agent_id=u.id))
+        db.session.commit()
+        v = REGISTRY["duplicate_customers"]()
+        # Only the two John Doe rows (same name+real dob) count as 1 excess;
+        # the two Jane Smith rows (same name+NULL dob) do NOT count
+        assert v.count == 1

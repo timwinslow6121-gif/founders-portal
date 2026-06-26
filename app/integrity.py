@@ -110,11 +110,16 @@ def _duplicate_customers():
     # Group non-stub-distinct customers by (normalized name, dob). A person with two
     # concurrent policies/AORs is still ONE customer row, so grouping by name+dob (not
     # by policy/agent) cannot mistake a multi-AOR customer for a duplicate.
+    # IMPORTANT: Only cluster customers with a NON-NULL dob. A NULL dob alone is NOT
+    # identity; two different real people sharing a name but both missing DOB should NOT
+    # be clustered as a duplicate (name without DOB is not enough to assert same person).
     rows = Customer.query.filter(Customer.stub.is_(False)).with_entities(
         Customer.id, Customer.full_name, Customer.dob).all()
     from collections import defaultdict
     clusters = defaultdict(list)
     for cid, name, dob in rows:
+        if dob is None:
+            continue  # Skip NULL-dob customers; they cannot form identity clusters
         key = (_norm_name(name), dob)
         if key[0]:
             clusters[key].append(cid)

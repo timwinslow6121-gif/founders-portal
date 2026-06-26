@@ -426,3 +426,28 @@ def test_humana_upload_attributes_to_real_agents_not_uploader(client, app, agenc
         # most payments should NOT be on the uploader (ajid); multiple real agents present
         assert len([a for a in by_agent if a and a != ajid]) >= 4
         assert by_agent.get(ajid, 0) < 20   # only the genuinely-unmatched few (e.g. RIDDLE) fall back
+
+
+def test_parked_row_writes_held_unattached_payment(db_session, app, agency, agent_user):
+    from app.extensions import db
+    from app.models import PolicyPayment, Customer
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission import ingest as ingest_mod
+    with app.app_context():
+        stmt = _statement(db, agency, carrier="UHC")
+        before = Customer.query.count()
+        fact = MemberFact(carrier="UHC", full_name="Bob Jones", first_name="Bob",
+                          last_name="Jones", mbi="9XX9XX9XX99",
+                          row_class=RowClass.ENROLLMENT, amount=100.0,
+                          effective_date=date(2026, 6, 1), source_ref="uhc::x::Sheet1::9")
+        res = ingest_mod.resolve_customer(fact, agency_id=agency.id,
+                                          agent_id=agent_user.id, source="commission_import")
+        assert res.match_path == "parked"
+        assert res.policy is None
+        p = ingest_mod.write_payment_from_fact(fact, stmt, res.policy, agency.id, agent_user.id)
+        db.session.flush()
+        assert Customer.query.count() == before        # nothing created
+        # PolicyPayment has no customer_id column — linkage is via policy_id only.
+        assert p.policy_id is None                      # held, unattached
+        assert p.match_confidence == "unmatched"
+        assert p.paid_amount == 100.0                  # recorded + counted (not lost)

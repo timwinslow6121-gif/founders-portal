@@ -70,7 +70,10 @@ def write_payment_from_fact(fact: MemberFact, statement, policy, agency_id: int,
     existing.mbi = fact.mbi
     existing.carrier_member_id = fact.carrier_member_id
     existing.policy_id = policy.id if policy is not None else None
-    existing.match_confidence = "exact" if (fact.mbi or fact.carrier_member_id) else "name"
+    if policy is None:
+        existing.match_confidence = "unmatched"
+    else:
+        existing.match_confidence = "exact" if (fact.mbi or fact.carrier_member_id) else "name"
     existing.commission_action = action
     existing.paid_amount = fact.amount
     existing.is_chargeback = fact.amount < 0
@@ -107,6 +110,7 @@ class IngestResult:
     chargebacks: int = 0
     match_suggestions: int = 0
     carrier_switches: int = 0
+    parked_payments: int = 0
     gross: float = 0.0
     actions: List[str] = field(default_factory=list)
 
@@ -161,6 +165,8 @@ def ingest_statement(statement, carrier: str, agent_id, agency_id: int, sheets,
             result.match_suggestions += 1
         if "carrier_switch" in res.actions:
             result.carrier_switches += 1
+        if res.match_path == "parked":
+            result.parked_payments += 1
 
         write_payment_from_fact(fact, statement, res.policy, agency_id, row_agent_id)
         result.payments_written += 1

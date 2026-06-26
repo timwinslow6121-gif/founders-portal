@@ -758,6 +758,9 @@
         <a href="{{ url_for('main.admin_audit_log') }}" class="nav-item {% if request.endpoint == 'main.admin_audit_log' %}active{% endif %}">
           <span class="nav-dot"></span>Audit Log
         </a>
+        <a href="{{ url_for('main.admin_integrity') }}" class="nav-item {% if request.endpoint == 'main.admin_integrity' %}active{% endif %}">
+          <span class="nav-dot"></span>Data Integrity
+        </a>
         <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
           <span class="nav-dot"></span>Upload Carrier Files
         </a>

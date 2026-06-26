@@ -167,6 +167,27 @@ def admin_overview():
         today=today)
 
 
+@main.route('/admin/integrity')
+@login_required
+def admin_integrity():
+    if not current_user.is_admin:
+        abort(403)
+    from app.integrity import run_all, load_baseline
+    baseline = load_baseline()
+    violations = run_all()
+    rows = []
+    for v in violations:
+        base = baseline.get(v.key, 0)
+        rows.append({"key": v.key, "domain": v.domain, "severity": v.severity,
+                     "count": v.count, "baseline": base, "delta": v.count - base,
+                     "description": v.description, "sample": v.sample})
+    by_domain = {}
+    for r in rows:
+        by_domain.setdefault(r["domain"], []).append(r)
+    return render_template("admin_integrity.html", by_domain=by_domain,
+                           total=sum(r["count"] for r in rows))
+
+
 @main.route('/admin/unattributed-policies')
 @login_required
 def unattributed_policies():

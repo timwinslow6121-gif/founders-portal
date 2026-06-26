@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1 style="color:var(--ivory-bright)">Data Integrity</h1>
+  <p class="text-muted">{{ total }} total violations across {{ by_domain|length }} domains.
+     Counts above their baseline are regressions (red).</p>
+</div>
+
+{% for domain, rows in by_domain.items() %}
+<div class="card">
+  <h2 style="color:var(--ivory-bright)">{{ domain|capitalize }}</h2>
+  <table class="data-table">
+    <thead><tr><th>Invariant</th><th>Sev</th><th>Count</th><th>Baseline</th>
+               <th>Δ</th><th>Description</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td style="font-weight:600">{{ r.key }}</td>
+        <td><span class="badge">{{ r.severity }}</span></td>
+        <td>{{ r.count }}</td>
+        <td class="text-muted">{{ r.baseline }}</td>
+        <td style="color:{{ 'var(--green)' if r.delta<=0 else '#C0392B' }};font-weight:700">
+          {{ '+' if r.delta>0 else '' }}{{ r.delta }}</td>
+        <td class="text-muted" style="font-size:12px">{{ r.description }}
+          {% if r.sample %}<br><span style="font-size:11px">
+            e.g. {{ r.sample[:3]|map(attribute='label')|join('; ') }}</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% endblock %}

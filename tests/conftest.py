@@ -29,6 +29,14 @@ def app():
         SECRET_KEY="test",
         SERVER_NAME=None,
         RATELIMIT_ENABLED=False,
+        # The test client talks plain http://, so a Secure-flagged session
+        # cookie (set in production via S1 hardening) never round-trips back
+        # to the server on the next request — flask-login then sees no
+        # _user_id and treats the request as anonymous. Disable Secure only
+        # for this shared test app; test_security.py verifies the real flag
+        # on its own independently-built app instances.
+        SESSION_COOKIE_SECURE=False,
+        REMEMBER_COOKIE_SECURE=False,
     )
     # The module-level Flask-Limiter singleton had `enabled` set from this app's
     # config during create_app() -> init_security(), BEFORE the override above.

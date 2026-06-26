@@ -12,7 +12,7 @@
 
 - **Commission import NEVER creates or edits a Customer.** `_create_stub` must be unreachable when `source == "commission_import"`. Verbatim spec rule.
 - **Auto-attach ONLY via a 100%-unique carrier ID** (MBI / humana_id / carrier_member_id, carrier-scoped). NEVER match on name for auto-attach. No ID match → park.
-- **Park HOLDS THE WHOLE PAYMENT** — no payout to agent OR agency until customer AND pay-split are both confident. A parked payment is recorded + counted, paid to nobody.
+- **Park holds the CUSTOMER LINKAGE** — a parked payment is recorded + counted but has no `policy_id` (unattached to a person) until resolved. **NOTE (corrected post-review, Tim's call):** this branch does NOT hold the *payout* — agent payout flows from the `CommissionLineItem` ledger regardless of park-state (unchanged from before). Enforcing "no payout until customer+split confident" is a separate follow-up item (see BACKLOG), not in this merge.
 - **NON_CUSTOMER rows (HRA bonuses etc.) are unchanged** — they already pay an agent with `customer=None` and are handled before `resolve_customer` in `ingest.py`. Do not touch that path.
 - **BOB path (`source="bob" / source != "commission_import"`) keeps full creation rights** — its ladder is untouched.
 - **8 carriers:** UHC, Humana, Devoted, BCBS, Aetna, Healthspring, Medico/Wellable, GTL. `NORMALIZERS` covers 6 (no Medico/Wellable, no GTL). Unknown/unsupported carrier upload → block with a clear reason, import nothing.

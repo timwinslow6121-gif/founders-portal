@@ -106,17 +106,24 @@ A parked payment is **not** a new entity — it is the data we already write:
 The agency's money math stays whole: parked payments are recorded and counted (the
 recap/balance still sums correctly), shown as "unattached — needs review," not dropped.
 
-**Park HOLDS THE WHOLE PAYMENT — no payout until 100% confident on BOTH customer AND
-pay-split (Tim's decision).** A parked payment is *recorded and counted* but *paid to
-nobody* — neither the agent nor the agency — until it is resolved. Rationale: the
-split/payout is itself a confidence problem, not a given. Agent pay nuance is real
-(LOA arrangements, the retired-agent rollup Cyndi/Don→Brian, Betty's 52.5%, UHC overrides),
-so a shaky agent-match would produce a *mismatched payment* — the exact failure this whole
-effort exists to eliminate. Holding the payment is therefore correct: an agent's correct
-pay is never delayed by a *known-good* match, and a *not-yet-trusted* one never goes out
-wrong. (NB: this is stricter than NON_CUSTOMER rows like HRA bonuses, which DO pay an agent
-with no customer — those are a distinct, already-trusted case and are unchanged. A
-genuinely-unmatched member payment HOLDS.)
+**Park holds the CUSTOMER LINKAGE — the payment is recorded, counted, and unattached
+to a person until resolved.** A parked `PolicyPayment` has no `policy_id` (no customer),
+sits in the needs-identity hub, and auto-attaches when a BOB import supplies the matching
+ID. The agency's money math stays whole (Σ still balances); the parked row simply isn't
+tied to a customer profile yet.
+
+**⚠ SCOPE NOTE (corrected after the whole-branch review, 2026-06-26 — Tim's decision):**
+this branch does NOT enforce "no payout until customer + split are confident." Agent payout
+is computed from the `CommissionLineItem` ledger via the recap (`split_breakdown`), which is
+written for every amount-bearing row regardless of park-state — so a parked member's money
+still appears in the agent's recap, exactly as it did pre-branch (when an unmatched row
+created a stub and still paid out). **Payout behavior is therefore UNCHANGED by item 1.**
+The stricter guarantee — *hold the payout itself until both the customer AND the pay-split
+are 100% confident* — is real and desirable but belongs with the commission-trust /
+reconciliation work (it carries split-confidence nuance: LOA arrangements, the Cyndi/Don→Brian
+rollup, Betty's 52.5%, UHC overrides). It is split out as its own follow-up item (see
+BACKLOG) rather than expanded into this stub-prevention merge. NON_CUSTOMER rows (HRA
+bonuses etc.) are a distinct, already-trusted, paid case and are explicitly NOT parked.
 
 ### C. Auto-sweep on BOB import (the thing that empties the parking lot)
 

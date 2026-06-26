@@ -75,8 +75,8 @@ In `resolve_customer()`, when `source == "commission_import"`, the resolution la
 1.  crosswalk            (Policy by carrier + effective member_id)   → adopt, attach
 2.  MBI / humana_id      (Customer by mbi / humana_id)               → attach
 2b. carrier_member_id    (Customer via active Policy member_id)      → attach
-→   PARK                 (no ID match): NO customer, NO policy, NO AOR.
-                          Record a parked PolicyPayment + a needs-identity item.
+→   PARK                 (no ID match): NO customer, NO policy, NO AOR, NO payout.
+                          Record a parked PolicyPayment (held) + a needs-identity item.
 ```
 
 Everything from step 3 onward in the current resolver (composite, name+DOB suggest-link,
@@ -102,7 +102,19 @@ A parked payment is **not** a new entity — it is the data we already write:
   match it. **Reuse the hub — do not build a new queue** (Tim's constraint).
 
 The agency's money math stays whole: parked payments are recorded and counted (the
-recap/balance still sums correctly), shown as "unattached — needs a customer," not dropped.
+recap/balance still sums correctly), shown as "unattached — needs review," not dropped.
+
+**Park HOLDS THE WHOLE PAYMENT — no payout until 100% confident on BOTH customer AND
+pay-split (Tim's decision).** A parked payment is *recorded and counted* but *paid to
+nobody* — neither the agent nor the agency — until it is resolved. Rationale: the
+split/payout is itself a confidence problem, not a given. Agent pay nuance is real
+(LOA arrangements, the retired-agent rollup Cyndi/Don→Brian, Betty's 52.5%, UHC overrides),
+so a shaky agent-match would produce a *mismatched payment* — the exact failure this whole
+effort exists to eliminate. Holding the payment is therefore correct: an agent's correct
+pay is never delayed by a *known-good* match, and a *not-yet-trusted* one never goes out
+wrong. (NB: this is stricter than NON_CUSTOMER rows like HRA bonuses, which DO pay an agent
+with no customer — those are a distinct, already-trusted case and are unchanged. A
+genuinely-unmatched member payment HOLDS.)
 
 ### C. Auto-sweep on BOB import (the thing that empties the parking lot)
 
@@ -127,6 +139,21 @@ human reads are clean, consistent "First MI. Last". This directly serves the hum
 step (a parked `CONNELLY,JOHN J` vs a customer `John J. Connelly` is the exact friction
 that bred dups). **Reuse `app/names.py` — no new normalizer.** In scope: commission
 normalizers only. Out of scope: the BOB parsers (already mostly normalized; separate sweep).
+
+### E. Unknown-carrier upload → BLOCK with a clear reason
+
+The agency has **8 carriers: UHC, Humana, Devoted, BCBS, Aetna, Healthspring,
+Medico/Wellable, GTL** (more may come later). The `NORMALIZERS` registry currently covers
+**6** (Medico/Wellable + GTL are not yet wired). Today an unparseable / unknown-carrier
+file can slip through as a silent no-op — invisible to AJ, which violates "nothing lost."
+
+**Rule:** if `_detect_carrier` cannot fingerprint the file, OR the detected carrier has no
+entry in `NORMALIZERS`, **reject the upload** with an explicit flash: *"Cannot parse this
+file — carrier '<X>' is not yet supported (supported: UHC, Humana, Devoted, BCBS, Aetna,
+Healthspring). Nothing was imported."* Never import a partial/empty statement. This is a
+small guard at the `commission_upload()` entry point (`routes.py:1002`) — a check that the
+detected carrier ∈ `NORMALIZERS` before ingesting. (Wiring Medico/Wellable + GTL parsers is
+its own backlog item; this guard just makes their absence loud instead of silent.)
 
 ## Guardrails
 
@@ -162,10 +189,21 @@ normalizers only. Out of scope: the BOB parsers (already mostly normalized; sepa
   0. The ratchet (`tests/test_integrity_guards.py`) fails the build if it ever rises above
   baseline — so a regression that re-enables commission stub-creation is caught immediately.
 - `orphan_stub_customers` must not increase; the ratchet enforces it.
+- **"Nothing lost" balance invariant (the money-side proof).** Add a radar invariant that,
+  per statement, asserts to the penny:
+  **Σ(all commission line items) == Σ(attached payments) + Σ(parked payments) +
+  Σ(non-customer payments)** (tolerance $0.01, the existing `verify_statement_balance`
+  tolerance). This proves the parking lot itself leaks nothing — a payment can be *held*,
+  but it can never *vanish*. Held money is always still in the total.
+- **Stale-park aging alert.** A badge/alert when any payment has been parked > 30 days, so
+  held money is visibly chased, not left to rot. Surfaced on the hub + (optionally) a
+  count in the admin commission view. Keeps the parking lot from silently growing into
+  lost money. (Reuse the existing `unmatched_count` plumbing in `routes.py:1446/1668`.)
 - Unit tests (`tests/`): commission row with matching MBI → attach, no stub; with matching
   carrier_member_id → attach; with no ID match → parked PolicyPayment, `customer_id IS NULL`,
-  no Customer/Policy/AOR created; BOB import of a matching MBI → parked payment auto-sweeps
-  onto the customer; name normalizer output is "First MI. Last" for each carrier shape.
+  no Customer/Policy/AOR created and NO agent payout (held); BOB import of a matching MBI →
+  parked payment auto-sweeps onto the customer; name normalizer output is "First MI. Last"
+  for each carrier shape; an unknown-carrier file → upload rejected, 0 rows imported.
 - **Real-Postgres verify (protocol):** DB backed up; re-upload a UHC + a BCBS + a Humana
   file on the VPS; confirm 0 stubs created, payments either attach by ID or land parked;
   then run a BOB import and confirm parked payments sweep onto the matched customers.
@@ -178,16 +216,24 @@ normalizers only. Out of scope: the BOB parsers (already mostly normalized; sepa
   parks payments into the hub; making the hub button actionable is item 4's job (this spec
   assumes the hub can already display a parked/needs-match item, which it can).
 - BOB-parser name normalization (a separate, smaller sweep).
+- **Wiring the Medico/Wellable + GTL normalizers** (the 2 carriers not yet in `NORMALIZERS`)
+  = its own backlog item. Item 1 only makes their absence a *loud block*, not a silent
+  no-op. → add to `BACKLOG.md`.
 - `plan_id` linkage (item 3), count consistency (item 5), lead lifecycle (6), per-policy
   AOR (7).
 
 ## Files touched (all existing)
 
 - `app/commission/resolver.py` — add the `source == "commission_import"` ID-only
-  match-or-park branch; ensure `_create_stub` is unreachable on that path.
+  match-or-park branch; ensure `_create_stub` is unreachable on that path; a parked row
+  resolves NO agent payout (held until customer + split are both confident).
 - `app/commission/normalizers.py` — route the ~7 name constructions through
   `normalize_person_name`.
-- `app/upload.py` (BOB path) — add/confirm the `_sweep_parked_payments(customer)` hook.
-- `app/integrity.py` — add the "no new commission_import stub" invariant + ratchet baseline.
-- `tests/` — branch coverage + the integrity invariant.
+- `app/commission/routes.py` — `commission_upload()`: reject when detected carrier ∉
+  `NORMALIZERS`, with a clear reason; nothing imported.
+- `app/upload.py` (BOB path) — add/confirm the `_sweep_parked_payments(customer)` hook
+  (must sweep ALL parked rows for the matched ID, not just one).
+- `app/integrity.py` — add the `commission_import_stubs` invariant (ratchet from 571) AND
+  the per-statement "nothing lost" balance invariant; surface the stale-park (>30d) alert.
+- `tests/` — branch coverage + the two integrity invariants + unknown-carrier rejection.
 - No model change, no migration.

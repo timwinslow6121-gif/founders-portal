@@ -154,27 +154,29 @@ def test_commission_import_stubs_invariant_counts_only_commission_stubs(app, db_
         assert v.count == 1
 
 
-def test_statement_balance_complete_flags_a_dropped_payment(app, db_session):
-    """Sigma(line items) must equal Sigma(payments). A line item with no matching
-    payment is a 'lost payment' violation."""
+def test_statement_balance_complete_is_ledger_internal_balance(app, db_session):
+    """The invariant proves the LEDGER's internal balance per statement:
+    Sigma(raw_amount) == Sigma(agent_payout) + Sigma(founders_keep) (via split_breakdown),
+    which holds by construction. It is NOT line-items-vs-PolicyPayment — Founders-
+    override / HRA rows the ledger records but PolicyPayment collapses must NOT flag
+    (that's by design for Devoted/Healthspring)."""
     from app.integrity import REGISTRY
     with app.app_context():
         a = Agency(name="T"); db.session.add(a); db.session.flush()
-        st = CommissionStatement(agency_id=a.id, carrier="UHC", period_label="March 2026",
-                                 statement_date=date(2026, 3, 1))
+        st = CommissionStatement(agency_id=a.id, carrier="Healthspring",
+                                 period_label="May 2026", statement_date=date(2026, 5, 1))
         db.session.add(st); db.session.flush()
+        # An agent_commission line that splits, PLUS a founders_override line with NO
+        # matching PolicyPayment — the OLD (wrong) invariant would have flagged this as
+        # a "dropped payment"; the corrected internal-balance invariant must NOT, because
+        # split_breakdown(raw) == payout + keep for every row by construction.
         db.session.add(CommissionLineItem(agency_id=a.id, statement_id=st.id,
-            carrier="UHC", source_ref="uhc::x::1", raw_amount=10.0,
-            classification="agent_commission", customer_id=None))
+            carrier="Healthspring", source_ref="hs::x::1", raw_amount=100.0,
+            classification="agent_commission", split_rate=0.55, customer_id=None))
+        db.session.add(CommissionLineItem(agency_id=a.id, statement_id=st.id,
+            carrier="Healthspring", source_ref="hs::x::1::ovr", raw_amount=4.59,
+            classification="founders_override", split_rate=None, customer_id=None))
         db.session.commit()
         v = REGISTRY["statement_balance_complete"]()
-        assert v.count >= 1
-
-        # Now add a matching payment -> balanced -> no longer flagged for this statement
-        from app.models import PolicyPayment
-        db.session.add(PolicyPayment(agency_id=a.id, statement_id=st.id, carrier="UHC",
-            period_label="March 2026", statement_date=date(2026, 3, 1),
-            member_name="Test Member", commission_action="New", paid_amount=10.0))
-        db.session.commit()
-        v2 = REGISTRY["statement_balance_complete"]()
-        assert all(s["id"] != st.id for s in v2.sample)
+        # this statement is internally balanced (no PolicyPayment needed) -> NOT flagged
+        assert all(s["id"] != st.id for s in v.sample)

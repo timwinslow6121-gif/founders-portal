@@ -137,6 +137,44 @@ def test_uhc_ha_payment_is_hra_bonus_with_member_name():
     assert by_member["BOB ROE"].classification == CHARGEBACK   # negative HA = clawback
 
 
+def test_uhc_ha_agent_id_extracted_from_action_string():
+    """Quirk #1: the solicitor agent ID is inside the HA action string (col T) and
+    is the AUTHORITATIVE writing agent — col-5 Writing Agent Name is unreliable for HA
+    rows (resolves to the agency/Rebekah). Handle both 'agent ID' and 'solicitor
+    agent ID' phrasings."""
+    from app.commission.ledger import _uhc_ha_agent_id
+    assert _uhc_ha_agent_id(
+        "HA payment for agent ID 6337213 for member JEANETTE CATHCART MBI *****8") == "6337213"
+    assert _uhc_ha_agent_id(
+        "HA payment for solicitor agent ID 6540381 for member LUZ SUAREZ MBI *****9") == "6540381"
+    assert _uhc_ha_agent_id("Renewal, no agent id here") == ""
+
+
+def test_uhc_ha_attributes_to_solicitor_not_col5():
+    """Quirk #1: an HA payment must attribute to the solicitor agent ID in the action
+    string (Michael, 6540381 -> 0.525), NOT the col-5 name (Rebekah -> 0.55)."""
+    from app.commission.ledger import extract_lineitems_uhc, HRA_BONUS
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[5] = "Writing Agent Name"
+    header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+    r = [""] * 24
+    # col-5 says the agency (Rebekah-style); col-4 unreliable; the TRUTH is in the action.
+    r[4] = "9999999"; r[5] = "FOUNDERS INSURANCE AGENCY, LLC"; r[12] = "MAPD"
+    r[19] = "HA payment for solicitor agent ID 6540381 for member LUZ SUAREZ MBI *****9"
+    r[23] = 50.0
+    sheets = {"Commission Transactions": [header, r]}
+    # the solicitor ID 6540381 maps to Michael; rate lookup gives Michael's 0.525
+    items = extract_lineitems_uhc(
+        sheets,
+        split_lookup=lambda name: 0.525 if name == "Michael L" else 0.55,
+        writing_id_to_name={"6540381": "Michael L", "9999999": "FOUNDERS INSURANCE AGENCY, LLC"})
+    hra = [i for i in items if i.classification == HRA_BONUS][0]
+    assert hra.member_name == "LUZ SUAREZ"
+    assert hra.writing_agent_raw == "Michael L"   # attributed to the solicitor, not col-5
+    assert hra.split_rate == 0.525                # Michael's rate, not Rebekah's 0.55
+
+
 def test_uhc_partd_026_is_founders_override_not_quarantined():
     """The fixed $0.26 PARTD renewal is a Founders override for a Part D plan (per
     Tim) — book it as founders_override (100% Founders, no split), NOT quarantine."""

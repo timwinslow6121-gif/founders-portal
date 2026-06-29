@@ -295,3 +295,46 @@ def test_edit_override_sibling_inherits_and_repairs_customer_id(db_session, app,
         db.session.commit()
         ovr2 = CommissionLineItem.query.filter_by(source_ref="uhc::0::88::ovr").first()
         assert ovr2.customer_id == 999          # repaired on re-edit
+
+
+def test_edit_preserves_hra_bonus_classification(db_session, app, agency):
+    """Quirk #1b: editing an HRA line (e.g. reassigning the agent) must KEEP it
+    classified hra_bonus — not flip it to agent_commission, which makes the recap
+    mislabel it as a Renewal. A negative (chargeback) edit still becomes chargeback."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import edit_line_split, HRA_BONUS, AGENT_COMMISSION, CHARGEBACK
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::555", raw_amount=50.0, split_rate=0.55,
+            classification="hra_bonus", payment_type="hra", customer_id=12)
+        db.session.add(li); db.session.flush()
+        # reassign agent, same $50, no override
+        edit_line_split(li, agent_amount=50.0, override_amount=0.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li.classification == HRA_BONUS        # stays HRA, not flipped to renewal
+
+        # a regular (non-HRA) line still becomes agent_commission on a positive edit
+        li2 = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::556", raw_amount=28.92, split_rate=0.55,
+            classification="agent_commission", payment_type="renewal", customer_id=13)
+        db.session.add(li2); db.session.flush()
+        edit_line_split(li2, agent_amount=28.92, override_amount=0.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li2.classification == AGENT_COMMISSION
+
+        # a negative-raw HRA line edited negative -> chargeback (clawback), not hra_bonus.
+        # (agent + override must still sum to the line's raw total = -50.)
+        li3 = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::557", raw_amount=-50.0, split_rate=0.55,
+            classification="hra_bonus", payment_type="hra", customer_id=14)
+        db.session.add(li3); db.session.flush()
+        edit_line_split(li3, agent_amount=-50.0, override_amount=0.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li3.classification == CHARGEBACK

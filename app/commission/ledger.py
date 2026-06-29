@@ -819,6 +819,15 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
             out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref, ptype="partd dust"))
             continue
 
+        # ── PARTD $4.59 renewal SPLITS at the agent's rate (quirk #2, Tim 2026-06-26).
+        #    It is NOT a 100% Founders override like the MA-family $4.59 — plan type
+        #    (col M) is the discriminator. The $0.26 PARTD override is handled above and
+        #    is unaffected. `rate` is the agent's UHC contract rate (via split_lookup).
+        if is_renewal and plan == "PARTD" and _near(abs(amount), _UHC_OVERRIDE):
+            cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+            out.append(draft(amount, cls, rate, sref))
+            continue
+
         # ── MA / Part D renewals: override-aware (the $4.59 / combined logic).
         if is_renewal and in_override_family:
             if _near(amount, _UHC_OVERRIDE):

@@ -151,8 +151,7 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
         return r
     sheets = {"Commission Transactions": [
         header,
-        row("PARTD", "Renewal", 0.26, "PARTD, OVR"),    # the override
-        row("PARTD", "Renewal", 4.59, "PARTD, BIG"),    # already an override
+        row("PARTD", "Renewal", 0.26, "PARTD, OVR"),    # the $0.26 override (100% Founders)
         row("PARTD", "Renewal", 0.50, "PARTD, ODD"),    # other sub-$1 still quarantines
     ]}
     items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
@@ -160,8 +159,42 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
     by_member = {i.member_name: i for i in items}
     assert by_member["PARTD, OVR"].classification == FOUNDERS_OVERRIDE
     assert by_member["PARTD, OVR"].split_rate is None     # 100% Founders
-    assert by_member["PARTD, BIG"].classification == FOUNDERS_OVERRIDE
     assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
+
+
+def test_uhc_partd_459_splits_at_agent_rate_not_override():
+    """Quirk #2: a $4.59 PARTD RENEWAL is the agent's renewal that SPLITS at their
+    contract rate — NOT a 100% Founders override (that's only the MA-family $4.59).
+    Plan type (col M) is the discriminator. Grounding: Dianne Pinkston row 2244."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                        FOUNDERS_OVERRIDE, split_breakdown)
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+    def row(plan, action, amt, member="DOE, JANE"):
+        r = [""] * 24
+        r[5] = "WINSLOW, TIMOTHY"; r[7] = member; r[12] = plan; r[19] = action; r[23] = amt
+        return r
+    sheets = {"Commission Transactions": [
+        header,
+        row("PARTD", "Renewal", 4.59, "PINKSTON, DIANNE"),  # PARTD $4.59 -> SPLIT
+        row("MAPD",  "Renewal", 4.59, "MA, MEMBER"),        # MA family $4.59 -> stays override
+        row("DSNP",  "Renewal", 4.59, "DSNP, MEMBER"),      # MA family -> stays override
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by_member = {i.member_name: i for i in items}
+    # PARTD $4.59 -> agent_commission at 0.55
+    partd = by_member["PINKSTON, DIANNE"]
+    assert partd.classification == AGENT_COMMISSION
+    assert partd.split_rate == 0.55
+    agent, founders = split_breakdown(partd)
+    assert round(agent, 2) == 2.52       # 4.59 * 0.55 = 2.5245
+    assert round(founders, 2) == 2.07    # 4.59 - 2.5245
+    # MA-family $4.59 -> still 100% Founders override (regression guard)
+    assert by_member["MA, MEMBER"].classification == FOUNDERS_OVERRIDE
+    assert by_member["MA, MEMBER"].split_rate is None
+    assert by_member["DSNP, MEMBER"].classification == FOUNDERS_OVERRIDE
 
 
 def test_uhc_new_comptype_r_prorates_agent_and_125_override():

@@ -755,3 +755,90 @@ def test_recently_resolved_feed_batches_revisions(db_session, app, agency):
         for r in by_id.values():
             assert len(r["revisions"]) >= 1
             assert r["revisions"][0].action == "resolve"
+
+
+def test_fidelity_row_helper_shape_matches_table(db_session, app, agency):
+    """fidelity_row(li) builds one row dict from the SAME logic the table uses
+    (so the AJAX repaint matches a full reload)."""
+    from app.extensions import db
+    from app.models import CommissionLineItem, User
+    from app.commission.recap import fidelity_row, fidelity_view
+    with app.app_context():
+        agent = User(email="fr@test.com", name="Frank Row", agency_id=agency.id)
+        db.session.add(agent); db.session.flush()
+        from app.models import CommissionStatement
+        from datetime import date
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   statement_date=date(2026, 5, 1), period_label="May 2026")
+        db.session.add(stmt); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier="UHC",
+                                source_ref="uhc::0::1", raw_amount=100.0, split_rate=0.55,
+                                classification="agent_commission", payment_type="renewal",
+                                member_name="DOE, JANE", agent_id=agent.id)
+        db.session.add(li); db.session.commit()
+        row = fidelity_row(li)
+        assert row["id"] == li.id
+        assert row["raw"] == 100.0
+        assert row["agent"] == 55.0           # 100 * 0.55
+        assert row["founders"] == 45.0
+        assert row["agent_name"] == "Frank Row"
+        assert row["agent_id"] == agent.id
+        # identical to the row the table builds for the same line
+        fv = fidelity_view(stmt.id, agency.id)
+        assert fv["rows"][0] == row
+
+
+def test_line_edit_ajax_returns_json_row_and_totals(db_session, app, client, agency):
+    """Quirk #3: an AJAX edit (X-Requested-With) returns JSON {ok, row, sibling,
+    totals} instead of a redirect, so the Fidelity view repaints one row without a
+    reload. A plain POST still redirects (no-JS fallback)."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from datetime import date
+    with app.app_context():
+        admin = User(email="ajx@test.com", name="AJ X", is_admin=True, agency_id=agency.id)
+        agent = User(email="agx@test.com", name="Agent X", agency_id=agency.id)
+        db.session.add_all([admin, agent]); db.session.flush()
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   statement_date=date(2026, 6, 1), period_label="June 2026")
+        db.session.add(stmt); db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id, carrier="UHC",
+                                source_ref="uhc::0::42", raw_amount=33.51, split_rate=0.55,
+                                classification="agent_commission", payment_type="New",
+                                member_name="NEW, ALICE", customer_id=555)
+        db.session.add(li); db.session.commit()
+        line_id, aid, agent_id = li.id, admin.id, agent.id
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(aid)
+
+    # AJAX edit: $28.92 agent + $4.59 Founders override
+    resp = client.post(f"/admin/commissions/line/{line_id}/edit",
+                       data={"agent_id": str(agent_id), "agent_amount": "28.92",
+                             "override_amount": "4.59"},
+                       headers={"X-Requested-With": "XMLHttpRequest"})
+    assert resp.status_code == 200
+    j = resp.get_json()
+    assert j["ok"] is True
+    assert j["row"]["id"] == line_id
+    assert j["row"]["agent"] == 28.92          # AJ's exact dollars (split_rate=1.0)
+    assert j["row"]["agent_name"] == "Agent X"
+    assert j["sibling"] is not None            # the ::ovr override line
+    assert j["sibling"]["founders"] == 4.59
+    assert j["sibling"]["customer_id"] == 555  # quirk #4: sibling inherits customer_id
+    assert "agent_total" in j["totals"] and "founders_total" in j["totals"]
+
+    # bad amounts via AJAX -> JSON error, not a redirect
+    bad = client.post(f"/admin/commissions/line/{line_id}/edit",
+                      data={"agent_id": str(agent_id), "agent_amount": "1.00",
+                            "override_amount": "1.00"},  # sums to 2, not 33.51
+                      headers={"X-Requested-With": "XMLHttpRequest"})
+    assert bad.status_code == 400
+    assert bad.get_json()["ok"] is False
+
+    # plain POST (no AJAX header) still REDIRECTS (no-JS fallback)
+    plain = client.post(f"/admin/commissions/line/{line_id}/edit",
+                        data={"agent_id": str(agent_id), "agent_amount": "33.51",
+                              "override_amount": "0.00"},
+                        follow_redirects=False)
+    assert plain.status_code in (302, 303)

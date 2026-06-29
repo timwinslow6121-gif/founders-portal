@@ -463,6 +463,42 @@ def _calc_explanation(li, agent, founders):
                if rate is not None else "no active contract → 100% Founders."))
 
 
+def fidelity_row(li, agent_names=None):
+    """Build ONE Fidelity-view row dict for a CommissionLineItem. The single source
+    of the per-row display shape — used by fidelity_view (the table) AND the AJAX
+    edit endpoint (so an edited row repaints from the exact same logic; no math
+    duplication). `agent_names` is an optional {agent_id: display_name} cache; when
+    omitted the agent's name is looked up directly."""
+    agent, founders = split_breakdown(li)
+    agent = round(agent, 2)
+    founders = round(founders, 2)
+    raw = round(li.raw_amount or 0.0, 2)
+    calc_label, calc_rule = _calc_explanation(li, agent, founders)
+    type_label, type_raw = friendly_payment_type(li.payment_type)
+    if li.agent_id and agent_names is not None and li.agent_id in agent_names:
+        agent_name = agent_names[li.agent_id]
+    elif li.agent_id:
+        from app.models import User
+        u = User.query.get(li.agent_id)
+        agent_name = u.display_name if u else "— unassigned —"
+    else:
+        agent_name = "— unassigned —"
+    return {
+        "id": li.id,
+        "member_name": li.member_name or "(non-customer)",
+        "member_display": display_name(li.member_name) or "(non-customer)",
+        "customer_id": li.customer_id, "carrier": li.carrier,
+        "raw": raw, "agent": agent, "founders": founders,
+        "classification": li.classification, "payment_type": li.payment_type or "",
+        "type_label": type_label, "type_raw": type_raw,
+        "agent_id": li.agent_id,
+        "agent_name": agent_name,
+        "split_rate": li.split_rate,
+        "calc_label": calc_label, "calc_rule": calc_rule,
+        "is_chargeback": (li.classification == "chargeback" or raw < 0),
+    }
+
+
 def fidelity_view(statement_id, agency_id):
     """A2 — the Fidelity View: EVERY line item of a statement with its raw amount and
     its agent / Founders split (the G/H columns AJ adds by hand), so AJ/Brian can see
@@ -483,29 +519,11 @@ def fidelity_view(statement_id, agency_id):
     rows = []
     raw_total = agent_total = founders_total = 0.0
     for li in items:
-        agent, founders = split_breakdown(li)
-        agent = round(agent, 2)
-        founders = round(founders, 2)
-        raw = round(li.raw_amount or 0.0, 2)
-        calc_label, calc_rule = _calc_explanation(li, agent, founders)
-        type_label, type_raw = friendly_payment_type(li.payment_type)
-        rows.append({
-            "id": li.id,
-            "member_name": li.member_name or "(non-customer)",
-            "member_display": display_name(li.member_name) or "(non-customer)",
-            "customer_id": li.customer_id, "carrier": li.carrier,
-            "raw": raw, "agent": agent, "founders": founders,
-            "classification": li.classification, "payment_type": li.payment_type or "",
-            "type_label": type_label, "type_raw": type_raw,
-            "agent_id": li.agent_id,
-            "agent_name": agent_names.get(li.agent_id, "— unassigned —"),
-            "split_rate": li.split_rate,
-            "calc_label": calc_label, "calc_rule": calc_rule,
-            "is_chargeback": (li.classification == "chargeback" or raw < 0),
-        })
-        raw_total += raw
-        agent_total += agent
-        founders_total += founders
+        row = fidelity_row(li, agent_names)
+        rows.append(row)
+        raw_total += row["raw"]
+        agent_total += row["agent"]
+        founders_total += row["founders"]
     raw_total = round(raw_total, 2)
     agent_total = round(agent_total, 2)
     founders_total = round(founders_total, 2)

@@ -200,8 +200,14 @@ def test_fidelity_page_has_inline_edit_form(db_session, app, client, agency, age
         sess["_user_id"] = str(aid)
     body = client.get(f"/admin/commissions/{sid}/fidelity").get_data(as_text=True)
     assert "Renewal commission (monthly)" in body         # friendly label for arcm
-    assert f"/admin/commissions/line/{lid}/edit" in body   # inline edit form present
-    assert "fdedit-" in body                                # the edit toggle
+    # quirk #3: lazy edit form — the edit endpoint is wired via a JS constant (one
+    # form built on Edit-click), NOT ~4k hidden per-row forms. The Edit button + the
+    # once-rendered agents template + the row data attributes must all be present.
+    assert "/admin/commissions/line/0/edit" in body        # FD_EDIT_URL (JS swaps the id)
+    assert "fd-edit-btn" in body                            # per-row Edit button
+    assert 'id="fd-agents-tpl"' in body                    # agents list rendered ONCE
+    assert "fdedit-" not in body                            # NO per-row hidden forms (the bloat)
+    assert 'data-agent-amt' in body and 'data-founders-amt' in body  # row data for the lazy form
     # #6/#7: sticky-scroll container + sortable headers + agent filter
     assert "fd-scroll" in body
     assert 'data-sort="member"' in body and 'data-sort="amount"' in body

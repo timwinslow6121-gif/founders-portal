@@ -475,6 +475,9 @@ def fidelity_row(li, agent_names=None):
     raw = round(li.raw_amount or 0.0, 2)
     calc_label, calc_rule = _calc_explanation(li, agent, founders)
     type_label, type_raw = friendly_payment_type(li.payment_type)
+    # `agent_names` (the batch path) MUST be complete for the rows it covers — built
+    # from the same agent_ids set, so a miss here means a dangling agent_id only. The
+    # direct query is the single-row (AJAX) path's lookup, NOT a per-row table query.
     if li.agent_id and agent_names is not None and li.agent_id in agent_names:
         agent_name = agent_names[li.agent_id]
     elif li.agent_id:

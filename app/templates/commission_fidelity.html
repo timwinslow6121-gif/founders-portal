@@ -125,9 +125,9 @@
       <tfoot>
         <tr>
           <td class="l">{{ sub }}</td>
-          <td>${{ "{:,.2f}".format(rows|sum(attribute='raw')) }}</td>
-          <td>${{ "{:,.2f}".format(rows|sum(attribute='agent')) }}</td>
-          <td>${{ "{:,.2f}".format(rows|sum(attribute='founders')) }}</td>
+          <td class="fd-foot-raw">${{ "{:,.2f}".format(rows|sum(attribute='raw')) }}</td>
+          <td class="fd-foot-agent">${{ "{:,.2f}".format(rows|sum(attribute='agent')) }}</td>
+          <td class="fd-foot-founders">${{ "{:,.2f}".format(rows|sum(attribute='founders')) }}</td>
           <td></td><td></td>
         </tr>
       </tfoot>
@@ -138,6 +138,10 @@
 {% endmacro %}
 
 <div class="fd-wrap">
+  <noscript>
+    <div class="fd-proof off">Editing a split requires JavaScript (the inline editor is built in the browser).
+    The page is still fully readable without it.</div>
+  </noscript>
   <a class="back-link" href="{{ url_for('commission.commission_admin') }}">← Commission Audit</a>
   <h1 style="margin-top:12px;">Fidelity — {{ stmt.carrier }} {{ stmt.period_label }}</h1>
   <div class="fd-sub">
@@ -354,10 +358,14 @@
         .then(function(j){
           if(!j.ok){ errEl.textContent=j.error||'Could not save.'; saveBtn.disabled=false; return; }
           repaintRow(row, j.row);
+          // the ::ovr Founders-override sibling: repaint it in place if present, else
+          // insert it right after the edited row; if the override was zeroed out, remove it.
+          syncSiblingRow(row, j.sibling);
           if(j.totals){
             document.getElementById('fdAgentTotal').textContent=fmt(j.totals.agent_total);
             document.getElementById('fdFoundersTotal').textContent=fmt(j.totals.founders_total);
           }
+          recomputeFooters();   // keep each table's per-section subtotal in sync
           closeOpenEditor();
           row.classList.add('flash-saved');
           setTimeout(function(){ row.classList.remove('flash-saved'); }, 1100);
@@ -382,6 +390,69 @@
     row.setAttribute('data-agent-amt', Number(r.agent).toFixed(2));
     row.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
     row.setAttribute('data-agent-id', r.agent_id||'');
+  }
+
+  function neg(n){ return n < 0 ? ' neg' : ''; }
+
+  // Build a fresh data <tr> for a row dict (mirrors the Jinja fdrow macro) — used to
+  // INSERT a newly-created ::ovr override sibling without a page reload.
+  function buildDataRow(r){
+    var tr=document.createElement('tr');
+    tr.className='fd-row';
+    tr.setAttribute('data-id', r.id);
+    tr.setAttribute('data-member', (r.member_display||'').toLowerCase());
+    tr.setAttribute('data-agent', (r.agent_name||'').toLowerCase());
+    tr.setAttribute('data-type', r.classification);
+    tr.setAttribute('data-amount', r.raw);
+    tr.setAttribute('data-raw', r.raw);
+    tr.setAttribute('data-agent-amt', Number(r.agent).toFixed(2));
+    tr.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
+    tr.setAttribute('data-agent-id', r.agent_id||'');
+    tr.setAttribute('data-member-display', r.member_display||'');
+    var pct=(r.split_rate!==null && r.split_rate!==undefined) ? ' · '+(r.split_rate*100).toFixed(1)+'%' : '';
+    var nameCell=document.createElement('td'); nameCell.className='fd-mname';
+    nameCell.textContent=r.member_display||'';
+    var sub=document.createElement('div'); sub.className='fd-agent js-agent';
+    sub.textContent=(r.agent_name||'')+pct; nameCell.appendChild(sub);
+    var rawCell=document.createElement('td'); rawCell.className='num'+neg(r.raw); rawCell.textContent=fmt(r.raw);
+    var agCell=document.createElement('td'); agCell.className='num agent js-agent-amt'+neg(r.agent); agCell.textContent=fmt(r.agent);
+    var ovCell=document.createElement('td'); ovCell.className='num founders js-founders-amt'+neg(r.founders); ovCell.textContent=fmt(r.founders);
+    var typeCell=document.createElement('td'); typeCell.className='l';
+    var ty=document.createElement('span'); ty.className='fd-type'; ty.textContent=r.type_label||''; typeCell.appendChild(ty);
+    var actCell=document.createElement('td'); actCell.className='r';
+    var btn=document.createElement('button'); btn.type='button'; btn.className='fd-edit-btn'; btn.textContent='Edit'; actCell.appendChild(btn);
+    tr.appendChild(nameCell); tr.appendChild(rawCell); tr.appendChild(agCell); tr.appendChild(ovCell); tr.appendChild(typeCell); tr.appendChild(actCell);
+    return tr;
+  }
+
+  // Reflect the edited line's ::ovr sibling: repaint if it's already a row, insert it
+  // (right after the edited row) if it's new, or remove it if the override was zeroed out.
+  function syncSiblingRow(editedRow, sib){
+    var existing = sib ? document.querySelector('tr.fd-row[data-id="'+sib.id+'"]') : null;
+    if(sib){
+      if(existing){ repaintRow(existing, sib); }
+      else {
+        var tr=buildDataRow(sib);
+        editedRow.parentNode.insertBefore(tr, editedRow.nextSibling);
+      }
+    }
+  }
+
+  // Recompute every table's per-section subtotal footer from its CURRENT rows, so the
+  // in-table totals never drift from the top summary after an edit.
+  function recomputeFooters(){
+    document.querySelectorAll('table.fd-table').forEach(function(tbl){
+      var raw=0, ag=0, ov=0;
+      tbl.querySelectorAll('tbody tr.fd-row').forEach(function(row){
+        raw += parseFloat(row.getAttribute('data-raw'))||0;
+        ag  += parseFloat(row.getAttribute('data-agent-amt'))||0;
+        ov  += parseFloat(row.getAttribute('data-founders-amt'))||0;
+      });
+      var fr=tbl.querySelector('.fd-foot-raw'), fa=tbl.querySelector('.fd-foot-agent'), fo=tbl.querySelector('.fd-foot-founders');
+      if(fr) fr.textContent=fmt(Math.round(raw*100)/100);
+      if(fa) fa.textContent=fmt(Math.round(ag*100)/100);
+      if(fo) fo.textContent=fmt(Math.round(ov*100)/100);
+    });
   }
 
   document.querySelectorAll('table.fd-table').forEach(function(tbl){

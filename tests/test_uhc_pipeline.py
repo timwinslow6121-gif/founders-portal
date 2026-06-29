@@ -137,6 +137,44 @@ def test_uhc_ha_payment_is_hra_bonus_with_member_name():
     assert by_member["BOB ROE"].classification == CHARGEBACK   # negative HA = clawback
 
 
+def test_uhc_ha_agent_id_extracted_from_action_string():
+    """Quirk #1: the solicitor agent ID is inside the HA action string (col T) and
+    is the AUTHORITATIVE writing agent — col-5 Writing Agent Name is unreliable for HA
+    rows (resolves to the agency/Rebekah). Handle both 'agent ID' and 'solicitor
+    agent ID' phrasings."""
+    from app.commission.ledger import _uhc_ha_agent_id
+    assert _uhc_ha_agent_id(
+        "HA payment for agent ID 6337213 for member JEANETTE CATHCART MBI *****8") == "6337213"
+    assert _uhc_ha_agent_id(
+        "HA payment for solicitor agent ID 6540381 for member LUZ SUAREZ MBI *****9") == "6540381"
+    assert _uhc_ha_agent_id("Renewal, no agent id here") == ""
+
+
+def test_uhc_ha_attributes_to_solicitor_not_col5():
+    """Quirk #1: an HA payment must attribute to the solicitor agent ID in the action
+    string (Michael, 6540381 -> 0.525), NOT the col-5 name (Rebekah -> 0.55)."""
+    from app.commission.ledger import extract_lineitems_uhc, HRA_BONUS
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[5] = "Writing Agent Name"
+    header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+    r = [""] * 24
+    # col-5 says the agency (Rebekah-style); col-4 unreliable; the TRUTH is in the action.
+    r[4] = "9999999"; r[5] = "FOUNDERS INSURANCE AGENCY, LLC"; r[12] = "MAPD"
+    r[19] = "HA payment for solicitor agent ID 6540381 for member LUZ SUAREZ MBI *****9"
+    r[23] = 50.0
+    sheets = {"Commission Transactions": [header, r]}
+    # the solicitor ID 6540381 maps to Michael; rate lookup gives Michael's 0.525
+    items = extract_lineitems_uhc(
+        sheets,
+        split_lookup=lambda name: 0.525 if name == "Michael L" else 0.55,
+        writing_id_to_name={"6540381": "Michael L", "9999999": "FOUNDERS INSURANCE AGENCY, LLC"})
+    hra = [i for i in items if i.classification == HRA_BONUS][0]
+    assert hra.member_name == "LUZ SUAREZ"
+    assert hra.writing_agent_raw == "Michael L"   # attributed to the solicitor, not col-5
+    assert hra.split_rate == 0.525                # Michael's rate, not Rebekah's 0.55
+
+
 def test_uhc_partd_026_is_founders_override_not_quarantined():
     """The fixed $0.26 PARTD renewal is a Founders override for a Part D plan (per
     Tim) — book it as founders_override (100% Founders, no split), NOT quarantine."""
@@ -151,8 +189,7 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
         return r
     sheets = {"Commission Transactions": [
         header,
-        row("PARTD", "Renewal", 0.26, "PARTD, OVR"),    # the override
-        row("PARTD", "Renewal", 4.59, "PARTD, BIG"),    # already an override
+        row("PARTD", "Renewal", 0.26, "PARTD, OVR"),    # the $0.26 override (100% Founders)
         row("PARTD", "Renewal", 0.50, "PARTD, ODD"),    # other sub-$1 still quarantines
     ]}
     items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
@@ -160,8 +197,42 @@ def test_uhc_partd_026_is_founders_override_not_quarantined():
     by_member = {i.member_name: i for i in items}
     assert by_member["PARTD, OVR"].classification == FOUNDERS_OVERRIDE
     assert by_member["PARTD, OVR"].split_rate is None     # 100% Founders
-    assert by_member["PARTD, BIG"].classification == FOUNDERS_OVERRIDE
     assert by_member["PARTD, ODD"].classification == NEEDS_MANUAL_REVIEW  # unchanged
+
+
+def test_uhc_partd_459_splits_at_agent_rate_not_override():
+    """Quirk #2: a $4.59 PARTD RENEWAL is the agent's renewal that SPLITS at their
+    contract rate — NOT a 100% Founders override (that's only the MA-family $4.59).
+    Plan type (col M) is the discriminator. Grounding: Dianne Pinkston row 2244."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                        FOUNDERS_OVERRIDE, split_breakdown)
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+    def row(plan, action, amt, member="DOE, JANE"):
+        r = [""] * 24
+        r[5] = "WINSLOW, TIMOTHY"; r[7] = member; r[12] = plan; r[19] = action; r[23] = amt
+        return r
+    sheets = {"Commission Transactions": [
+        header,
+        row("PARTD", "Renewal", 4.59, "PINKSTON, DIANNE"),  # PARTD $4.59 -> SPLIT
+        row("MAPD",  "Renewal", 4.59, "MA, MEMBER"),        # MA family $4.59 -> stays override
+        row("DSNP",  "Renewal", 4.59, "DSNP, MEMBER"),      # MA family -> stays override
+    ]}
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by_member = {i.member_name: i for i in items}
+    # PARTD $4.59 -> agent_commission at 0.55
+    partd = by_member["PINKSTON, DIANNE"]
+    assert partd.classification == AGENT_COMMISSION
+    assert partd.split_rate == 0.55
+    agent, founders = split_breakdown(partd)
+    assert round(agent, 2) == 2.52       # 4.59 * 0.55 = 2.5245
+    assert round(founders, 2) == 2.07    # 4.59 - 2.5245
+    # MA-family $4.59 -> still 100% Founders override (regression guard)
+    assert by_member["MA, MEMBER"].classification == FOUNDERS_OVERRIDE
+    assert by_member["MA, MEMBER"].split_rate is None
+    assert by_member["DSNP, MEMBER"].classification == FOUNDERS_OVERRIDE
 
 
 def test_uhc_new_comptype_r_prorates_agent_and_125_override():

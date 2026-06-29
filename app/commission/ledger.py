@@ -650,6 +650,11 @@ import re
 # string: "HA payment for agent ID 6337213 for member JEANETTE CATHCART MBI *****8VD98 ...".
 _UHC_HA_MEMBER_RE = re.compile(r"for member (.+?)\s+MBI\b", re.IGNORECASE)
 
+# The SOLICITOR agent ID is also inside the HA action string and is the AUTHORITATIVE
+# writing agent — col-5 Writing Agent Name is unreliable for HA rows (it's the agency /
+# Rebekah). Handles both "for agent ID N" and "for solicitor agent ID N".
+_UHC_HA_AGENTID_RE = re.compile(r"for (?:solicitor )?agent ID\s+(\d+)", re.IGNORECASE)
+
 # DVH Manual Payment rows also carry no member column; the member + writing agent ID
 # are inside the action string:
 #   "New, DVH Manual Payment, ... written by 6435806 for JANA BENSON, State: NC, ...".
@@ -660,6 +665,13 @@ _UHC_DVH_AGENTID_RE = re.compile(r"written by\s+(\d+)", re.IGNORECASE)
 def _uhc_ha_member(action):
     """Extract the member name from a UHC HA-payment action string, else ''."""
     m = _UHC_HA_MEMBER_RE.search(str(action or ""))
+    return m.group(1).strip() if m else ""
+
+
+def _uhc_ha_agent_id(action):
+    """Extract the solicitor agent ID from a UHC HA-payment action string, else ''.
+    e.g. 'HA payment for solicitor agent ID 6540381 for member ...' -> '6540381'."""
+    m = _UHC_HA_AGENTID_RE.search(str(action or ""))
     return m.group(1).strip() if m else ""
 
 
@@ -765,7 +777,16 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
         if action_l.startswith("ha payment") or action_l.startswith("ha chargeback"):
             cls = CHARGEBACK if amount < 0 else HRA_BONUS
             ha_member = _uhc_ha_member(action) or member
-            out.append(draft(amount, cls, rate, sref, ptype="hra", member_name=ha_member))
+            # Quirk #1: the SOLICITOR agent ID inside the action string is authoritative
+            # for HA rows (col-5 is the agency/Rebekah). Re-resolve agent + rate from it
+            # when present; else fall back to the row's writing agent.
+            ha_id = _uhc_ha_agent_id(action)
+            ha_writing = (writing_id_to_name.get(ha_id) or writing) if ha_id else writing
+            ha_rate = split_lookup(ha_writing)
+            out.append(LineItemDraft(
+                carrier="UHC", source_ref=sref, raw_amount=amount, classification=cls,
+                split_rate=ha_rate, payment_type="hra", member_name=ha_member,
+                mbi=mbi, writing_agent_raw=ha_writing, effective_date=eff))
             continue
 
         is_renewal = "renewal" in action_l
@@ -817,6 +838,15 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
         if is_renewal and plan == "PARTD" and abs(amount) < 1.00 \
                 and not _near(amount, _UHC_OVERRIDE):
             out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref, ptype="partd dust"))
+            continue
+
+        # ── PARTD $4.59 renewal SPLITS at the agent's rate (quirk #2, Tim 2026-06-26).
+        #    It is NOT a 100% Founders override like the MA-family $4.59 — plan type
+        #    (col M) is the discriminator. The $0.26 PARTD override is handled above and
+        #    is unaffected. `rate` is the agent's UHC contract rate (via split_lookup).
+        if is_renewal and plan == "PARTD" and _near(abs(amount), _UHC_OVERRIDE):
+            cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+            out.append(draft(amount, cls, rate, sref))
             continue
 
         # ── MA / Part D renewals: override-aware (the $4.59 / combined logic).
@@ -1026,7 +1056,11 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user
             carrier=line.carrier, period_label=line.period_label,
             statement_date=line.statement_date, source_ref=ovr_ref,
             member_name=line.member_name, mbi=line.mbi,
-            carrier_member_id=line.carrier_member_id)
+            carrier_member_id=line.carrier_member_id,
+            customer_id=line.customer_id)
+        # the override sibling is the SAME member as its parent — keep its customer link
+        # in sync (also repairs a previously-orphaned sibling on a re-resolve).
+        override_row.customer_id = line.customer_id
         override_row.raw_amount = ov
         override_row.split_rate = None
         override_row.classification = FOUNDERS_OVERRIDE
@@ -1093,7 +1127,8 @@ def undo_last_change(line, *, user_id=None) -> bool:
                     statement_date=line.statement_date,
                     source_ref=rev.sibling_source_ref,
                     member_name=line.member_name, mbi=line.mbi,
-                    carrier_member_id=line.carrier_member_id)
+                    carrier_member_id=line.carrier_member_id,
+                    customer_id=line.customer_id)   # same member — don't re-orphan on undo
                 db.session.add(sib)
             for k, v in sibling_before.items():
                 setattr(sib, k, v)
@@ -1135,7 +1170,15 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
             f"the line total ${original_combined}")
 
     before = _snapshot_line(line)
-    line.classification = (CHARGEBACK if agent_amount < 0 else AGENT_COMMISSION)
+    # Quirk #1b: PRESERVE an hra_bonus classification across an edit (e.g. an agent
+    # reassignment) — don't flip it to agent_commission, which makes the recap mislabel
+    # the HRA as a Renewal. A negative edit is a clawback (chargeback) regardless.
+    if agent_amount < 0:
+        line.classification = CHARGEBACK
+    elif line.classification == HRA_BONUS:
+        pass                                  # keep hra_bonus (don't flip to renewal)
+    else:
+        line.classification = AGENT_COMMISSION
     line.raw_amount = agent_amount
     line.agent_id = agent_id
     # AJ's agent_amount IS the final payout → store rate 1.0 so split_breakdown
@@ -1152,11 +1195,15 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
             carrier=line.carrier, period_label=line.period_label,
             statement_date=line.statement_date, source_ref=ovr_ref,
             member_name=line.member_name, mbi=line.mbi,
-            carrier_member_id=line.carrier_member_id)
+            carrier_member_id=line.carrier_member_id,
+            customer_id=line.customer_id)
         ovr.raw_amount = override_amount
         ovr.split_rate = None
         ovr.classification = FOUNDERS_OVERRIDE
         ovr.agent_id = None
+        # same member as the parent — keep the customer link in sync (repairs a
+        # previously-orphaned sibling on a re-edit).
+        ovr.customer_id = line.customer_id
         ovr.payment_type = "override [edited]"
         if existing_ovr is None:
             db.session.add(ovr)

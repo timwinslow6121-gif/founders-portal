@@ -243,3 +243,127 @@ def test_edit_stores_agent_amount_as_final_payout_and_undo_restores(db_session, 
         assert li.split_rate == 0.55   # RESTORED to the original
         assert li.raw_amount == 33.51
         assert li.classification == "agent_commission"
+
+
+def test_resolve_override_sibling_inherits_customer_id(db_session, app, agency):
+    """Quirk #4: the ::ovr Founders-override sibling created by resolve_quarantine_line
+    must carry the parent's customer_id (it's the SAME member) — else it becomes an
+    orphaned line item the payment_without_customer radar flags."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import resolve_quarantine_line
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::77", raw_amount=33.51, split_rate=None,
+            classification="needs_manual_review", payment_type="New",
+            customer_id=4242)
+        db.session.add(li); db.session.flush()
+        resolve_quarantine_line(li, agent_id=7, override_amount=4.59,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        ovr = CommissionLineItem.query.filter_by(source_ref="uhc::0::77::ovr").first()
+        assert ovr is not None
+        assert ovr.customer_id == 4242          # inherits parent's customer, not NULL
+
+
+def test_edit_override_sibling_inherits_and_repairs_customer_id(db_session, app, agency):
+    """Quirk #4: edit_line_split's ::ovr sibling must inherit the parent's customer_id
+    on create, AND repair a previously-NULL sibling on a later edit."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import edit_line_split
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::88", raw_amount=50.0, split_rate=0.55,
+            classification="hra_bonus", payment_type="hra", customer_id=999)
+        db.session.add(li); db.session.flush()
+        # edit creates an override sibling
+        edit_line_split(li, agent_amount=26.25, override_amount=23.75,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        ovr = CommissionLineItem.query.filter_by(source_ref="uhc::0::88::ovr").first()
+        assert ovr is not None
+        assert ovr.customer_id == 999
+
+        # simulate a previously-orphaned sibling, then re-edit -> repaired
+        ovr.customer_id = None
+        db.session.commit()
+        edit_line_split(li, agent_amount=30.0, override_amount=20.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        ovr2 = CommissionLineItem.query.filter_by(source_ref="uhc::0::88::ovr").first()
+        assert ovr2.customer_id == 999          # repaired on re-edit
+
+
+def test_edit_preserves_hra_bonus_classification(db_session, app, agency):
+    """Quirk #1b: editing an HRA line (e.g. reassigning the agent) must KEEP it
+    classified hra_bonus — not flip it to agent_commission, which makes the recap
+    mislabel it as a Renewal. A negative (chargeback) edit still becomes chargeback."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import edit_line_split, HRA_BONUS, AGENT_COMMISSION, CHARGEBACK
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::555", raw_amount=50.0, split_rate=0.55,
+            classification="hra_bonus", payment_type="hra", customer_id=12)
+        db.session.add(li); db.session.flush()
+        # reassign agent, same $50, no override
+        edit_line_split(li, agent_amount=50.0, override_amount=0.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li.classification == HRA_BONUS        # stays HRA, not flipped to renewal
+
+        # a regular (non-HRA) line still becomes agent_commission on a positive edit
+        li2 = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::556", raw_amount=28.92, split_rate=0.55,
+            classification="agent_commission", payment_type="renewal", customer_id=13)
+        db.session.add(li2); db.session.flush()
+        edit_line_split(li2, agent_amount=28.92, override_amount=0.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li2.classification == AGENT_COMMISSION
+
+        # a negative-raw HRA line edited negative -> chargeback (clawback), not hra_bonus.
+        # (agent + override must still sum to the line's raw total = -50.)
+        li3 = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::557", raw_amount=-50.0, split_rate=0.55,
+            classification="hra_bonus", payment_type="hra", customer_id=14)
+        db.session.add(li3); db.session.flush()
+        edit_line_split(li3, agent_amount=-50.0, override_amount=0.0,
+                        agent_id=7, user_id=3)
+        db.session.commit()
+        assert li3.classification == CHARGEBACK
+
+
+def test_undo_recreated_sibling_inherits_customer_id(db_session, app, agency):
+    """Opus-review finding: undo that RE-CREATES a deleted ::ovr sibling must also
+    carry the parent's customer_id (else undo re-introduces the quirk #4 orphan)."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import (resolve_quarantine_line, undo_last_change)
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::611", raw_amount=33.51, split_rate=None,
+            classification="needs_manual_review", payment_type="New", customer_id=321)
+        db.session.add(li); db.session.flush()
+        # 1st resolve creates the override sibling (with customer_id, per quirk #4 fix)
+        resolve_quarantine_line(li, agent_id=7, override_amount=4.59,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        # 2nd resolve clears the override -> deletes the sibling
+        resolve_quarantine_line(li, agent_id=7, override_amount=0.0,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        assert CommissionLineItem.query.filter_by(source_ref="uhc::0::611::ovr").first() is None
+        # undo the 2nd resolve -> RE-CREATES the sibling; it must carry customer_id=321
+        undo_last_change(li, user_id=3)
+        db.session.commit()
+        sib = CommissionLineItem.query.filter_by(source_ref="uhc::0::611::ovr").first()
+        assert sib is not None
+        assert sib.customer_id == 321        # not NULL — no re-orphan

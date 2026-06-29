@@ -1004,8 +1004,8 @@ class RoadmapItem(db.Model):
     updated_at    = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
     # ONE place that maps status -> board column (template + tests agree on this).
-    _PLANNED_STATUSES = {"submitted", "acknowledged", "planned"}
-    _HIDDEN_STATUSES  = {"wont_fix", "dismissed"}
+    # _HIDDEN_STATUSES = off the shared board (still in the submitter's own view).
+    _HIDDEN_STATUSES = {"wont_fix", "dismissed"}
 
     @property
     def column(self):
@@ -1015,9 +1015,8 @@ class RoadmapItem(db.Model):
             return "in_progress"
         if self.status in self._HIDDEN_STATUSES:
             return "hidden"
-        # remaining: submitted/acknowledged/planned, OR a planned/known_issue-type entry
-        if self.status in self._PLANNED_STATUSES or self.type in ("planned", "known_issue"):
-            return "planned"
+        # everything else (submitted/acknowledged/planned, incl. planned/known_issue
+        # types) lands in the "Planned / Known" column.
         return "planned"
 
     def __repr__(self):

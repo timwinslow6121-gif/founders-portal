@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Roadmap{% endblock %}
+{% block content %}
+<h1>Portal Roadmap &amp; Changelog</h1>
+<form method="post" action="{{ url_for('roadmap.roadmap_submit') }}">
+  <input name="title" placeholder="Short title" required>
+  <textarea name="issue_text" placeholder="What's wrong?"></textarea>
+  <button type="submit">Report an issue</button>
+</form>
+{% for col, items in columns.items() %}
+  <h2>{{ col }}</h2>
+  {% for it in items %}<div class="rm-card">{{ it.title }}</div>{% endfor %}
+{% endfor %}
+{% if mine_only %}{% for it in mine_hidden %}<div class="rm-card">{{ it.title }}</div>{% endfor %}{% endif %}
+{% endblock %}

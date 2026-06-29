@@ -7,7 +7,7 @@ from datetime import date, datetime
 import openpyxl
 from dateutil.relativedelta import relativedelta
 from flask import (abort, flash, redirect, render_template,
-                   request, url_for, current_app)
+                   request, url_for, current_app, jsonify)
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 
@@ -1359,7 +1359,19 @@ def commission_line_edit(line_id):
     if not current_user.is_admin:
         abort(403)
     from app.commission.ledger import edit_line_split
+    from app.commission.recap import fidelity_row, fidelity_view
     from app.audit import log_event
+    # AJAX (Fidelity view) wants JSON to repaint one row in place — no page reload;
+    # a plain form POST (no-JS fallback) still redirects back. Detect either signal.
+    wants_json = (request.headers.get("X-Requested-With") == "XMLHttpRequest"
+                  or "application/json" in (request.headers.get("Accept") or ""))
+
+    def _fail(msg, code=400):
+        if wants_json:
+            return jsonify(ok=False, error=msg), code
+        flash(msg, "error")
+        return redirect(back)
+
     li = CommissionLineItem.query.filter_by(
         id=line_id, agency_id=current_user.agency_id).first_or_404()
     back = (request.form.get("next") or request.referrer
@@ -1367,14 +1379,12 @@ def commission_line_edit(line_id):
     agent = User.query.filter_by(id=request.form.get("agent_id", type=int),
                                  agency_id=current_user.agency_id).first()
     if not agent:
-        flash("Pick a valid agent.", "error")
-        return redirect(back)
+        return _fail("Pick a valid agent.")
     try:
         agent_amount = float(request.form.get("agent_amount") or 0)
         override_amount = float(request.form.get("override_amount") or 0)
     except ValueError:
-        flash("Enter valid amounts.", "error")
-        return redirect(back)
+        return _fail("Enter valid amounts.")
 
     # AJ enters the EXACT dollars (agent + Founders override). edit_line_split stores
     # the agent amount as the final payout (split_rate=1.0), so no contract rate is
@@ -1386,11 +1396,26 @@ def commission_line_edit(line_id):
         db.session.commit()
     except ValueError as e:
         db.session.rollback()
-        flash(f"Could not edit: {e}", "error")
-        return redirect(back)
+        return _fail(f"Could not edit: {e}")
     log_event("commission_edit", category="commission",
               detail=f"{li.carrier} {li.member_name or 'line'} #{li.id} "
                      f"-> agent ${agent_amount:.2f} / override ${override_amount:.2f}")
+
+    if wants_json:
+        # Rebuild the edited row (and its ::ovr sibling, if any) from the SAME
+        # fidelity_row logic the table uses, plus refreshed statement totals.
+        db.session.refresh(li)
+        ovr = (CommissionLineItem.query
+               .filter_by(statement_id=li.statement_id,
+                          source_ref=f"{li.source_ref}::ovr").first())
+        fv = fidelity_view(li.statement_id, current_user.agency_id)
+        return jsonify(
+            ok=True,
+            row=fidelity_row(li),
+            sibling=fidelity_row(ovr) if ovr is not None else None,
+            totals={"raw_total": fv["raw_total"], "agent_total": fv["agent_total"],
+                    "founders_total": fv["founders_total"]})
+
     flash("Split updated.", "success")
     return redirect(back)
 

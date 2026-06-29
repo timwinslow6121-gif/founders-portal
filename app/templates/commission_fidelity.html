@@ -27,8 +27,6 @@
   .fd-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 4px 14px 8px; margin: 0 0 22px; }
   .fd-card-title { margin: 10px 4px 4px; font-size: 16px; color: var(--ivory-bright); }
   .fd-card-title .ct-sub { font-size: 12px; color: var(--slate); font-weight: 400; }
-  /* the scroll container is what sticky headers/footers stick to — a tall list
-     scrolls WITHIN this box and the header stays pinned. */
   .fd-scroll { max-height: 70vh; overflow: auto; }
   table.fd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.fd-table th { text-align: right; padding: 9px 10px; border-bottom: 2px solid var(--border);
@@ -52,16 +50,15 @@
                       background: var(--ink); border: 1px solid var(--gold); border-radius: 10px; padding: 9px 11px;
                       font-size: 12px; line-height: 1.4; color: var(--ivory); box-shadow: var(--shadow); white-space: normal; text-align: left; }
   .fd-calc:hover .fd-rule { display: block; }
-  .fd-type-pill { font-size: 11px; color: var(--slate); }
   .fd-type { color: var(--ivory); }
   .fd-type[title] { border-bottom: 1px dotted var(--slate); cursor: help; }
   td.r { text-align: right; }
   .fd-edit-btn { background:none; border:1px solid var(--border); border-radius:7px; color:var(--gold);
                  font-size:12px; font-weight:600; padding:4px 11px; cursor:pointer; }
   .fd-edit-btn:hover { background:color-mix(in srgb, var(--gold) 12%, transparent); }
-  .fd-editform { display:none; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 12px;
+  /* the lazily-built edit form (one at a time) */
+  .fd-editform { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:10px 12px;
                  background:color-mix(in srgb, var(--gold) 6%, transparent); border-top:1px solid var(--border); }
-  .fd-editform.open { display:flex; }
   .fd-ef-lbl { font-size:12px; color:var(--slate); }
   .fd-editform select, .fd-editform input { padding:6px 9px; border:1px solid var(--border); border-radius:8px;
                  background:var(--ink); color:var(--ivory); font:inherit; font-size:13px; }
@@ -70,49 +67,40 @@
   .fd-ef-sum { font-size:12px; font-weight:600; }
   .fd-ef-sum.ok  { color:var(--green); }
   .fd-ef-sum.bad { color:var(--status-error); }
-  .fd-editform button[type=submit] { background:var(--gold); color:#fff; border:none; border-radius:8px;
+  .fd-ef-err { font-size:12px; font-weight:600; color:var(--status-error); }
+  .fd-editform button.fd-save { background:var(--gold); color:#fff; border:none; border-radius:8px;
                  padding:7px 16px; font-weight:600; cursor:pointer; }
-  .fd-editform button[type=submit][disabled] { opacity:.5; cursor:not-allowed; }
+  .fd-editform button.fd-save[disabled] { opacity:.5; cursor:not-allowed; }
+  .fd-editform button.fd-cancel { background:none; border:1px solid var(--border); border-radius:8px;
+                 color:var(--slate); padding:7px 12px; cursor:pointer; }
+  tr.fd-row.flash-saved td { animation: fdsaved 1.1s ease; }
+  @keyframes fdsaved { 0% { background: color-mix(in srgb, var(--green) 30%, transparent); } 100% { background: transparent; } }
 </style>
 {% endblock %}
 
 {% block content %}
 {% macro fdrow(r) %}
-  <tr class="fd-row" data-member="{{ r.member_display|lower }}" data-agent="{{ r.agent_name|lower }}" data-type="{{ r.classification }}" data-amount="{{ r.raw }}">
+  <tr class="fd-row"
+      data-id="{{ r.id }}"
+      data-member="{{ r.member_display|lower }}" data-agent="{{ r.agent_name|lower }}"
+      data-type="{{ r.classification }}" data-amount="{{ r.raw }}"
+      data-raw="{{ r.raw }}" data-agent-amt="{{ '%.2f'|format(r.agent) }}"
+      data-founders-amt="{{ '%.2f'|format(r.founders) }}" data-agent-id="{{ r.agent_id or '' }}"
+      data-member-display="{{ r.member_display }}">
     <td class="fd-mname">
       {% if r.customer_id %}<a href="{{ url_for('customers.customer_profile', customer_id=r.customer_id) }}">{{ r.member_display }}</a>
       {% else %}{{ r.member_display }}{% endif %}
-      <div class="fd-agent">{{ r.agent_name }}{% if r.split_rate is not none %} · {{ "%.1f"|format(r.split_rate*100) }}%{% endif %}</div>
+      <div class="fd-agent js-agent">{{ r.agent_name }}{% if r.split_rate is not none %} · {{ "%.1f"|format(r.split_rate*100) }}%{% endif %}</div>
     </td>
     <td class="num{{ ' neg' if r.raw < 0 else '' }}">${{ "{:,.2f}".format(r.raw) }}</td>
-    <td class="num agent{{ ' neg' if r.agent < 0 else '' }}">${{ "{:,.2f}".format(r.agent) }}</td>
-    <td class="num founders{{ ' neg' if r.founders < 0 else '' }}">${{ "{:,.2f}".format(r.founders) }}</td>
+    <td class="num agent js-agent-amt{{ ' neg' if r.agent < 0 else '' }}">${{ "{:,.2f}".format(r.agent) }}</td>
+    <td class="num founders js-founders-amt{{ ' neg' if r.founders < 0 else '' }}">${{ "{:,.2f}".format(r.founders) }}</td>
     <td class="l">
       <span class="fd-type" {% if r.type_raw and r.type_raw|lower != r.type_label|lower %}title="carrier code: {{ r.type_raw }}"{% endif %}>{{ r.type_label }}</span>
       <span class="fd-calc">· how<span class="fd-rule">{{ r.calc_rule }}</span></span>
     </td>
     <td class="r">
-      <button type="button" class="fd-edit-btn" onclick="document.getElementById('fdedit-{{ r.id }}').classList.toggle('open')">Edit</button>
-    </td>
-  </tr>
-  <tr class="fd-editrow">
-    <td colspan="6" style="padding:0;">
-      <form id="fdedit-{{ r.id }}" class="fd-editform" method="post"
-            action="{{ url_for('commission.commission_line_edit', line_id=r.id) }}"
-            data-raw="{{ r.raw }}">
-        <input type="hidden" name="next" value="{{ request.full_path }}">
-        <span class="fd-ef-lbl">Correct the split for <strong>{{ r.member_display }}</strong> (must total ${{ "{:,.2f}".format(r.raw) }}):</span>
-        <select name="agent_id" required>
-          <option value="">— agent —</option>
-          {% for a in agents %}
-          <option value="{{ a.id }}" {% if a.id == r.agent_id %}selected{% endif %}>{{ a.display_name }}</option>
-          {% endfor %}
-        </select>
-        <label>Agent $ <input type="number" step="0.01" name="agent_amount" class="fd-ef-amt" value="{{ "%.2f"|format(r.agent) }}"></label>
-        <label>Founders $ <input type="number" step="0.01" name="override_amount" class="fd-ef-amt" value="{{ "%.2f"|format(r.founders) }}"></label>
-        <span class="fd-ef-sum"></span>
-        <button type="submit">Save</button>
-      </form>
+      <button type="button" class="fd-edit-btn">Edit</button>
     </td>
   </tr>
 {% endmacro %}
@@ -137,9 +125,9 @@
       <tfoot>
         <tr>
           <td class="l">{{ sub }}</td>
-          <td>${{ "{:,.2f}".format(rows|sum(attribute='raw')) }}</td>
-          <td>${{ "{:,.2f}".format(rows|sum(attribute='agent')) }}</td>
-          <td>${{ "{:,.2f}".format(rows|sum(attribute='founders')) }}</td>
+          <td class="fd-foot-raw">${{ "{:,.2f}".format(rows|sum(attribute='raw')) }}</td>
+          <td class="fd-foot-agent">${{ "{:,.2f}".format(rows|sum(attribute='agent')) }}</td>
+          <td class="fd-foot-founders">${{ "{:,.2f}".format(rows|sum(attribute='founders')) }}</td>
           <td></td><td></td>
         </tr>
       </tfoot>
@@ -150,6 +138,10 @@
 {% endmacro %}
 
 <div class="fd-wrap">
+  <noscript>
+    <div class="fd-proof off">Editing a split requires JavaScript (the inline editor is built in the browser).
+    The page is still fully readable without it.</div>
+  </noscript>
   <a class="back-link" href="{{ url_for('commission.commission_admin') }}">← Commission Audit</a>
   <h1 style="margin-top:12px;">Fidelity — {{ stmt.carrier }} {{ stmt.period_label }}</h1>
   <div class="fd-sub">
@@ -179,8 +171,8 @@
   <div class="fd-totals">
     <div class="fd-stat"><div class="n">{{ fv.count }}</div><div class="l">Lines (1:1 with the file)</div></div>
     <div class="fd-stat"><div class="n">${{ "{:,.2f}".format(fv.raw_total) }}</div><div class="l">Raw total</div></div>
-    <div class="fd-stat"><div class="n" style="color:var(--green)">${{ "{:,.2f}".format(fv.agent_total) }}</div><div class="l">Agent commission</div></div>
-    <div class="fd-stat"><div class="n" style="color:var(--gold)">${{ "{:,.2f}".format(fv.founders_total) }}</div><div class="l">Founders override / keep</div></div>
+    <div class="fd-stat"><div class="n" id="fdAgentTotal" style="color:var(--green)">${{ "{:,.2f}".format(fv.agent_total) }}</div><div class="l">Agent commission</div></div>
+    <div class="fd-stat"><div class="n" id="fdFoundersTotal" style="color:var(--gold)">${{ "{:,.2f}".format(fv.founders_total) }}</div><div class="l">Founders override / keep</div></div>
   </div>
 
   <div class="fd-filters">
@@ -210,81 +202,265 @@
   {{ fdtable(chargebacks, "Chargebacks", "Chargebacks subtotal") }}
 </div>
 
+{# The agents list, rendered ONCE — the lazy edit form clones from here. #}
+<template id="fd-agents-tpl">
+  <option value="">— agent —</option>
+  {% for a in agents %}<option value="{{ a.id }}">{{ a.display_name }}</option>{% endfor %}
+</template>
+
 <script>
-  (function(){
-    var search=document.getElementById('fdSearch'), typeSel=document.getElementById('fdType'),
-        agentSel=document.getElementById('fdAgent'),
-        minI=document.getElementById('fdMin'), maxI=document.getElementById('fdMax'),
-        shown=document.getElementById('fdShown'), clear=document.getElementById('fdClear');
-    function apply(){
-      var q=(search.value||'').toLowerCase().trim(), t=typeSel.value, ag=agentSel.value,
-          mn=parseFloat(minI.value), mx=parseFloat(maxI.value);
-      var vis=0, tot=0;
-      document.querySelectorAll('tr.fd-row').forEach(function(row){
-        var m=row.getAttribute('data-member'), ty=row.getAttribute('data-type'),
-            ar=row.getAttribute('data-agent'), amt=parseFloat(row.getAttribute('data-amount'));
-        var ok = (!q || m.indexOf(q)>-1) && (!t || ty===t) && (!ag || ar===ag)
-              && (isNaN(mn) || amt>=mn) && (isNaN(mx) || amt<=mx);
-        row.style.display = ok ? '' : 'none';
-        // keep each row's paired edit form in sync (hide it with its row)
-        var edit = row.nextElementSibling;
-        if(edit && edit.classList.contains('fd-editrow')) edit.style.display = ok ? '' : 'none';
-        if(ok){ vis++; } tot++;
-      });
-      var active = q||t||ag||!isNaN(mn)||!isNaN(mx);
-      shown.textContent = active ? (vis+' of '+tot+' shown') : '';
-    }
-    [search,typeSel,agentSel,minI,maxI].forEach(function(el){ el.addEventListener('input',apply); el.addEventListener('change',apply); });
-    clear.addEventListener('click',function(){ search.value=''; typeSel.value=''; agentSel.value=''; minI.value=''; maxI.value=''; apply(); });
+  // url_for(line_id=0) -> ".../line/0/edit"; the JS swaps "/0/edit" for "/<id>/edit".
+  const FD_EDIT_URL = "{{ url_for('commission.commission_line_edit', line_id=0) }}";
+</script>
+<script>
+(function(){
+  // ── Filters (persisted to the URL so they survive a reload / no-JS POST) ──────
+  var search=document.getElementById('fdSearch'), typeSel=document.getElementById('fdType'),
+      agentSel=document.getElementById('fdAgent'),
+      minI=document.getElementById('fdMin'), maxI=document.getElementById('fdMax'),
+      shown=document.getElementById('fdShown'), clear=document.getElementById('fdClear');
 
-    // Click-to-sort column headers (per table; keeps each data row paired with its edit form).
-    document.querySelectorAll('table.fd-table').forEach(function(tbl){
-      var tbody=tbl.querySelector('tbody');
-      tbl.querySelectorAll('th.sortable').forEach(function(th){
-        th.style.cursor='pointer';
-        th.addEventListener('click',function(){
-          var key=th.getAttribute('data-sort');
-          var asc = th.getAttribute('data-dir') !== 'asc';
-          // clear arrows on sibling headers
-          tbl.querySelectorAll('th.sortable').forEach(function(o){ o.removeAttribute('data-dir'); var s=o.querySelector('.sa'); if(s) s.textContent=''; });
-          th.setAttribute('data-dir', asc?'asc':'desc');
-          var sa=th.querySelector('.sa'); if(sa) sa.textContent = asc?' ▲':' ▼';
-          // gather (row, its edit-row) pairs
-          var pairs=[];
-          tbody.querySelectorAll('tr.fd-row').forEach(function(row){
-            var edit=row.nextElementSibling;
-            if(edit && !edit.classList.contains('fd-editrow')) edit=null;
-            pairs.push([row, edit]);
-          });
-          pairs.sort(function(a,b){
-            var x,y;
-            if(key==='amount'){ x=parseFloat(a[0].getAttribute('data-amount')); y=parseFloat(b[0].getAttribute('data-amount')); return asc? x-y : y-x; }
-            x=a[0].getAttribute('data-'+key)||''; y=b[0].getAttribute('data-'+key)||'';
-            return asc ? x.localeCompare(y) : y.localeCompare(x);
-          });
-          pairs.forEach(function(p){ tbody.appendChild(p[0]); if(p[1]) tbody.appendChild(p[1]); });
+  function readUrlIntoFilters(){
+    var p=new URLSearchParams(location.search);
+    if(p.has('q')) search.value=p.get('q');
+    if(p.has('agent')) agentSel.value=p.get('agent');
+    if(p.has('type')) typeSel.value=p.get('type');
+    if(p.has('min')) minI.value=p.get('min');
+    if(p.has('max')) maxI.value=p.get('max');
+  }
+  function writeFiltersToUrl(){
+    var p=new URLSearchParams();
+    if(search.value) p.set('q', search.value);
+    if(agentSel.value) p.set('agent', agentSel.value);
+    if(typeSel.value) p.set('type', typeSel.value);
+    if(minI.value) p.set('min', minI.value);
+    if(maxI.value) p.set('max', maxI.value);
+    var qs=p.toString();
+    history.replaceState(null, '', location.pathname + (qs? '?'+qs : ''));
+  }
+  function apply(){
+    var q=(search.value||'').toLowerCase().trim(), t=typeSel.value, ag=agentSel.value,
+        mn=parseFloat(minI.value), mx=parseFloat(maxI.value);
+    var vis=0, tot=0;
+    document.querySelectorAll('tr.fd-row').forEach(function(row){
+      var m=row.getAttribute('data-member'), ty=row.getAttribute('data-type'),
+          ar=row.getAttribute('data-agent'), amt=parseFloat(row.getAttribute('data-amount'));
+      var ok = (!q || m.indexOf(q)>-1) && (!t || ty===t) && (!ag || ar===ag)
+            && (isNaN(mn) || amt>=mn) && (isNaN(mx) || amt<=mx);
+      row.style.display = ok ? '' : 'none';
+      var edit = row.nextElementSibling;          // its open edit form, if any
+      if(edit && edit.classList.contains('fd-editrow')) edit.style.display = ok ? '' : 'none';
+      if(ok){ vis++; } tot++;
+    });
+    var active = q||t||ag||!isNaN(mn)||!isNaN(mx);
+    shown.textContent = active ? (vis+' of '+tot+' shown') : '';
+    writeFiltersToUrl();
+  }
+  readUrlIntoFilters();
+  [search,typeSel,agentSel,minI,maxI].forEach(function(el){ el.addEventListener('input',apply); el.addEventListener('change',apply); });
+  clear.addEventListener('click',function(){ search.value=''; typeSel.value=''; agentSel.value=''; minI.value=''; maxI.value=''; apply(); });
+  apply();   // restore-on-load
+
+  // ── Click-to-sort (rows only — no paired edit form to drag along now) ─────────
+  document.querySelectorAll('table.fd-table').forEach(function(tbl){
+    var tbody=tbl.querySelector('tbody');
+    tbl.querySelectorAll('th.sortable').forEach(function(th){
+      th.style.cursor='pointer';
+      th.addEventListener('click',function(){
+        var key=th.getAttribute('data-sort');
+        var asc = th.getAttribute('data-dir') !== 'asc';
+        tbl.querySelectorAll('th.sortable').forEach(function(o){ o.removeAttribute('data-dir'); var s=o.querySelector('.sa'); if(s) s.textContent=''; });
+        th.setAttribute('data-dir', asc?'asc':'desc');
+        var sa=th.querySelector('.sa'); if(sa) sa.textContent = asc?' ▲':' ▼';
+        var rows=Array.from(tbody.querySelectorAll('tr.fd-row'));
+        rows.sort(function(a,b){
+          var x,y;
+          if(key==='amount'){ x=parseFloat(a.getAttribute('data-amount')); y=parseFloat(b.getAttribute('data-amount')); return asc? x-y : y-x; }
+          x=a.getAttribute('data-'+key)||''; y=b.getAttribute('data-'+key)||'';
+          return asc ? x.localeCompare(y) : y.localeCompare(x);
         });
+        // closing any open editor first keeps the DOM simple
+        closeOpenEditor();
+        rows.forEach(function(r){ tbody.appendChild(r); });
       });
     });
-  })();
+  });
 
-  // Inline edit: live-check that agent + Founders = the row's raw amount (the
-  // invariant the server also enforces). Show the running sum + block Save if off.
-  (function(){
-    document.querySelectorAll('form.fd-editform').forEach(function(f){
-      var raw=parseFloat(f.getAttribute('data-raw'))||0;
-      var ag=f.querySelector('input[name=agent_amount]'), ov=f.querySelector('input[name=override_amount]');
-      var sum=f.querySelector('.fd-ef-sum'), save=f.querySelector('button[type=submit]');
-      function fmt(n){ return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-      function check(){
-        var t=Math.round(((parseFloat(ag.value)||0)+(parseFloat(ov.value)||0))*100)/100;
-        var ok=Math.abs(t-raw)<0.005;
-        sum.textContent = '= '+fmt(t)+(ok?' ✓':' ✗ must equal '+fmt(raw));
-        sum.className='fd-ef-sum '+(ok?'ok':'bad');
-        save.disabled=!ok;
-      }
-      ag.addEventListener('input',check); ov.addEventListener('input',check); check();
+  // ── Lazy edit form: build ONE on demand, AJAX-save, repaint the row in place ──
+  var agentsHtml = document.getElementById('fd-agents-tpl').innerHTML;
+  var openEditor = null;   // the <tr class="fd-editrow"> currently open, if any
+
+  function fmt(n){ return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function closeOpenEditor(){
+    if(openEditor){ openEditor.remove(); openEditor=null; }
+  }
+
+  function openEditorFor(row){
+    if(openEditor && openEditor.previousElementSibling === row){ closeOpenEditor(); return; }  // toggle
+    closeOpenEditor();
+    var raw=parseFloat(row.getAttribute('data-raw'))||0;
+    var memberDisplay=row.getAttribute('data-member-display')||'';
+    var agentAmt=row.getAttribute('data-agent-amt')||'0.00';
+    var foundersAmt=row.getAttribute('data-founders-amt')||'0.00';
+    var agentId=row.getAttribute('data-agent-id')||'';
+
+    var tr=document.createElement('tr');
+    tr.className='fd-editrow';
+    var td=document.createElement('td'); td.colSpan=6; td.style.padding='0';
+    var form=document.createElement('div'); form.className='fd-editform';
+    form.innerHTML =
+      '<span class="fd-ef-lbl">Correct the split for <strong></strong> (must total '+fmt(raw)+'):</span>'+
+      '<select class="fd-ef-agent" required>'+agentsHtml+'</select>'+
+      '<label>Agent $ <input type="number" step="0.01" class="fd-ef-amt fd-ef-agentamt"></label>'+
+      '<label>Founders $ <input type="number" step="0.01" class="fd-ef-amt fd-ef-ovramt"></label>'+
+      '<span class="fd-ef-sum"></span>'+
+      '<button type="button" class="fd-save">Save</button>'+
+      '<button type="button" class="fd-cancel">Cancel</button>'+
+      '<span class="fd-ef-err"></span>';
+    td.appendChild(form); tr.appendChild(td);
+    row.parentNode.insertBefore(tr, row.nextSibling);
+    openEditor=tr;
+
+    form.querySelector('strong').textContent = memberDisplay;
+    var agentSel2=form.querySelector('.fd-ef-agent');
+    if(agentId) agentSel2.value=agentId;
+    var ag=form.querySelector('.fd-ef-agentamt'), ov=form.querySelector('.fd-ef-ovramt');
+    ag.value=agentAmt; ov.value=foundersAmt;
+    var sumEl=form.querySelector('.fd-ef-sum'), saveBtn=form.querySelector('.fd-save'),
+        errEl=form.querySelector('.fd-ef-err');
+
+    function check(){
+      var t=Math.round(((parseFloat(ag.value)||0)+(parseFloat(ov.value)||0))*100)/100;
+      var ok=Math.abs(t-raw)<0.005;
+      sumEl.textContent='= '+fmt(t)+(ok?' ✓':' ✗ must equal '+fmt(raw));
+      sumEl.className='fd-ef-sum '+(ok?'ok':'bad');
+      saveBtn.disabled=!ok;
+      return ok;
+    }
+    ag.addEventListener('input',check); ov.addEventListener('input',check); check();
+    form.querySelector('.fd-cancel').addEventListener('click', closeOpenEditor);
+
+    saveBtn.addEventListener('click', function(){
+      if(!check()) return;
+      if(!agentSel2.value){ errEl.textContent='Pick an agent.'; return; }
+      errEl.textContent=''; saveBtn.disabled=true;
+      var body=new URLSearchParams();
+      body.set('agent_id', agentSel2.value);
+      body.set('agent_amount', ag.value||'0');
+      body.set('override_amount', ov.value||'0');
+      fetch(FD_EDIT_URL.replace('/0/edit', '/'+row.getAttribute('data-id')+'/edit'), {
+        method:'POST',
+        headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json',
+                 'Content-Type':'application/x-www-form-urlencoded'},
+        body: body.toString()
+      }).then(function(r){ return r.json().catch(function(){ throw new Error('Server error'); }); })
+        .then(function(j){
+          if(!j.ok){ errEl.textContent=j.error||'Could not save.'; saveBtn.disabled=false; return; }
+          repaintRow(row, j.row);
+          // the ::ovr Founders-override sibling: repaint it in place if present, else
+          // insert it right after the edited row; if the override was zeroed out, remove it.
+          syncSiblingRow(row, j.sibling);
+          if(j.totals){
+            document.getElementById('fdAgentTotal').textContent=fmt(j.totals.agent_total);
+            document.getElementById('fdFoundersTotal').textContent=fmt(j.totals.founders_total);
+          }
+          recomputeFooters();   // keep each table's per-section subtotal in sync
+          closeOpenEditor();
+          row.classList.add('flash-saved');
+          setTimeout(function(){ row.classList.remove('flash-saved'); }, 1100);
+        })
+        .catch(function(e){ errEl.textContent=(e&&e.message)||'Network error.'; saveBtn.disabled=false; });
     });
-  })();
+  }
+
+  function repaintRow(row, r){
+    // money cells
+    var agentCell=row.querySelector('.js-agent-amt'), ovrCell=row.querySelector('.js-founders-amt');
+    if(agentCell){ agentCell.textContent=fmt(r.agent); agentCell.classList.toggle('neg', r.agent<0); }
+    if(ovrCell){ ovrCell.textContent=fmt(r.founders); ovrCell.classList.toggle('neg', r.founders<0); }
+    // agent label (name · rate%)
+    var agentLbl=row.querySelector('.js-agent');
+    if(agentLbl){
+      var pct=(r.split_rate!==null && r.split_rate!==undefined) ? ' · '+(r.split_rate*100).toFixed(1)+'%' : '';
+      agentLbl.textContent=r.agent_name+pct;
+    }
+    // data-* used by filters/sort/next edit
+    row.setAttribute('data-agent', (r.agent_name||'').toLowerCase());
+    row.setAttribute('data-agent-amt', Number(r.agent).toFixed(2));
+    row.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
+    row.setAttribute('data-agent-id', r.agent_id||'');
+  }
+
+  function neg(n){ return n < 0 ? ' neg' : ''; }
+
+  // Build a fresh data <tr> for a row dict (mirrors the Jinja fdrow macro) — used to
+  // INSERT a newly-created ::ovr override sibling without a page reload.
+  function buildDataRow(r){
+    var tr=document.createElement('tr');
+    tr.className='fd-row';
+    tr.setAttribute('data-id', r.id);
+    tr.setAttribute('data-member', (r.member_display||'').toLowerCase());
+    tr.setAttribute('data-agent', (r.agent_name||'').toLowerCase());
+    tr.setAttribute('data-type', r.classification);
+    tr.setAttribute('data-amount', r.raw);
+    tr.setAttribute('data-raw', r.raw);
+    tr.setAttribute('data-agent-amt', Number(r.agent).toFixed(2));
+    tr.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
+    tr.setAttribute('data-agent-id', r.agent_id||'');
+    tr.setAttribute('data-member-display', r.member_display||'');
+    var pct=(r.split_rate!==null && r.split_rate!==undefined) ? ' · '+(r.split_rate*100).toFixed(1)+'%' : '';
+    var nameCell=document.createElement('td'); nameCell.className='fd-mname';
+    nameCell.textContent=r.member_display||'';
+    var sub=document.createElement('div'); sub.className='fd-agent js-agent';
+    sub.textContent=(r.agent_name||'')+pct; nameCell.appendChild(sub);
+    var rawCell=document.createElement('td'); rawCell.className='num'+neg(r.raw); rawCell.textContent=fmt(r.raw);
+    var agCell=document.createElement('td'); agCell.className='num agent js-agent-amt'+neg(r.agent); agCell.textContent=fmt(r.agent);
+    var ovCell=document.createElement('td'); ovCell.className='num founders js-founders-amt'+neg(r.founders); ovCell.textContent=fmt(r.founders);
+    var typeCell=document.createElement('td'); typeCell.className='l';
+    var ty=document.createElement('span'); ty.className='fd-type'; ty.textContent=r.type_label||''; typeCell.appendChild(ty);
+    var actCell=document.createElement('td'); actCell.className='r';
+    var btn=document.createElement('button'); btn.type='button'; btn.className='fd-edit-btn'; btn.textContent='Edit'; actCell.appendChild(btn);
+    tr.appendChild(nameCell); tr.appendChild(rawCell); tr.appendChild(agCell); tr.appendChild(ovCell); tr.appendChild(typeCell); tr.appendChild(actCell);
+    return tr;
+  }
+
+  // Reflect the edited line's ::ovr sibling: repaint if it's already a row, insert it
+  // (right after the edited row) if it's new, or remove it if the override was zeroed out.
+  function syncSiblingRow(editedRow, sib){
+    var existing = sib ? document.querySelector('tr.fd-row[data-id="'+sib.id+'"]') : null;
+    if(sib){
+      if(existing){ repaintRow(existing, sib); }
+      else {
+        var tr=buildDataRow(sib);
+        editedRow.parentNode.insertBefore(tr, editedRow.nextSibling);
+      }
+    }
+  }
+
+  // Recompute every table's per-section subtotal footer from its CURRENT rows, so the
+  // in-table totals never drift from the top summary after an edit.
+  function recomputeFooters(){
+    document.querySelectorAll('table.fd-table').forEach(function(tbl){
+      var raw=0, ag=0, ov=0;
+      tbl.querySelectorAll('tbody tr.fd-row').forEach(function(row){
+        raw += parseFloat(row.getAttribute('data-raw'))||0;
+        ag  += parseFloat(row.getAttribute('data-agent-amt'))||0;
+        ov  += parseFloat(row.getAttribute('data-founders-amt'))||0;
+      });
+      var fr=tbl.querySelector('.fd-foot-raw'), fa=tbl.querySelector('.fd-foot-agent'), fo=tbl.querySelector('.fd-foot-founders');
+      if(fr) fr.textContent=fmt(Math.round(raw*100)/100);
+      if(fa) fa.textContent=fmt(Math.round(ag*100)/100);
+      if(fo) fo.textContent=fmt(Math.round(ov*100)/100);
+    });
+  }
+
+  document.querySelectorAll('table.fd-table').forEach(function(tbl){
+    tbl.addEventListener('click', function(e){
+      var btn=e.target.closest('.fd-edit-btn'); if(!btn) return;
+      var row=btn.closest('tr.fd-row'); if(row) openEditorFor(row);
+    });
+  });
+})();
 </script>
 {% endblock %}

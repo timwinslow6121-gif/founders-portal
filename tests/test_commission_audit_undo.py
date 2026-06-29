@@ -338,3 +338,32 @@ def test_edit_preserves_hra_bonus_classification(db_session, app, agency):
                         agent_id=7, user_id=3)
         db.session.commit()
         assert li3.classification == CHARGEBACK
+
+
+def test_undo_recreated_sibling_inherits_customer_id(db_session, app, agency):
+    """Opus-review finding: undo that RE-CREATES a deleted ::ovr sibling must also
+    carry the parent's customer_id (else undo re-introduces the quirk #4 orphan)."""
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from app.commission.ledger import (resolve_quarantine_line, undo_last_change)
+    with app.app_context():
+        li = CommissionLineItem(
+            agency_id=agency.id, statement_id=1, carrier="UHC",
+            source_ref="uhc::0::611", raw_amount=33.51, split_rate=None,
+            classification="needs_manual_review", payment_type="New", customer_id=321)
+        db.session.add(li); db.session.flush()
+        # 1st resolve creates the override sibling (with customer_id, per quirk #4 fix)
+        resolve_quarantine_line(li, agent_id=7, override_amount=4.59,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        # 2nd resolve clears the override -> deletes the sibling
+        resolve_quarantine_line(li, agent_id=7, override_amount=0.0,
+                                split_rate=0.55, user_id=3)
+        db.session.commit()
+        assert CommissionLineItem.query.filter_by(source_ref="uhc::0::611::ovr").first() is None
+        # undo the 2nd resolve -> RE-CREATES the sibling; it must carry customer_id=321
+        undo_last_change(li, user_id=3)
+        db.session.commit()
+        sib = CommissionLineItem.query.filter_by(source_ref="uhc::0::611::ovr").first()
+        assert sib is not None
+        assert sib.customer_id == 321        # not NULL — no re-orphan

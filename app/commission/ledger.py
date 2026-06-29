@@ -1127,7 +1127,8 @@ def undo_last_change(line, *, user_id=None) -> bool:
                     statement_date=line.statement_date,
                     source_ref=rev.sibling_source_ref,
                     member_name=line.member_name, mbi=line.mbi,
-                    carrier_member_id=line.carrier_member_id)
+                    carrier_member_id=line.carrier_member_id,
+                    customer_id=line.customer_id)   # same member — don't re-orphan on undo
                 db.session.add(sib)
             for k, v in sibling_before.items():
                 setattr(sib, k, v)
@@ -1175,7 +1176,7 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
     if agent_amount < 0:
         line.classification = CHARGEBACK
     elif line.classification == HRA_BONUS:
-        line.classification = HRA_BONUS
+        pass                                  # keep hra_bonus (don't flip to renewal)
     else:
         line.classification = AGENT_COMMISSION
     line.raw_amount = agent_amount

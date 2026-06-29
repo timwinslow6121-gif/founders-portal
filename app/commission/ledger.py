@@ -1026,7 +1026,11 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user
             carrier=line.carrier, period_label=line.period_label,
             statement_date=line.statement_date, source_ref=ovr_ref,
             member_name=line.member_name, mbi=line.mbi,
-            carrier_member_id=line.carrier_member_id)
+            carrier_member_id=line.carrier_member_id,
+            customer_id=line.customer_id)
+        # the override sibling is the SAME member as its parent — keep its customer link
+        # in sync (also repairs a previously-orphaned sibling on a re-resolve).
+        override_row.customer_id = line.customer_id
         override_row.raw_amount = ov
         override_row.split_rate = None
         override_row.classification = FOUNDERS_OVERRIDE
@@ -1152,11 +1156,15 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
             carrier=line.carrier, period_label=line.period_label,
             statement_date=line.statement_date, source_ref=ovr_ref,
             member_name=line.member_name, mbi=line.mbi,
-            carrier_member_id=line.carrier_member_id)
+            carrier_member_id=line.carrier_member_id,
+            customer_id=line.customer_id)
         ovr.raw_amount = override_amount
         ovr.split_rate = None
         ovr.classification = FOUNDERS_OVERRIDE
         ovr.agent_id = None
+        # same member as the parent — keep the customer link in sync (repairs a
+        # previously-orphaned sibling on a re-edit).
+        ovr.customer_id = line.customer_id
         ovr.payment_type = "override [edited]"
         if existing_ovr is None:
             db.session.add(ovr)

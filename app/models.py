@@ -978,6 +978,51 @@ class UnmatchedCall(db.Model):
         return f"<UnmatchedCall from={self.from_number} provider={self.provider} resolved={self.resolved}>"
 
 
+class RoadmapItem(db.Model):
+    """A roadmap / changelog entry OR an agent-submitted bug. Everyone sees the
+    shared board (no private/public split); only `wont_fix`/`dismissed` items drop
+    off it (still visible to their own submitter + admins). See
+    docs/superpowers/specs/2026-06-29-roadmap-changelog-bug-intake-design.md."""
+    __tablename__ = "roadmap_items"
+
+    id            = db.Column(db.Integer, primary_key=True)
+    agency_id     = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agency        = db.relationship("Agency", foreign_keys=[agency_id])
+
+    type          = db.Column(db.String(16), nullable=False, default="bug_fix")   # bug_fix|feature|planned|known_issue
+    title         = db.Column(db.String(200), nullable=False)
+    issue_text    = db.Column(db.Text)        # "what was wrong"
+    fix_text      = db.Column(db.Text)        # "the fix" / what we did
+    status        = db.Column(db.String(20), nullable=False, default="submitted", index=True)
+                    # submitted|acknowledged|planned|in_progress|shipped|wont_fix|dismissed
+    priority      = db.Column(db.String(8))   # low|medium|high
+    submitted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
+    submitted_by  = db.relationship("User", foreign_keys=[submitted_by_id])
+    shipped_on    = db.Column(db.Date)        # for shipped ordering / "from day 1"
+
+    created_at    = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at    = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    # ONE place that maps status -> board column (template + tests agree on this).
+    # _HIDDEN_STATUSES = off the shared board (still in the submitter's own view).
+    _HIDDEN_STATUSES = {"wont_fix", "dismissed"}
+
+    @property
+    def column(self):
+        if self.status == "shipped":
+            return "shipped"
+        if self.status == "in_progress":
+            return "in_progress"
+        if self.status in self._HIDDEN_STATUSES:
+            return "hidden"
+        # everything else (submitted/acknowledged/planned, incl. planned/known_issue
+        # types) lands in the "Planned / Known" column.
+        return "planned"
+
+    def __repr__(self):
+        return f"<RoadmapItem #{self.id} {self.type}/{self.status} {self.title!r}>"
+
+
 class SmsTemplate(db.Model):
     """
     Pre-approved SMS message templates for agent use in SC-5 SMS blast/send flows.

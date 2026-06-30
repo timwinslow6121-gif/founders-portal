@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Roadmap & Changelog{% endblock %}
+{% block styles %}
+<style>
+  .rm-wrap { max-width: 1180px; margin: 0 auto; }
+  .rm-head { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:14px; margin:6px 0 18px; }
+  .rm-title { font-family:'Merriweather',Georgia,serif; color:var(--ivory-bright); margin:0; font-size:1.9rem; }
+  .rm-tagline { color:var(--slate); font-size:14px; margin:4px 0 0; }
+  .rm-cta { background:var(--gold); color:#fff; border:none; border-radius:12px; padding:11px 18px; font:inherit; font-weight:700; font-size:14px; cursor:pointer; box-shadow:var(--shadow); }
+  .rm-mine { font-size:13px; color:var(--gold); text-decoration:none; margin-left:14px; }
+  .rm-cols { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .rm-col { background:color-mix(in srgb, var(--ink) 50%, var(--surface)); border:1px solid var(--border); border-radius:var(--radius); padding:12px; }
+  .rm-colh { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:var(--ivory-bright); margin:4px 6px 12px; text-transform:uppercase; letter-spacing:.04em; }
+  .rm-colh .ct { margin-left:auto; font-size:12px; color:var(--slate); background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:1px 9px; }
+  .rm-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); padding:12px 13px; margin-bottom:10px; cursor:pointer; }
+  .rm-cardtop { display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-bottom:5px; }
+  .rm-badge { font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; }
+  .b-bug_fix { background:color-mix(in srgb, var(--green) 16%, var(--surface)); color:var(--green); }
+  .b-feature { background:color-mix(in srgb, var(--gold) 14%, var(--surface)); color:var(--gold); }
+  .b-planned, .b-known_issue { background:color-mix(in srgb, var(--gold) 10%, var(--surface)); color:var(--gold); }
+  .rm-prio { font-size:11px; font-weight:700; color:var(--slate); }
+  .rm-when { margin-left:auto; font-size:11px; color:var(--slate); }
+  .rm-card h4 { margin:1px 0 4px; font-size:14px; color:var(--ivory-bright); font-weight:700; line-height:1.3; }
+  .rm-detail { display:none; margin-top:9px; }
+  .rm-card.open .rm-detail { display:block; }
+  .rm-if { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:6px 0; }
+  .rm-issue, .rm-fix { border-radius:9px; padding:8px 10px; font-size:12.5px; line-height:1.5; color:var(--ivory); }
+  .rm-issue { background:color-mix(in srgb, var(--status-error) 7%, var(--surface)); border:1px solid color-mix(in srgb, var(--status-error) 20%, var(--surface)); }
+  .rm-fix { background:color-mix(in srgb, var(--green) 8%, var(--surface)); border:1px solid color-mix(in srgb, var(--green) 24%, var(--surface)); }
+  .rm-iflbl { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:2px; }
+  .rm-sub { font-size:11px; color:var(--slate); margin-top:6px; }
+  .rm-admin { margin-top:8px; padding-top:8px; border-top:1px solid var(--border); display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .rm-admin select, .rm-admin input { font-size:12px; padding:4px 7px; border:1px solid var(--border); border-radius:7px; background:var(--ink); color:var(--ivory); }
+  .rm-admin button { font-size:12px; padding:5px 11px; border:none; border-radius:7px; background:var(--gold); color:#fff; font-weight:600; cursor:pointer; }
+  /* submit modal */
+  .rm-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50; align-items:center; justify-content:center; }
+  .rm-modal.open { display:flex; }
+  .rm-modal-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow-float); padding:20px 22px; width:min(520px,92vw); }
+  .rm-modal-card h3 { margin:0 0 4px; color:var(--ivory-bright); }
+  .rm-modal-card p { margin:0 0 12px; color:var(--slate); font-size:13px; }
+  .rm-modal-card label { display:block; font-size:12px; color:var(--slate); margin:8px 0 3px; }
+  .rm-modal-card input, .rm-modal-card textarea { width:100%; box-sizing:border-box; padding:9px 11px; border:1px solid var(--border); border-radius:9px; background:var(--ink); color:var(--ivory); font:inherit; }
+  .rm-modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  @media(max-width:820px){ .rm-cols{ grid-template-columns:1fr; } .rm-if{ grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+{% set col_meta = {'planned':'Planned / Known', 'in_progress':'In progress', 'shipped':'Shipped'} %}
+<div class="rm-wrap">
+  <div class="rm-head">
+    <div>
+      <h1 class="rm-title">Portal Roadmap &amp; Changelog</h1>
+      <p class="rm-tagline">Everything we've fixed and shipped — and what's coming next.
+        {% if mine_only %}<a class="rm-mine" href="{{ url_for('roadmap.roadmap_board') }}">← Back to all</a>
+        {% else %}<a class="rm-mine" href="{{ url_for('roadmap.roadmap_board', mine=1) }}">My submissions →</a>{% endif %}
+      </p>
+    </div>
+    <button class="rm-cta" type="button" onclick="document.getElementById('rmModal').classList.add('open')">+ Report an issue</button>
+  </div>
+
+  {% macro card(it) %}
+  <div class="rm-card" onclick="this.classList.toggle('open')">
+    <div class="rm-cardtop">
+      <span class="rm-badge b-{{ it.type }}">{{ it.type.replace('_',' ')|title }}</span>
+      {% if it.priority %}<span class="rm-prio">● {{ it.priority|title }}</span>{% endif %}
+      <span class="rm-when">{{ it.shipped_on.strftime('%b %d, %Y') if it.shipped_on else it.status.replace('_',' ')|title }}</span>
+    </div>
+    <h4>{{ it.title }}</h4>
+    <div class="rm-detail">
+      {% if it.issue_text or it.fix_text %}
+      <div class="rm-if">
+        {% if it.issue_text %}<div class="rm-issue"><span class="rm-iflbl">The issue</span>{{ it.issue_text }}</div>{% endif %}
+        {% if it.fix_text %}<div class="rm-fix"><span class="rm-iflbl">The fix</span>{{ it.fix_text }}</div>{% endif %}
+      </div>
+      {% endif %}
+      <div class="rm-sub">
+        {% if it.submitted_by %}Reported by {{ it.submitted_by.display_name }}{% endif %}
+        {% if it.status in ('dismissed','wont_fix') %} · <strong>{{ 'Dismissed' if it.status=='dismissed' else "Won't fix" }}</strong>{% endif %}
+      </div>
+      {% if current_user.is_admin %}
+      <form class="rm-admin" method="post" action="{{ url_for('roadmap.roadmap_edit', item_id=it.id) }}" onclick="event.stopPropagation()">
+        <select name="status">
+          {% for s in ['submitted','acknowledged','planned','in_progress','shipped','wont_fix','dismissed'] %}
+          <option value="{{ s }}" {% if it.status==s %}selected{% endif %}>{{ s.replace('_',' ')|title }}</option>{% endfor %}
+        </select>
+        <select name="priority">
+          <option value="">— priority —</option>
+          {% for p in ['low','medium','high'] %}<option value="{{ p }}" {% if it.priority==p %}selected{% endif %}>{{ p|title }}</option>{% endfor %}
+        </select>
+        <input type="date" name="shipped_on" value="{{ it.shipped_on.isoformat() if it.shipped_on else '' }}">
+        <button type="submit">Save</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endmacro %}
+
+  {% if mine_only %}
+  <div class="rm-col" style="grid-column:1/-1;">
+    <div class="rm-colh">My submissions <span class="ct">{{ (columns.planned + columns.in_progress + columns.shipped + mine_hidden)|length }}</span></div>
+    {% for col in ['planned','in_progress','shipped'] %}{% for it in columns[col] %}{{ card(it) }}{% endfor %}{% endfor %}
+    {% for it in mine_hidden %}{{ card(it) }}{% endfor %}
+  </div>
+  {% else %}
+  <div class="rm-cols">
+    {% for col in ['planned','in_progress','shipped'] %}
+    <div class="rm-col">
+      <div class="rm-colh">{{ col_meta[col] }} <span class="ct">{{ columns[col]|length }}</span></div>
+      {% for it in columns[col] %}{{ card(it) }}{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="rm-modal" id="rmModal">
+  <div class="rm-modal-card">
+    <h3>Report an issue</h3>
+    <p>Found a bug or something off? Tell us — everyone can see it so we don't get the same report twice.</p>
+    <form method="post" action="{{ url_for('roadmap.roadmap_submit') }}">
+      <label>Short title</label>
+      <input name="title" required maxlength="200" placeholder="e.g. Export button does nothing">
+      <label>What's wrong? (the more detail the better)</label>
+      <textarea name="issue_text" rows="4" placeholder="What did you click, what did you expect, what happened?"></textarea>
+      <div class="rm-modal-actions">
+        <button type="button" class="rm-cta" style="background:var(--surface-low);color:var(--ivory)" onclick="document.getElementById('rmModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="rm-cta">Send report</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

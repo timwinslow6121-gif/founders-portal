@@ -24,6 +24,7 @@ def create_app():
     from app.pharmacies import pharmacies_bp
     from app.carriers import carriers_bp
     from app.comms import comms_bp
+    from app.roadmap import roadmap_bp
     app.register_blueprint(main)
     app.register_blueprint(auth)
     app.register_blueprint(upload_bp)
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(pharmacies_bp)
     app.register_blueprint(carriers_bp)
     app.register_blueprint(comms_bp)
+    app.register_blueprint(roadmap_bp)
 
     from app.security import init_security
     init_security(app)

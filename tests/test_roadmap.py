@@ -114,3 +114,66 @@ def test_board_is_agency_scoped(db_session, app, client, agency):
         uid = u.id
     _login(client, uid)
     assert "SECRET other-agency item" not in client.get("/roadmap").get_data(as_text=True)
+
+
+def test_admin_can_edit_status_and_fields(db_session, app, client, agency, admin_user):
+    from app.extensions import db
+    from app.models import RoadmapItem
+    with app.app_context():
+        it = RoadmapItem(agency_id=agency.id, type="bug_fix", status="submitted",
+                         title="Slow page")
+        db.session.add(it); db.session.commit()
+        iid, aid = it.id, admin_user.id
+    _login(client, aid)
+    client.post(f"/roadmap/{iid}/edit",
+                data={"status": "shipped", "priority": "high",
+                      "fix_text": "Rebuilt it to load fast.", "shipped_on": "2026-06-29"},
+                follow_redirects=True)
+    with app.app_context():
+        it = RoadmapItem.query.get(iid)
+        assert it.status == "shipped" and it.priority == "high"
+        assert it.fix_text == "Rebuilt it to load fast."
+        assert it.column == "shipped"
+
+
+def test_admin_dismiss_takes_item_off_board(db_session, app, client, agency, admin_user):
+    from app.extensions import db
+    from app.models import RoadmapItem
+    with app.app_context():
+        it = RoadmapItem(agency_id=agency.id, type="bug_fix", status="submitted",
+                         title="Duplicate report")
+        db.session.add(it); db.session.commit()
+        iid, aid = it.id, admin_user.id
+    _login(client, aid)
+    client.post(f"/roadmap/{iid}/edit", data={"status": "dismissed"}, follow_redirects=True)
+    with app.app_context():
+        assert RoadmapItem.query.get(iid).column == "hidden"
+
+
+def test_non_admin_cannot_edit(db_session, app, client, agency, agent_user):
+    from app.extensions import db
+    from app.models import RoadmapItem
+    with app.app_context():
+        it = RoadmapItem(agency_id=agency.id, type="bug_fix", status="submitted",
+                         title="Try to hack")
+        db.session.add(it); db.session.commit()
+        iid, aid = it.id, agent_user.id
+    _login(client, aid)
+    resp = client.post(f"/roadmap/{iid}/edit", data={"status": "shipped"})
+    assert resp.status_code == 403
+    with app.app_context():
+        assert RoadmapItem.query.get(iid).status == "submitted"   # unchanged
+
+
+def test_admin_cannot_edit_other_agency_item(db_session, app, client, agency, admin_user):
+    from app.extensions import db
+    from app.models import RoadmapItem, Agency
+    with app.app_context():
+        other = Agency(name="Other"); db.session.add(other); db.session.flush()
+        it = RoadmapItem(agency_id=other.id, type="bug_fix", status="submitted",
+                         title="Not yours")
+        db.session.add(it); db.session.commit()
+        iid, aid = it.id, admin_user.id
+    _login(client, aid)
+    resp = client.post(f"/roadmap/{iid}/edit", data={"status": "shipped"})
+    assert resp.status_code == 404    # agency-scoped lookup -> not found

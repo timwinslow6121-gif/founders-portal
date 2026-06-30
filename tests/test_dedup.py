@@ -124,3 +124,25 @@ def test_shared_carrier_id_is_shared_id(app, db_session):
         clusters = find_no_mbi_clusters(agency_id)
         brown = [c for c in clusters if cust1.id in c.member_ids][0]
         assert brown.signal == "shared_id"
+
+
+def test_one_person_many_product_lines_is_not_a_duplicate(app, db_session):
+    """A person with a MAPD + a dental + a hospital-indemnity policy (no MBI on the
+    latter two) is ONE customer with THREE policies — never flagged as duplicates."""
+    with app.app_context():
+        ag = Agency(name="T")
+        db.session.add(ag)
+        db.session.flush()
+        agency_id = ag.id
+
+        c = _cust(agency_id, first_name="Pat", last_name="Jones", full_name="Pat Jones",
+                  mbi="9AB8X12CD34", dob=date(1955, 6, 1))
+        for carrier, ptype, mid in [("UHC", "MAPD", "M1"),
+                                    ("Aflac", "Hospital Indemnity", "H1"),
+                                    ("VSP", "Dental Vision Hearing", "D1")]:
+            db.session.add(Policy(agency_id=agency_id, carrier=carrier, member_id=mid,
+                                  plan_type=ptype, customer_id=c.id, full_name="Pat Jones"))
+        db.session.commit()
+        clusters = find_no_mbi_clusters(agency_id)
+        # Only one customer named Pat Jones — no cluster of size > 1.
+        assert not any(c.id in cl.member_ids and len(cl.member_ids) > 1 for cl in clusters)

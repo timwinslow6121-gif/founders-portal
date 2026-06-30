@@ -214,11 +214,15 @@ def test_agent_board_has_no_admin_controls(db_session, app, client, agency, agen
 
 
 def test_roadmap_nav_link_present_for_admin_and_agent(db_session, app, client, agency, admin_user, agent_user):
-    # the nav is rendered on every page; check the dashboard (or any 200 page)
+    import re
+    # the SIDEBAR nav link (a nav-item <a> pointing at /roadmap) renders for both roles.
     for uid_attr in (admin_user, agent_user):
         with app.app_context():
             from app.models import User
             uid = User.query.filter_by(email=uid_attr.email).first().id
         _login(client, uid)
         body = client.get("/roadmap").get_data(as_text=True)
-        assert 'href="{{ url_for(\'roadmap.roadmap_board\') }}"' in body or 'href="/roadmap"' in body
+        # match a nav-item anchor to /roadmap (class order independent), not a content link
+        assert re.search(r'<a[^>]*href="/roadmap"[^>]*class="[^"]*nav-item', body) \
+            or re.search(r'<a[^>]*class="[^"]*nav-item[^"]*"[^>]*href="/roadmap"', body), \
+            f"roadmap nav-item link missing for {uid_attr.email}"

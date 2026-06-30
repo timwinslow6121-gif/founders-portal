@@ -146,9 +146,23 @@ Round 2 (date-aware BOB↔commission reconciliation) — depends on this being d
 The 103 no-name policies overlap item 1/2 (name recovery) and will be folded into
 whichever lands first. UI/Material-3, breadcrumbs, infra (backup/cert) unchanged.
 
-## Next step
-Build **item 0 (the radar)** first — brainstorm done, design at
-`2026-06-25-data-integrity-radar-design.md`, ready for writing-plans. Then item 1
-(stub-creation prevention), item 2 (merge), etc. Items 6-7 (lifecycle, multi-AOR) are
-sequenced after the core cleanup but the radar is already written aware of both so it
-never false-positives on leads or multi-AOR persons.
+## Next step (updated 2026-06-30)
+**Items 0 ✅ (radar) and 1 ✅ (stub-creation prevention / commission = match-or-park) are
+SHIPPED + LIVE.** Item 1 stopped the bleeding, so **item 2 (no-MBI customer MERGE) is now
+unblocked and is NEXT — brainstorm-first** (spec→plan→subagent-build→opus-review→deploy).
+
+**Item 2 live grounding (re-verified on prod 2026-06-30): John Connelly ×5 is STILL there.**
+ids: 1367 (keeper, MBI 4RH5X85DC65, DOB 1953-04-07) · 1419 ("John Connelly Iii", same DOB) ·
+4239/4243/5960 (stub=True, commission_import, full_name="CONNELLY, JOHN", first/last BLANK;
+only 4243 carries the DOB). ⚠️ The 3 stubs have BLANK first/last — a `last_name` query misses
+them; the dup-detection MUST normalize `full_name` + handle the "LAST, FIRST" stub format.
+Numbers: `duplicate_customers`=18 (high-conf name+DOB), 277 loose name-only clusters / 288
+excess rows, 571 commission-import stubs. Central design question: which clusters are SAFE to
+auto-suggest vs human-confirm (name+DOB = suggest; bare name or DOB-less stub = never auto;
+need a corroborating id). Build on `app/customers.py` `customer_merge`/`customer_duplicates` +
+`app/identity.py` matcher + the radar's `_duplicate_customers`. Full handoff:
+`memory/session-handoff-2026-06-30-item2-no-mbi-merge.md`.
+
+Then items 3 (plan_id linkage), 4 (hub resolve actions), 5 (count consistency), 6 (lead
+lifecycle), 7 (AOR-is-per-policy). The radar is already written aware of leads + multi-AOR
+so it never false-positives on them.

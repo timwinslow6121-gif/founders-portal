@@ -177,3 +177,37 @@ def test_admin_cannot_edit_other_agency_item(db_session, app, client, agency, ad
     _login(client, aid)
     resp = client.post(f"/roadmap/{iid}/edit", data={"status": "shipped"})
     assert resp.status_code == 404    # agency-scoped lookup -> not found
+
+
+def test_board_renders_columns_and_admin_controls(db_session, app, client, agency, admin_user):
+    from app.extensions import db
+    from app.models import RoadmapItem
+    with app.app_context():
+        db.session.add(RoadmapItem(agency_id=agency.id, type="bug_fix", status="shipped",
+            title="HRA went to wrong agent", issue_text="Wrong agent at 55%.",
+            fix_text="Now reads the real writing agent.", priority="high"))
+        db.session.add(RoadmapItem(agency_id=agency.id, type="planned", status="planned",
+            title="Merge duplicate customers"))
+        db.session.commit()
+        aid = admin_user.id
+    _login(client, aid)
+    body = client.get("/roadmap").get_data(as_text=True)
+    assert "HRA went to wrong agent" in body
+    assert "Merge duplicate customers" in body
+    assert "rm-col" in body                       # the three columns
+    assert "rm-issue" in body and "rm-fix" in body  # the issue/fix detail
+    assert "/edit" in body                          # admin inline controls present
+
+
+def test_agent_board_has_no_admin_controls(db_session, app, client, agency, agent_user):
+    from app.extensions import db
+    from app.models import RoadmapItem
+    with app.app_context():
+        db.session.add(RoadmapItem(agency_id=agency.id, type="bug_fix", status="shipped",
+            title="Something fixed"))
+        db.session.commit()
+        aid = agent_user.id
+    _login(client, aid)
+    body = client.get("/roadmap").get_data(as_text=True)
+    assert "Something fixed" in body
+    assert "/edit" not in body                      # no admin edit form for agents

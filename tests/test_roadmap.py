@@ -213,6 +213,23 @@ def test_agent_board_has_no_admin_controls(db_session, app, client, agency, agen
     assert "/edit" not in body                      # no admin edit form for agents
 
 
+def test_seed_roadmap_is_idempotent(db_session, app, agency):
+    from app.extensions import db
+    from app.models import RoadmapItem
+    import importlib.util, pathlib
+    spec = importlib.util.spec_from_file_location(
+        "seed_roadmap", str(pathlib.Path("scripts/seed_roadmap.py")))
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    with app.app_context():
+        n1 = mod.seed_items(agency.id, apply=True)
+        c1 = RoadmapItem.query.filter_by(agency_id=agency.id).count()
+        n2 = mod.seed_items(agency.id, apply=True)     # re-run
+        c2 = RoadmapItem.query.filter_by(agency_id=agency.id).count()
+        assert c1 > 0
+        assert c2 == c1                                # no duplicates on re-run
+        assert n2 == 0                                 # 2nd run inserts nothing
+
+
 def test_roadmap_nav_link_present_for_admin_and_agent(db_session, app, client, agency, admin_user, agent_user):
     import re
     # the SIDEBAR nav link (a nav-item <a> pointing at /roadmap) renders for both roles.

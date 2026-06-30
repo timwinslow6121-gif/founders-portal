@@ -243,3 +243,24 @@ def test_roadmap_nav_link_present_for_admin_and_agent(db_session, app, client, a
         assert re.search(r'<a[^>]*href="/roadmap"[^>]*class="[^"]*nav-item', body) \
             or re.search(r'<a[^>]*class="[^"]*nav-item[^"]*"[^>]*href="/roadmap"', body), \
             f"roadmap nav-item link missing for {uid_attr.email}"
+
+
+def test_admin_edit_blank_title_keeps_existing_no_500(db_session, app, client, agency, admin_user):
+    """Regression (final-review): a blank submitted title must NOT null the NOT NULL
+    title column (which 500s on commit) — it leaves the existing title intact."""
+    from app.extensions import db
+    from app.models import RoadmapItem
+    with app.app_context():
+        it = RoadmapItem(agency_id=agency.id, type="bug_fix", status="submitted",
+                         title="Keep this title")
+        db.session.add(it); db.session.commit()
+        iid, aid = it.id, admin_user.id
+    _login(client, aid)
+    resp = client.post(f"/roadmap/{iid}/edit",
+                       data={"title": "", "status": "acknowledged"},
+                       follow_redirects=True)
+    assert resp.status_code == 200          # not a 500
+    with app.app_context():
+        it = RoadmapItem.query.get(iid)
+        assert it.title == "Keep this title"    # unchanged, not NULL
+        assert it.status == "acknowledged"      # the other field still updated

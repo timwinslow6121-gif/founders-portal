@@ -58,12 +58,14 @@ def roadmap_edit(item_id):
     item = RoadmapItem.query.filter_by(
         id=item_id, agency_id=current_user.agency_id).first_or_404()
     for field in _EDITABLE_TEXT:
-        if field in request.form:
-            val = (request.form.get(field) or "").strip() or None
-            setattr(item, field, val)
-    # title is NOT NULL — never blank it
-    if "title" in request.form and not (request.form.get("title") or "").strip():
-        item.title = item.title  # keep existing
+        if field not in request.form:
+            continue
+        val = (request.form.get(field) or "").strip() or None
+        # title is NOT NULL — a blank submitted title leaves the existing one untouched
+        # (never write NULL, which would 500 on commit).
+        if field == "title" and val is None:
+            continue
+        setattr(item, field, val)
     raw_date = (request.form.get("shipped_on") or "").strip()
     if raw_date:
         try:

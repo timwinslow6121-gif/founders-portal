@@ -2,7 +2,7 @@
 full_name and tags each cluster with a corroboration signal. Suggest-only: this
 module never writes — it only proposes clusters for human/script review."""
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from app.extensions import db
 from app.models import Customer, Policy, CommissionLineItem

@@ -1,7 +1,7 @@
 import pytest
 from datetime import date
 from app.extensions import db
-from app.models import Customer, Agency
+from app.models import Customer, Agency, Policy, CommissionLineItem, CommissionStatement
 from app.dedup import find_no_mbi_clusters, cluster_signal
 
 
@@ -68,3 +68,59 @@ def test_bare_name_no_dob_no_id_is_name_only(app, db_session):
         clusters = find_no_mbi_clusters(agency_id)
         smith = [c for c in clusters if a.id in c.member_ids][0]
         assert smith.signal == "name_only"
+
+
+def test_shared_carrier_id_is_shared_id(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T")
+        db.session.add(ag)
+        db.session.flush()
+        agency_id = ag.id
+
+        # Two same-name customers, both without DOB
+        cust1 = _cust(agency_id, first_name="Alice", last_name="Brown", full_name="Alice Brown")
+        cust2 = _cust(agency_id, first_name="Alice", last_name="Brown", full_name="Alice Brown")
+
+        # Create a commission statement to use for the line items
+        stmt = CommissionStatement(
+            agency_id=agency_id,
+            carrier="UHC",
+            period_label="Jan 2026",
+            statement_date=date(2026, 1, 31)
+        )
+        db.session.add(stmt)
+        db.session.flush()
+
+        # Attach commission line items with the same carrier_member_id to both customers
+        # (This tests that _shared_carrier_ids detects a (carrier, carrier_member_id)
+        # tuple spanning multiple customer rows)
+        shared_member_id = "UHC12345"
+        li1 = CommissionLineItem(
+            agency_id=agency_id,
+            statement_id=stmt.id,
+            source_ref="uhc::1",
+            carrier="UHC",
+            carrier_member_id=shared_member_id,
+            customer_id=cust1.id,
+            member_name="Alice Brown",
+            classification="agent_commission",
+            raw_amount=100.0
+        )
+        li2 = CommissionLineItem(
+            agency_id=agency_id,
+            statement_id=stmt.id,
+            source_ref="uhc::2",
+            carrier="UHC",
+            carrier_member_id=shared_member_id,
+            customer_id=cust2.id,
+            member_name="Alice Brown",
+            classification="agent_commission",
+            raw_amount=100.0
+        )
+        db.session.add(li1)
+        db.session.add(li2)
+        db.session.commit()
+
+        clusters = find_no_mbi_clusters(agency_id)
+        brown = [c for c in clusters if cust1.id in c.member_ids][0]
+        assert brown.signal == "shared_id"

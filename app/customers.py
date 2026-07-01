@@ -894,15 +894,17 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
     moved = {}
 
     # Reattach all child models that DO have a customer_id column.
-    # I1: filter on agency_id as well (defense-in-depth tenant guard).
+    # Scope is customer_id.in_(loser_ids_resolved): the losers were already fetched
+    # agency-scoped (Customer.agency_id == agency_id above), so any row pointing at a
+    # loser IS this agency's row. We deliberately do NOT also filter on model.agency_id
+    # here — Policy.agency_id is nullable with no ondelete, so a legacy NULL-agency
+    # policy would be silently skipped by that filter and then orphaned when the loser
+    # is deleted, re-introducing the exact ForeignKeyViolation this reattach prevents.
     for model in (Policy, CustomerNote, CustomerContact, CustomerAorHistory,
                   CommissionLineItem):
         n = (
             model.query
-            .filter(
-                model.agency_id == agency_id,
-                model.customer_id.in_(loser_ids_resolved),
-            )
+            .filter(model.customer_id.in_(loser_ids_resolved))
             .update({"customer_id": keeper.id}, synchronize_session=False)
         )
         moved[model.__name__] = n

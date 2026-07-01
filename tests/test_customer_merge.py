@@ -13,7 +13,7 @@ from datetime import date
 from app.extensions import db
 from app.models import (
     Agency, User, Customer, Policy, PolicyPayment, CommissionStatement,
-    CustomerNote, CustomerContact, CustomerAorHistory,
+    CustomerNote, CustomerContact, CustomerAorHistory, CommissionLineItem,
 )
 from app.customers import merge_customers
 
@@ -95,14 +95,14 @@ def test_merge_reattaches_all_children_and_fills_blanks(db_session, app):
         db.session.add(payment)
 
         db.session.add(CustomerNote(
-            customer_id=loser.id, agent_id=actor.id,
+            agency_id=agency_id, customer_id=loser.id, agent_id=actor.id,
             note_text="hi",
         ))
         db.session.add(CustomerContact(
-            customer_id=loser.id, contact_name="x",
+            agency_id=agency_id, customer_id=loser.id, contact_name="x",
         ))
         db.session.add(CustomerAorHistory(
-            customer_id=loser.id, agent_id=actor.id,
+            agency_id=agency_id, customer_id=loser.id, agent_id=actor.id,
             carrier="UHC", effective_date=date(2025, 1, 1),
         ))
         db.session.commit()
@@ -242,3 +242,62 @@ def test_editing_to_used_mbi_offers_merge(db_session, app):
         # target's MBI was NOT changed
         db.session.expire(target)
         assert db.session.get(Customer, target.id).mbi is None
+
+
+def test_merge_reattaches_commission_line_items(db_session, app):
+    """
+    C1 regression guard: CommissionLineItem.customer_id must be repointed to the
+    keeper before the loser is deleted.  Without the fix, Postgres raises a
+    ForeignKeyViolation and the merge 500s.
+
+    Approach: assert the reattachment directly (customer_id == keeper.id after
+    merge).  This catches the root cause (customer_id not moved) deterministically.
+    The FK-violation consequence in Postgres is covered by the fact that
+    CommissionLineItem.customer_id is an FK with no ondelete — any remaining
+    reference to the deleted loser row raises a ForeignKeyViolation there.
+
+    Note on SQLite FK enforcement: PRAGMA foreign_keys=ON was evaluated but
+    rejected.  PRAGMA is per-connection and SQLite re-uses the session-scoped
+    connection pool across tests — setting it leaked into 7 unrelated tests
+    causing false failures.  The direct assertion below is sufficient to catch
+    the bug deterministically without connection side-effects.
+    """
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+
+        keeper = _c(agency_id, first_name="John", last_name="Connelly",
+                    full_name="John Connelly", mbi="4RH5X85DC65",
+                    dob=date(1953, 4, 7))
+        loser = _c(agency_id, full_name="CONNELLY, JOHN", stub=True)
+
+        stmt = _stmt(agency_id)
+
+        # CommissionLineItem attached to the LOSER — without C1 fix, delete(loser)
+        # raises a Postgres ForeignKeyViolation because customer_id still points
+        # at the now-deleted loser row.
+        li = CommissionLineItem(
+            agency_id=agency_id,
+            statement_id=stmt.id,
+            carrier="UHC",
+            raw_amount=28.92,
+            classification="agent_commission",
+            source_ref="uhc::test::S::999",
+            customer_id=loser.id,
+        )
+        db.session.add(li)
+        db.session.commit()
+
+        res = merge_customers(keeper.id, [loser.id], agency_id, actor)
+        db.session.commit()
+
+        assert res["ok"] is True
+        assert db.session.get(Customer, loser.id) is None  # loser deleted
+
+        # Line item followed the keeper — this is the C1 regression assertion.
+        # If the reattach loop omitted CommissionLineItem, customer_id would still
+        # equal loser.id (now a deleted row), causing this assertion to fail AND
+        # a Postgres ForeignKeyViolation on commit.
+        db.session.expire(li)
+        refreshed = db.session.get(CommissionLineItem, li.id)
+        assert refreshed is not None
+        assert refreshed.customer_id == keeper.id

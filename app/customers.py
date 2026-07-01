@@ -812,7 +812,13 @@ def customer_merge():
         db.session.rollback()
         flash(f"Merge blocked: {res['error']}.", "error")
         return redirect(url_for("customers.customer_duplicates"))
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"customer_merge commit failed: {e}")
+        flash("Merge could not be completed (database conflict). No changes were made.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
     flash(f"Merged {res.get('merged', 0)} record(s); filled {', '.join(res.get('filled') or [])}.",
           "success")
     return redirect(url_for("customers.customer_profile", customer_id=primary_id))
@@ -888,13 +894,33 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
     moved = {}
 
     # Reattach all child models that DO have a customer_id column.
-    for model in (Policy, CustomerNote, CustomerContact, CustomerAorHistory):
+    # I1: filter on agency_id as well (defense-in-depth tenant guard).
+    for model in (Policy, CustomerNote, CustomerContact, CustomerAorHistory,
+                  CommissionLineItem):
         n = (
             model.query
-            .filter(model.customer_id.in_(loser_ids_resolved))
+            .filter(
+                model.agency_id == agency_id,
+                model.customer_id.in_(loser_ids_resolved),
+            )
             .update({"customer_id": keeper.id}, synchronize_session=False)
         )
         moved[model.__name__] = n
+
+    # C1: Repoint both MatchSuggestion FK columns so delete(loser) never
+    # raises a ForeignKeyViolation.  MatchSuggestion.agency_id is nullable
+    # (confirmed in models.py) — a stale NULL-agency suggestion could still
+    # reference a loser.  We intentionally omit the agency_id filter here so
+    # we catch any dangling row regardless of its agency_id value (the loser
+    # ids are already agency-scoped upstream, so there is no cross-tenant risk
+    # in updating without the agency guard).
+    from app.models import MatchSuggestion
+    MatchSuggestion.query.filter(
+        MatchSuggestion.stub_customer_id.in_(loser_ids_resolved)
+    ).update({"stub_customer_id": keeper.id}, synchronize_session=False)
+    MatchSuggestion.query.filter(
+        MatchSuggestion.suggested_customer_id.in_(loser_ids_resolved)
+    ).update({"suggested_customer_id": keeper.id}, synchronize_session=False)
 
     # Report PolicyPayment transitively (moved via their policies above).
     moved["PolicyPayment"] = pp_count

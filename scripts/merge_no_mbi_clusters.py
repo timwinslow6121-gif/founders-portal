@@ -38,10 +38,10 @@ def main(apply=False):
                     if res["ok"]:
                         db.session.commit()
                         merged = res.get("merged", 0)
-                        filled = res.get("filled", 0)
-                        print(f"    merged {merged}, filled {filled}")
+                        filled = res.get("filled") or []
+                        print(f"    merged {merged}, filled {', '.join(filled) or 'nothing'}")
                         total_merged += merged
-                        total_filled += filled
+                        total_filled += len(filled)
                     else:
                         db.session.rollback()
                         print(f"    SKIPPED: {res['error']}")

@@ -198,3 +198,17 @@ def test_merge_route_uses_engine_and_blocks_contradiction(db_session, app):
         db.session.commit()
         res = merge_customers(keeper.id, [loser.id], agency_id, actor)
         assert res["ok"] is False  # engine refuses; the route surfaces this as a flash
+
+
+def test_duplicates_view_includes_no_mbi_clusters(db_session, app):
+    """find_no_mbi_clusters returns a dob_match cluster containing a stub + real customer."""
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        a = _c(agency_id, first_name="Iz", last_name="Q", full_name="Iz Q",
+               dob=date(1940, 5, 5))
+        _c(agency_id, first_name="Iz", last_name="Q", full_name="Iz Q",
+           dob=date(1940, 5, 5), stub=True)
+        db.session.commit()
+        from app.dedup import find_no_mbi_clusters
+        clusters = find_no_mbi_clusters(agency_id)
+        assert any(c.signal == "dob_match" and a.id in c.member_ids for c in clusters)

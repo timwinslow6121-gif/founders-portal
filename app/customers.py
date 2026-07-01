@@ -767,7 +767,21 @@ def customer_duplicates():
         if len(dupes) > 1:
             groups.append(dupes)
 
-    return render_template("customer_duplicates.html", groups=groups)
+    from app.dedup import find_no_mbi_clusters
+    raw_clusters = find_no_mbi_clusters(current_user.agency_id)
+    no_mbi_clusters = []
+    for cl in raw_clusters:
+        rows = (Customer.query
+                .filter(Customer.agency_id == current_user.agency_id,
+                        Customer.id.in_(cl.member_ids))
+                .all())
+        if not rows:
+            continue
+        keeper = next((r for r in rows if r.id == cl.keeper_id), rows[0])
+        no_mbi_clusters.append({"signal": cl.signal, "keeper": keeper, "rows": rows})
+
+    return render_template("customer_duplicates.html", groups=groups,
+                           no_mbi_clusters=no_mbi_clusters)
 
 
 @customers_bp.route("/admin/customers/merge", methods=["POST"])

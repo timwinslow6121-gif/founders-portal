@@ -774,11 +774,9 @@ def customer_duplicates():
 @login_required
 @_admin_required
 def customer_merge():
-    """
-    Merge two customer records. The primary keeps its data;
-    all notes/contacts/AOR history from the secondary move to the primary.
-    The secondary is then deleted.
-    """
+    """Merge one or more secondary customer records into the primary via the
+    merge_customers engine. Fill-blanks-only reconcile; the engine refuses
+    contradictory clusters (differing DOB/MBI). Admin-only."""
     primary_id = request.form.get("primary_id", type=int)
     secondary_ids = request.form.getlist("secondary_id", type=int)
     if not primary_id or not secondary_ids or primary_id in secondary_ids:
@@ -791,7 +789,7 @@ def customer_merge():
         flash(f"Merge blocked: {res['error']}.", "error")
         return redirect(url_for("customers.customer_duplicates"))
     db.session.commit()
-    flash(f"Merged {res['merged']} record(s); filled {', '.join(res['filled']) or 'nothing'}.",
+    flash(f"Merged {res.get('merged', 0)} record(s); filled {', '.join(res.get('filled') or [])}.",
           "success")
     return redirect(url_for("customers.customer_profile", customer_id=primary_id))
 

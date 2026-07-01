@@ -672,6 +672,16 @@ def customer_set_field(customer_id):
             _date.fromisoformat(value)
         except ValueError:
             return jsonify({"ok": False, "error": "invalid date (use YYYY-MM-DD)"}), 400
+    if field == "mbi" and value:
+        owner = (Customer.query
+                 .filter(Customer.agency_id == current_user.agency_id,
+                         Customer.mbi == value, Customer.id != customer.id)
+                 .first())
+        if owner is not None:
+            return jsonify({"ok": False, "merge_with": owner.id,
+                            "merge_with_name": owner.display_name,
+                            "error": f"That MBI belongs to {owner.display_name}. "
+                                     "Same person? Review a merge."}), 409
     try:
         cp.set_human_value(customer, field, value, current_user)
         db.session.commit()
@@ -767,47 +777,193 @@ def customer_duplicates():
         if len(dupes) > 1:
             groups.append(dupes)
 
-    return render_template("customer_duplicates.html", groups=groups)
+    from app.dedup import find_no_mbi_clusters
+    raw_clusters = find_no_mbi_clusters(current_user.agency_id)
+    no_mbi_clusters = []
+    for cl in raw_clusters:
+        rows = (Customer.query
+                .filter(Customer.agency_id == current_user.agency_id,
+                        Customer.id.in_(cl.member_ids))
+                .all())
+        if not rows:
+            continue
+        keeper = next((r for r in rows if r.id == cl.keeper_id), rows[0])
+        no_mbi_clusters.append({"signal": cl.signal, "keeper": keeper, "rows": rows})
+
+    return render_template("customer_duplicates.html", groups=groups,
+                           no_mbi_clusters=no_mbi_clusters)
 
 
 @customers_bp.route("/admin/customers/merge", methods=["POST"])
 @login_required
 @_admin_required
 def customer_merge():
-    """
-    Merge two customer records. The primary keeps its data;
-    all notes/contacts/AOR history from the secondary move to the primary.
-    The secondary is then deleted.
-    """
+    """Merge one or more secondary customer records into the primary via the
+    merge_customers engine. Fill-blanks-only reconcile; the engine refuses
+    contradictory clusters (differing DOB/MBI). Admin-only."""
     primary_id = request.form.get("primary_id", type=int)
-    secondary_id = request.form.get("secondary_id", type=int)
-
-    if not primary_id or not secondary_id or primary_id == secondary_id:
+    secondary_ids = request.form.getlist("secondary_id", type=int)
+    if not primary_id or not secondary_ids or primary_id in secondary_ids:
         flash("Invalid merge request.", "error")
         return redirect(url_for("customers.customer_duplicates"))
 
-    primary = Customer.query.filter_by(
-        id=primary_id, agency_id=current_user.agency_id
-    ).first_or_404()
-    secondary = Customer.query.filter_by(
-        id=secondary_id, agency_id=current_user.agency_id
-    ).first_or_404()
+    res = merge_customers(primary_id, secondary_ids, current_user.agency_id, current_user)
+    if not res["ok"]:
+        db.session.rollback()
+        flash(f"Merge blocked: {res['error']}.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"customer_merge commit failed: {e}")
+        flash("Merge could not be completed (database conflict). No changes were made.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
+    flash(f"Merged {res.get('merged', 0)} record(s); filled {', '.join(res.get('filled') or [])}.",
+          "success")
+    return redirect(url_for("customers.customer_profile", customer_id=primary_id))
 
-    # Move all child records to the primary
-    CustomerNote.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})
-    CustomerContact.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})
-    CustomerAorHistory.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})
 
-    # Carry forward MBI/humana_id if primary is missing them
-    if not primary.mbi and secondary.mbi:
-        primary.mbi = secondary.mbi
-    if not primary.humana_id and secondary.humana_id:
-        primary.humana_id = secondary.humana_id
+# ---------------------------------------------------------------------------
+# No-MBI merge engine (Item 2 — collapses dup clusters with or without MBI)
+# ---------------------------------------------------------------------------
 
-    db.session.delete(secondary)
-    db.session.commit()
-    flash(f"Merged into {primary.display_name}.", "success")
-    return redirect(url_for("customers.customer_profile", customer_id=primary.id))
+# Fields the engine will fill on a blank keeper from losers.  Never overwrites.
+_MERGE_FILL_FIELDS = (
+    "mbi", "humana_id", "dob", "gender",
+    "phone_primary", "phone_secondary",
+    "email", "address1", "city", "state", "zip_code", "county",
+    "medicaid_level", "medicaid_id", "lead_source",
+)
+
+
+def _merge_precedence_key(c):
+    """Sort key: manually_edited(2) > non-stub(1) > stub(0); newer id breaks ties."""
+    return (2 if c.manually_edited else (0 if c.stub else 1), c.id)
+
+
+def merge_customers(keeper_id, loser_ids, agency_id, actor):
+    """Collapse loser customers into the keeper.
+
+    The caller owns the transaction — call db.session.commit() after this
+    returns ok=True.  This function never commits or rolls back.
+
+    Returns:
+        dict with keys ok, merged, filled, moved, error.
+        ok=False means nothing was changed.
+    """
+    keeper = Customer.query.filter_by(id=keeper_id, agency_id=agency_id).first()
+    if keeper is None:
+        return {"ok": False, "merged": 0, "filled": [], "moved": {},
+                "error": "keeper not found"}
+
+    losers = (
+        Customer.query
+        .filter(
+            Customer.agency_id == agency_id,
+            Customer.id.in_(loser_ids),
+            Customer.id != keeper_id,
+        )
+        .all()
+    )
+    if not losers:
+        return {"ok": True, "merged": 0, "filled": [], "moved": {}, "error": None}
+
+    # Refuse the whole merge if DOBs or MBIs contradict across the cluster.
+    everyone = [keeper] + losers
+    dobs = {c.dob for c in everyone if c.dob is not None}
+    mbis = {c.mbi for c in everyone if c.mbi}
+    if len(dobs) > 1 or len(mbis) > 1:
+        return {"ok": False, "merged": 0, "filled": [], "moved": {},
+                "error": "contradictory dob or mbi in cluster"}
+
+    loser_ids_resolved = [l.id for l in losers]
+
+    # Count PolicyPayments that will follow transitively (via Policy.customer_id).
+    # PolicyPayment has no customer_id column — linkage is through policy_id.
+    loser_policy_ids = [
+        p.id for p in
+        Policy.query.filter(Policy.customer_id.in_(loser_ids_resolved)).all()
+    ]
+    pp_count = (
+        PolicyPayment.query
+        .filter(PolicyPayment.policy_id.in_(loser_policy_ids))
+        .count()
+    ) if loser_policy_ids else 0
+
+    moved = {}
+
+    # Reattach all child models that DO have a customer_id column.
+    # Scope is customer_id.in_(loser_ids_resolved): the losers were already fetched
+    # agency-scoped (Customer.agency_id == agency_id above), so any row pointing at a
+    # loser IS this agency's row. We deliberately do NOT also filter on model.agency_id
+    # here — Policy.agency_id is nullable with no ondelete, so a legacy NULL-agency
+    # policy would be silently skipped by that filter and then orphaned when the loser
+    # is deleted, re-introducing the exact ForeignKeyViolation this reattach prevents.
+    for model in (Policy, CustomerNote, CustomerContact, CustomerAorHistory,
+                  CommissionLineItem):
+        n = (
+            model.query
+            .filter(model.customer_id.in_(loser_ids_resolved))
+            .update({"customer_id": keeper.id}, synchronize_session=False)
+        )
+        moved[model.__name__] = n
+
+    # C1: Repoint both MatchSuggestion FK columns so delete(loser) never
+    # raises a ForeignKeyViolation.  MatchSuggestion.agency_id is nullable
+    # (confirmed in models.py) — a stale NULL-agency suggestion could still
+    # reference a loser.  We intentionally omit the agency_id filter here so
+    # we catch any dangling row regardless of its agency_id value (the loser
+    # ids are already agency-scoped upstream, so there is no cross-tenant risk
+    # in updating without the agency guard).
+    from app.models import MatchSuggestion
+    MatchSuggestion.query.filter(
+        MatchSuggestion.stub_customer_id.in_(loser_ids_resolved)
+    ).update({"stub_customer_id": keeper.id}, synchronize_session=False)
+    MatchSuggestion.query.filter(
+        MatchSuggestion.suggested_customer_id.in_(loser_ids_resolved)
+    ).update({"suggested_customer_id": keeper.id}, synchronize_session=False)
+
+    # Report PolicyPayment transitively (moved via their policies above).
+    moved["PolicyPayment"] = pp_count
+
+    # Fill blank keeper fields from losers, highest-precedence source first.
+    fillers = sorted(losers, key=_merge_precedence_key, reverse=True)
+    filled = []
+    for fld in _MERGE_FILL_FIELDS:
+        if getattr(keeper, fld, None):
+            continue
+        for src in fillers:
+            v = getattr(src, fld, None)
+            if v:
+                setattr(keeper, fld, v)
+                filled.append(fld)
+                break
+
+    # Delete emptied losers.
+    for loser in losers:
+        db.session.delete(loser)
+
+    log_event(
+        action="customer_merge",
+        category="admin",
+        detail=(
+            f"keeper={keeper.id} losers={loser_ids_resolved} "
+            f"filled={filled} moved={moved}"
+        ),
+        user=actor,
+        customer_id=keeper.id,
+        record_count=len(losers),
+        agency_id_override=agency_id,
+    )
+
+    return {
+        "ok": True,
+        "merged": len(losers),
+        "filled": filled,
+        "moved": moved,
+        "error": None,
+    }
 
 
 # ---------------------------------------------------------------------------

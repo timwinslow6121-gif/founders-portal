@@ -244,6 +244,74 @@ def test_editing_to_used_mbi_offers_merge(db_session, app):
         assert db.session.get(Customer, target.id).mbi is None
 
 
+def test_merge_collapses_duplicate_aor_chapters(db_session, app):
+    """
+    When keeper and loser both have a CustomerAorHistory row for the same
+    (carrier, effective_date), the merge must NOT blindly repoint the loser's
+    row to the keeper — that produces a UniqueViolation on
+    uq_aor_customer_carrier_date.  Instead: delete the colliding loser row
+    (the chapter already exists on the keeper), and move non-colliding loser
+    rows normally.
+
+    Pre-fix behavior (blind bulk UPDATE): SQLite will produce two
+    CustomerAorHistory rows for the keeper (both with customer_id=keeper.id,
+    same carrier/effective_date) because SQLite does not enforce unique
+    constraints via UPDATE the same way Postgres does.  So the test's
+    post-condition assertion — keeper has exactly ONE UHC-2023-09-01 row —
+    is what fails pre-fix on SQLite; in Postgres the test would fail with
+    UniqueViolation.
+    """
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+
+        keeper = _c(agency_id, first_name="John", last_name="Connelly",
+                    full_name="John Connelly", mbi="4RH5X85DC65",
+                    dob=date(1953, 4, 7))
+        loser  = _c(agency_id, full_name="CONNELLY, JOHN", stub=True)
+
+        # keeper already has the UHC 2023-09-01 chapter
+        db.session.add(CustomerAorHistory(
+            agency_id=agency_id, customer_id=keeper.id, agent_id=actor.id,
+            carrier="UHC", effective_date=date(2023, 9, 1),
+        ))
+        # loser has the SAME chapter (collision) plus a distinct Aetna chapter
+        db.session.add(CustomerAorHistory(
+            agency_id=agency_id, customer_id=loser.id, agent_id=actor.id,
+            carrier="UHC", effective_date=date(2023, 9, 1),  # COLLISION
+        ))
+        db.session.add(CustomerAorHistory(
+            agency_id=agency_id, customer_id=loser.id, agent_id=actor.id,
+            carrier="Aetna", effective_date=date(2024, 1, 1),  # distinct — must move
+        ))
+        db.session.commit()
+
+        res = merge_customers(keeper.id, [loser.id], agency_id, actor)
+        db.session.commit()
+
+        assert res["ok"] is True
+        assert db.session.get(Customer, loser.id) is None  # loser deleted
+
+        # keeper must have exactly 2 AOR rows: the original UHC one + the moved Aetna one
+        keeper_aors = (
+            CustomerAorHistory.query
+            .filter_by(customer_id=keeper.id)
+            .order_by(CustomerAorHistory.carrier)
+            .all()
+        )
+        assert len(keeper_aors) == 2, (
+            f"Expected 2 AOR rows on keeper but got {len(keeper_aors)}: "
+            f"{[(r.carrier, r.effective_date) for r in keeper_aors]}"
+        )
+        carriers = {r.carrier for r in keeper_aors}
+        assert "UHC" in carriers
+        assert "Aetna" in carriers
+
+        # specifically ONE UHC 2023-09-01 row (not two)
+        uhc_rows = [r for r in keeper_aors
+                    if r.carrier == "UHC" and r.effective_date == date(2023, 9, 1)]
+        assert len(uhc_rows) == 1, "Duplicate UHC 2023-09-01 chapter was not collapsed"
+
+
 def test_merge_reattaches_commission_line_items(db_session, app):
     """
     C1 regression guard: CommissionLineItem.customer_id must be repointed to the

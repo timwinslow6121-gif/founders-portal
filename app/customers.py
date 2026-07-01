@@ -900,14 +900,48 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
     # here — Policy.agency_id is nullable with no ondelete, so a legacy NULL-agency
     # policy would be silently skipped by that filter and then orphaned when the loser
     # is deleted, re-introducing the exact ForeignKeyViolation this reattach prevents.
-    for model in (Policy, CustomerNote, CustomerContact, CustomerAorHistory,
-                  CommissionLineItem):
+    for model in (Policy, CustomerNote, CustomerContact, CommissionLineItem):
         n = (
             model.query
             .filter(model.customer_id.in_(loser_ids_resolved))
             .update({"customer_id": keeper.id}, synchronize_session=False)
         )
         moved[model.__name__] = n
+
+    # CustomerAorHistory needs special handling because of
+    # UniqueConstraint("customer_id", "carrier", "effective_date",
+    #                  name="uq_aor_customer_carrier_date").
+    # A blind bulk UPDATE collides when keeper and loser share the same
+    # (carrier, effective_date) enrollment chapter — this is the normal case
+    # when merging duplicate records of the same person.
+    # Fix: move only chapters the keeper does NOT already have; delete the rest
+    # (they represent the same chapter, already present on the keeper).
+    #
+    # NULL effective_date: Postgres treats NULLs as distinct in a unique index,
+    # so two (carrier, NULL) rows never collide at the DB level.  We mirror that
+    # here: only consider a collision when effective_date IS NOT NULL.
+    keeper_aor_set = {
+        (row.carrier, row.effective_date)
+        for row in CustomerAorHistory.query.filter_by(customer_id=keeper.id).all()
+        if row.effective_date is not None
+    }
+    loser_aors = (
+        CustomerAorHistory.query
+        .filter(CustomerAorHistory.customer_id.in_(loser_ids_resolved))
+        .all()
+    )
+    aor_moved = 0
+    for row in loser_aors:
+        key = (row.carrier, row.effective_date)
+        if row.effective_date is not None and key in keeper_aor_set:
+            # Duplicate chapter — drop the loser copy; keeper already has it.
+            db.session.delete(row)
+        else:
+            row.customer_id = keeper.id
+            if row.effective_date is not None:
+                keeper_aor_set.add(key)  # prevent a second loser from colliding
+            aor_moved += 1
+    moved["CustomerAorHistory"] = aor_moved
 
     # C1: Repoint both MatchSuggestion FK columns so delete(loser) never
     # raises a ForeignKeyViolation.  MatchSuggestion.agency_id is nullable

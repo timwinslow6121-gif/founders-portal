@@ -780,34 +780,20 @@ def customer_merge():
     The secondary is then deleted.
     """
     primary_id = request.form.get("primary_id", type=int)
-    secondary_id = request.form.get("secondary_id", type=int)
-
-    if not primary_id or not secondary_id or primary_id == secondary_id:
+    secondary_ids = request.form.getlist("secondary_id", type=int)
+    if not primary_id or not secondary_ids or primary_id in secondary_ids:
         flash("Invalid merge request.", "error")
         return redirect(url_for("customers.customer_duplicates"))
 
-    primary = Customer.query.filter_by(
-        id=primary_id, agency_id=current_user.agency_id
-    ).first_or_404()
-    secondary = Customer.query.filter_by(
-        id=secondary_id, agency_id=current_user.agency_id
-    ).first_or_404()
-
-    # Move all child records to the primary
-    CustomerNote.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})
-    CustomerContact.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})
-    CustomerAorHistory.query.filter_by(customer_id=secondary.id).update({"customer_id": primary.id})
-
-    # Carry forward MBI/humana_id if primary is missing them
-    if not primary.mbi and secondary.mbi:
-        primary.mbi = secondary.mbi
-    if not primary.humana_id and secondary.humana_id:
-        primary.humana_id = secondary.humana_id
-
-    db.session.delete(secondary)
+    res = merge_customers(primary_id, secondary_ids, current_user.agency_id, current_user)
+    if not res["ok"]:
+        db.session.rollback()
+        flash(f"Merge blocked: {res['error']}.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
     db.session.commit()
-    flash(f"Merged into {primary.display_name}.", "success")
-    return redirect(url_for("customers.customer_profile", customer_id=primary.id))
+    flash(f"Merged {res['merged']} record(s); filled {', '.join(res['filled']) or 'nothing'}.",
+          "success")
+    return redirect(url_for("customers.customer_profile", customer_id=primary_id))
 
 
 # ---------------------------------------------------------------------------

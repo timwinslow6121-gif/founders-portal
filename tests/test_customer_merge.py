@@ -185,3 +185,16 @@ def test_merge_is_idempotent_on_missing_loser(db_session, app):
 
         assert res["ok"] is True
         assert res["merged"] == 0
+
+
+def test_merge_route_uses_engine_and_blocks_contradiction(db_session, app):
+    """Engine refuses contradictory-DOB pair; route surfaces this as a flash."""
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        keeper = _c(agency_id, first_name="G", last_name="H", full_name="G H",
+                    dob=date(1950, 1, 1))
+        loser = _c(agency_id, first_name="G", last_name="H", full_name="G H",
+                   dob=date(1962, 2, 2))
+        db.session.commit()
+        res = merge_customers(keeper.id, [loser.id], agency_id, actor)
+        assert res["ok"] is False  # engine refuses; the route surfaces this as a flash

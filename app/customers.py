@@ -672,6 +672,16 @@ def customer_set_field(customer_id):
             _date.fromisoformat(value)
         except ValueError:
             return jsonify({"ok": False, "error": "invalid date (use YYYY-MM-DD)"}), 400
+    if field == "mbi" and value:
+        owner = (Customer.query
+                 .filter(Customer.agency_id == current_user.agency_id,
+                         Customer.mbi == value, Customer.id != customer.id)
+                 .first())
+        if owner is not None:
+            return jsonify({"ok": False, "merge_with": owner.id,
+                            "merge_with_name": owner.display_name,
+                            "error": f"That MBI belongs to {owner.display_name}. "
+                                     "Same person? Review a merge."}), 409
     try:
         cp.set_human_value(customer, field, value, current_user)
         db.session.commit()

@@ -212,3 +212,33 @@ def test_duplicates_view_includes_no_mbi_clusters(db_session, app):
         from app.dedup import find_no_mbi_clusters
         clusters = find_no_mbi_clusters(agency_id)
         assert any(c.signal == "dob_match" and a.id in c.member_ids for c in clusters)
+
+
+def test_editing_to_used_mbi_offers_merge(db_session, app):
+    """
+    When an admin edits a customer's MBI to a value already owned by a different
+    customer, the route must return 409 JSON with ok=False and merge_with=<owner.id>,
+    and must NOT save the MBI on the target customer.
+    """
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        owner = _c(agency_id, first_name="Own", last_name="Er", full_name="Own Er",
+                   mbi="1AA2BB3CC44")
+        target = _c(agency_id, first_name="Tar", last_name="Get", full_name="Tar Get")
+        db.session.commit()
+
+        with app.test_request_context(
+            f"/customers/{target.id}/field", method="POST",
+            data={"field": "mbi", "value": "1AA2BB3CC44"}):
+            from flask_login import login_user
+            login_user(actor)
+            from app.customers import customer_set_field
+            resp = customer_set_field(target.id)
+
+        body = resp[0].get_json() if isinstance(resp, tuple) else resp.get_json()
+        assert body["ok"] is False
+        assert body["merge_with"] == owner.id
+
+        # target's MBI was NOT changed
+        db.session.expire(target)
+        assert db.session.get(Customer, target.id).mbi is None

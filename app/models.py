@@ -7,6 +7,7 @@ All database operations go through these models — never raw SQL.
 
 from datetime import date
 from flask_login import UserMixin
+from sqlalchemy import event as _sa_event
 from app.extensions import db
 
 
@@ -518,6 +519,20 @@ class Customer(db.Model):
     @property
     def display_name(self):
         return self.full_name or f"{self.first_name} {self.last_name}"
+
+
+def _sync_customer_full_name(mapper, connection, target):
+    """Keep full_name = first + last when both parts are present.
+    NOT a freeze: human edits to first/last are allowed and just re-sync full_name.
+    A blank-first stub (name only in full_name) is left untouched."""
+    first = (target.first_name or "").strip()
+    last = (target.last_name or "").strip()
+    if first or last:
+        target.full_name = f"{first} {last}".strip()
+
+
+_sa_event.listen(Customer, "before_insert", _sync_customer_full_name)
+_sa_event.listen(Customer, "before_update", _sync_customer_full_name)
 
 
 class CustomerContact(db.Model):

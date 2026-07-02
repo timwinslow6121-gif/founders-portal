@@ -397,3 +397,49 @@ def test_merge_does_not_overwrite_keeper_preferred_name(db_session, app):
         merge_customers(keeper.id, [loser.id], agency_id, actor)
         db.session.commit()
         assert keeper.preferred_name == "Keep"  # fill-blanks-only, keeper wins
+
+
+def test_duplicates_route_renders_context_fields(db_session, app):
+    """GET /admin/customers/duplicates renders 200 with context fields (carriers,
+    source, policy count) visible in the HTML when a no-MBI cluster exists."""
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        # Two customers with same normalized name (triggers a no_mbi_cluster)
+        c1 = _c(agency_id, first_name="Alice", last_name="Walker",
+                full_name="Alice Walker", source="bob", stub=False)
+        c2 = _c(agency_id, first_name="Alice", last_name="Walker",
+                full_name="WALKER, ALICE", source="commission_import", stub=True)
+        pol = Policy(agency_id=agency_id, carrier="Aetna", member_id="AW1",
+                     customer_id=c1.id)
+        db.session.add(pol)
+        db.session.commit()
+
+        client = app.test_client()
+        with client.session_transaction() as sess:
+            sess["_user_id"] = str(actor.id)
+            sess["_fresh"] = True
+        resp = client.get("/admin/customers/duplicates")
+        assert resp.status_code == 200
+        body = resp.data.decode()
+        # Context fields must appear in the rendered HTML
+        assert "Aetna" in body           # carriers
+        assert "src bob" in body or "src commission" in body  # source field
+        assert "polic" in body           # "policy" or "policies" count
+
+
+def test_duplicates_view_rows_expose_context(db_session, app):
+    """The view must hand the template each row's policy carriers + source so a human
+    can judge a name_only cluster."""
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        from app.customers import _cluster_row_context
+        a = _c(agency_id, first_name="Bob", last_name="Smith",
+               full_name="Bob Smith", source="bob", stub=False)
+        pol = Policy(agency_id=agency_id, carrier="UHC", member_id="M1",
+                     customer_id=a.id)
+        db.session.add(pol)
+        db.session.commit()
+        ctxrow = _cluster_row_context(a, agency_id)
+        assert ctxrow["carriers"] == ["UHC"]
+        assert ctxrow["policy_count"] == 1
+        assert ctxrow["source"] == "bob"

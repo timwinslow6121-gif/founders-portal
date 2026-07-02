@@ -727,6 +727,24 @@ def customer_resolve_conflict(customer_id):
 # Admin: deduplication
 # ---------------------------------------------------------------------------
 
+def _cluster_row_context(customer, agency_id):
+    """Per-row context for the duplicate-merge UI so a human can judge a name_only cluster."""
+    pols = (Policy.query
+            .filter(Policy.agency_id == agency_id, Policy.customer_id == customer.id)
+            .with_entities(Policy.carrier).all())
+    carriers = sorted({p.carrier for p in pols if p.carrier})
+    return {
+        "customer": customer,
+        "carriers": carriers,
+        "policy_count": len(pols),
+        "source": customer.source or "-",
+        "stub": customer.stub,
+        "dob": customer.dob,
+        "mbi": customer.mbi or "-",
+        "agent": (customer.primary_agent.email if customer.primary_agent else "-"),
+    }
+
+
 @customers_bp.route("/admin/customers/duplicates")
 @login_required
 @_admin_required
@@ -788,7 +806,7 @@ def customer_duplicates():
         if not rows:
             continue
         keeper = next((r for r in rows if r.id == cl.keeper_id), rows[0])
-        no_mbi_clusters.append({"signal": cl.signal, "keeper": keeper, "rows": rows})
+        no_mbi_clusters.append({"signal": cl.signal, "keeper": keeper, "rows": [_cluster_row_context(r, current_user.agency_id) for r in rows]})
 
     return render_template("customer_duplicates.html", groups=groups,
                            no_mbi_clusters=no_mbi_clusters)

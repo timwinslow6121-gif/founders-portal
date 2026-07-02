@@ -83,27 +83,28 @@
     <input type="hidden" name="primary_id" value="{{ cl.keeper.id }}">
 
     <ul style="list-style: none; padding: 0; margin: 0 0 14px;">
-      {% for r in cl.rows %}
+      {% for row in cl.rows %}
       <li style="display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06);">
-        {% if r.id != cl.keeper.id %}
-          <input type="checkbox" name="secondary_id" value="{{ r.id }}"
+        {% if row.customer.id != cl.keeper.id %}
+          <input type="checkbox" name="secondary_id" value="{{ row.customer.id }}"
                  {% if cl.signal not in ('conflict',) %}checked{% endif %}
                  {% if cl.signal == 'conflict' %}disabled{% endif %}>
         {% else %}
           <span style="display:inline-block; width: 16px;"></span>
         {% endif %}
 
-        <span style="color: var(--ivory); font-weight: {% if r.id == cl.keeper.id %}600{% else %}400{% endif %};">
-          {{ r.display_name }}
-          {% if r.id == cl.keeper.id %}<em style="color: var(--slate); font-size: 12px; font-style: normal;">(keeper)</em>{% endif %}
-          {% if r.stub %}<span class="badge" style="background: var(--slate); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 20px;">stub</span>{% endif %}
+        <span style="color: var(--ivory); font-weight: {% if row.customer.id == cl.keeper.id %}600{% else %}400{% endif %};">
+          {{ row.customer.display_name }}
+          {% if row.customer.id == cl.keeper.id %}<em style="color: var(--slate); font-size: 12px; font-style: normal;">(keeper)</em>{% endif %}
+          {% if row.stub %}<span class="badge" style="background: var(--slate); color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 20px;">stub</span>{% endif %}
         </span>
 
         <span style="color: var(--slate); font-size: 12px;">
-          DOB {{ r.dob if r.dob else '—' }}
-        </span>
-        <span style="color: var(--slate); font-size: 12px;">
-          MBI {{ r.mbi if r.mbi else '—' }}
+          DOB {{ row.dob or '—' }}
+          · MBI {{ row.mbi }}
+          · {{ row.policy_count }} {{ 'policy' if row.policy_count == 1 else 'policies' }}{% if row.carriers %} ({{ row.carriers | join(', ') }}){% endif %}
+          · src {{ row.source }}
+          · {{ row.agent }}
         </span>
       </li>
       {% endfor %}

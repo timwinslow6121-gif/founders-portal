@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Blueprint, redirect, url_for, session, request, render_template
+from flask import Blueprint, redirect, url_for, session, request, render_template, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from google.oauth2 import id_token
 from google_auth_oauthlib.flow import Flow
@@ -66,6 +66,27 @@ def google_login():
     session['oauth_state'] = state
     return redirect(authorization_url)
 
+def _get_or_create_oauth_user(email, name, is_admin):
+    """Look up the OAuth user by email; create them if new. A NEW user MUST get an
+    agency_id (users.agency_id is NOT NULL) or the insert 500s — this is the Michael
+    2026-07-02 bug: a first-time login with no matching row created an agency-less user.
+    Single tenant today, so new users join DEFAULT_AGENCY_ID (config, default 1).
+    Caller commits."""
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = User(
+            email     = email,
+            name      = name,
+            is_admin  = is_admin,
+            agency_id = current_app.config.get("DEFAULT_AGENCY_ID", 1),
+        )
+        db.session.add(user)
+    else:
+        user.last_login = datetime.utcnow()
+        user.is_admin   = is_admin
+    return user
+
+
 @auth.route('/callback')
 def callback():
     if 'oauth_state' not in session:
@@ -104,18 +125,8 @@ def callback():
         return render_template('login.html',
             error='Access restricted to @foundersinsuranceagency.com accounts.')
 
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        user = User(
-            email     = email,
-            name      = id_info.get('name', ''),
-            is_admin  = email in ADMIN_EMAILS
-        )
-        db.session.add(user)
-    else:
-        user.last_login = datetime.utcnow()
-        user.is_admin   = email in ADMIN_EMAILS
-
+    user = _get_or_create_oauth_user(
+        email=email, name=id_info.get('name', ''), is_admin=email in ADMIN_EMAILS)
     db.session.commit()
     session.permanent = True   # S1: engage the 12h PERMANENT_SESSION_LIFETIME
     login_user(user, remember=True)

@@ -202,3 +202,55 @@ def test_no_mi_recovery_when_fullname_has_mi_but_wrong_first(ctx):
     assert ch["new_first"] == "Colleen"        # not Robert
     assert ch["new_last"] == "Beaver"
     assert ch["new_full"] == "Colleen Beaver"
+
+
+# ---------------------------------------------------------------------------
+# NEW: space-form middle-initial recovery ("Claudia S. Parisi" shape)
+# ---------------------------------------------------------------------------
+
+def test_space_form_mi_recovered(ctx):
+    """full_name is already 'First X. Last' (space form, no comma) but first/last
+    lack the MI — recover it: first='Claudia S.', last='Parisi'."""
+    c = _c_legacy(ctx, first_name="Claudia", last_name="Parisi",
+                  full_name="Claudia S. Parisi")
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Claudia S."
+    assert ch["new_last"] == "Parisi"
+    assert ch["new_full"] == "Claudia S. Parisi"
+
+
+def test_space_form_mi_recovery_idempotent(ctx):
+    """After space-form MI is folded in, a second run must be a no-op."""
+    # State after applying the fix above: first='Claudia S.', last='Parisi', full='Claudia S. Parisi'
+    c = _c(ctx, first_name="Claudia S.", last_name="Parisi",
+           full_name="Claudia S. Parisi")
+    db.session.commit()
+    changes = [x for x in plan_name_changes(ctx) if x["id"] == c.id]
+    assert changes == [], f"Already-folded space-form MI row must be a no-op, got: {changes}"
+
+
+def test_space_form_two_letter_middle_not_recovered(ctx):
+    """'Mary Jo Smith' — 'Jo' is two letters, NOT a single-letter MI.
+    Must NOT be treated as an MI. Result: first='Mary', last='Smith'."""
+    c = _c_legacy(ctx, first_name="Mary", last_name="Smith",
+                  full_name="Mary Jo Smith")
+    ch_list = [x for x in plan_name_changes(ctx) if x["id"] == c.id]
+    # Could be no-change (already clean) or a change that normalises without MI
+    if ch_list:
+        ch = ch_list[0]
+        assert ch["new_first"] == "Mary"
+        assert ch["new_last"] == "Smith"
+    else:
+        # Already clean — that's fine too
+        pass
+
+
+def test_space_form_wrong_last_not_recovered(ctx):
+    """full_name 'Claudia S. Wilson' — last differs from stored 'Parisi'.
+    Gate must reject; result is 'Claudia Parisi' (stored parts, no fabricated MI)."""
+    c = _c_legacy(ctx, first_name="Claudia", last_name="Parisi",
+                  full_name="Claudia S. Wilson")
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Claudia"
+    assert ch["new_last"] == "Parisi"
+    assert ch["new_full"] == "Claudia Parisi"

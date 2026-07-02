@@ -16,6 +16,37 @@ from app.names import normalize_person_name, _tc
 _MI_FOLDED_RE = re.compile(r'.+ [A-Z]\.$')
 
 
+def _recover_space_form_mi(first_now, last_now, full_now):
+    """Try to recover a middle initial from a space-form full_name.
+
+    Matches ONLY when full_name is EXACTLY '<stored_first> <X>. <stored_last>'
+    (case-insensitive) where X is a SINGLE letter (optional trailing period in
+    full_name).  Two-letter tokens like 'Jo' are rejected — they are not MIs.
+
+    Returns (new_first, new_last, new_full) on a match, else None.
+    Gate rules:
+      1. X must be a single letter A-Z.
+      2. The surrounding first and last tokens must match stored values exactly
+         (case-insensitive) — never adopt a different person's name.
+      3. Result: first = 'First X.' (letter uppercased), last = title-cased stored last.
+    """
+    if not first_now or not last_now:
+        return None
+    # Build an anchored regex: ^<first> ([A-Za-z])\.? <last>$  (case-insensitive)
+    pat = re.compile(
+        rf"^{re.escape(first_now)}\s+([A-Za-z])\.?\s+{re.escape(last_now)}$",
+        re.IGNORECASE,
+    )
+    m = pat.match(full_now.strip())
+    if not m:
+        return None
+    letter = m.group(1).upper()
+    clean_first = f"{_tc(first_now)} {letter}."
+    clean_last = " ".join(_tc(w) for w in last_now.split())
+    clean_full = f"{clean_first} {clean_last}"
+    return (clean_first, clean_last, clean_full)
+
+
 def _canonical(src):
     """Parse a name string to (first, last, full) with MI folded into first_name."""
     first, mi, last, full = normalize_person_name(src)
@@ -63,10 +94,11 @@ def _desired(c):
         src = full_now
     else:
         # first/last already set: check whether full_name carries a middle initial
-        # we can safely recover.  Parse full_name; if it normalises to the SAME
-        # first + last (case-insensitive) AND yields a non-empty MI, use full_name
-        # as the canonical source so _canonical() folds the MI into first_name.
-        # If full_name parses to a DIFFERENT person, ignore it — stored parts win.
+        # we can safely recover.
+        #
+        # Path A — COMMA form ("Beaver,Colleen E"): normalize_person_name extracts
+        #   the MI from the comma-separated token.  If it produces the same first+last
+        #   AND an MI, use full_name as source so _canonical() folds the MI.
         pf, pmi, pl, _ = normalize_person_name(full_now)
         if (pmi
                 and pf.lower() == _tc(first_now).lower()
@@ -74,7 +106,13 @@ def _desired(c):
             # full_name confirms same person AND carries an MI — use it as source
             src = full_now
         else:
-            # full_name is absent, stale, or a different person — trust stored parts
+            # Path B — SPACE form ("Claudia S. Parisi"): normalize_person_name can't
+            #   extract the MI (no comma) and lumps "S." into last.  Try the anchored
+            #   single-letter regex gate instead.
+            space_result = _recover_space_form_mi(first_now, last_now, full_now)
+            if space_result:
+                return space_result   # already in (first, last, full) final form
+            # Neither form found an MI — trust stored parts only.
             src = f"{first_now} {last_now}".strip()
 
     first, last, full = _canonical(src)

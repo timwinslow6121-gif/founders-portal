@@ -42,3 +42,10 @@ def normalize_person_name(raw):
     mi = mi.upper()
     full = " ".join(x for x in [first, (mi + "." if mi else ""), last] if x)
     return (first, mi, last, full)
+
+
+def address_as(customer):
+    """The single source of truth for what to CALL a customer in conversation
+    (SMS, email, letters, greetings). Preferred "goes-by" name if set, else the
+    legal first name. Legal name still governs enrollment/MBI/official docs."""
+    return (getattr(customer, "preferred_name", None) or customer.first_name or "").strip()

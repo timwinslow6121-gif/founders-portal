@@ -42,3 +42,17 @@ def test_preferred_name_column_exists_and_defaults_null(ctx):
     db.session.commit()
     assert c.preferred_name == "Craig"
     assert c.first_name == "Donald"   # legal name unchanged
+
+
+def test_address_as_prefers_goes_by_then_legal_first(ctx):
+    from app.names import address_as
+    c = Customer(agency_id=ctx, first_name="Donald", last_name="Horstmann")
+    db.session.add(c); db.session.commit()
+    assert address_as(c) == "Donald"          # no preferred set -> legal first
+    c.preferred_name = "Craig"; db.session.commit()
+    assert address_as(c) == "Craig"           # preferred wins for greetings
+
+
+def test_preferred_name_is_a_provenance_editable_field():
+    from app.customer_provenance import PROVENANCE_FIELDS
+    assert "preferred_name" in PROVENANCE_FIELDS

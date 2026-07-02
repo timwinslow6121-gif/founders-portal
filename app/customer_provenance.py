@@ -24,6 +24,7 @@ PROVENANCE_FIELDS = [
     "mbi", "humana_id", "first_name", "last_name", "dob", "gender",
     "phone_primary", "phone_secondary", "email", "address1", "city",
     "state", "zip_code", "county", "medicaid_level", "medicaid_id",
+    "preferred_name",
 ]
 
 TRUST_ORDER = {"carrier_import": 1, "agent_entered": 2, "human_verified": 3}

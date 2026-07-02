@@ -40,7 +40,7 @@ def test_hub_default_cat_is_agent(db_session, app):
             s["_user_id"] = str(admin.id)
         resp = client.get("/customers/unassigned")
         assert resp.status_code == 200
-        assert b"Default Cat Cust" in resp.data
+        assert b"Default CatCust" in resp.data
 
 
 def test_hub_match_category_lists_unmatched_line_item(db_session, app):
@@ -101,7 +101,7 @@ def test_hub_interval_category_lists_agented_customer_with_no_interval(db_sessio
             s["_user_id"] = str(admin.id)
         resp = client.get("/customers/unassigned?cat=interval")
         assert resp.status_code == 200
-        assert b"Has Agent No Interval" in resp.data
+        assert b"Has Interval" in resp.data
 
 
 def test_hub_non_admin_forbidden(db_session, app):

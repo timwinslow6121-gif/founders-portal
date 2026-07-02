@@ -183,7 +183,11 @@
     {{ (customer.first_name[0] + customer.last_name[0]).upper() if customer.first_name and customer.last_name else '?' }}
   </div>
   <div style="flex:1;min-width:0;">
-    <div class="profile-name">{{ customer.display_name }}</div>
+    <div class="profile-name">{{ customer.display_name }}
+      {% if customer.preferred_name and customer.preferred_name != customer.first_name %}
+        <span style="color: var(--slate); font-size: 0.7em;">— goes by "{{ customer.preferred_name }}"</span>
+      {% endif %}
+    </div>
     <div class="profile-meta">
       MBI: <span class="mono" style="font-size:12px;">{{ customer.mbi or 'Not on file' }}</span>
       {% if customer.dob %} &nbsp;&middot;&nbsp; DOB: {{ customer.dob.strftime('%m/%d/%Y') }}{% endif %}
@@ -348,6 +352,7 @@
       <div class="card-body">
         {{ editable_field(customer, "mbi", "MBI", customer.mbi, can_edit, field_conflicts) }}
         {{ editable_field(customer, "dob", "DOB", (customer.dob.isoformat() if customer.dob else ''), can_edit, field_conflicts) }}
+        {{ editable_field(customer, "preferred_name", "Goes by (preferred name)", customer.preferred_name, can_edit, field_conflicts) }}
         {{ editable_field(customer, "phone_primary", "Phone", customer.phone_primary, can_edit, field_conflicts) }}
         {{ editable_field(customer, "phone_secondary", "Alt phone", customer.phone_secondary, can_edit, field_conflicts) }}
         {{ editable_field(customer, "email", "Email", customer.email, can_edit, field_conflicts) }}

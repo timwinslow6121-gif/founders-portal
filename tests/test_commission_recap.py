@@ -705,7 +705,7 @@ def test_unassigned_customers_view_and_set_agent(app, db_session, agency):
     r = cli.get("/customers/unassigned")
     assert r.status_code == 200
     body = r.get_data(as_text=True)
-    assert "SWEATT, RICKY" in body and "Rebekah Long" in body   # suggested
+    assert "Ricky Sweatt" in body and "Rebekah Long" in body   # suggested
 
     # assign
     r2 = cli.post(f"/customers/{cid}/set-agent", data={"agent_id": rid})

@@ -55,6 +55,7 @@ def create_app():
             count = 0
         unassigned = 0
         quarantine_count = 0
+        merge_cluster_count = 0
         if current_user.is_admin:
             try:
                 from app.models import Customer
@@ -67,8 +68,14 @@ def create_app():
                 quarantine_count = quarantine_total_count(current_user.agency_id)
             except Exception:
                 quarantine_count = 0
+            try:
+                from app.dedup import count_no_mbi_clusters
+                merge_cluster_count = count_no_mbi_clusters(current_user.agency_id)
+            except Exception:
+                merge_cluster_count = 0
         return {'duplicate_mbi_count': count, 'unassigned_customer_count': unassigned,
-                'quarantine_count': quarantine_count}
+                'quarantine_count': quarantine_count,
+                'merge_cluster_count': merge_cluster_count}
 
     with app.app_context():
         pass

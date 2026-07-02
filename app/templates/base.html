@@ -745,6 +745,13 @@
            class="nav-item {% if request.endpoint == 'customers.customers_list' %}active{% endif %}">
           <span class="nav-dot"></span>All Customers
         </a>
+        <a href="{{ url_for('customers.customer_duplicates') }}"
+           class="nav-item {% if request.endpoint == 'customers.customer_duplicates' %}active{% endif %}">
+          <span class="nav-dot"></span>Merge Duplicates
+          {% if merge_cluster_count and merge_cluster_count > 0 %}
+          <span class="nav-badge">{{ merge_cluster_count }}</span>
+          {% endif %}
+        </a>
         {% if unassigned_customer_count and unassigned_customer_count > 0 %}
         <a href="{{ url_for('customers.customers_unassigned') }}"
            class="nav-item {% if request.endpoint == 'customers.customers_unassigned' %}active{% endif %}">

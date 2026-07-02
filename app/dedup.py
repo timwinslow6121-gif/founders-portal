@@ -58,6 +58,24 @@ def cluster_signal(rows, agency_id):
     return "name_only"
 
 
+def count_no_mbi_clusters(agency_id):
+    """Cheap count of name-collision clusters (size > 1) for the nav badge.
+    Loads only name columns and groups in memory — NO per-row carrier-id signal
+    queries (the expensive part of find_no_mbi_clusters), so it is safe to call on
+    every page render."""
+    rows = (Customer.query
+            .filter(Customer.agency_id == agency_id)
+            .with_entities(Customer.full_name, Customer.first_name, Customer.last_name)
+            .all())
+    counts = defaultdict(int)
+    for full, first, last in rows:
+        name = full or f"{first or ''} {last or ''}".strip()
+        key = _norm_name(name)
+        if key:
+            counts[key] += 1
+    return sum(1 for n in counts.values() if n > 1)
+
+
 def find_no_mbi_clusters(agency_id):
     """Cluster customers by normalized full_name; return Clusters of size > 1.
     Includes stubs and NULL-dob rows (unlike the radar's duplicate_customers)."""

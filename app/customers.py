@@ -793,7 +793,12 @@ def customer_duplicates():
             .all()
         )
         if len(dupes) > 1:
-            groups.append(dupes)
+            # The template iterates `{% for mbi, rows in groups %}` — emit a
+            # (label, rows) tuple like the agent duplicates_list view does. These
+            # groups are clustered by name+DOB+phone (no single shared MBI), so the
+            # label is the shared MBI if any row has one, else the shared name.
+            label = next((d.mbi for d in dupes if d.mbi), None) or dupes[0].display_name
+            groups.append((label, dupes))
 
     from app.dedup import find_no_mbi_clusters
     raw_clusters = find_no_mbi_clusters(current_user.agency_id)

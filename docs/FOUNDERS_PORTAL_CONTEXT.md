@@ -35,7 +35,7 @@ I maintain the agency website, Google Workspace, Google Business page, and provi
 | Rebekah Long | rebekah@foundersinsuranceagency.com | AOR | ~950 | 55% | 2nd largest BOB |
 | Chris Foster | chris@foundersinsuranceagency.com | AOR | ~750 | 55% | |
 | Justin Basinger | justin@foundersinsuranceagency.com | AOR | ~700 | 55% | |
-| Mike Lauzurique | mike@foundersinsuranceagency.com | LOA | ~530 | 55% | Extension of Founders, doesn't own clients |
+| Mike Lauzurique | michael@foundersinsuranceagency.com | LOA | ~530 | 55% | Extension of Founders, doesn't own clients |
 | Betty Marlowe | betty@foundersinsuranceagency.com | LOA | ~480 | 52.5% | Extension of Founders, lower split rate |
 | Anjana Patel | anjana@foundersinsuranceagency.com | LOA | ~430 | 55% | Extension of Founders, doesn't own clients |
 

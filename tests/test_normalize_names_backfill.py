@@ -41,6 +41,26 @@ def test_blank_first_name_recovered_from_full_name(ctx):
     assert ch["new_first"] == "John" and ch["new_last"] == "Connelly"
 
 
+def test_folded_mi_with_dirty_last_normalizes_the_last(ctx):
+    # I-1 (opus review): a row already MI-folded in first_name but with an ALL-CAPS
+    # last must still get the LAST title-cased (never trust a stored last to be clean).
+    c = _c(ctx, first_name="Katherine D.", last_name="BRYANT",
+           full_name="BRYANT, KATHERINE")
+    db.session.commit()
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Katherine D."
+    assert ch["new_last"] == "Bryant"                 # was ALL-CAPS, now clean
+    assert ch["new_full"] == "Katherine D. Bryant"
+
+
+def test_folded_mi_fully_clean_is_not_a_change(ctx):
+    # idempotency: an already-clean folded row is a no-op (no re-drift on re-run).
+    c = _c(ctx, first_name="Katherine D.", last_name="Bryant",
+           full_name="Katherine D. Bryant")
+    db.session.commit()
+    assert [x for x in plan_name_changes(ctx) if x["id"] == c.id] == []
+
+
 def test_all_caps_and_comma_normalized(ctx):
     c = _c(ctx, first_name="", last_name="", full_name="BRYANT D,KATHERINE")
     db.session.commit()

@@ -10,7 +10,7 @@ import sys
 from app import create_app
 from app.extensions import db
 from app.models import Customer, Agency
-from app.names import normalize_person_name
+from app.names import normalize_person_name, _tc
 
 # Matches a first_name that already has a folded middle initial, e.g. "Katherine D."
 _MI_FOLDED_RE = re.compile(r'.+ [A-Z]\.$')
@@ -42,15 +42,19 @@ def _desired(c):
     last_now  = (c.last_name  or "").strip()
     full_now  = (c.full_name  or "").strip()
 
-    # If first_name is already in MI-folded form, the row is already canonical.
-    # Re-parsing would mis-derive it, so treat as already-clean and return None.
+    # If first_name is already in MI-folded form ("First X."), we must NOT re-parse
+    # first_name (the no-comma parser would mis-split the MI into last). But the LAST
+    # name can still be dirty (e.g. ALL-CAPS "BRYANT"), so normalize it on its own —
+    # never trust a stored last_name to already be clean just because first is folded.
     if _MI_FOLDED_RE.match(first_now) and last_now:
-        # Still verify full_name is consistent; fix it if not (e.g. stale full_name).
-        expected_full = f"{first_now} {last_now}".strip()
-        if full_now == expected_full:
+        # Title-case each word of the last name directly (a lone "BRYANT" token would
+        # be misread as a FIRST name by normalize_person_name, so use the per-word
+        # caser the parser itself uses for last names).
+        clean_last = " ".join(_tc(w) for w in last_now.split())
+        expected_full = f"{first_now} {clean_last}".strip()
+        if (last_now, full_now) == (clean_last, expected_full):
             return None                     # everything consistent, no change
-        # full_name is stale — fix it without re-parsing first/last
-        return (first_now, last_now, expected_full)
+        return (first_now, clean_last, expected_full)
 
     # Best source: full_name if first is blank, else first+last.
     # Use (c.last_name or '') to avoid "John None" when last_name is NULL.

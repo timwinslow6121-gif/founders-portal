@@ -58,8 +58,24 @@ def _desired(c):
 
     # Best source: full_name if first is blank, else first+last.
     # Use (c.last_name or '') to avoid "John None" when last_name is NULL.
-    src = full_now if not first_now \
-        else f"{first_now} {last_now}".strip()
+    if not first_now:
+        # Stub row: recover first/last from full_name
+        src = full_now
+    else:
+        # first/last already set: check whether full_name carries a middle initial
+        # we can safely recover.  Parse full_name; if it normalises to the SAME
+        # first + last (case-insensitive) AND yields a non-empty MI, use full_name
+        # as the canonical source so _canonical() folds the MI into first_name.
+        # If full_name parses to a DIFFERENT person, ignore it — stored parts win.
+        pf, pmi, pl, _ = normalize_person_name(full_now)
+        if (pmi
+                and pf.lower() == _tc(first_now).lower()
+                and pl.lower() == " ".join(_tc(w) for w in last_now.split()).lower()):
+            # full_name confirms same person AND carries an MI — use it as source
+            src = full_now
+        else:
+            # full_name is absent, stale, or a different person — trust stored parts
+            src = f"{first_now} {last_now}".strip()
 
     first, last, full = _canonical(src)
     if not first and not last:

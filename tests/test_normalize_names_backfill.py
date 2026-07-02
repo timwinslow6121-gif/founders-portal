@@ -9,6 +9,7 @@ from app import create_app
 from app.extensions import db
 from app.models import Customer, Agency
 from scripts.normalize_customer_names import plan_name_changes
+from sqlalchemy import text as sa_text
 
 
 @pytest.fixture
@@ -117,3 +118,66 @@ def test_backfill_is_idempotent_end_to_end(ctx):
     second_pass = [x for x in plan_name_changes(ctx) if x["id"] == c.id]
     assert second_pass == [], \
         f"Second pass after applying changes must be empty, got: {second_pass}"
+
+
+# ---------------------------------------------------------------------------
+# NEW: middle-initial recovery from full_name when first/last already set
+# ---------------------------------------------------------------------------
+
+def _c_legacy(agency_id, first_name, last_name, full_name):
+    """Insert a Customer row bypassing the before_insert sync event via raw SQL.
+    This replicates legacy rows on prod where full_name was set before the sync
+    event was added (or set manually), so first/last+full are inconsistent."""
+    c = Customer(agency_id=agency_id, first_name=first_name, last_name=last_name)
+    db.session.add(c)
+    db.session.flush()  # assigns id; before_insert fires and sets full_name = first+last
+    # Override the event-written full_name with the legacy value via raw SQL
+    db.session.execute(
+        sa_text("UPDATE customers SET full_name = :fn WHERE id = :id"),
+        {"fn": full_name, "id": c.id},
+    )
+    db.session.commit()
+    db.session.expire(c)  # force reload from DB on next access
+    return c
+
+
+def test_mi_recovered_from_full_name_when_parts_set(ctx):
+    """first/last already set; full_name carries a MI that first_name lacks — recover it.
+    This tests the legacy-data shape: 191 prod rows predate the before_insert sync event
+    and have full_name in 'Last,First MI' form while first/last are already set."""
+    c = _c_legacy(ctx, first_name="Colleen", last_name="Beaver", full_name="Beaver,Colleen E")
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Colleen E."
+    assert ch["new_last"] == "Beaver"
+    assert ch["new_full"] == "Colleen E. Beaver"
+
+
+def test_mi_recovery_case_insensitive_and_titlecases(ctx):
+    """ALL-CAPS first/last/full should still produce a clean title-cased result with MI."""
+    c = _c_legacy(ctx, first_name="COLLEEN", last_name="BEAVER", full_name="BEAVER,COLLEEN E")
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Colleen E."
+    assert ch["new_last"] == "Beaver"
+    assert ch["new_full"] == "Colleen E. Beaver"
+
+
+def test_mi_recovery_idempotent(ctx):
+    """After MI is folded in, a second run must be a no-op."""
+    # This state IS safe to insert via the ORM (before_insert syncs full_name correctly).
+    c = _c(ctx, first_name="Colleen E.", last_name="Beaver", full_name="Colleen E. Beaver")
+    db.session.commit()
+    changes = [x for x in plan_name_changes(ctx) if x["id"] == c.id]
+    assert changes == [], f"Already-folded MI row must be a no-op, got: {changes}"
+
+
+def test_no_mi_recovery_when_fullname_is_different_person(ctx):
+    """full_name that normalizes to a DIFFERENT first/last must NOT be trusted for MI recovery.
+    Stored first/last are authoritative; full_name is stale/wrong. Result: clean the stored
+    parts only (Colleen Beaver), do not cross-contaminate with Smith/Robert."""
+    c = _c_legacy(ctx, first_name="Colleen", last_name="Beaver", full_name="Smith,Robert")
+    # After the backfill, first="Colleen", last="Beaver", full="Colleen Beaver".
+    # Smith/Robert from the stale full_name must not bleed into first/last.
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Colleen"
+    assert ch["new_last"] == "Beaver"
+    assert ch["new_full"] == "Colleen Beaver"

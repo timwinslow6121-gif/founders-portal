@@ -1,4 +1,4 @@
-# Customer Name Normalization + Duplicate-Merge UI
+# Customer Name Normalization + Preferred Name + Duplicate-Merge UI
 
 **Status:** Brainstormed + approved 2026-07-02. Ready for writing-plans.
 **Origin:** Item-2 (no-MBI merge) shipped, but "John Couchell ×4" didn't collapse —
@@ -6,6 +6,18 @@ his 3 stubs are `name_only` (no DOB/MBI/shared-id) so they can't auto-merge, AND
 duplicate view can't reliably *find* them because customer names are stored
 inconsistently. Tim: "we need a robust customer database … no conflicting, missing, or
 segmented data." This spec fixes the **name** dimension and maps the rest.
+
+**Legal name ≠ what we call them.** Two distinct concepts the current schema conflates:
+- **Legal/carrier name** (`first_name`/`last_name`/`full_name`) — what CMS/the carrier
+  has (e.g. *Donald Horstmann*). Used for dedup, MBI matching, official/compliance
+  documents. Agents can CORRECT it (carriers send typos/wrong first names).
+- **Preferred "goes-by" name** (`preferred_name`, NEW) — what the human wants to be
+  called (e.g. *Craig* — a middle name, a nickname like Bob for Robert, a shortened
+  form). Used for ALL conversational touchpoints: SMS, email, letters, greetings.
+  Blank → fall back to the legal first name.
+
+So *Donald "Craig" Horstmann* appears as **Donald Horstmann** on the enrollment record
+but **"Hi Craig"** in a text.
 
 ## Problem (quantified on prod 2026-07-01, 5,146 customers)
 
@@ -45,9 +57,17 @@ stay working); Phase 2 gives a human a real review-and-merge surface for the
 - **Merge UI:** extend `/admin/customers/duplicates` with rich per-row context
   (name, DOB, MBI, policies/carriers, source, agent), pick keeper, confirm-same-person
   for `name_only`, merge via the existing `merge_customers` engine.
-- **Durability (fold in):** (1) `full_name` becomes derived-from-parts at write time so
-  the drift can't silently return; (2) the storage normalizer and the dedup matcher are
-  made consistent so every *visible* cluster is actually *mergeable*.
+- **Durability (fold in):** (1) `full_name` is kept **in sync** with first+last at write
+  time so the drift can't silently return — this is NOT a freeze: humans edit
+  first/last/preferred freely and always win; the event only mirrors `full_name` to the
+  parts. (2) the storage normalizer and the dedup matcher are made consistent so every
+  *visible* cluster is actually *mergeable*.
+- **Preferred name:** ONE `preferred_name` column (the goes-by). Conversational
+  addressing uses `preferred_name` if set, else legal `first_name`. Always editable;
+  legal name unchanged by setting it.
+- **Legal-name edits:** an agent may correct the legal first/last anytime (sets
+  `manually_edited=True`, respected by future imports). The durability event NEVER blocks
+  or reverts a human edit — "derived" means `full_name` mirrors the parts, not frozen.
 
 ## Architecture
 
@@ -74,22 +94,46 @@ parses every shape found (`COUCHELL, JOHN`→`John Couchell`, `BRYANT D,KATHERIN
   reformat does not fabricate `human_verified` trust. (A reformat is not a human edit.)
 - Report totals by shape fixed (caps / comma / blank-first / drift).
 
-**1b. Durability — derive `full_name` from parts at write time**
+**1b. Durability — keep `full_name` in sync with parts at write time (NOT a freeze)**
 Root cause of the 496 drift = `full_name` assigned independently at ~7 sites
 (`customers.py:456`, `upload.py:215/318/496/528/764`, `commission/resolver.py:76/131/517`).
 Add a SQLAlchemy `before_insert`/`before_update` event on `Customer` that, when
-`first_name`/`last_name` are set, recomputes `full_name = f"{first} {last}".strip()`
+`first_name`/`last_name` are present, recomputes `full_name = f"{first} {last}".strip()`
 (the middle initial rides inside `first_name` as `"First M."`, so it appears in
-`full_name` automatically — no separate MI handling needed). This catches ALL write paths without editing
-7 call sites, and makes first+last the source of truth (`full_name` derived). Sites that
-still assign `full_name=` directly for a blank-first stub keep working (the event only
-overrides when first/last are present). Document the tradeoff: `full_name` is no longer
-independently authoritative — correct, since it should mirror the parts.
+`full_name` automatically — no separate MI handling needed). This catches ALL write paths
+without editing 7 call sites and makes first+last the source of truth for `full_name`.
+- **This does NOT freeze names.** A human editing `first_name`/`last_name` (via the
+  profile editor) is always allowed — the event simply keeps `full_name` matching the new
+  parts. Legal-name corrections (carrier sent "Jon", it's "John") flow normally and set
+  `manually_edited=True`, respected by future imports.
+- Sites that assign `full_name=` directly for a **blank-first stub** keep working (the
+  event only overrides when first/last are present).
+- Tradeoff (intended): `full_name` is no longer independently authoritative — it mirrors
+  the parts. `preferred_name` (1d) is where "what we call them" lives, so nothing
+  conversational is lost by making `full_name` a legal-name derivation.
 
 **1c. Normalize-on-write going forward (BOB path)**
 Confirm the BOB upsert (`_upsert_customer_from_policy` in `upload.py`) routes parsed
 names through `normalize_person_name` like the commission path does (item-1). If not,
 wire it so new BOB rows land canonical. (Verification task; wire only if a gap exists.)
+
+**1d. Preferred "goes-by" name (`preferred_name`) + one addressing helper**
+- **Migration:** add nullable `Customer.preferred_name VARCHAR(128)`. NULL/blank = use the
+  legal first name. Never written by imports — human-set only. Add to `PROVENANCE_FIELDS`
+  so it's an editable, provenance-tracked profile field.
+- **Profile editor:** a `preferred_name` input on the customer profile (inline-editable
+  like the other fields), labeled e.g. "Goes by (preferred name)". Setting it does NOT
+  touch the legal name.
+- **ONE addressing seam — `address_as(customer) -> str`** (new, small helper, e.g. in
+  `app/names.py`): returns `customer.preferred_name` if set, else `customer.first_name`.
+  This is the single source of truth for "what do we call this person" so no touchpoint
+  re-implements the fallback. Retrofit the conversational touchpoints that greet by first
+  name to call it: SMS send/templates (`app/comms/`), email greetings (`app/mailer.py`
+  callers), letters/labels where a salutation is used. **Legal name stays** on the
+  enrollment record, MBI matching, and any official document — `address_as` is ONLY for
+  conversational greetings.
+- **Display hint:** on the profile, show the legal name with the goes-by beside it when
+  they differ (e.g. *Donald Horstmann — goes by "Craig"*) so agents see both at a glance.
 
 ### Phase 2 — Duplicate-merge review UI
 
@@ -104,6 +148,11 @@ Extend `/admin/customers/duplicates` (already renders item-2's
 
 After Phase 1, the Couchell rows normalize (`COUCHELL, JOHN`→`John Couchell`), cluster
 cleanly, and become a ~2-click merge each.
+
+**`preferred_name` in the merge:** add `preferred_name` to `merge_customers`'
+fill-blanks-only field list so a keeper missing a goes-by inherits one from a loser (a
+human-set preferred name must never be lost in a merge). Fill-blanks-only still applies —
+an existing keeper preferred_name is never overwritten.
 
 ### Durability #2 — matcher/storage normalizer consistency
 Storage uses `normalize_person_name` (First MI. Last); the matcher `find_no_mbi_clusters`
@@ -136,7 +185,12 @@ Documenting this keeps the project shippable while making the whole picture visi
 - Normalizer backfill: unit tests per shape (ALL-CAPS, `LAST, FIRST`, blank-first via
   full_name, already-clean = no-op), idempotency, `manually_edited` skipped.
 - Durability event: setting first/last recomputes full_name; a blank-first stub keeps its
-  full_name; two write paths both produce consistent full_name.
+  full_name; a human editing first_name updates full_name (edit NOT blocked/reverted);
+  two write paths both produce consistent full_name.
+- `preferred_name` + `address_as`: `address_as` returns preferred_name when set, legal
+  first_name when blank; setting preferred_name doesn't change the legal name; a
+  conversational touchpoint (SMS/email/label greeting) uses `address_as`; merge inherits a
+  loser's preferred_name into a blank keeper (fill-blanks-only, never overwrites).
 - Matcher/storage consistency test (durability #2).
 - Merge UI: a `name_only` cluster renders the context fields + gated confirm-merge;
   engine already tested (item 2).
@@ -147,7 +201,10 @@ Documenting this keeps the project shippable while making the whole picture visi
 
 - `scripts/normalize_customer_names.py` (dry-run→apply) canonicalizes all non-manual
   names; the 496 drift / 313 caps / 252 comma / 44 blank-first rows resolve.
-- `full_name` derives from parts at write time (drift can't silently return).
+- `full_name` stays in sync with parts at write time (drift can't silently return);
+  human legal-name edits still work.
+- Migration adds `Customer.preferred_name`; profile editor sets it; `address_as` seam
+  drives conversational greetings (preferred else legal first); merge preserves it.
 - BOB path stores canonical names going forward.
 - `/admin/customers/duplicates` shows rich per-row context + gated `name_only` merge; the
   Couchell couple is mergeable to two clean profiles.

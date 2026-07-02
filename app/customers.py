@@ -833,7 +833,7 @@ _MERGE_FILL_FIELDS = (
     "mbi", "humana_id", "dob", "gender",
     "phone_primary", "phone_secondary",
     "email", "address1", "city", "state", "zip_code", "county",
-    "medicaid_level", "medicaid_id", "lead_source",
+    "medicaid_level", "medicaid_id", "lead_source", "preferred_name",
 )
 
 

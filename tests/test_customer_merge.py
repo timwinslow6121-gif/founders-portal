@@ -369,3 +369,31 @@ def test_merge_reattaches_commission_line_items(db_session, app):
         refreshed = db.session.get(CommissionLineItem, li.id)
         assert refreshed is not None
         assert refreshed.customer_id == keeper.id
+
+
+def test_merge_inherits_preferred_name_into_blank_keeper(db_session, app):
+    """Keeper has no preferred_name, loser has 'Craig' → after merge keeper.preferred_name == 'Craig'."""
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        keeper = _c(agency_id, first_name="Donald", last_name="Horstmann",
+                    full_name="Donald Horstmann")  # no preferred_name
+        loser = _c(agency_id, first_name="Donald", last_name="Horstmann",
+                   full_name="Donald Horstmann", preferred_name="Craig")
+        db.session.commit()
+        merge_customers(keeper.id, [loser.id], agency_id, actor)
+        db.session.commit()
+        assert keeper.preferred_name == "Craig"  # goes-by not lost
+
+
+def test_merge_does_not_overwrite_keeper_preferred_name(db_session, app):
+    """Keeper has 'Keep', loser has 'Lose' → after merge keeper.preferred_name == 'Keep' (fill-blanks-only)."""
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        keeper = _c(agency_id, first_name="A", last_name="B", full_name="A B",
+                    preferred_name="Keep")
+        loser = _c(agency_id, first_name="A", last_name="B", full_name="A B",
+                   preferred_name="Lose")
+        db.session.commit()
+        merge_customers(keeper.id, [loser.id], agency_id, actor)
+        db.session.commit()
+        assert keeper.preferred_name == "Keep"  # fill-blanks-only, keeper wins

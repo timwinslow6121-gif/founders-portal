@@ -127,11 +127,16 @@ wire it so new BOB rows land canonical. (Verification task; wire only if a gap e
 - **ONE addressing seam — `address_as(customer) -> str`** (new, small helper, e.g. in
   `app/names.py`): returns `customer.preferred_name` if set, else `customer.first_name`.
   This is the single source of truth for "what do we call this person" so no touchpoint
-  re-implements the fallback. Retrofit the conversational touchpoints that greet by first
-  name to call it: SMS send/templates (`app/comms/`), email greetings (`app/mailer.py`
-  callers), letters/labels where a salutation is used. **Legal name stays** on the
-  enrollment record, MBI matching, and any official document — `address_as` is ONLY for
-  conversational greetings.
+  re-implements the fallback. Retrofit the **known** conversational touchpoints that greet
+  by first name to call it: SMS send/templates (`app/comms/`), email greetings
+  (`app/mailer.py` callers), letters/labels where a salutation is used. **Legal name
+  stays** on the enrollment record, MBI matching, and any official document — `address_as`
+  is ONLY for conversational greetings.
+  - **Incremental adoption is expected.** We are NOT enumerating every greeting site up
+    front — additional spots (call scripts, dashboard greetings, Retell/Quo-facing text,
+    etc.) get switched to `address_as` as they're found while testing the portal. Because
+    it's ONE helper, each retrofit is a one-line change (`customer.first_name` →
+    `address_as(customer)`), not a redesign — this is the whole reason for the seam.
 - **Display hint:** on the profile, show the legal name with the goes-by beside it when
   they differ (e.g. *Donald Horstmann — goes by "Craig"*) so agents see both at a glance.
 

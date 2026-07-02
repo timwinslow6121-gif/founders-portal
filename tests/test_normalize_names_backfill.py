@@ -235,14 +235,15 @@ def test_space_form_two_letter_middle_not_recovered(ctx):
     c = _c_legacy(ctx, first_name="Mary", last_name="Smith",
                   full_name="Mary Jo Smith")
     ch_list = [x for x in plan_name_changes(ctx) if x["id"] == c.id]
-    # Could be no-change (already clean) or a change that normalises without MI
+    # Whether it changes or not, the ESSENTIAL guarantee is that "Jo" was never
+    # folded as an MI: first_name stays "Mary", never "Mary J." / "Mary Jo".
     if ch_list:
         ch = ch_list[0]
-        assert ch["new_first"] == "Mary"
+        assert ch["new_first"] == "Mary", f"'Jo' must not fold into first: {ch['new_first']!r}"
         assert ch["new_last"] == "Smith"
     else:
-        # Already clean — that's fine too
-        pass
+        # No change is also acceptable — but then first_name must still be plain "Mary".
+        assert (c.first_name or "").strip() == "Mary"
 
 
 def test_space_form_wrong_last_not_recovered(ctx):

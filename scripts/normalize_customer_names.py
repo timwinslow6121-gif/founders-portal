@@ -4,6 +4,7 @@ Skips manually_edited rows. Dry-run by default; --apply writes. Back up the DB b
 
 Run on VPS: PYTHONPATH=/var/www/founders-portal ./venv/bin/python3 scripts/normalize_customer_names.py [--apply]
 """
+import re
 import sys
 
 from app import create_app
@@ -11,19 +12,55 @@ from app.extensions import db
 from app.models import Customer, Agency
 from app.names import normalize_person_name
 
+# Matches a first_name that already has a folded middle initial, e.g. "Katherine D."
+_MI_FOLDED_RE = re.compile(r'.+ [A-Z]\.$')
 
-def _desired(c):
-    """Return (first, last, full) the row SHOULD have, or None if it's already correct."""
-    # Best source: full_name if first is blank, else first+last.
-    src = (c.full_name or "").strip() if not (c.first_name or "").strip() \
-        else f"{c.first_name} {c.last_name}".strip()
+
+def _canonical(src):
+    """Parse a name string to (first, last, full) with MI folded into first_name."""
     first, mi, last, full = normalize_person_name(src)
     if mi:
-        first = f"{first} {mi}."           # MI rides inside first_name
+        first = f"{first} {mi}."
         full = f"{first} {last}".strip()
+    return first, last, full
+
+
+def _desired(c):
+    """Return (first, last, full) the row SHOULD have, or None if it's already correct/skip.
+
+    Idempotency rule for middle-initial rows:
+    normalize_person_name only extracts a middle initial from comma-separated input.
+    Once we fold the MI into first_name (e.g. "Katherine D."), a second parse of
+    "Katherine D. Bryant" (no comma) misreads last as "D. Bryant".  We must NOT
+    flag an already-normalized MI row as needing a change.
+
+    Detection: if current first_name already matches the folded-MI pattern
+    (ends with " <single-uppercase-letter>."), the row is already canonical — skip it
+    unless some OTHER field (last_name, full_name) is also wrong.
+    """
+    first_now = (c.first_name or "").strip()
+    last_now  = (c.last_name  or "").strip()
+    full_now  = (c.full_name  or "").strip()
+
+    # If first_name is already in MI-folded form, the row is already canonical.
+    # Re-parsing would mis-derive it, so treat as already-clean and return None.
+    if _MI_FOLDED_RE.match(first_now) and last_now:
+        # Still verify full_name is consistent; fix it if not (e.g. stale full_name).
+        expected_full = f"{first_now} {last_now}".strip()
+        if full_now == expected_full:
+            return None                     # everything consistent, no change
+        # full_name is stale — fix it without re-parsing first/last
+        return (first_now, last_now, expected_full)
+
+    # Best source: full_name if first is blank, else first+last.
+    # Use (c.last_name or '') to avoid "John None" when last_name is NULL.
+    src = full_now if not first_now \
+        else f"{first_now} {last_now}".strip()
+
+    first, last, full = _canonical(src)
     if not first and not last:
         return None                         # nothing parseable; leave it
-    if (first, last, full) == (c.first_name, c.last_name, c.full_name):
+    if (first, last, full) == (first_now, last_now, full_now):
         return None                         # already clean
     return (first, last, full)
 

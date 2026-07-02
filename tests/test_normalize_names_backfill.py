@@ -181,3 +181,24 @@ def test_no_mi_recovery_when_fullname_is_different_person(ctx):
     assert ch["new_first"] == "Colleen"
     assert ch["new_last"] == "Beaver"
     assert ch["new_full"] == "Colleen Beaver"
+
+
+def test_no_mi_recovery_when_fullname_has_mi_but_wrong_last(ctx):
+    """The subtle case: full_name carries an MI AND the first matches, but the LAST
+    differs ("Davis,Colleen E" vs stored Beaver). The gate requires BOTH first and last
+    to match, so recovery must be rejected — never adopt Davis, never fabricate the E."""
+    c = _c_legacy(ctx, first_name="Colleen", last_name="Beaver", full_name="Davis,Colleen E")
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Colleen"
+    assert ch["new_last"] == "Beaver"          # not Davis
+    assert ch["new_full"] == "Colleen Beaver"  # no fabricated " E."
+
+
+def test_no_mi_recovery_when_fullname_has_mi_but_wrong_first(ctx):
+    """Mirror case: MI present, LAST matches, but FIRST differs ("Beaver,Robert E").
+    Gate rejects — stored Colleen Beaver wins, no Robert, no fabricated E."""
+    c = _c_legacy(ctx, first_name="Colleen", last_name="Beaver", full_name="Beaver,Robert E")
+    ch = [x for x in plan_name_changes(ctx) if x["id"] == c.id][0]
+    assert ch["new_first"] == "Colleen"        # not Robert
+    assert ch["new_last"] == "Beaver"
+    assert ch["new_full"] == "Colleen Beaver"

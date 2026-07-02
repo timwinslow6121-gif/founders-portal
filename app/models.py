@@ -454,6 +454,8 @@ class Customer(db.Model):
     first_name        = db.Column(db.String(128), nullable=False)
     last_name         = db.Column(db.String(128), nullable=False)
     full_name         = db.Column(db.String(256), index=True)      # denormalized for fast search
+    # Preferred "goes-by" name — human-set only; blank => use legal first_name.
+    preferred_name    = db.Column(db.String(128))
 
     # Demographics
     dob               = db.Column(db.Date, index=True)

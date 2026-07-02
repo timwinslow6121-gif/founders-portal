@@ -32,3 +32,13 @@ def test_blank_first_name_keeps_raw_full_name(ctx, db_session, app):
         c = Customer(agency_id=ctx, first_name="", last_name="", full_name="CONNELLY, JOHN")
         db.session.add(c); db.session.commit()
         assert c.full_name == "CONNELLY, JOHN"   # event did NOT clobber it to " "
+
+
+def test_preferred_name_column_exists_and_defaults_null(ctx):
+    c = Customer(agency_id=ctx, first_name="Donald", last_name="Horstmann")
+    db.session.add(c); db.session.commit()
+    assert c.preferred_name is None
+    c.preferred_name = "Craig"
+    db.session.commit()
+    assert c.preferred_name == "Craig"
+    assert c.first_name == "Donald"   # legal name unchanged

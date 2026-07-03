@@ -295,7 +295,10 @@ _BCBS_COLUMN_ALIASES = {
     "name":        ("customer name", "customer", "member name"),
     "customer_no": ("customer no", "customer #", "customer number", "cust no", "customer no."),
     "commission":  ("commission", "commission amount", "comm amount", "comm amt"),
-    "group_type":  ("group type", "type"),
+    # NOTE: no bare "type" alias — it drives the chargeback SIGN, and a stray
+    # "Customer Type"/other *Type* column (exactly what caused the original bug)
+    # must never be mistaken for "Group Type". Only match the specific header.
+    "group_type":  ("group type",),
     "agent":       ("agent name", "agent"),
     "eff_date":    ("orig eff date", "origeffdate", "effective date", "eff date"),
     "term_date":   ("coverage to", "coverageto", "coverage end", "disenroll date"),

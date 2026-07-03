@@ -233,6 +233,41 @@ def test_normalize_bcbs_alias_tolerates_renamed_commission_header():
     assert facts[0].amount == 42.5
 
 
+def test_normalize_bcbs_customer_type_column_is_not_mistaken_for_group_type():
+    """A stray 'Customer Type' column (the original bug's phantom col) must NOT bind
+    to group_type — group_type drives the chargeback sign. With a real 'Group Type'
+    present, classification comes from it; 'Customer Type' is ignored."""
+    from app.commission.normalizers import normalize_bcbs
+    from app.commission.member_fact import RowClass
+    hdr = ["Agent #", "Agent Name", "Group Type", "Customer Type",
+           "Customer Name", "Customer No", "Commission"]
+    # Group Type=RENEW (→RENEWAL), Customer Type="ADJUSTMENT" as a decoy that must be ignored.
+    sheets = {"Sheet1": [hdr, ["P1", "AGENT", "RENEW", "ADJUSTMENT",
+                               "Doe,Jane", "123", 10.0]]}
+    facts = normalize_bcbs(sheets)
+    assert len(facts) == 1
+    assert facts[0].row_class == RowClass.RENEWAL   # from Group Type, NOT the decoy
+
+
+def test_bcbs_lineitem_sum_equals_money_rows_total():
+    """The balance invariant: Σ extract_lineitems_bcbs raw_amount == money_rows_total_bcbs
+    on the same sheet (both money paths agree on rows + amounts)."""
+    from app.commission.ledger import extract_lineitems_bcbs, money_rows_total_bcbs
+    hdr = ["Agent #", "Agent Name", "Group Type", "Customer Name",
+           "Customer No", "Billed Amount", "Commission"]
+    sheets = {"Sheet1": [
+        hdr,
+        ["P1", "AGENT", "FY", "Doe,Jane", "123", 52.0, 28.91],
+        ["P1", "AGENT", "RENEW", "Roe,Sam", "124", 40.0, 12.50],
+        ["P1", "AGENT", "ADJUSTMENT", "Foe,Lee", "125", 0.0, -5.00],
+        ["", "", "", "", "", 0.0, 100.0],           # Total row — skipped (no name/no)
+    ]}
+    drafts = extract_lineitems_bcbs(sheets, split_lookup=lambda w: 0.55)
+    total = money_rows_total_bcbs(sheets)
+    assert len(drafts) == 3
+    assert round(sum(d.raw_amount for d in drafts), 2) == round(total, 2) == 36.41
+
+
 def test_normalize_aetna_sales_events_and_mbi():
     from app.commission.sheet_loader import load_sheets
     from app.commission.normalizers import normalize_aetna

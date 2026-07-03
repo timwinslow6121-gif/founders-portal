@@ -825,12 +825,13 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     from app.commission.ledger import current_upload_filename
     current_upload_filename.set(filename or "")
 
+    from app.commission.normalizers import BcbsColumnError
     try:
         facts = NORMALIZERS[carrier](sheets)
-    except ValueError as e:
-        # A parser raised a specific, human-readable reason (e.g. BcbsColumnError:
-        # a required column is missing because the carrier/Tidewater format changed).
-        # Surface that reason to AJ instead of a vague error or a 500.
+    except BcbsColumnError as e:
+        # A required column is missing because the carrier/Tidewater format changed.
+        # Surface the specific reason to AJ instead of a vague error or a 500.
+        # (Other unexpected errors are NOT swallowed — they 500 so they get logged.)
         flash(str(e), "error")
         return redirect(url_for("commission.commission_admin"))
     if not facts:

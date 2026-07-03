@@ -440,13 +440,14 @@ def test_bcbs_per_agent_filetoken_and_file_scoped_prefix():
     from app.commission.ledger import (extract_lineitems_bcbs, _bcbs_filetoken,
                                         file_scoped_prefix, PER_AGENT_CARRIERS)
     # Two synthetic single-agent BCBS files with different P Numbers (col A).
-    hdr = ["Agent #","Agent Name","Group Type","Customer Type","Customer Name",
-           "Customer No","OrigEff","Product","CovFrom","CovTo","Period","OrigSub",
-           "RenewalDate","Billed","Commission"]
+    # Real 14-col layout (no "Customer Type" — the parser resolves cols by header name).
+    hdr = ["Agent #","Agent Name","Group Type","Customer Name",
+           "Customer No","Orig Eff Date","Product","Coverage From","Coverage To",
+           "Period","OrigSub","RenewalDate","Billed","Commission"]
     def f(pnum, name):
         return {"Sheet1": [hdr,
-            [pnum, name, "RENEW", "MA", f"{name} Member", f"{pnum}-1",
-             "2025-01-01","MAPD","","","",1,"", 52.0, 28.91]]}
+            [pnum, name, "RENEW", f"{name} Member", f"{pnum}-1",
+             "2025-01-01","MAPD","","",1,"","", 52.0, 28.91]]}
     a = f("P0001", "ANJANA PATEL")
     j = f("P0002", "JUSTIN BASINGER")
     assert _bcbs_filetoken(a) == "pP0001"

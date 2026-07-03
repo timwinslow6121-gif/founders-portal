@@ -277,24 +277,80 @@ def _classify_bcbs(group_type, amount):
     return RowClass.RENEWAL
 
 
+class BcbsColumnError(ValueError):
+    """A required BCBS column could not be found in the file's header row.
+
+    BCBS commission data reaches us via Tidewater (Founders' upline FMO), whose
+    export layout varies month to month (columns added / removed / reordered —
+    e.g. May had a 'Customer Type' column June didn't). We therefore resolve
+    columns by HEADER NAME, not fixed position, and raise this loud, specific
+    error naming the missing field + the headers we DID see — so a future format
+    change is diagnosable rather than a silent 'no rows found'.
+    """
+
+
+# Header aliases per logical BCBS field. Matched case-insensitively with
+# whitespace stripped. Add a new alias here when Tidewater renames a column.
+_BCBS_COLUMN_ALIASES = {
+    "name":        ("customer name", "customer", "member name"),
+    "customer_no": ("customer no", "customer #", "customer number", "cust no", "customer no."),
+    "commission":  ("commission", "commission amount", "comm amount", "comm amt"),
+    # NOTE: no bare "type" alias — it drives the chargeback SIGN, and a stray
+    # "Customer Type"/other *Type* column (exactly what caused the original bug)
+    # must never be mistaken for "Group Type". Only match the specific header.
+    "group_type":  ("group type",),
+    "agent":       ("agent name", "agent"),
+    "eff_date":    ("orig eff date", "origeffdate", "effective date", "eff date"),
+    "term_date":   ("coverage to", "coverageto", "coverage end", "disenroll date"),
+    "product":     ("product", "plan"),
+}
+# Fields the parser cannot work without; a missing one is a loud error.
+_BCBS_REQUIRED = ("name", "customer_no", "commission")
+
+
+def _resolve_bcbs_columns(header_row):
+    """Map each logical BCBS field to its column index by header name (alias-aware).
+    Raises BcbsColumnError naming any REQUIRED field that can't be found."""
+    seen = [str(h or "").strip() for h in header_row]
+    lookup = {h.lower(): i for i, h in enumerate(seen) if h}
+    cols = {}
+    for field, aliases in _BCBS_COLUMN_ALIASES.items():
+        for alias in aliases:
+            if alias in lookup:
+                cols[field] = lookup[alias]
+                break
+    missing = [f for f in _BCBS_REQUIRED if f not in cols]
+    if missing:
+        raise BcbsColumnError(
+            f"BCBS file: could not find required column(s) "
+            f"{', '.join(repr(m) for m in missing)} — headers seen: {seen}. "
+            f"The BCBS/Tidewater format may have changed; check the column names."
+        )
+    return cols
+
+
 def normalize_bcbs(sheets):
     from app.commission.ledger import _bcbs_filetoken
     rows = sheets.get("Sheet1", [])
     if not rows:
         return []
+    cols = _resolve_bcbs_columns(rows[0])   # raises BcbsColumnError if a required col is missing
     filetoken = _bcbs_filetoken(sheets)
     out = []
     for idx, row in enumerate(rows[1:], start=1):
         if not any(row):
             continue
-        if len(row) <= 14:
-            continue
-        name = str(row[4] or "").strip()
-        customer_no = str(row[5] or "").strip()
+        name = str(row[cols["name"]] or "").strip() if cols["name"] < len(row) else ""
+        customer_no = str(row[cols["customer_no"]] or "").strip() if cols["customer_no"] < len(row) else ""
         if not name or not customer_no:        # skips Total: row
             continue
         first_n, mi, last_n, full = normalize_person_name(name)
-        amount = _to_float(row[14])
+        amount = _to_float(row[cols["commission"]]) if cols["commission"] < len(row) else 0.0
+
+        def _cell(field):
+            ci = cols.get(field)
+            return row[ci] if ci is not None and ci < len(row) else None
+
         out.append(MemberFact(
             carrier="BCBS",
             full_name=full,
@@ -302,12 +358,12 @@ def normalize_bcbs(sheets):
             last_name=last_n,
             mbi=None,
             carrier_member_id=customer_no,
-            effective_date=_parse_date(row[6]),
-            term_date=_parse_date(row[9]),
-            plan_type=str(row[7] or "").strip() or None,
-            row_class=_classify_bcbs(row[2], amount),
+            effective_date=_parse_date(_cell("eff_date")),
+            term_date=_parse_date(_cell("term_date")),
+            plan_type=str(_cell("product") or "").strip() or None,
+            row_class=_classify_bcbs(_cell("group_type"), amount),
             amount=amount,
-            writing_agent_raw=str(row[1] or "").strip(),
+            writing_agent_raw=str(_cell("agent") or "").strip(),
             source_ref=f"bcbs::{filetoken}::Sheet1::{idx}",
         ))
     return out

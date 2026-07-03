@@ -174,20 +174,32 @@ def _bcbs_filetoken(sheets):
 
 
 def extract_lineitems_bcbs(sheets, split_lookup) -> List[LineItemDraft]:
+    # BCBS/Tidewater column layout varies month to month — resolve by header name,
+    # not fixed index (see normalizers._resolve_bcbs_columns). Deferred import
+    # avoids a circular dependency (normalizers imports from ledger at module load).
+    from app.commission.normalizers import _resolve_bcbs_columns
     rows = sheets.get("Sheet1", [])
+    if not rows:
+        return []
+    cols = _resolve_bcbs_columns(rows[0])   # raises BcbsColumnError if a required col is missing
     filetoken = _bcbs_filetoken(sheets)
+
+    def _cell(row, field):
+        ci = cols.get(field)
+        return row[ci] if ci is not None and ci < len(row) else None
+
     out = []
     for idx, row in enumerate(rows[1:], start=1):
-        if not any(row) or len(row) <= 14:
+        if not any(row):
             continue
-        name = str(row[4] or "").strip()
-        customer_no = str(row[5] or "").strip()
+        name = str(_cell(row, "name") or "").strip()
+        customer_no = str(_cell(row, "customer_no") or "").strip()
         if not name or not customer_no:        # skips Total: row
             continue
-        amount = _to_float(row[14])            # Commission column, NOT Billed
-        gt = str(row[2] or "").upper().strip()
+        amount = _to_float(_cell(row, "commission"))   # Commission column, NOT Billed
+        gt = str(_cell(row, "group_type") or "").upper().strip()
         classification = CHARGEBACK if (amount < 0 or gt == "ADJUSTMENT") else AGENT_COMMISSION
-        writing = str(row[1] or "").strip()
+        writing = str(_cell(row, "agent") or "").strip()
         out.append(LineItemDraft(
             carrier="BCBS",
             source_ref=f"bcbs::{filetoken}::Sheet1::{idx}",
@@ -199,21 +211,28 @@ def extract_lineitems_bcbs(sheets, split_lookup) -> List[LineItemDraft]:
             mbi=None,
             carrier_member_id=customer_no,
             writing_agent_raw=writing,
-            effective_date=_parse_date(row[6]),
-            term_date=_parse_date(row[9]),
+            effective_date=_parse_date(_cell(row, "eff_date")),
+            term_date=_parse_date(_cell(row, "term_date")),
         ))
     return out
 
 
 def money_rows_total_bcbs(sheets) -> float:
+    from app.commission.normalizers import _resolve_bcbs_columns
     rows = sheets.get("Sheet1", [])
+    if not rows:
+        return 0.0
+    cols = _resolve_bcbs_columns(rows[0])
+    ci_name, ci_no, ci_comm = cols["name"], cols["customer_no"], cols["commission"]
     total = 0.0
     for row in rows[1:]:
-        if not any(row) or len(row) <= 14:
+        if not any(row):
             continue
-        if not str(row[4] or "").strip() or not str(row[5] or "").strip():
+        name = str(row[ci_name] or "").strip() if ci_name < len(row) else ""
+        cno = str(row[ci_no] or "").strip() if ci_no < len(row) else ""
+        if not name or not cno:
             continue
-        total += _to_float(row[14])
+        total += _to_float(row[ci_comm]) if ci_comm < len(row) else 0.0
     return total
 
 

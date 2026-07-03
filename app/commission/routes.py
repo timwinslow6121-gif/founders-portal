@@ -15,7 +15,7 @@ from app.extensions import db
 from app.models import CommissionStatement, User, AgentCarrierContract, Policy, PolicyPayment, CommissionLineItem, AgentRecapPeriod
 from app.commission import commission_bp
 from app.commission.payments import build_payments, parked_payments_older_than
-from app.commission.ingest import ingest_statement, compute_fingerprint
+from app.commission.ingest import ingest_statement, compute_fingerprint, find_duplicate_statement
 from app.commission.normalizers import NORMALIZERS
 from app.commission.ledger import EXTRACTORS, persist_line_items, verify_statement_balance
 from app.commission.recap import (build_recap, get_or_create_period, is_visible_to_agent,
@@ -905,9 +905,11 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
 
     fingerprint = compute_fingerprint(carrier, period_label, facts)
     replace = request.form.get("replace") == "1"
-    dup = CommissionStatement.query.filter_by(
-        agency_id=current_user.agency_id, carrier=carrier,
-        content_fingerprint=fingerprint).first()
+    # Duplicate = same content in the SAME period. A byte-identical per-agent
+    # statement in a DIFFERENT pay period (BCBS/Tidewater steady-state books) is a
+    # legitimate new statement, not a re-upload — see find_duplicate_statement.
+    dup = find_duplicate_statement(
+        current_user.agency_id, carrier, fingerprint, period_label)
     if dup is not None and not replace:
         flash(
             f"This looks like the {carrier} {dup.period_label} statement already "

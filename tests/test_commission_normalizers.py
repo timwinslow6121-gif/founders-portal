@@ -6,6 +6,7 @@ Fixtured from real raw commission files in tests/fixtures/commission/.
 No database needed.
 """
 import os
+import pytest
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
 
@@ -162,6 +163,74 @@ def test_normalize_bcbs_skips_total_row():
     sheets = load_sheets(os.path.join(FIXTURES, "bcbs_sample.xlsx"))
     facts = normalize_bcbs(sheets)
     assert all("total" not in f.full_name.lower() for f in facts)
+
+
+def test_normalize_bcbs_real_14col_layout():
+    """FAILING TEST (TDD): synthetic 14-col sheet (no 'Customer Type' col)
+    must parse correctly — name from col 3, customer_no from col 4, commission
+    from col 13.  The old fixed-index parser reads col 4/5/14 and skips ALL
+    rows via the len(row) <= 14 guard, returning [].  The header-based parser
+    must return 2 facts with the correct attributes.
+    """
+    from app.commission.normalizers import normalize_bcbs
+    from app.commission.member_fact import RowClass
+
+    hdr = [
+        "Agent #", "Agent Name", "Group Type", "Customer Name",
+        "Customer No", "ORIGEFFDATE", "Product", "COVERAGEFROM",
+        "COVERAGETO", "Premium Period", "Orig Sub Count", "Renewal_Date",
+        "Billed Amount", "Commission",
+    ]
+    rows_14col = [
+        hdr,
+        # FY row -> ENROLLMENT, commission col 13
+        ["P0056227", "TIMOTHY WINSLOW", "FY", "Sanders,Sharon L",
+         "106811352", "01/01/2026", "Blue Medicare Freedom+ (PPO)",
+         "01/01/2026", "", "2026-06-01", 1, "01/01/2026", 0, 28.91],
+        # RENEW row -> RENEWAL
+        ["P0056227", "TIMOTHY WINSLOW", "RENEW", "Doe,John A",
+         "106999001", "01/01/2025", "Blue Medicare Freedom+ (PPO)",
+         "01/01/2025", "", "2026-06-01", 1, "01/01/2025", 0, 28.91],
+        # Total row (no name / no customer no) -> skipped
+        ["", "", "", "", "", "", "", "", "", "", "", "", 0, 57.82],
+    ]
+    sheets = {"Sheet1": rows_14col}
+    facts = normalize_bcbs(sheets)
+    assert len(facts) == 2, (
+        f"expected 2 facts from 14-col BCBS sheet, got {len(facts)} — "
+        "header-based column resolution required"
+    )
+    classes = {f.carrier_member_id: f.row_class for f in facts}
+    assert classes.get("106811352") == RowClass.ENROLLMENT, "FY row must be ENROLLMENT"
+    assert classes.get("106999001") == RowClass.RENEWAL, "RENEW row must be RENEWAL"
+    amounts = {f.carrier_member_id: f.amount for f in facts}
+    assert amounts["106811352"] == 28.91
+    assert amounts["106999001"] == 28.91
+
+
+def test_normalize_bcbs_missing_commission_column_raises_specific_error():
+    """If a required column can't be resolved (BCBS/Tidewater format changed),
+    the parser must raise a LOUD, SPECIFIC error naming the missing column —
+    not silently return [] (which produced the vague 'No commission rows found')."""
+    from app.commission.normalizers import normalize_bcbs, BcbsColumnError
+    hdr = ["Agent #", "Agent Name", "Group Type", "Customer Name",
+           "Customer No", "Product"]                       # NO Commission column
+    sheets = {"Sheet1": [hdr, ["P1", "AGENT", "FY", "Doe,Jane", "123", "MAPD"]]}
+    with pytest.raises(BcbsColumnError) as exc:
+        normalize_bcbs(sheets)
+    assert "commission" in str(exc.value).lower()
+    assert "headers seen" in str(exc.value).lower()
+
+
+def test_normalize_bcbs_alias_tolerates_renamed_commission_header():
+    """A Tidewater header wording variant ('Commission Amount') still resolves."""
+    from app.commission.normalizers import normalize_bcbs
+    hdr = ["Agent #", "Agent Name", "Group Type", "Customer Name",
+           "Customer No", "Commission Amount"]
+    sheets = {"Sheet1": [hdr, ["P1", "AGENT", "FY", "Doe,Jane", "123", 42.5]]}
+    facts = normalize_bcbs(sheets)
+    assert len(facts) == 1
+    assert facts[0].amount == 42.5
 
 
 def test_normalize_aetna_sales_events_and_mbi():

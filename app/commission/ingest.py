@@ -107,6 +107,23 @@ def compute_fingerprint(carrier: str, period_label: str, facts: List[MemberFact]
     return h.hexdigest()
 
 
+def find_duplicate_statement(agency_id, carrier, fingerprint, period_label):
+    """Return the already-imported statement this upload duplicates, or None.
+
+    A duplicate is same carrier + same content fingerprint + SAME period_label.
+    A DIFFERENT period with identical content is NOT a duplicate: per-agent
+    carriers (BCBS via Tidewater) send a byte-identical statement every pay period
+    for a stable book (same members, $0 already-paid-for-the-year) with only the
+    period differing — that's a legitimate new statement, not a re-upload. Only an
+    exact same-period re-submit is the accidental double-upload we block.
+    (The fingerprint itself still excludes period — see compute_fingerprint — so
+    content matching is period-agnostic; the period-awareness lives HERE, in the guard.)"""
+    from app.models import CommissionStatement
+    return CommissionStatement.query.filter_by(
+        agency_id=agency_id, carrier=carrier,
+        content_fingerprint=fingerprint, period_label=period_label).first()
+
+
 @dataclass
 class IngestResult:
     fingerprint: str = ""

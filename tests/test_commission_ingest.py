@@ -201,6 +201,31 @@ def test_statement_has_content_fingerprint_column(db_session, app, agency):
         assert s.content_fingerprint == "abc123"
 
 
+def test_dup_guard_is_period_aware(db_session, app, agency):
+    """Anjana's June BCBS (2026-07-03): a per-agent statement that is byte-identical
+    to a prior month (same members, $0 already-paid) except the PAY PERIOD must NOT be
+    flagged as a duplicate. Dup = same carrier + same fingerprint + SAME period. A
+    DIFFERENT period with identical content is a legitimate new statement, not a re-upload.
+    An exact SAME-period re-upload IS still a duplicate (accidental double-submit)."""
+    from app.extensions import db
+    from app.models import CommissionStatement
+    from app.commission.ingest import find_duplicate_statement
+    from datetime import date as _d
+    fp = "identicalcontent123"
+    # May statement already imported (Anjana's 1-row $0 file)
+    s_may = CommissionStatement(agency_id=agency.id, carrier="BCBS",
+                                statement_date=_d(2026, 5, 1), period_label="May 2026",
+                                content_fingerprint=fp)
+    db.session.add(s_may); db.session.commit()
+
+    # June upload, identical content (same fingerprint), DIFFERENT period -> NOT a dup
+    assert find_duplicate_statement(agency.id, "BCBS", fp, "June 2026") is None
+
+    # An exact SAME-period re-upload (May again) IS a dup
+    dup = find_duplicate_statement(agency.id, "BCBS", fp, "May 2026")
+    assert dup is not None and dup.id == s_may.id
+
+
 def _login_admin(client, app, agency):
     from app.extensions import db
     from app.models import User

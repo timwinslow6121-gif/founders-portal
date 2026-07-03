@@ -455,7 +455,7 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
 
 {# Period picker #}
 <form method="get" class="ca-period-form" style="display:flex;align-items:center;gap:10px;margin:0 0 16px;">
-  <label style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em;">Month</label>
+  <label style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em;">Viewing</label>
   <select name="period" onchange="this.form.submit()"
           style="padding:7px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--ivory);font:inherit;font-size:13px;width:auto;">
     {% for p in periods %}
@@ -504,13 +504,14 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
     </label>
     <div class="ca-uprow">
       <div>
-        <label class="ca-flabel">Month <span style="color:var(--green);font-weight:600;">· set to {{ current_month }}</span></label>
-        <input type="month" name="statement_month" value="{{ current_month_iso }}" class="ca-month">
+        <label class="ca-flabel">Attribute this statement to
+          <span style="color:var(--green);font-weight:600;">· {{ default_upload_month }}</span></label>
+        <input type="month" name="statement_month" value="{{ default_upload_month_iso }}" class="ca-month">
       </div>
       <button type="submit" class="ca-submit">Upload &amp; Parse</button>
     </div>
     <p style="font-size:11px;color:var(--slate);margin:10px 0 0;">
-      The month defaults to <strong>{{ current_month }}</strong> — change it only if this file is for a different month.
+      Commissions pay one month behind, so this defaults to <strong>{{ default_upload_month }}</strong> — change it only if this file is for a different month.
     </p>
   </form>
 </div>

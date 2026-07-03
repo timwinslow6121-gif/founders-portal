@@ -33,6 +33,16 @@ from app.commission.rollup import apply_rollup
 AGENCY_LEVEL_CARRIERS = {"Aetna", "Devoted", "Healthspring", "Humana", "UHC", "BCBS"}
 
 
+def _previous_month(today=None):
+    """(label, iso) for the month BEFORE `today` — commissions pay a month behind,
+    so the upload attribution defaults here. e.g. July -> ('June 2026', '2026-06')."""
+    from datetime import date as _date
+    today = today or _date.today()
+    year, month = (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
+    d = _date(year, month, 1)
+    return d.strftime("%B %Y"), d.strftime("%Y-%m")
+
+
 def _statement_date_from_sheets(carrier, sheets):
     """Best-effort statement date from the file content for carriers that embed it.
     Humana SpreadsheetML: 'CommRunDt' column on the data sheet."""
@@ -807,9 +817,12 @@ def commission_admin():
               .filter_by(agency_id=agency_id)
               .order_by(CommissionStatement.upload_date.desc())
               .limit(20).all())
+    # Default upload month is the previous month (commissions pay a month behind).
+    default_upload_month, default_upload_month_iso = _previous_month()
     return render_template("commission.html",
         overview=overview, periods=periods, selected_period=period,
         current_month=current_month, current_month_iso=date.today().strftime("%Y-%m"),
+        default_upload_month=default_upload_month, default_upload_month_iso=default_upload_month_iso,
         recent=recent, is_admin=True, viewing_agent=None)
 
 

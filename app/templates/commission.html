@@ -136,6 +136,13 @@
 .ca-chip { font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; border:1px solid var(--border); }
 .ca-chip.in  { color:var(--green); background:color-mix(in srgb, var(--green) 10%, transparent); border-color:color-mix(in srgb, var(--green) 30%, transparent); }
 .ca-chip.out { color:var(--slate); background:transparent; }
+.ca-chip-group { display:inline-block; }
+.ca-chip-group > summary { list-style:none; cursor:pointer; }
+.ca-chip-group > summary::-webkit-details-marker { display:none; }
+.ca-agent-list { display:flex; flex-direction:column; gap:4px; padding:6px 14px 6px 18px; background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-top:4px; min-width:140px; }
+.ca-agent { font-size:11px; font-weight:500; }
+.ca-agent.in  { color:var(--green); }
+.ca-agent.out { color:var(--slate); }
 .ca-upload { background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:16px 18px; margin:0 0 24px; }
 .ca-flabel { display:block; font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
 /* #1 month picker — compact, not full width */
@@ -487,9 +494,25 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
 {# Carrier checklist — what's in vs still missing this month #}
 <div class="ca-checklist">
   {% for c in overview.checklist %}
+  {% if c.agents %}
+  <details class="ca-chip-group">
+    <summary class="ca-chip {{ 'in' if c.uploaded else 'out' }}">
+      {{ '✓' if c.uploaded else '○' }} {{ c.carrier }}
+      <span style="color:var(--slate);font-size:11px;">
+        ({{ c.agents|selectattr('uploaded')|list|length }}/{{ c.agents|length }})</span>
+    </summary>
+    <div class="ca-agent-list">
+      {% for a in c.agents %}
+      <span class="ca-agent {{ 'in' if a.uploaded else 'out' }}">
+        {{ '✓' if a.uploaded else '○' }} {{ a.agent_name }}</span>
+      {% endfor %}
+    </div>
+  </details>
+  {% else %}
   <span class="ca-chip {{ 'in' if c.uploaded else 'out' }}">
     {{ '✓' if c.uploaded else '○' }} {{ c.carrier }}
   </span>
+  {% endif %}
   {% endfor %}
 </div>
 

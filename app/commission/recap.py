@@ -636,7 +636,13 @@ def commission_audit_overview(agency_id, period_label):
     for c in expected:
         disp = canon(c)
         seen[disp] = seen.get(disp, False) or any(canon(u) == disp for u in uploaded_carriers)
-    checklist = [{"carrier": d, "uploaded": up} for d, up in sorted(seen.items())]
+    from app.commission.ledger import PER_AGENT_CARRIERS
+    checklist = []
+    for d, up in sorted(seen.items()):
+        entry = {"carrier": d, "uploaded": up}
+        if d in PER_AGENT_CARRIERS:
+            entry["agents"] = per_agent_upload_status(agency_id, d, period_label)
+        checklist.append(entry)
 
     return {"period_label": period_label, "statements": statements,
             "checklist": checklist,

@@ -53,3 +53,20 @@ def test_per_agent_upload_status(ctx):
     assert by_name == {"Brian Freeman": True, "Mike Lauzurique": False}
     # a non-per-agent carrier returns []
     assert per_agent_upload_status(agency_id, "Humana", "June 2026") == []
+
+
+def test_overview_checklist_has_per_agent_for_bcbs(ctx):
+    from app.extensions import db
+    from app.models import User, AgentCarrierContract
+    from app.commission.recap import commission_audit_overview
+    app, agency_id = ctx
+    a1 = User(email="b@x.com", name="Brian Freeman", agency_id=agency_id, role="agent")
+    db.session.add(a1); db.session.flush()
+    db.session.add(AgentCarrierContract(agency_id=agency_id, agent_id=a1.id,
+                                        carrier="BCBS", is_active=True))
+    db.session.commit()
+    ov = commission_audit_overview(agency_id, "June 2026")
+    bcbs = next((c for c in ov["checklist"] if c["carrier"] == "BCBS"), None)
+    assert bcbs is not None
+    assert bcbs.get("agents") is not None
+    assert any(a["agent_name"] == "Brian Freeman" for a in bcbs["agents"])

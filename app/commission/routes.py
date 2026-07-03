@@ -1191,7 +1191,7 @@ def _process_one_file(filename, file_bytes, statement_month, agency_id, actor):
         # active carrier contract.
         agent_id = None
         contract = AgentCarrierContract.query.filter_by(
-            carrier=carrier, is_active=True
+            agency_id=agency_id, carrier=carrier, is_active=True
         ).first()
         agent_split = contract.split_rate if contract else 0.55
         period_label = stmt_date.strftime("%B %Y")

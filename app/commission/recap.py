@@ -1079,3 +1079,37 @@ def publish_recap(recap_period, published_by_id, agent_email, total_paid, base_u
                 f"${total_paid:,.2f}.\n\nView it here: {link}")
         if send_email(agent_email, subject, body):
             recap_period.notified_at = datetime.utcnow()
+
+
+def per_agent_upload_status(agency_id, carrier, period_label):
+    """For a PER_AGENT carrier, which contracted agents have uploaded this period.
+    Returns [{'agent_id','agent_name','uploaded'}] sorted by name; [] for a
+    carrier that isn't per-agent (agency-wide carriers are one file — carrier-level
+    status is correct for them)."""
+    from app.commission.ledger import PER_AGENT_CARRIERS
+    if carrier not in PER_AGENT_CARRIERS:
+        return []
+    from app.models import (AgentCarrierContract, CommissionStatement,
+                            CommissionLineItem, User)
+    expected = (AgentCarrierContract.query
+                .filter_by(agency_id=agency_id, carrier=carrier, is_active=True).all())
+    # agents that actually have line items for this carrier+period
+    stmt_ids = [s.id for s in CommissionStatement.query
+                .filter_by(agency_id=agency_id, carrier=carrier,
+                           period_label=period_label).all()]
+    uploaded_ids = set()
+    if stmt_ids:
+        for (aid,) in (CommissionLineItem.query
+                       .filter(CommissionLineItem.agency_id == agency_id,
+                               CommissionLineItem.statement_id.in_(stmt_ids),
+                               CommissionLineItem.agent_id.isnot(None))
+                       .with_entities(CommissionLineItem.agent_id).distinct().all()):
+            uploaded_ids.add(aid)
+    out = []
+    for c in expected:
+        u = db.session.get(User, c.agent_id)
+        out.append({"agent_id": c.agent_id,
+                    "agent_name": (u.name if u else f"Agent {c.agent_id}"),
+                    "uploaded": c.agent_id in uploaded_ids})
+    out.sort(key=lambda r: r["agent_name"])
+    return out

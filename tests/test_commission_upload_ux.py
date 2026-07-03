@@ -1,5 +1,9 @@
 from datetime import date
+import io
+import os
 import pytest
+
+FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
 
 
 def test_previous_month_helper():
@@ -114,3 +118,125 @@ def test_upload_multi_file_partial_success_json(ctx):
     assert all(r["ok"] is False and r["error"] for r in body["results"])
     # The final db.session.commit() must have succeeded — session is still usable.
     db.session.execute(db.select(db.text("1")))
+
+
+def _setup_bcbs_agents(db, agency_id):
+    """Create the minimal users the BCBS fixture references so the ingest resolves agents."""
+    from app.models import User
+    # bcbs_sample.xlsx contains rows attributed to 'BRIAN FREEMAN'.
+    brian = User(email="brianfreeman@x.com", name="Brian Freeman",
+                 agency_id=agency_id, role="agent")
+    db.session.add(brian)
+    db.session.flush()
+    return brian
+
+
+def _do_good_bad_upload(client, admin_id, agency_id, good_bytes, good_name, bad_bytes, bad_name):
+    """POST good + bad files in one multipart request; return (resp, body)."""
+    from app.extensions import db
+    data = {
+        "statement_month": "2026-06",
+        "file": [
+            (io.BytesIO(good_bytes), good_name),
+            (io.BytesIO(bad_bytes), bad_name),
+        ],
+    }
+    with client.session_transaction() as s:
+        s["_user_id"] = str(admin_id); s["_fresh"] = True
+    resp = client.post("/admin/commissions/upload", data=data,
+                       content_type="multipart/form-data",
+                       headers={"X-Requested-With": "XMLHttpRequest"})
+    return resp, resp.get_json()
+
+
+def test_upload_good_and_bad_file_isolation(ctx):
+    """Prove savepoint isolation: a good file's committed savepoint SURVIVES a later
+    bad file's nested.rollback().  The good file's CommissionStatement +
+    CommissionLineItem rows must persist after the final db.session.commit(), even
+    though the bad file's savepoint was rolled back.
+
+    Also tests the reverse order (bad-then-good) to confirm neither ordering
+    corrupts the result.
+    """
+    from app.extensions import db
+    from app.models import CommissionStatement, CommissionLineItem
+    app, agency_id = ctx
+
+    # Add SESSION_COOKIE_SECURE=False so the test client's http:// session round-trips.
+    app.config.update(SESSION_COOKIE_SECURE=False, REMEMBER_COOKIE_SECURE=False)
+
+    bcbs_bytes = open(os.path.join(FIXTURES, "bcbs_sample.xlsx"), "rb").read()
+    junk_bytes = b"not a workbook"
+
+    # ── Setup: admin user + agent names the BCBS fixture references ──────────
+    admin = _admin(db, agency_id)
+    _setup_bcbs_agents(db, agency_id)
+    db.session.commit()
+    admin_id = admin.id
+
+    client = app.test_client()
+
+    # ── ORDER 1: good (BCBS) then bad (junk) ─────────────────────────────────
+    resp, body = _do_good_bad_upload(
+        client, admin_id, agency_id,
+        bcbs_bytes, "bcbs_sample.xlsx",
+        junk_bytes, "junk.xlsx",
+    )
+    assert resp.status_code == 200, f"Upload returned {resp.status_code}"
+    assert body["summary"]["imported"] == 1, f"Expected 1 import, got: {body['summary']}"
+    assert body["summary"]["rejected"] == 1, f"Expected 1 reject, got: {body['summary']}"
+
+    results_by_file = {r["filename"]: r for r in body["results"]}
+    assert results_by_file["bcbs_sample.xlsx"]["ok"] is True, \
+        f"BCBS result not ok: {results_by_file['bcbs_sample.xlsx']}"
+    assert results_by_file["junk.xlsx"]["ok"] is False, \
+        f"Junk should have failed: {results_by_file['junk.xlsx']}"
+    assert results_by_file["junk.xlsx"].get("error"), "Junk file should have an error message"
+
+    # The good file's rows must have PERSISTED past the final commit.
+    with app.app_context():
+        bcbs_stmts = CommissionStatement.query.filter_by(
+            agency_id=agency_id, carrier="BCBS"
+        ).all()
+        assert len(bcbs_stmts) >= 1, \
+            "BCBS CommissionStatement did not survive the bad file's savepoint rollback"
+        stmt_id = bcbs_stmts[0].id
+        li_count = CommissionLineItem.query.filter_by(
+            agency_id=agency_id, statement_id=stmt_id
+        ).count()
+        assert li_count >= 1, \
+            f"BCBS CommissionLineItems missing (count={li_count}) — good-file data was wiped"
+
+    # The junk file must have left NO statement.
+    with app.app_context():
+        total_stmts = CommissionStatement.query.filter_by(agency_id=agency_id).count()
+        assert total_stmts == len(bcbs_stmts), \
+            f"Junk file created an unexpected statement (total={total_stmts})"
+
+    # ── Cleanup between the two order tests ──────────────────────────────────
+    with app.app_context():
+        CommissionLineItem.query.filter_by(agency_id=agency_id).delete(synchronize_session=False)
+        CommissionStatement.query.filter_by(agency_id=agency_id).delete(synchronize_session=False)
+        db.session.commit()
+
+    # ── ORDER 2: bad (junk) then good (BCBS) ─────────────────────────────────
+    resp2, body2 = _do_good_bad_upload(
+        client, admin_id, agency_id,
+        junk_bytes, "junk.xlsx",
+        bcbs_bytes, "bcbs_sample.xlsx",
+    )
+    assert resp2.status_code == 200
+    assert body2["summary"]["imported"] == 1, f"Bad-then-good: expected 1 import, got: {body2['summary']}"
+    assert body2["summary"]["rejected"] == 1, f"Bad-then-good: expected 1 reject, got: {body2['summary']}"
+
+    with app.app_context():
+        bcbs_stmts2 = CommissionStatement.query.filter_by(
+            agency_id=agency_id, carrier="BCBS"
+        ).all()
+        assert len(bcbs_stmts2) >= 1, \
+            "BCBS CommissionStatement missing in bad-then-good order"
+        li_count2 = CommissionLineItem.query.filter_by(
+            agency_id=agency_id, statement_id=bcbs_stmts2[0].id
+        ).count()
+        assert li_count2 >= 1, \
+            f"BCBS CommissionLineItems missing in bad-then-good order (count={li_count2})"

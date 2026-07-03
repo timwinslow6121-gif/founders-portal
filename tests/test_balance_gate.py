@@ -307,3 +307,34 @@ def test_upload_persists_balance_result(db_session, app, agency):
         s.money_rows_total = report2.money_rows_total
         state, delta = balance_status(s)
         assert state == "off" and abs(delta + 0.27) < 0.001
+
+
+def test_internal_balance_not_false_positive_from_independent_rounding():
+    """Regression (Brian's June BCBS, 2026-07-03): a statement that balances to the
+    penny was flagged 'off by $0'. Root cause — verify_statement_balance rounded the
+    payout and keep AGGREGATES independently before comparing, so for 50/50 splits of
+    odd-cent amounts each side rounds up a half-cent and their sum exceeds Σraw by 1c,
+    tripping internal_ok on a genuinely-balanced statement. internal_ok must be judged
+    on the UNROUNDED identity (payout+keep == raw is exact per row by construction)."""
+    from types import SimpleNamespace
+    from app.commission.ledger import verify_statement_balance, AGENT_COMMISSION, EXTRACTORS
+
+    # 69 rows, each a 50/50 split of an odd-number-of-cents amount (e.g. $32.13).
+    # Per row payout+keep == raw EXACTLY; only the independently-rounded aggregate drifts.
+    rows = [SimpleNamespace(raw_amount=32.13, split_rate=0.5,
+                            classification=AGENT_COMMISSION) for _ in range(69)]
+    money_total = round(sum(r.raw_amount for r in rows), 2)   # penny-perfect completeness
+
+    # verify_statement_balance needs EXTRACTORS[carrier] for the money-total fn.
+    orig = EXTRACTORS.get("BCBS")
+    EXTRACTORS["BCBS"] = (orig[0], lambda sheets: money_total)   # stub the money-rows total
+    try:
+        report = verify_statement_balance("BCBS", rows, sheets={})
+    finally:
+        EXTRACTORS["BCBS"] = orig
+
+    assert report.completeness_ok, "Σraw should equal the money-rows total (penny-perfect)"
+    assert report.internal_ok, (
+        "internal balance must hold — payout+keep==raw is exact per row; independent "
+        f"aggregate rounding must not flag it off (payout={report.agent_payout_total} "
+        f"keep={report.founders_keep_total} raw={report.lineitem_total})")

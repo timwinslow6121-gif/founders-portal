@@ -1005,17 +1005,25 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
     line_items may be LineItemDraft or persisted CommissionLineItem (both expose
     raw_amount / split_rate / classification)."""
     _, money_total_fn = EXTRACTORS[carrier]
-    li_total = round(sum((li.raw_amount or 0.0) for li in line_items), 2)
-    payout_total = 0.0
-    keep_total = 0.0
+    raw_sum = sum((li.raw_amount or 0.0) for li in line_items)
+    payout_sum = 0.0
+    keep_sum = 0.0
     for li in line_items:
         p, k = split_breakdown(li)
-        payout_total += p
-        keep_total += k
-    payout_total = round(payout_total, 2)
-    keep_total = round(keep_total, 2)
+        payout_sum += p
+        keep_sum += k
+    # internal_ok is judged on the UNROUNDED aggregates: split_breakdown returns
+    # (payout, raw - payout), so payout+keep == raw EXACTLY per row, hence
+    # Σ(payout+keep) == Σraw up to float epsilon. Rounding payout and keep
+    # SEPARATELY before comparing double-counts each row's sub-cent half and can
+    # exceed Σraw by ~1c on a large statement (Brian's June BCBS: 69 fifty/fifty
+    # odd-cent rows flagged "off by $0"). Compare unrounded, with a small epsilon.
+    internal_ok = abs(raw_sum - (payout_sum + keep_sum)) <= 0.005
+    # Rounded values are for display/storage only, not the balance decision.
+    li_total = round(raw_sum, 2)
+    payout_total = round(payout_sum, 2)
+    keep_total = round(keep_sum, 2)
     money_total = round(money_total_fn(sheets), 2)
-    internal_ok = abs(li_total - (payout_total + keep_total)) <= tol
     completeness_ok = abs(li_total - money_total) <= tol
     return BalanceReport(
         carrier=carrier, lineitem_total=li_total, money_rows_total=money_total,

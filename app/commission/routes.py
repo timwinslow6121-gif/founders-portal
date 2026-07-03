@@ -827,7 +827,7 @@ def commission_admin():
 
 
 def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_month,
-                              agency_id, actor):
+                              agency_id, actor, replace=False):
     """Run the normalize→resolve→pay pipeline for a clean-split carrier.
 
     Handles statement-period resolution, agent/contract/split resolution, the
@@ -848,6 +848,7 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_m
     agency_id:       the acting agency's id (NOT read from current_user inside here)
     actor:           the uploading User object (or None in tests); used for
                      uploaded_by_id and agency-scoped contract lookups
+    replace:         if True, overwrite an existing duplicate statement (dup-guard bypass)
 
     Returns a result dict:
       success → {"filename","ok":True,"carrier","scope","rows","gross","period",
@@ -946,15 +947,9 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_m
     statement_agent_id = None
 
     fingerprint = compute_fingerprint(carrier, period_label, facts)
-    # replace flag: the multi-file loop caller (task 6) can pass this in via
-    # statement_month context; for now we check request.form so existing single-
-    # file behavior is preserved when called from within a request context.
-    replace = False
-    try:
-        replace = request.form.get("replace") == "1"
-    except RuntimeError:
-        # No request context (e.g. tests or future programmatic callers) — leave False.
-        pass
+    # replace is passed in as a parameter — do NOT read request.form here; this
+    # function must be fully request-context-free so it works inside a multi-file
+    # loop (begin_nested savepoints) and in tests without a live request.
     # Duplicate = same content in the SAME period. A byte-identical per-agent
     # statement in a DIFFERENT pay period (BCBS/Tidewater steady-state books) is a
     # legitimate new statement, not a re-upload — see find_duplicate_statement.
@@ -1085,7 +1080,8 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_m
     }
 
 
-def _process_one_file(filename, file_bytes, statement_month, agency_id, actor):
+def _process_one_file(filename, file_bytes, statement_month, agency_id, actor,
+                      replace=False):
     """Process a single commission file and return a result dict.
 
     This is the extracted core of the old commission_upload route body.
@@ -1109,6 +1105,8 @@ def _process_one_file(filename, file_bytes, statement_month, agency_id, actor):
     agency_id:        acting agency id
     actor:            uploading User object (or None in tests); used for
                       uploaded_by_id and agency-scoped lookups
+    replace:          if True, bypass the dup-guard and overwrite any existing
+                      statement for the same carrier/period
 
     Returns
     -------
@@ -1135,7 +1133,7 @@ def _process_one_file(filename, file_bytes, statement_month, agency_id, actor):
                 if probe_carrier in NORMALIZERS:
                     return _ingest_normalized_upload(
                         probe_carrier, _sheets_probe, file_bytes, filename,
-                        statement_month, agency_id, actor)
+                        statement_month, agency_id, actor, replace=replace)
 
         # ── Legacy single-active-sheet pipeline (UHC + CSV) ──
         try:
@@ -1298,55 +1296,89 @@ def _process_one_file(filename, file_bytes, statement_month, agency_id, actor):
 @commission_bp.route("/admin/commissions/upload", methods=["POST"])
 @login_required
 def commission_upload():
-    """Single-file commission upload. Delegates to _process_one_file and translates
-    the result dict back to the old flash+redirect behavior so nothing regresses.
-    The multi-file/JSON rewrite (task 6) replaces the body of this route to loop
-    over multiple files and return JSON instead."""
+    """Multi-file commission upload.
+
+    Accepts one or more files via getlist("file"). Reads `statement_month` and
+    the `replace` flag ONCE from the form, then processes each file in its own
+    savepoint so a failure on one file does not roll back the others.
+
+    XHR / JSON callers (X-Requested-With: XMLHttpRequest or Accept: application/json):
+      → 200 JSON {"results": [...], "summary": {"imported": n, "rejected": m}}
+      → 400 JSON {"error": "..."} when no files selected
+
+    Non-XHR (back-compat):
+      → flash per-file result + redirect to commission_admin
+    """
     if not current_user.is_admin:
         abort(403)
-    file = request.files.get("file")
-    if not file or not file.filename:
+
+    files = [f for f in request.files.getlist("file") if f and f.filename]
+    statement_month = request.form.get("statement_month", "").strip()
+    replace = request.form.get("replace") == "1"
+    is_xhr = (request.headers.get("X-Requested-With") == "XMLHttpRequest"
+              or "application/json" in (request.headers.get("Accept") or ""))
+
+    if not files:
+        if is_xhr:
+            return jsonify(results=[], summary={"imported": 0, "rejected": 0},
+                           error="No file selected."), 400
         flash("No file selected.", "error")
         return redirect(url_for("commission.commission_admin"))
 
-    file_bytes = file.read()
-    statement_month = request.form.get("statement_month", "").strip()
+    results = []
+    for f in files:
+        fname = f.filename
+        try:
+            data = f.read()
+        except Exception as e:
+            results.append({"filename": fname, "ok": False,
+                            "error": f"Could not read upload: {e}", "fix": None})
+            continue
+        nested = db.session.begin_nested()   # per-file savepoint
+        try:
+            res = _process_one_file(fname, data, statement_month,
+                                    current_user.agency_id, current_user,
+                                    replace=replace)
+            if res.get("ok"):
+                nested.commit()
+            else:
+                nested.rollback()
+            results.append(res)
+        except Exception as e:              # defensive — _process_one_file shouldn't raise
+            nested.rollback()
+            results.append({"filename": fname, "ok": False, "error": str(e), "fix": None})
 
-    result = _process_one_file(
-        file.filename, file_bytes, statement_month,
-        current_user.agency_id, actor=current_user)
-
-    if not result["ok"]:
-        flash(result["error"], "error")
-        db.session.rollback()
-        return redirect(url_for("commission.commission_admin"))
-
-    # Commit the flushed work now that we know it succeeded.
     db.session.commit()
 
-    # Surface warnings / the success summary collected inside _process_one_file.
-    # For the normalized path the first warning IS the success message (ingest detail);
-    # for the legacy path it's inserted at index 0 above.
-    warnings = result.get("warnings", [])
-    if result.get("_ingest"):
-        # Normalized pipeline — build the rich success flash then the quarantine warning.
-        ingest = result["_ingest"]
-        flash(
-            f"✓ {result['carrier']} {result['period']} — {ingest.payments_written} payments, "
-            f"{ingest.customers_created} customers created "
-            f"({ingest.stubs_created} stubs), {ingest.chargebacks} chargebacks"
-            + (f", {ingest.match_suggestions} match suggestions" if ingest.match_suggestions else "")
-            + ".", "success")
-        for w in warnings:
-            flash(w, "warning")
-    else:
-        # Legacy pipeline — first warning is the success/discrepancy summary.
-        if warnings:
-            first = warnings[0]
-            level = "success" if first.startswith("✓") else "warning"
-            flash(first, level)
-            for w in warnings[1:]:
-                flash(w, "warning")
+    summary = {"imported": sum(1 for r in results if r.get("ok")),
+               "rejected": sum(1 for r in results if not r.get("ok"))}
+
+    if is_xhr:
+        return jsonify(results=results, summary=summary)
+
+    # Non-XHR back-compat: flash per-file result + redirect
+    for r in results:
+        if r.get("ok"):
+            warnings = r.get("warnings", [])
+            if r.get("_ingest"):
+                ingest = r["_ingest"]
+                flash(
+                    f"✓ {r['carrier']} {r['period']} — {ingest.payments_written} payments, "
+                    f"{ingest.customers_created} customers created "
+                    f"({ingest.stubs_created} stubs), {ingest.chargebacks} chargebacks"
+                    + (f", {ingest.match_suggestions} match suggestions" if ingest.match_suggestions else "")
+                    + ".", "success")
+                for w in warnings:
+                    flash(w, "warning")
+            else:
+                if warnings:
+                    first = warnings[0]
+                    level = "success" if first.startswith("✓") else "warning"
+                    flash(first, level)
+                    for w in warnings[1:]:
+                        flash(w, "warning")
+        else:
+            flash(f"✗ {r['filename']}: {r['error']}", "error")
 
     return redirect(url_for("commission.commission_admin"))
 

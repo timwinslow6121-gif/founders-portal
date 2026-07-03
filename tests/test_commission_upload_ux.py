@@ -70,3 +70,14 @@ def test_overview_checklist_has_per_agent_for_bcbs(ctx):
     assert bcbs is not None
     assert bcbs.get("agents") is not None
     assert any(a["agent_name"] == "Brian Freeman" for a in bcbs["agents"])
+
+
+def test_process_one_file_rejects_unreadable_with_reason(ctx):
+    from app.commission.routes import _process_one_file
+    app, agency_id = ctx
+    with app.test_request_context():
+        res = _process_one_file("junk.xlsx", b"not a real workbook", "2026-06",
+                                 agency_id, actor=None)
+    assert res["ok"] is False
+    assert res["filename"] == "junk.xlsx"
+    assert res["error"]                       # a human-readable reason

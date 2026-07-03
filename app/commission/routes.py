@@ -826,12 +826,34 @@ def commission_admin():
         recent=recent, is_admin=True, viewing_agent=None)
 
 
-def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
+def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_month,
+                              agency_id, actor):
     """Run the normalize→resolve→pay pipeline for a clean-split carrier.
 
     Handles statement-period resolution, agent/contract/split resolution, the
-    fingerprint duplicate guard, statement upsert, ingest, and summary flash.
-    Returns a redirect response. UHC never reaches here (not in NORMALIZERS).
+    fingerprint duplicate guard, statement upsert, ingest, and summary.
+
+    TRANSACTION OWNERSHIP: this function calls db.session.flush() — NOT commit().
+    The caller (_process_one_file / commission_upload) owns the commit so that a
+    db.session.begin_nested() savepoint in a multi-file loop can roll back only
+    one failed file without affecting the others.
+
+    Parameters
+    ----------
+    carrier:         detected carrier string (must be in NORMALIZERS)
+    sheets:          dict of sheet-name → rows from load_sheets_from_bytes()
+    file_bytes:      raw uploaded bytes (used for file_scoped replace)
+    filename:        original filename (for period auto-detection + Healthspring token)
+    statement_month: "YYYY-MM" string from the caller (form field or None/empty)
+    agency_id:       the acting agency's id (NOT read from current_user inside here)
+    actor:           the uploading User object (or None in tests); used for
+                     uploaded_by_id and agency-scoped contract lookups
+
+    Returns a result dict:
+      success → {"filename","ok":True,"carrier","scope","rows","gross","period",
+                  "warnings": [...]}
+      failure → {"filename","ok":False,"error":<str>,"fix":<str|None>}
+    UHC never reaches here (not in NORMALIZERS).
     """
     # Record the uploaded filename so multi-batch carriers (Healthspring) can derive
     # a per-file token from it during normalize/extract (see ledger._healthspring_filetoken).
@@ -844,16 +866,24 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     except BcbsColumnError as e:
         # A required column is missing because the carrier/Tidewater format changed.
         # Surface the specific reason to AJ instead of a vague error or a 500.
-        # (Other unexpected errors are NOT swallowed — they 500 so they get logged.)
-        flash(str(e), "error")
-        return redirect(url_for("commission.commission_admin"))
+        return {
+            "filename": filename, "ok": False,
+            "error": str(e),
+            "fix": "check the column names / re-export from Tidewater",
+        }
     if not facts:
-        flash(f"No commission rows found in the {carrier} file.", "error")
-        return redirect(url_for("commission.commission_admin"))
+        return {
+            "filename": filename, "ok": False,
+            "error": f"No commission rows found in the {carrier} file.",
+            "fix": None,
+        }
 
-    # Statement period: form override → filename → today.
+    # Collect non-fatal warnings to surface to the caller (previously flashed).
+    warnings = []
+
+    # Statement period: caller override → filename → file content → today.
     stmt_date = None
-    form_month = request.form.get("statement_month", "").strip()  # "YYYY-MM"
+    form_month = (statement_month or "").strip()  # "YYYY-MM"
     if form_month:
         try:
             stmt_date = datetime.strptime(form_month, "%Y-%m").date()
@@ -865,10 +895,9 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         stmt_date = _statement_date_from_sheets(carrier, sheets)
     if not stmt_date:
         stmt_date = date.today()
-        flash(
+        warnings.append(
             "Could not detect statement period from the file or filename. "
-            "Defaulted to today's month. Use the 'Statement Month' field to correct this.",
-            "warning")
+            "Defaulted to today's month. Use the 'Statement Month' field to correct this.")
     period_label = stmt_date.strftime("%B %Y")
 
     # Devoted ships two files per month under ONE (carrier, period) statement.
@@ -880,11 +909,11 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         from app.commission.ledger import _devoted_format
         try:
             if _devoted_format(sheets) == "statement":
-                flash(
+                warnings.append(
                     f"This is Devoted's per-agent statement file. It was filed under "
                     f"{period_label} (auto-detected). Confirm this matches the month "
                     f"of the agency Devoted file — set 'Statement Month' on both uploads "
-                    f"so they combine into one statement.", "warning")
+                    f"so they combine into one statement.")
         except ValueError:
             pass
 
@@ -896,11 +925,11 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     if agent_id:
         contract = AgentCarrierContract.query.filter_by(
             agent_id=agent_id, carrier=carrier, is_active=True,
-            agency_id=current_user.agency_id).first()
+            agency_id=agency_id).first()
     if contract is None:
         contract = AgentCarrierContract.query.filter_by(
             carrier=carrier, is_active=True,
-            agency_id=current_user.agency_id).first()
+            agency_id=agency_id).first()
     agent_split = contract.split_rate if contract else 0.55
 
     # Do NOT attribute unresolved rows to the uploading admin — that wrongly made
@@ -917,33 +946,43 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
     statement_agent_id = None
 
     fingerprint = compute_fingerprint(carrier, period_label, facts)
-    replace = request.form.get("replace") == "1"
+    # replace flag: the multi-file loop caller (task 6) can pass this in via
+    # statement_month context; for now we check request.form so existing single-
+    # file behavior is preserved when called from within a request context.
+    replace = False
+    try:
+        replace = request.form.get("replace") == "1"
+    except RuntimeError:
+        # No request context (e.g. tests or future programmatic callers) — leave False.
+        pass
     # Duplicate = same content in the SAME period. A byte-identical per-agent
     # statement in a DIFFERENT pay period (BCBS/Tidewater steady-state books) is a
     # legitimate new statement, not a re-upload — see find_duplicate_statement.
-    dup = find_duplicate_statement(
-        current_user.agency_id, carrier, fingerprint, period_label)
+    dup = find_duplicate_statement(agency_id, carrier, fingerprint, period_label)
     if dup is not None and not replace:
-        flash(
-            f"This looks like the {carrier} {dup.period_label} statement already "
-            f"imported on {dup.statement_date:%b %d, %Y} "
-            f"({len(facts)} members, ${_gross_preview(facts):,.2f}). "
-            f"No payments were created. Re-submit with 'Replace existing' to overwrite.",
-            "warning")
-        return redirect(url_for("commission.commission_admin"))
+        return {
+            "filename": filename, "ok": False,
+            "error": (
+                f"This looks like the {carrier} {dup.period_label} statement already "
+                f"imported on {dup.statement_date:%b %d, %Y} "
+                f"({len(facts)} members, ${_gross_preview(facts):,.2f}). "
+                f"No payments were created. Re-submit with 'Replace existing' to overwrite."
+            ),
+            "fix": "re-submit with Replace existing checked",
+        }
 
     existing = CommissionStatement.query.filter_by(
         carrier=carrier, agent_id=statement_agent_id, period_label=period_label,
-        agency_id=current_user.agency_id).first()
+        agency_id=agency_id).first()
     stmt = existing or CommissionStatement(
-        carrier=carrier, agent_id=statement_agent_id, agency_id=current_user.agency_id)
+        carrier=carrier, agent_id=statement_agent_id, agency_id=agency_id)
     if not existing:
         db.session.add(stmt)
     stmt.statement_date = stmt_date
     stmt.period_label = period_label
     stmt.split_rate = agent_split
     stmt.filename = filename
-    stmt.uploaded_by_id = current_user.id
+    stmt.uploaded_by_id = actor.id if actor else None
     stmt.content_fingerprint = fingerprint
     db.session.flush()
 
@@ -958,9 +997,9 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         # file silently wipes agent A's data.
         from app.commission.ledger import file_scoped_prefix
         pp_q = PolicyPayment.query.filter_by(
-            statement_id=stmt.id, agency_id=current_user.agency_id)
+            statement_id=stmt.id, agency_id=agency_id)
         li_q = CommissionLineItem.query.filter_by(
-            statement_id=stmt.id, agency_id=current_user.agency_id)
+            statement_id=stmt.id, agency_id=agency_id)
         prefix = file_scoped_prefix(carrier, sheets)
         if prefix is not None:
             pp_q = pp_q.filter(PolicyPayment.source_ref.like(prefix))
@@ -975,7 +1014,7 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         return _match_agent_name(apply_rollup(raw, c))
 
     try:
-        ingest = ingest_statement(stmt, carrier, agent_id, current_user.agency_id, sheets,
+        ingest = ingest_statement(stmt, carrier, agent_id, agency_id, sheets,
                                   agent_resolver=_rollup_resolver)
 
         # R1 ledger: persist EVERY sheet row (incl. Founders overrides the
@@ -983,7 +1022,7 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         extractor, _money = EXTRACTORS.get(carrier, (None, None))
         if extractor is not None:
             drafts = extractor(sheets, split_lookup=lambda raw, c=carrier: _ledger_split_lookup(raw, c))
-            persist_line_items(carrier, drafts, stmt, current_user.agency_id,
+            persist_line_items(carrier, drafts, stmt, agency_id,
                                agent_resolver=_rollup_resolver)
             db.session.flush()
             report = verify_statement_balance(carrier, drafts, sheets)
@@ -1008,34 +1047,261 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename):
         stmt.paid_amount = stmt.expected_amount
         stmt.difference = 0.0
         stmt.status = "verified"
-        db.session.commit()
+        # NOTE: db.session.flush() here — NOT commit(). Transaction ownership moved
+        # to the caller (commission_upload or the multi-file loop in task 6) so that
+        # a begin_nested() savepoint can roll back only a failed file.
+        db.session.flush()
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Commission ingest error ({carrier}): {e}")
-        flash(f"Could not import {carrier} {period_label}: {e}. No payments were created.", "error")
-        return redirect(url_for("commission.commission_admin"))
+        return {
+            "filename": filename, "ok": False,
+            "error": f"Could not import {carrier} {period_label}: {e}. No payments were created.",
+            "fix": None,
+        }
 
-    flash(
-        f"✓ {carrier} {period_label} — {ingest.payments_written} payments, "
-        f"{ingest.customers_created} customers created "
-        f"({ingest.stubs_created} stubs), {ingest.chargebacks} chargebacks"
-        + (f", {ingest.match_suggestions} match suggestions" if ingest.match_suggestions else "")
-        + ".", "success")
+    # Scope label for per-agent carriers (e.g. "Brian Freeman" for BCBS)
+    # vs. agency-wide carriers (use carrier name).
+    scope_user = User.query.get(agent_id) if agent_id else None
+    scope = scope_user.name if scope_user else carrier
 
-    # Surface quarantined rows (UHC's needs-manual-review lines) so nothing is
-    # silently dropped — AJ hand-splits them from the statement's Quarantine tab.
-    quar = quarantined_line_items(stmt.id, current_user.agency_id)
+    quar = quarantined_line_items(stmt.id, agency_id)
     if quar["count"]:
-        flash(
+        warnings.append(
             f"⚠ {quar['count']} {carrier} line(s) totaling ${quar['total']:,.2f} "
-            f"need manual review — open the statement's Quarantine tab to split them.",
-            "warning")
-    return redirect(url_for("commission.commission_admin"))
+            f"need manual review — open the statement's Quarantine tab to split them.")
+
+    return {
+        "filename": filename,
+        "ok": True,
+        "carrier": carrier,
+        "scope": scope,
+        "rows": ingest.payments_written,
+        "gross": stmt.gross_amount,
+        "period": period_label,
+        "warnings": warnings,
+        # Surface ingest detail for the flash message in the route wrapper.
+        "_ingest": ingest,
+    }
+
+
+def _process_one_file(filename, file_bytes, statement_month, agency_id, actor):
+    """Process a single commission file and return a result dict.
+
+    This is the extracted core of the old commission_upload route body.
+    It handles BOTH the normalized pipeline (Healthspring/Devoted/BCBS/Aetna/Humana)
+    and the legacy CSV/XLSX pipeline (UHC and anything not in NORMALIZERS).
+
+    NEVER raises. NEVER flashes. NEVER redirects. All outcomes are returned
+    as a dict.
+
+    TRANSACTION OWNERSHIP: this function calls db.session.flush() — NOT commit().
+    The caller (commission_upload route, or the multi-file loop in task 6) owns
+    the commit. This allows a db.session.begin_nested() savepoint in a multi-file
+    loop to roll back only a single failed file without affecting others.
+
+    Parameters
+    ----------
+    filename:         original filename string
+    file_bytes:       raw uploaded file bytes
+    statement_month:  "YYYY-MM" string (from request.form["statement_month"]) or
+                      None/empty string for auto-detect
+    agency_id:        acting agency id
+    actor:            uploading User object (or None in tests); used for
+                      uploaded_by_id and agency-scoped lookups
+
+    Returns
+    -------
+    success: {"filename","ok":True,"carrier","scope","rows","gross","period",
+               "warnings":[...], "_ingest":<IngestResult>}
+    failure: {"filename","ok":False,"error":<str>,"fix":<str|None>}
+    """
+    try:
+        filename_lower = (filename or "").lower()
+
+        # ── New normalize→resolve→pay pipeline for the 5 clean-split carriers ──
+        # These carriers (Healthspring, Devoted, BCBS, Aetna, Humana) ship multi-
+        # sheet / SpreadsheetML files that the legacy single-active-sheet path can't
+        # read. Detect via sheet_loader (handles xlsx/xls/SpreadsheetML), and if the
+        # carrier is in NORMALIZERS, run the ingest pipeline. UHC (and anything not
+        # in NORMALIZERS) falls through to the unchanged legacy path below.
+        if not filename_lower.endswith(".csv"):
+            try:
+                _sheets_probe = load_sheets_from_bytes(file_bytes, filename)
+            except Exception:
+                _sheets_probe = None
+            if _sheets_probe:
+                probe_carrier = _detect_carrier_from_sheets(_sheets_probe)
+                if probe_carrier in NORMALIZERS:
+                    return _ingest_normalized_upload(
+                        probe_carrier, _sheets_probe, file_bytes, filename,
+                        statement_month, agency_id, actor)
+
+        # ── Legacy single-active-sheet pipeline (UHC + CSV) ──
+        try:
+            if filename_lower.endswith(".csv"):
+                wb = _csv_bytes_to_workbook(file_bytes)
+            else:
+                wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+            ws = wb.active
+        except Exception as e:
+            return {"filename": filename, "ok": False,
+                    "error": f"Could not read file: {e}", "fix": None}
+
+        carrier = _detect_carrier(ws)
+        ok, reason = _carrier_supported_or_reason(carrier)
+        if not ok:
+            return {"filename": filename, "ok": False, "error": reason, "fix": None}
+
+        try:
+            gross, bonus, paid, stmt_date, line_items, stated_rate = PARSERS[carrier](ws)
+        except Exception as e:
+            current_app.logger.error(f"Commission parse error ({carrier}): {e}")
+            return {"filename": filename, "ok": False,
+                    "error": f"Parse error for {carrier}: {e}", "fix": None}
+
+        warnings = []
+
+        # 1. Try to get statement month from caller's override
+        form_month = (statement_month or "").strip()  # format: "YYYY-MM"
+        if form_month:
+            try:
+                stmt_date = datetime.strptime(form_month, "%Y-%m").date()
+            except ValueError:
+                pass
+
+        # 2. Fall back to date parsed from file content
+        # (already set by parser if it found a date in the file)
+
+        # 3. Try to extract from filename
+        if not stmt_date:
+            stmt_date = _parse_date_from_filename(filename)
+
+        # 4. Last resort: today (admin will see the period_label and can re-upload with override)
+        if not stmt_date:
+            stmt_date = date.today()
+            warnings.append(
+                "Could not detect statement period from file content or filename. "
+                "Defaulted to today's month. Use the 'Statement Month' field to correct this.")
+
+        # Every carrier pays Founders (the agency) directly, not any single agent, so
+        # the statement is always agency-level: agent_id=None. Per-row PolicyPayment
+        # attribution (via build_payments) carries the real per-agent earnings. The
+        # statement-level expected/paid math just needs a split rate, taken from any
+        # active carrier contract.
+        agent_id = None
+        contract = AgentCarrierContract.query.filter_by(
+            carrier=carrier, is_active=True
+        ).first()
+        agent_split = contract.split_rate if contract else 0.55
+        period_label = stmt_date.strftime("%B %Y")
+        expected     = round((gross + bonus) * agent_split, 2)
+        # If the file has no summary row (paid=0), assume expected was paid — no discrepancy.
+        # AJ can adjust manually if the actual payment differs.
+        if paid == 0.0:
+            paid = expected
+        difference   = round(expected - paid, 2)
+        status       = "verified" if abs(difference) < 0.02 else "discrepancy"
+
+        # Rate discrepancy check — flag when AJ's formula uses a different rate than the contract
+        if stated_rate is not None and abs(stated_rate - agent_split) > 0.001:
+            stated_pct   = round(stated_rate * 100, 2)
+            contract_pct = round(agent_split * 100, 2)
+            wrong_expected = round((gross + bonus) * stated_rate, 2)
+            rate_diff = round(wrong_expected - expected, 2)
+            direction = "underpaid" if rate_diff < 0 else "overpaid"
+            warnings.append(
+                f"⚠ Rate mismatch on {carrier} {period_label}: AJ's file used {stated_pct}% "
+                f"but contract rate is {contract_pct}%. "
+                f"This would have {direction} by "
+                f"${abs(rate_diff):,.2f}. Portal calculated expected at {contract_pct}%.")
+
+        existing = CommissionStatement.query.filter_by(
+            carrier=carrier, agent_id=agent_id, period_label=period_label,
+            agency_id=agency_id).first()
+        _was_update = existing is not None
+        if _was_update:
+            warnings.append(
+                f"{carrier} {period_label} was already uploaded. "
+                "Re-uploading will overwrite the existing statement and payment ledger rows.")
+        stmt = existing or CommissionStatement(
+            carrier=carrier, agent_id=agent_id, agency_id=agency_id)
+        if not existing:
+            db.session.add(stmt)
+
+        stmt.statement_date  = stmt_date
+        stmt.period_label    = period_label
+        stmt.gross_amount    = round(gross + bonus, 2)
+        stmt.bonus_amount    = round(bonus, 2)
+        stmt.split_rate      = agent_split
+        stmt.expected_amount = expected
+        stmt.paid_amount     = round(paid, 2)
+        stmt.difference      = difference
+        stmt.status          = status
+        stmt.line_items      = json.dumps(line_items)
+        stmt.filename        = filename
+        stmt.uploaded_by_id  = actor.id if actor else None
+        db.session.flush()   # get stmt.id before building payments
+
+        # If re-uploading, clear stale payment ledger rows for this statement
+        if _was_update:
+            PolicyPayment.query.filter_by(
+                statement_id=stmt.id, agency_id=agency_id
+            ).delete(synchronize_session=False)
+            db.session.flush()
+
+        # Re-parse worksheet for payment ledger (ws cursor is already at start of data)
+        wb2  = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+        ws2  = wb2.active
+        build_payments(stmt, carrier, agent_id, agency_id, ws2)
+        # NOTE: db.session.flush() here — NOT commit(). Transaction ownership moved
+        # to the caller (commission_upload or the multi-file loop in task 6) so that
+        # a begin_nested() savepoint can roll back only a failed file.
+        db.session.flush()
+
+        split_pct = round(agent_split * 100, 2)
+        if status == "verified":
+            warnings.insert(0,
+                f"✓ {carrier} {period_label} — verified. "
+                f"Gross ${stmt.gross_amount:,.2f} × {split_pct}% = ${expected:,.2f} ✅")
+        else:
+            warnings.insert(0,
+                f"⚠ {carrier} {period_label} — discrepancy of ${abs(difference):,.2f}. "
+                f"Expected ${expected:,.2f} ({split_pct}%), paid ${round(paid, 2):,.2f}.")
+
+        return {
+            "filename": filename,
+            "ok": True,
+            "carrier": carrier,
+            "scope": carrier,          # legacy path is always agency-level
+            "rows": len(line_items),
+            "gross": stmt.gross_amount,
+            "period": period_label,
+            "warnings": warnings,
+            "_status": status,
+            "_expected": expected,
+            "_paid": round(paid, 2),
+            "_split_pct": split_pct,
+            "_difference": difference,
+        }
+
+    except Exception as e:
+        # Belt-and-suspenders: the inner try/except blocks above catch the known
+        # error sites; this catches anything unexpected so the function never raises.
+        try:
+            current_app.logger.error(f"_process_one_file unexpected error ({filename}): {e}")
+        except RuntimeError:
+            pass  # no app context in tests — log failure is fine
+        return {"filename": filename, "ok": False, "error": str(e), "fix": None}
 
 
 @commission_bp.route("/admin/commissions/upload", methods=["POST"])
 @login_required
 def commission_upload():
+    """Single-file commission upload. Delegates to _process_one_file and translates
+    the result dict back to the old flash+redirect behavior so nothing regresses.
+    The multi-file/JSON rewrite (task 6) replaces the body of this route to loop
+    over multiple files and return JSON instead."""
     if not current_user.is_admin:
         abort(403)
     file = request.files.get("file")
@@ -1044,154 +1310,43 @@ def commission_upload():
         return redirect(url_for("commission.commission_admin"))
 
     file_bytes = file.read()
-    filename_lower = (file.filename or "").lower()
+    statement_month = request.form.get("statement_month", "").strip()
 
-    # ── New normalize→resolve→pay pipeline for the 5 clean-split carriers ──
-    # These carriers (Healthspring, Devoted, BCBS, Aetna, Humana) ship multi-
-    # sheet / SpreadsheetML files that the legacy single-active-sheet path can't
-    # read. Detect via sheet_loader (handles xlsx/xls/SpreadsheetML), and if the
-    # carrier is in NORMALIZERS, run the ingest pipeline. UHC (and anything not
-    # in NORMALIZERS) falls through to the unchanged legacy path below.
-    if not filename_lower.endswith(".csv"):
-        try:
-            _sheets_probe = load_sheets_from_bytes(file_bytes, file.filename)
-        except Exception:
-            _sheets_probe = None
-        if _sheets_probe:
-            probe_carrier = _detect_carrier_from_sheets(_sheets_probe)
-            if probe_carrier in NORMALIZERS:
-                return _ingest_normalized_upload(
-                    probe_carrier, _sheets_probe, file_bytes, file.filename)
+    result = _process_one_file(
+        file.filename, file_bytes, statement_month,
+        current_user.agency_id, actor=current_user)
 
-    try:
-        if filename_lower.endswith(".csv"):
-            wb = _csv_bytes_to_workbook(file_bytes)
-        else:
-            wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
-        ws = wb.active
-    except Exception as e:
-        flash(f"Could not read file: {e}", "error")
+    if not result["ok"]:
+        flash(result["error"], "error")
+        db.session.rollback()
         return redirect(url_for("commission.commission_admin"))
 
-    carrier = _detect_carrier(ws)
-    ok, reason = _carrier_supported_or_reason(carrier)
-    if not ok:
-        flash(reason, "error")
-        return redirect(url_for("commission.commission_admin"))
-
-    try:
-        gross, bonus, paid, stmt_date, line_items, stated_rate = PARSERS[carrier](ws)
-    except Exception as e:
-        current_app.logger.error(f"Commission parse error ({carrier}): {e}")
-        flash(f"Parse error for {carrier}: {e}", "error")
-        return redirect(url_for("commission.commission_admin"))
-
-    # 1. Try to get statement month from admin's manual override in the form
-    form_month = request.form.get("statement_month", "").strip()  # format: "YYYY-MM"
-    if form_month:
-        try:
-            stmt_date = datetime.strptime(form_month, "%Y-%m").date()
-        except ValueError:
-            pass
-
-    # 2. Fall back to date parsed from file content
-    # (already set by parser if it found a date in the file)
-
-    # 3. Try to extract from filename
-    if not stmt_date:
-        stmt_date = _parse_date_from_filename(file.filename)
-
-    # 4. Last resort: today (admin will see the period_label and can re-upload with override)
-    if not stmt_date:
-        stmt_date = date.today()
-        flash(
-            "Could not detect statement period from file content or filename. "
-            "Defaulted to today's month. Use the 'Statement Month' field to correct this.",
-            "warning"
-        )
-
-    # Every carrier pays Founders (the agency) directly, not any single agent, so
-    # the statement is always agency-level: agent_id=None. Per-row PolicyPayment
-    # attribution (via build_payments) carries the real per-agent earnings. The
-    # statement-level expected/paid math just needs a split rate, taken from any
-    # active carrier contract.
-    agent_id = None
-    contract = AgentCarrierContract.query.filter_by(
-        carrier=carrier, is_active=True
-    ).first()
-    agent_split = contract.split_rate if contract else 0.55
-    period_label = stmt_date.strftime("%B %Y")
-    expected     = round((gross + bonus) * agent_split, 2)
-    # If the file has no summary row (paid=0), assume expected was paid — no discrepancy to flag.
-    # AJ can adjust manually if the actual payment differs.
-    if paid == 0.0:
-        paid = expected
-    difference   = round(expected - paid, 2)
-    status       = "verified" if abs(difference) < 0.02 else "discrepancy"
-
-    # Rate discrepancy check — flag when AJ's formula uses a different rate than the contract
-    if stated_rate is not None and abs(stated_rate - agent_split) > 0.001:
-        stated_pct  = round(stated_rate * 100, 2)
-        contract_pct = round(agent_split * 100, 2)
-        wrong_expected = round((gross + bonus) * stated_rate, 2)
-        rate_diff = round(wrong_expected - expected, 2)
-        direction = "underpaid" if rate_diff < 0 else "overpaid"
-        flash(
-            f"⚠ Rate mismatch on {carrier} {period_label}: AJ's file used {stated_pct}% "
-            f"but contract rate is {contract_pct}%. "
-            f"This would have {direction} by "
-            f"${abs(rate_diff):,.2f}. Portal calculated expected at {contract_pct}%.",
-            "warning"
-        )
-
-    existing = CommissionStatement.query.filter_by(
-        carrier=carrier, agent_id=agent_id, period_label=period_label,
-        agency_id=current_user.agency_id).first()
-    _was_update = existing is not None
-    if _was_update:
-        flash(
-            f"{carrier} {period_label} was already uploaded. "
-            "Re-uploading will overwrite the existing statement and payment ledger rows.",
-            "warning"
-        )
-    stmt = existing or CommissionStatement(
-        carrier=carrier, agent_id=agent_id, agency_id=current_user.agency_id)
-    if not existing:
-        db.session.add(stmt)
-
-    stmt.statement_date  = stmt_date
-    stmt.period_label    = period_label
-    stmt.gross_amount    = round(gross + bonus, 2)
-    stmt.bonus_amount    = round(bonus, 2)
-    stmt.split_rate      = agent_split
-    stmt.expected_amount = expected
-    stmt.paid_amount     = round(paid, 2)
-    stmt.difference      = difference
-    stmt.status          = status
-    stmt.line_items      = json.dumps(line_items)
-    stmt.filename        = file.filename
-    stmt.uploaded_by_id  = current_user.id
-    db.session.flush()   # get stmt.id before building payments
-
-    # If re-uploading, clear stale payment ledger rows for this statement
-    if _was_update:
-        PolicyPayment.query.filter_by(
-            statement_id=stmt.id, agency_id=current_user.agency_id
-        ).delete(synchronize_session=False)
-        db.session.flush()
-
-    # Re-parse worksheet for payment ledger (ws cursor is already at start of data)
-    wb2  = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
-    ws2  = wb2.active
-    n_payments = build_payments(stmt, carrier, agent_id,
-                                current_user.agency_id, ws2)
+    # Commit the flushed work now that we know it succeeded.
     db.session.commit()
 
-    split_pct = round(agent_split * 100, 2)
-    if status == "verified":
-        flash(f"✓ {carrier} {period_label} — verified. Gross ${stmt.gross_amount:,.2f} × {split_pct}% = ${expected:,.2f} ✅", "success")
+    # Surface warnings / the success summary collected inside _process_one_file.
+    # For the normalized path the first warning IS the success message (ingest detail);
+    # for the legacy path it's inserted at index 0 above.
+    warnings = result.get("warnings", [])
+    if result.get("_ingest"):
+        # Normalized pipeline — build the rich success flash then the quarantine warning.
+        ingest = result["_ingest"]
+        flash(
+            f"✓ {result['carrier']} {result['period']} — {ingest.payments_written} payments, "
+            f"{ingest.customers_created} customers created "
+            f"({ingest.stubs_created} stubs), {ingest.chargebacks} chargebacks"
+            + (f", {ingest.match_suggestions} match suggestions" if ingest.match_suggestions else "")
+            + ".", "success")
+        for w in warnings:
+            flash(w, "warning")
     else:
-        flash(f"⚠ {carrier} {period_label} — discrepancy of ${abs(difference):,.2f}. Expected ${expected:,.2f} ({split_pct}%), paid ${paid:,.2f}.", "warning")
+        # Legacy pipeline — first warning is the success/discrepancy summary.
+        if warnings:
+            first = warnings[0]
+            level = "success" if first.startswith("✓") else "warning"
+            flash(first, level)
+            for w in warnings[1:]:
+                flash(w, "warning")
 
     return redirect(url_for("commission.commission_admin"))
 

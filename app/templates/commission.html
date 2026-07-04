@@ -706,48 +706,68 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
       .catch(function(){/* checklist refresh failure is non-fatal */});
   }
 
-  // ── AJAX submit ──
-  submitBtn.addEventListener('click', function(){
-    if (staged.length === 0) return;
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Uploading…';
-
-    var fd = new FormData();
-    staged.forEach(function(f){ fd.append('file', f); });
-    fd.append('statement_month', monthInput ? monthInput.value : '');
-
-    fetch(uploadForm.action, {
-      method: 'POST',
-      body: fd,
-      headers: {'X-Requested-With': 'XMLHttpRequest'},
-      credentials: 'same-origin'
-    })
-    .then(function(r){
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    })
-    .then(function(data){
-      renderResults(data);
-      refreshChecklist();
-    })
-    .catch(function(err){
+  // Surface ANY client-side failure visibly (never fail silently — the whole
+  // point after the "spun forever, no error" incident). Shows a red banner in
+  // #caResults with the real message + logs to console for diagnosis.
+  function showUploadError(msg){
+    try {
       resultsBox.removeAttribute('hidden');
-      resultsBox.innerHTML = '';  // static clear
+      resultsBox.innerHTML = '';
       var errRow = document.createElement('div');
       errRow.className = 'ca-result-net-err';
-      errRow.textContent = 'Upload failed — check your connection and try again.';
+      errRow.textContent = msg;
       resultsBox.appendChild(errRow);
-    })
-    .finally(function(){
-      // Restore button label with count (disabled state managed by renderStaging)
+    } catch(_){ /* last-resort */ alert(msg); }
+    try { console.error('[commission-upload]', msg); } catch(_){}
+  }
+
+  // ── AJAX submit ──
+  submitBtn.addEventListener('click', function(){
+    try {
+      if (staged.length === 0) { showUploadError('No file staged — drop or select a file first.'); return; }
+      // The action URL: prefer the form, but never let a null form throw silently.
+      var actionUrl = (uploadForm && uploadForm.action)
+                      || (document.querySelector('form[action*="commission_upload"]') || {}).action;
+      if (!actionUrl) { showUploadError('Could not find the upload form on this page. Please refresh and try again.'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Uploading…';
+
+      var fd = new FormData();
+      staged.forEach(function(f){ fd.append('file', f); });
+      fd.append('statement_month', monthInput ? monthInput.value : '');
+
+      fetch(actionUrl, {
+        method: 'POST',
+        body: fd,
+        headers: {'X-Requested-With': 'XMLHttpRequest'},
+        credentials: 'same-origin'
+      })
+      .then(function(r){
+        if (!r.ok) throw new Error('Server returned HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data){
+        renderResults(data);
+        refreshChecklist();
+      })
+      .catch(function(err){
+        showUploadError('Upload failed: ' + (err && err.message ? err.message : 'unknown error') + '. Please try again.');
+      })
+      .finally(function(){
+        submitBtn.textContent = 'Upload & Parse';
+        var cspan = document.createElement('span');
+        cspan.id = 'caCount';
+        submitBtn.appendChild(cspan);
+        countSpan = document.getElementById('caCount');
+        renderStaging();
+      });
+    } catch(err){
+      // Synchronous throw BEFORE fetch (e.g. FormData/DOM issue) — never silent.
+      showUploadError('Upload error: ' + (err && err.message ? err.message : 'unknown') + '. Please refresh and try again.');
+      submitBtn.disabled = false;
       submitBtn.textContent = 'Upload & Parse';
-      var cspan = document.createElement('span');
-      cspan.id = 'caCount';
-      submitBtn.appendChild(cspan);
-      countSpan = document.getElementById('caCount');
-      renderStaging();
-    });
+    }
   });
 
   // ── Drop zone drag/drop ──

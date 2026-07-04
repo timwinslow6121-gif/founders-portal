@@ -498,7 +498,7 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
 </form>
 
 {# KPI cards — compact, left-aligned, no full-width bar #}
-<div class="ca-kpis ca-strip">
+<div class="ca-kpis" id="caKpis">
   <div class="ca-kpi">
     <div class="n">{{ overview.statement_count }}</div>
     <div class="l">Statements uploaded</div>
@@ -691,8 +691,8 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
         var parser = new DOMParser();
         var doc = parser.parseFromString(html, 'text/html');
 
-        var newStrip = doc.querySelector('.ca-strip');
-        var curStrip = document.querySelector('.ca-strip');
+        var newStrip = doc.getElementById('caKpis');
+        var curStrip = document.getElementById('caKpis');
         if (newStrip && curStrip) curStrip.innerHTML = newStrip.innerHTML;
 
         var newChecklist = doc.querySelector('.ca-checklist');

@@ -303,6 +303,42 @@ def test_devoted_format_detection():
     assert _devoted_format(statement) == "statement"
 
 
+def test_devoted_statement_without_misc_sheet_is_recognized():
+    """Rebekah's per-agent statement omits the 'Misc' sheet in months with no HRA
+    payments (AJ confirmed: Misc holds only HRA lines; June 2026 had 0). Such a file
+    (Summary+Detail, no Misc) is a VALID statement and must NOT be rejected — the old
+    'Detail AND Misc' rule rejected it → worker hang → infinite upload spin."""
+    from app.commission.ledger import _devoted_format, _devoted_filetoken
+    no_misc = {
+        "Summary": [["Description", "Member Count", "Total"]],
+        "Detail": [
+            ["Statement Date", "Agent NPN", "Agent Name", "Member ID"],
+            ["2026-06-01", "20182775", "Rebekah Long", "DV123"],
+        ],
+    }
+    assert _devoted_format(no_misc) == "statement"
+    assert _devoted_filetoken(no_misc) == "npn20182775"
+
+
+def test_devoted_statement_without_misc_extracts_detail_only():
+    """A Misc-less statement still extracts its Detail rows (Misc extraction is skipped
+    gracefully when the sheet is absent)."""
+    from app.commission.ledger import extract_lineitems_devoted
+    header = ["Statement Date", "Agent NPN", "Agent Name", "Member ID", "Member HICN",
+              "Member First", "Member Last", "St", "Plan", "Eff", "Disenroll",
+              "c11", "c12", "c13", "c14", "type", "c16", "Amount"]
+    data_row = ["2026-06-01", "20182775", "Rebekah Long", "DV123", "9ABC1234567",
+                "Jane", "Doe", "NC", "Devoted CORE", "2026-06-01", "",
+                "", "", "", "", "new", "", 18.00]  # col 17 = amount
+    no_misc = {
+        "Summary": [["Description", "Member Count", "Total"]],
+        "Detail": [header, data_row],  # header + one member row, NO Misc sheet
+    }
+    drafts = extract_lineitems_devoted(no_misc, split_lookup=lambda raw: 0.55)
+    assert drafts  # Detail row extracted; no crash on missing Misc
+    assert all("::Detail::" in d.source_ref for d in drafts)
+
+
 def test_devoted_format_unknown_raises():
     import pytest
     from app.commission.ledger import _devoted_format

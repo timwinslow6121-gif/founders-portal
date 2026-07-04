@@ -288,15 +288,18 @@ def _devoted_sheet_rows(sheets, sheet_name):
 def _devoted_format(sheets):
     """Devoted ships two file shapes. Detect which by sheet names:
       - "agency"    : the agency book-of-business (Total/Override/Agent Portion/HRA)
-      - "statement" : a per-agent statement (Summary/Detail/Misc)
-    Raises ValueError on an unrecognized shape (fail loud, never silently 0 rows)."""
+      - "statement" : a per-agent statement (Summary/Detail, with an OPTIONAL Misc)
+    The per-agent statement is defined by its 'Detail' sheet; 'Misc' (HRA-only lines)
+    is OPTIONAL — Devoted omits it in months with no HRA payments (e.g. Rebekah June
+    2026 had 0). Requiring Misc wrongly rejected a valid file → worker hang → infinite
+    upload spin. Raises ValueError on a truly unrecognized shape (fail loud)."""
     if "Agent Portion" in sheets:
         return "agency"
-    if "Detail" in sheets and "Misc" in sheets:
+    if "Detail" in sheets:
         return "statement"
     raise ValueError(
         f"Unrecognized Devoted file shape; sheets={list(sheets)}. "
-        "Expected agency (Agent Portion) or statement (Detail+Misc).")
+        "Expected agency (Agent Portion) or statement (Detail; Misc optional).")
 
 
 def _devoted_filetoken(sheets):

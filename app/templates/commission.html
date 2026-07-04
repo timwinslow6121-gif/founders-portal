@@ -158,14 +158,16 @@
 .ca-flabel { display:block; font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
 /* #1 month picker — compact, not full width */
 .ca-period-form select { max-width: 200px; }
-/* #3 reuse the BOB drop-zone look */
-.ca-drop { display:flex; flex-direction:column; align-items:center; text-align:center; cursor:pointer;
-           border:2px dashed var(--border); border-radius:var(--radius); background:var(--surface-low);
-           padding:26px 20px; transition:border-color .15s, background .15s; color:var(--ivory); }
+/* #3 compact single-row drop-zone */
+.ca-drop { display:flex; align-items:center; gap:14px; cursor:pointer;
+           border:1.5px dashed var(--outline-var,var(--border)); border-radius:12px;
+           background:var(--surface-low); padding:14px 18px;
+           transition:border-color .15s, background .15s; }
 .ca-drop:hover, .ca-drop.drag-over { border-color:var(--gold); background:var(--surface-mid); }
-.ca-drop-text { font-size:13px; color:var(--ivory); }
-.ca-drop-sub { font-size:12px; color:var(--slate); margin-top:5px; letter-spacing:.03em; }
-.ca-uprow { display:flex; align-items:flex-end; gap:14px; margin-top:14px; flex-wrap:wrap; }
+.ca-drop svg { opacity:.5; flex:none; }
+.ca-drop .ca-drop-body { flex:1; text-align:left; }
+.ca-drop-text { font-size:14px; color:var(--ivory); font-weight:500; }
+.ca-drop-sub { font-size:12px; color:var(--slate); margin-top:2px; }
 .ca-month { background:var(--surface-mid); border:1px solid var(--border); color:var(--ivory); font:inherit;
             font-size:13px; padding:8px 10px; border-radius:8px; max-width:170px; }
 /* #2 normal rounded themed button (not square / full width) */
@@ -537,27 +539,28 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
   {% endfor %}
 </div>
 
-{# Upload box — defaults to the current month, made obvious #}
+{# Upload box — compact single-row: drop-zone + month picker + button #}
 <div class="ca-upload">
   <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data">
-    <label class="ca-drop" id="caDrop">
-      <input type="file" name="file" id="caFile" accept=".xlsx,.xls,.csv" multiple hidden>
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="opacity:.5;margin-bottom:8px;"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/></svg>
-      <div class="ca-drop-text" id="caDropText">Drop files here or <span class="link-text">click to browse</span></div>
-      <div class="ca-drop-sub">Drop files here · CSV, XLSX, XLS · carrier + agent auto-detected · drop or select many</div>
-    </label>
-    <ul id="caStaging" class="ca-staging"></ul>
-    <div id="caResults" class="ca-results" hidden></div>
-    <div class="ca-uprow">
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <label class="ca-drop" id="caDrop" style="flex:1; min-width:280px;">
+        <input type="file" name="file" id="caFile" accept=".xlsx,.xls,.csv" multiple hidden>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.6"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/></svg>
+        <div class="ca-drop-body">
+          <div class="ca-drop-text" id="caDropText">Drop files here or <span class="link-text">click to browse</span></div>
+          <div class="ca-drop-sub">CSV, XLSX, XLS · drop or select many · carrier + agent auto-detected</div>
+        </div>
+      </label>
       <div>
-        <label class="ca-flabel">Attribute this statement to
-          <span style="color:var(--green);font-weight:600;">· {{ default_upload_month }}</span></label>
+        <label class="ca-flabel">Attribute to <span style="color:var(--green);font-weight:600;">· {{ default_upload_month }}</span></label>
         <input type="month" name="statement_month" id="caMonth" value="{{ default_upload_month_iso }}" class="ca-month">
       </div>
-      <button type="button" id="caSubmit" class="ca-submit" disabled>Upload &amp; Parse<span id="caCount"></span></button>
+      <button type="button" class="ca-submit" id="caSubmit" disabled>Upload &amp; Parse<span id="caCount"></span></button>
     </div>
+    <ul id="caStaging" class="ca-staging"></ul>
+    <div id="caResults" class="ca-results" hidden></div>
     <p style="font-size:11px;color:var(--slate);margin:10px 0 0;">
-      Commissions pay one month behind, so this defaults to <strong>{{ default_upload_month }}</strong> — change it only if this file is for a different month.
+      Commissions pay one month behind, so this defaults to <strong>{{ default_upload_month }}</strong> — change it only if a file is for a different month.
     </p>
   </form>
 </div>

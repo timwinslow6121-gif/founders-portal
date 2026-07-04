@@ -1089,9 +1089,11 @@ def publish_recap(recap_period, published_by_id, agent_email, total_paid, base_u
 
 def per_agent_upload_status(agency_id, carrier, period_label):
     """For a PER_AGENT carrier, which contracted agents have uploaded this period.
-    Returns [{'agent_id','agent_name','uploaded'}] sorted by name; [] for a
+    Returns [{'agent_id','agent_name','uploaded','uploaded_at'}] sorted by name; [] for a
     carrier that isn't per-agent (agency-wide carriers are one file — carrier-level
-    status is correct for them)."""
+    status is correct for them). uploaded_at is the max created_at of line items for
+    that agent, as an ISO string (or None if not uploaded)."""
+    from sqlalchemy import func
     from app.commission.ledger import PER_AGENT_CARRIERS
     if carrier not in PER_AGENT_CARRIERS:
         return []
@@ -1104,18 +1106,28 @@ def per_agent_upload_status(agency_id, carrier, period_label):
                 .filter_by(agency_id=agency_id, carrier=carrier,
                            period_label=period_label).all()]
     uploaded_ids = set()
+    uploaded_at_by_agent = {}
     if stmt_ids:
-        for (aid,) in (CommissionLineItem.query
-                       .filter(CommissionLineItem.agency_id == agency_id,
-                               CommissionLineItem.statement_id.in_(stmt_ids),
-                               CommissionLineItem.agent_id.isnot(None))
-                       .with_entities(CommissionLineItem.agent_id).distinct().all()):
+        rows = (CommissionLineItem.query
+                .filter(CommissionLineItem.agency_id == agency_id,
+                        CommissionLineItem.statement_id.in_(stmt_ids),
+                        CommissionLineItem.agent_id.isnot(None))
+                .with_entities(CommissionLineItem.agent_id,
+                               func.max(CommissionLineItem.created_at))
+                .group_by(CommissionLineItem.agent_id).all())
+        for aid, last_at in rows:
             uploaded_ids.add(aid)
+            uploaded_at_by_agent[aid] = last_at
     out = []
     for c in expected:
         u = db.session.get(User, c.agent_id)
+        at = uploaded_at_by_agent.get(c.agent_id)
         out.append({"agent_id": c.agent_id,
                     "agent_name": (u.name if u else f"Agent {c.agent_id}"),
-                    "uploaded": c.agent_id in uploaded_ids})
+                    "uploaded": c.agent_id in uploaded_ids,
+                    # ISO string (or None) — the template embeds it in JSON and the JS
+                    # parses it with new Date(); an ISO string is reliable cross-browser
+                    # (Flask's tojson would otherwise emit an HTTP-date string).
+                    "uploaded_at": at.isoformat() if at else None})
     out.sort(key=lambda r: r["agent_name"])
     return out

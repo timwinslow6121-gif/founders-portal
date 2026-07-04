@@ -60,6 +60,39 @@ def test_per_agent_upload_status(ctx):
     assert per_agent_upload_status(agency_id, "Humana", "June 2026") == []
 
 
+def test_per_agent_upload_status_includes_uploaded_at(ctx):
+    from datetime import datetime
+    from app.extensions import db
+    from app.models import (User, AgentCarrierContract, CommissionStatement,
+                            CommissionLineItem)
+    from app.commission.recap import per_agent_upload_status
+    app, agency_id = ctx
+    a1 = User(email="b@x.com", name="Brian Freeman", agency_id=agency_id, role="agent")
+    a2 = User(email="m@x.com", name="Mike Lauzurique", agency_id=agency_id, role="agent")
+    db.session.add_all([a1, a2]); db.session.flush()
+    for a in (a1, a2):
+        db.session.add(AgentCarrierContract(agency_id=agency_id, agent_id=a.id,
+                                            carrier="BCBS", is_active=True))
+    st = CommissionStatement(agency_id=agency_id, carrier="BCBS",
+                             statement_date=date(2026, 6, 1), period_label="June 2026")
+    db.session.add(st); db.session.flush()
+    li = CommissionLineItem(agency_id=agency_id, statement_id=st.id, carrier="BCBS",
+                            period_label="June 2026", agent_id=a1.id, member_name="X",
+                            raw_amount=10.0, classification="agent_commission",
+                            source_ref="bcbs::p1::Sheet1::1")
+    db.session.add(li); db.session.commit()
+
+    rows = per_agent_upload_status(agency_id, "BCBS", "June 2026")
+    by_name = {r["agent_name"]: r for r in rows}
+    assert by_name["Brian Freeman"]["uploaded"] is True
+    # uploaded_at is an ISO string (not a datetime) so the template can embed it in
+    # JSON and the JS new Date() parse is reliable cross-browser.
+    assert isinstance(by_name["Brian Freeman"]["uploaded_at"], str)
+    assert "2026-" in by_name["Brian Freeman"]["uploaded_at"]
+    assert by_name["Mike Lauzurique"]["uploaded"] is False
+    assert by_name["Mike Lauzurique"]["uploaded_at"] is None
+
+
 def test_overview_checklist_has_per_agent_for_bcbs(ctx):
     from app.extensions import db
     from app.models import User, AgentCarrierContract

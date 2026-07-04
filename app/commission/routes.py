@@ -1047,7 +1047,6 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_m
         # a begin_nested() savepoint can roll back only a failed file.
         db.session.flush()
     except Exception as e:
-        db.session.rollback()
         current_app.logger.error(f"Commission ingest error ({carrier}): {e}")
         return {
             "filename": filename, "ok": False,

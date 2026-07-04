@@ -1,6 +1,7 @@
 from datetime import date
 import io
 import os
+from unittest.mock import patch, call
 import pytest
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
@@ -240,3 +241,115 @@ def test_upload_good_and_bad_file_isolation(ctx):
         ).count()
         assert li_count2 >= 1, \
             f"BCBS CommissionLineItems missing in bad-then-good order (count={li_count2})"
+
+
+def test_upload_good_then_ingest_failing_file_preserves_good(ctx):
+    """Regression test for opus C1: a bare db.session.rollback() inside
+    _ingest_normalized_upload's except block wiped ALL prior savepoints when a
+    file that parsed OK failed *during ingest* (inside ingest_statement /
+    persist_line_items).  This test forces exactly that failure path.
+
+    Strategy: upload two files in one POST.  File 1 is the real bcbs_sample.xlsx
+    (parses + ingests normally).  File 2 is also the real bcbs_sample.xlsx (so it
+    passes the parse/carrier-detect step and reaches _ingest_normalized_upload),
+    but we monkeypatch `app.commission.routes.ingest_statement` so that its SECOND
+    call raises RuntimeError("boom") — simulating a DB constraint or any ingest-
+    stage failure.
+
+    The dup-guard (find_duplicate_statement) would short-circuit before ingest on the
+    second identical file, so we also patch it to always return None — ensuring the
+    second file reaches ingest_statement where it raises.
+
+    Pre-fix behaviour: the bare db.session.rollback() in the ingest except block
+    unwound the ENTIRE outer transaction (destroying file 1's already-committed
+    savepoint), then nested.rollback() raised ResourceClosedError → the route 500'd.
+
+    Post-fix behaviour: the rollback line is gone; the loop's nested.rollback() owns
+    the unwind; the outer transaction survives; the route returns 200 with
+    imported=1, rejected=1; file 1's rows are still in the DB.
+
+    NOTE: on SQLite the ResourceClosedError does NOT propagate (SQLite's savepoint
+    model is more lenient than Postgres), so this test may not 500 pre-fix on SQLite.
+    The data-loss assertion (CommissionStatement/LineItem survival) is the definitive
+    check; the status=200 check is a secondary signal. The test is still kept because
+    it documents and locks the contract against regression.
+    """
+    from app.extensions import db
+    from app.models import CommissionStatement, CommissionLineItem
+
+    app, agency_id = ctx
+    app.config.update(SESSION_COOKIE_SECURE=False, REMEMBER_COOKIE_SECURE=False)
+
+    bcbs_bytes = open(os.path.join(FIXTURES, "bcbs_sample.xlsx"), "rb").read()
+
+    admin = _admin(db, agency_id)
+    _setup_bcbs_agents(db, agency_id)
+    db.session.commit()
+
+    call_count = {"n": 0}
+
+    # Import the real ingest_statement so we can call it normally the first time.
+    import app.commission.ingest as _ingest_mod
+    real_ingest_statement = _ingest_mod.ingest_statement
+
+    def ingest_statement_boom_on_second(*args, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            return real_ingest_statement(*args, **kwargs)
+        raise RuntimeError("simulated ingest failure for C1 regression test")
+
+    client = app.test_client()
+    with client.session_transaction() as s:
+        s["_user_id"] = str(admin.id); s["_fresh"] = True
+
+    data = {
+        "statement_month": "2026-06",
+        "file": [
+            (io.BytesIO(bcbs_bytes), "bcbs_sample.xlsx"),   # file 1 — should succeed
+            (io.BytesIO(bcbs_bytes), "bcbs_sample_v2.xlsx"),  # file 2 — ingest will raise
+        ],
+    }
+
+    # Patch both ingest_statement (to raise on 2nd call) and find_duplicate_statement
+    # (to return None always so file 2 is NOT short-circuited by the dup guard —
+    # which would prevent it from reaching ingest_statement at all).
+    with patch("app.commission.routes.ingest_statement",
+               side_effect=ingest_statement_boom_on_second), \
+         patch("app.commission.routes.find_duplicate_statement", return_value=None):
+        resp = client.post(
+            "/admin/commissions/upload",
+            data=data,
+            content_type="multipart/form-data",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        )
+
+    # The route must NOT 500 (pre-fix: ResourceClosedError escapes and 500s on Postgres).
+    assert resp.status_code == 200, (
+        f"Route returned {resp.status_code} — pre-fix this was a 500 from "
+        f"ResourceClosedError after the bare session.rollback() closed the transaction"
+    )
+
+    body = resp.get_json()
+    assert body is not None, "Expected JSON response body"
+    assert body["summary"]["imported"] == 1, \
+        f"Expected 1 import (file 1), got: {body['summary']}"
+    assert body["summary"]["rejected"] == 1, \
+        f"Expected 1 rejection (file 2 ingest failure), got: {body['summary']}"
+
+    # Money-correctness proof: file 1's rows must have SURVIVED the failed ingest of
+    # file 2.  Pre-fix the bare rollback() destroyed them (data loss).
+    with app.app_context():
+        bcbs_stmts = CommissionStatement.query.filter_by(
+            agency_id=agency_id, carrier="BCBS"
+        ).all()
+        assert len(bcbs_stmts) >= 1, (
+            "BCBS CommissionStatement was destroyed — "
+            "the bare db.session.rollback() wiped the outer transaction"
+        )
+        li_count = CommissionLineItem.query.filter_by(
+            agency_id=agency_id, statement_id=bcbs_stmts[0].id
+        ).count()
+        assert li_count >= 1, (
+            f"BCBS CommissionLineItems were wiped (count={li_count}) — "
+            "bare session.rollback() destroyed file 1's committed savepoint data"
+        )

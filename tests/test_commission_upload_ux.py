@@ -386,3 +386,26 @@ def test_upload_good_then_ingest_failing_file_preserves_good(ctx):
             f"BCBS CommissionLineItems were wiped (count={li_count}) — "
             "bare session.rollback() destroyed file 1's committed savepoint data"
         )
+
+
+def test_ledger_split_lookup_works_without_request_context(ctx):
+    """_ledger_split_lookup must resolve the split from the passed-in agency_id,
+    NOT the global current_user. current_user is only bound inside a request; the
+    ingest (and any script/re-import) runs it with just an app context. Reaching for
+    current_user.agency_id there raised 'NoneType has no attribute agency_id' and
+    crashed the whole upload. Regression guard for the Devoted-June ingest crash."""
+    from app.extensions import db
+    from app.models import User, AgentCarrierContract
+    from app.commission.routes import _ledger_split_lookup
+    app, agency_id = ctx
+    u = User(email="reb@x.com", name="Rebekah Long", agency_id=agency_id, role="agent")
+    db.session.add(u); db.session.flush()
+    db.session.add(AgentCarrierContract(agency_id=agency_id, agent_id=u.id,
+                                        carrier="Devoted", split_rate=0.50, is_active=True))
+    db.session.flush()
+    # No request context here → current_user is unavailable. Must still work.
+    rate = _ledger_split_lookup("LONG, REBEKAH", "Devoted", agency_id)
+    assert rate == 0.50
+    # unknown agent → falls back to an active Devoted contract (0.50), else 0.55
+    assert _ledger_split_lookup("NOBODY NAMED THIS", "Devoted", agency_id) == 0.50
+    assert _ledger_split_lookup("NOBODY", "Aetna", agency_id) == 0.55

@@ -663,22 +663,28 @@ _NICKNAMES = {
 }
 
 
-def _ledger_split_lookup(writing_agent_raw, carrier):
+def _ledger_split_lookup(writing_agent_raw, carrier, agency_id):
     """Split rate for a writing agent on a carrier, snapshotted at import.
     Retired-agent (Cyndi/Don) Aetna/UHC business rolls up to Brian first, so the
     rate comes from Brian's 0.50 contract. Falls back to any active contract for
-    the carrier, then 0.55."""
+    the carrier, then 0.55.
+
+    Takes agency_id EXPLICITLY — never reads the global current_user. current_user
+    is bound only inside a request; the ingest (and scripts/re-imports) call this
+    with just an app context, where current_user is unavailable and reading
+    current_user.agency_id crashed the whole upload with 'NoneType has no
+    attribute agency_id'."""
     writing_agent_raw = apply_rollup(writing_agent_raw, carrier)
     agent_id = _match_agent_name(writing_agent_raw) if writing_agent_raw else None
     contract = None
     if agent_id:
         contract = AgentCarrierContract.query.filter_by(
             agent_id=agent_id, carrier=carrier, is_active=True,
-            agency_id=current_user.agency_id).first()
+            agency_id=agency_id).first()
     if contract is None:
         contract = AgentCarrierContract.query.filter_by(
             carrier=carrier, is_active=True,
-            agency_id=current_user.agency_id).first()
+            agency_id=agency_id).first()
     return contract.split_rate if contract else 0.55
 
 
@@ -1016,7 +1022,7 @@ def _ingest_normalized_upload(carrier, sheets, file_bytes, filename, statement_m
         # customer-sync normalizer collapses away) so the balance is provable.
         extractor, _money = EXTRACTORS.get(carrier, (None, None))
         if extractor is not None:
-            drafts = extractor(sheets, split_lookup=lambda raw, c=carrier: _ledger_split_lookup(raw, c))
+            drafts = extractor(sheets, split_lookup=lambda raw, c=carrier: _ledger_split_lookup(raw, c, agency_id))
             persist_line_items(carrier, drafts, stmt, agency_id,
                                agent_resolver=_rollup_resolver)
             db.session.flush()

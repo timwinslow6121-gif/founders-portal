@@ -9,7 +9,7 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-07-02_
+_Last updated: 2026-07-04_
 
 ---
 
@@ -142,6 +142,7 @@ _Anything a recent change broke or left half-done. Clear these FIRST._
 ## ✅ Recently shipped (prune after ~1 week)
 _Keep this short — it's a confidence check that things landed, not a permanent log (CLAUDE.md Build Status is the permanent record)._
 
+- ✅ 2026-07-04 — **Devoted per-agent statement upload fix + hang guard** (commit b7b1529, LIVE). AJ's June Rebekah Devoted file (Summary+Detail, NO Misc sheet) hung the uploader forever: `_devoted_format` wrongly required `Detail AND Misc`, but Misc = HRA-only lines and Devoted omits it in 0-HRA months (AJ confirmed June had none). Now detects a statement by `Detail` alone; Misc extraction no-ops gracefully. Proven on AJ's real file (5 line items, Σ $549.40). ALSO hardened the silent-spin: gunicorn `--timeout 120` (was unset=30s default → >30s block killed the worker with no response → infinite browser spin). 62 tests green. ⚠ AJ must set **Statement Month = June 2026** on Rebekah's file so it merges with agency Devoted stmt id=73.
 - ✅ 2026-06-26 — **DATA-INTEGRITY RADAR (item 0) LIVE** — see the 🩺 section above. The radar/ratchet that ends whack-a-mole; `/admin/integrity` shows every violation; CI can't let any count grow.
 - ✅ 2026-06-25 — **Chronological BOB dedup (Robbie Belk + 13)** (commit f320232, 3-layer fix: dedup + policy-term + AOR-close, all opus-reviewed) + **3 customer-page bugs** (blank All-Customers table = ReferenceError in search-render JS w/ no .catch(); token-aware name search for middle initials; AOR History shows term dates). See ⚠ Regressions for detail.
 - ✅ 2026-06-23 — **BOB DATA-INTEGRITY MARATHON (4 rounds, all LIVE on VPS):** (1) Agency Metrics + Attribution — `app/metrics.py` single source + guard test, honest dashboard, `/carriers/c/<carrier>` + Brian toggle; **Brian 481→1,216, unassigned customers 2,833→38.** (2) Identity Recovery — four-link traceability + Needs Identity hub; **393 payments + 2,350 AOR intervals recovered.** (3) Aetna XLSX parser rewrite (was agent 0%). (4) Aetna CSV BOB + plan-history — **attribution 58→74 (100%), DOB/phone/address freshness, term→close-open-AOR lifecycle, plan-history timeline LIVE.** Each round: spec→plan→subagent build + opus whole-branch review (caught a real bug every time) + DB-backup + Postgres verify. Full detail: `memory/session-handoff-2026-06-23-bob-data-integrity.md`.

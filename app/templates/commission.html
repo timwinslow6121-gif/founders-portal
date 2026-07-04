@@ -125,13 +125,15 @@
   .math-cell:last-child { border-bottom: none; }
 }
 /* ── Redesigned Commission Audit (admin) ── */
-.ca-strip { display:flex; flex-wrap:wrap; align-items:center; gap:0; background:var(--surface);
-            border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow);
-            padding:14px 8px; margin:0 0 16px; }
-.ca-strip-item { flex:1 1 160px; text-align:center; padding:4px 14px; }
-.ca-strip-div { width:1px; align-self:stretch; background:var(--border); }
-.ca-strip .ca-n { font-size:24px; font-weight:700; color:var(--ivory-bright); line-height:1.1; }
-.ca-strip .ca-l { font-size:11px; color:var(--slate); text-transform:uppercase; letter-spacing:.04em; margin-top:3px; }
+.ca-kpis { display:flex; gap:12px; flex-wrap:wrap; margin:0 0 22px; }
+.ca-kpi { background:var(--surface); border:1px solid var(--border); border-radius:14px;
+          box-shadow:var(--shadow-sm); padding:16px 22px; min-width:150px; }
+.ca-kpi .n { font-size:30px; font-weight:800; color:var(--ivory-bright); line-height:1; }
+.ca-kpi .l { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+             color:var(--slate); margin-top:6px; }
+.ca-kpi .n.blue { color:var(--gold); }
+.ca-kpi .n.green { color:var(--green); }
+.ca-kpi a { color:inherit; text-decoration:none; }
 .ca-checklist { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
 .ca-chip { font-size:12px; font-weight:600; padding:6px 12px; border-radius:999px; border:1px solid var(--border); }
 .ca-chip.in  { color:var(--green); background:color-mix(in srgb, var(--green) 10%, transparent); border-color:color-mix(in srgb, var(--green) 30%, transparent); }
@@ -484,23 +486,26 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
   </select>
 </form>
 
-{# Honest trust strip — only exactly-true facts #}
-<div class="ca-strip">
-  <div class="ca-strip-item">
-    <div class="ca-n">{{ overview.statement_count }}</div>
-    <div class="ca-l">Statements uploaded · {{ selected_period }}</div>
+{# KPI cards — compact, left-aligned, no full-width bar #}
+<div class="ca-kpis ca-strip">
+  <div class="ca-kpi">
+    <div class="n">{{ overview.statement_count }}</div>
+    <div class="l">Statements uploaded</div>
   </div>
-  <div class="ca-strip-div"></div>
-  <div class="ca-strip-item">
-    <div class="ca-n" style="color:{{ 'var(--green)' if overview.carriers_uploaded == overview.carriers_expected else 'var(--gold)' }};">
-      {{ overview.carriers_uploaded }} / {{ overview.carriers_expected }}
-    </div>
-    <div class="ca-l">Contracted carriers received</div>
+  <div class="ca-kpi">
+    <div class="n {{ 'green' if overview.carriers_uploaded == overview.carriers_expected else 'blue' }}">
+      {{ overview.carriers_uploaded }} / {{ overview.carriers_expected }}</div>
+    <div class="l">Carriers received</div>
   </div>
-  <div class="ca-strip-div"></div>
-  <div class="ca-strip-item">
-    <div class="ca-n" style="color:{{ 'var(--green)' if overview.total_quarantined == 0 else 'var(--gold)' }};">{{ overview.total_quarantined }}</div>
-    <div class="ca-l">{% if overview.total_quarantined %}<a href="{{ url_for('commission.commission_quarantine_workbench', period=selected_period) }}" style="color:var(--gold);text-decoration:none;">payments to review →</a>{% else %}payments to review{% endif %}</div>
+  <div class="ca-kpi">
+    {% if overview.total_quarantined %}
+    <a href="{{ url_for('commission.commission_quarantine_workbench', period=selected_period) }}">
+      <div class="n" style="color:var(--gold);">{{ overview.total_quarantined }}</div>
+      <div class="l">Payments to review →</div></a>
+    {% else %}
+    <div class="n green">0</div>
+    <div class="l">Payments to review</div>
+    {% endif %}
   </div>
 </div>
 

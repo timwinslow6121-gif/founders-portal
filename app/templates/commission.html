@@ -541,7 +541,7 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
 
 {# Upload box — compact single-row: drop-zone + month picker + button #}
 <div class="ca-upload">
-  <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data">
+  <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data" id="caUploadForm">
     <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
       <label class="ca-drop" id="caDrop" style="flex:1; min-width:280px;">
         <input type="file" name="file" id="caFile" accept=".xlsx,.xls,.csv" multiple hidden>
@@ -573,7 +573,12 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
   var submitBtn   = document.getElementById('caSubmit');
   var countSpan   = document.getElementById('caCount');
   var monthInput  = document.getElementById('caMonth');
-  var uploadForm  = document.querySelector('form[action*="commission_upload"]');
+  // Select by explicit id. (The old selector form[action*="commission_upload"]
+  // NEVER matched — the route URL is /admin/commissions/upload, which does not
+  // contain the string "commission_upload" → uploadForm was null → the submit
+  // handler threw "Cannot read properties of null (reading 'action')" before
+  // fetch → no request ever left the browser → silent failure.)
+  var uploadForm  = document.getElementById('caUploadForm');
 
   if (!fileInput || !dropZone) return;
 
@@ -727,7 +732,7 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
       if (staged.length === 0) { showUploadError('No file staged — drop or select a file first.'); return; }
       // The action URL: prefer the form, but never let a null form throw silently.
       var actionUrl = (uploadForm && uploadForm.action)
-                      || (document.querySelector('form[action*="commission_upload"]') || {}).action;
+                      || (document.getElementById('caUploadForm') || {}).action;
       if (!actionUrl) { showUploadError('Could not find the upload form on this page. Please refresh and try again.'); return; }
 
       submitBtn.disabled = true;

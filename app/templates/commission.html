@@ -161,6 +161,19 @@
 .ca-submit { padding:9px 18px; border:none; border-radius:8px; background:var(--gold); color:#fff;
              font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
 .ca-submit:hover { filter:brightness(1.07); }
+.ca-submit:disabled { opacity:.55; cursor:not-allowed; filter:none; }
+/* staging list */
+.ca-staging { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:5px; }
+.ca-staging li { display:flex; align-items:center; gap:8px; background:var(--surface-low); border:1px solid var(--border); border-radius:8px; padding:5px 10px; font-size:12.5px; color:var(--ivory); }
+.ca-staging li span.ca-fname { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ca-staging li button.ca-rm { background:none; border:none; color:var(--slate); cursor:pointer; font-size:14px; line-height:1; padding:0 2px; }
+.ca-staging li button.ca-rm:hover { color:var(--ivory); }
+/* results */
+.ca-results { margin:12px 0 0; display:flex; flex-direction:column; gap:6px; }
+.ca-result-ok { background:color-mix(in srgb,var(--green) 10%,transparent); border:1px solid color-mix(in srgb,var(--green) 30%,transparent); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--ivory); }
+.ca-result-err { background:color-mix(in srgb,#e05252 10%,transparent); border:1px solid color-mix(in srgb,#e05252 30%,transparent); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--ivory); }
+.ca-result-fix { font-size:11.5px; color:var(--slate); margin-top:3px; }
+.ca-result-net-err { background:color-mix(in srgb,#e05252 10%,transparent); border:1px solid color-mix(in srgb,#e05252 30%,transparent); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--ivory); }
 .ca-h2 { font-size:17px; color:var(--ivory-bright); margin:0 0 10px; }
 .ca-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:4px 14px; overflow-x:auto; margin:0 0 22px; }
 table.ca-table { width:100%; border-collapse:collapse; font-size:13.5px; }
@@ -520,18 +533,20 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
 <div class="ca-upload">
   <form method="POST" action="{{ url_for('commission.commission_upload') }}" enctype="multipart/form-data">
     <label class="ca-drop" id="caDrop">
-      <input type="file" name="file" id="caFile" accept=".xlsx,.xls,.csv" required hidden>
+      <input type="file" name="file" id="caFile" accept=".xlsx,.xls,.csv" multiple hidden>
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="opacity:.5;margin-bottom:8px;"><path d="M12 16V4m0 0L7 9m5-5l5 5"/><path d="M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2"/></svg>
-      <div class="ca-drop-text" id="caDropText">Drop a carrier file here or <span class="link-text">click to browse</span></div>
-      <div class="ca-drop-sub">One file · CSV, XLSX, XLS · carrier + agent auto-detected</div>
+      <div class="ca-drop-text" id="caDropText">Drop files here or <span class="link-text">click to browse</span></div>
+      <div class="ca-drop-sub">Drop files here · CSV, XLSX, XLS · carrier + agent auto-detected · drop or select many</div>
     </label>
+    <ul id="caStaging" class="ca-staging"></ul>
+    <div id="caResults" class="ca-results" hidden></div>
     <div class="ca-uprow">
       <div>
         <label class="ca-flabel">Attribute this statement to
           <span style="color:var(--green);font-weight:600;">· {{ default_upload_month }}</span></label>
-        <input type="month" name="statement_month" value="{{ default_upload_month_iso }}" class="ca-month">
+        <input type="month" name="statement_month" id="caMonth" value="{{ default_upload_month_iso }}" class="ca-month">
       </div>
-      <button type="submit" class="ca-submit">Upload &amp; Parse</button>
+      <button type="button" id="caSubmit" class="ca-submit" disabled>Upload &amp; Parse<span id="caCount"></span></button>
     </div>
     <p style="font-size:11px;color:var(--slate);margin:10px 0 0;">
       Commissions pay one month behind, so this defaults to <strong>{{ default_upload_month }}</strong> — change it only if this file is for a different month.
@@ -539,14 +554,209 @@ td.ca-carrier { font-weight:600; color:var(--ivory-bright); }
   </form>
 </div>
 <script>
-  (function(){
-    var f=document.getElementById('caFile'), t=document.getElementById('caDropText'), d=document.getElementById('caDrop');
-    if(!f) return;
-    f.addEventListener('change',function(){ if(f.files.length){ t.innerHTML='<strong style="color:var(--gold)">'+f.files[0].name+'</strong> selected'; } });
-    ['dragover','dragenter'].forEach(function(e){ d.addEventListener(e,function(ev){ev.preventDefault(); d.classList.add('drag-over');}); });
-    ['dragleave','drop'].forEach(function(e){ d.addEventListener(e,function(ev){ev.preventDefault(); d.classList.remove('drag-over');}); });
-    d.addEventListener('drop',function(ev){ if(ev.dataTransfer.files.length){ f.files=ev.dataTransfer.files; f.dispatchEvent(new Event('change')); } });
-  })();
+(function(){
+  var fileInput   = document.getElementById('caFile');
+  var dropZone    = document.getElementById('caDrop');
+  var stagingList = document.getElementById('caStaging');
+  var resultsBox  = document.getElementById('caResults');
+  var submitBtn   = document.getElementById('caSubmit');
+  var countSpan   = document.getElementById('caCount');
+  var monthInput  = document.getElementById('caMonth');
+  var uploadForm  = document.querySelector('form[action*="commission_upload"]');
+
+  if (!fileInput || !dropZone) return;
+
+  // In-memory list of staged File objects
+  var staged = [];
+
+  // Deduplicate by name+size and add to staged[]
+  function addFiles(fileList) {
+    Array.from(fileList).forEach(function(f) {
+      var dup = staged.some(function(s){ return s.name === f.name && s.size === f.size; });
+      if (!dup) staged.push(f);
+    });
+    renderStaging();
+  }
+
+  // Re-render the staging <ul>
+  function renderStaging() {
+    stagingList.innerHTML = '';
+    staged.forEach(function(f, idx) {
+      var li = document.createElement('li');
+
+      var icon = document.createElement('span');
+      icon.textContent = '📄';
+      icon.setAttribute('aria-hidden','true');
+      li.appendChild(icon);
+
+      var fname = document.createElement('span');
+      fname.className = 'ca-fname';
+      fname.textContent = f.name;  // textContent — never innerHTML for user data
+      li.appendChild(fname);
+
+      var rmBtn = document.createElement('button');
+      rmBtn.className = 'ca-rm';
+      rmBtn.type = 'button';
+      rmBtn.setAttribute('aria-label', 'Remove ' + f.name);
+      rmBtn.textContent = '✕';
+      (function(i){ rmBtn.addEventListener('click', function(){ staged.splice(i, 1); renderStaging(); }); })(idx);
+      li.appendChild(rmBtn);
+
+      stagingList.appendChild(li);
+    });
+
+    // Update count badge and submit disabled state
+    if (staged.length === 0) {
+      countSpan.textContent = '';
+      submitBtn.disabled = true;
+    } else {
+      countSpan.textContent = ' (' + staged.length + ')';
+      submitBtn.disabled = false;
+    }
+  }
+
+  // Render per-file results inside #caResults
+  function renderResults(data) {
+    resultsBox.removeAttribute('hidden');
+    resultsBox.innerHTML = '';  // static clear — no user data here
+
+    // Summary header using DOM text nodes only
+    var summary = document.createElement('div');
+    summary.style.cssText = 'font-size:12px;color:var(--slate);margin-bottom:4px;';
+    summary.textContent = 'Imported: ' + (data.summary ? data.summary.imported : '?') +
+                          '  ·  Rejected: ' + (data.summary ? data.summary.rejected : '?');
+    resultsBox.appendChild(summary);
+
+    (data.results || []).forEach(function(r) {
+      var row = document.createElement('div');
+      row.className = r.ok ? 'ca-result-ok' : 'ca-result-err';
+
+      var line = document.createElement('div');
+      if (r.ok) {
+        // ✓ scope filename — N rows, $gross → period
+        var tick = document.createTextNode('✓ ');
+        var scope = document.createTextNode((r.scope || '') + ' ');
+        var fname = document.createTextNode(r.filename);
+        var rest = document.createTextNode(
+          ' — ' + (r.rows || 0) + ' rows, $' + (r.gross || '0') + ' → ' + (r.period || '')
+        );
+        line.appendChild(tick);
+        line.appendChild(scope);
+        line.appendChild(fname);
+        line.appendChild(rest);
+      } else {
+        // ✗ filename — error
+        var cross = document.createTextNode('✗ ');
+        var fname2 = document.createTextNode(r.filename);
+        var errText = document.createTextNode(' — ' + (r.error || 'Unknown error'));
+        line.appendChild(cross);
+        line.appendChild(fname2);
+        line.appendChild(errText);
+      }
+      row.appendChild(line);
+
+      if (!r.ok && r.fix) {
+        var fixLine = document.createElement('div');
+        fixLine.className = 'ca-result-fix';
+        fixLine.textContent = 'Fix: ' + r.fix;  // textContent — server string, safe
+        row.appendChild(fixLine);
+      }
+
+      resultsBox.appendChild(row);
+    });
+
+    // Remove succeeded files from staging; keep failed ones for retry
+    var succeededNames = {};
+    (data.results || []).forEach(function(r){ if(r.ok) succeededNames[r.filename] = true; });
+    staged = staged.filter(function(f){ return !succeededNames[f.name]; });
+    renderStaging();
+  }
+
+  // Refresh the carrier checklist + trust strip without a full page reload
+  function refreshChecklist() {
+    fetch(window.location.href, {credentials:'same-origin'})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+
+        var newStrip = doc.querySelector('.ca-strip');
+        var curStrip = document.querySelector('.ca-strip');
+        if (newStrip && curStrip) curStrip.innerHTML = newStrip.innerHTML;
+
+        var newChecklist = doc.querySelector('.ca-checklist');
+        var curChecklist = document.querySelector('.ca-checklist');
+        if (newChecklist && curChecklist) curChecklist.innerHTML = newChecklist.innerHTML;
+      })
+      .catch(function(){/* checklist refresh failure is non-fatal */});
+  }
+
+  // ── AJAX submit ──
+  submitBtn.addEventListener('click', function(){
+    if (staged.length === 0) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading…';
+
+    var fd = new FormData();
+    staged.forEach(function(f){ fd.append('file', f); });
+    fd.append('statement_month', monthInput ? monthInput.value : '');
+
+    fetch(uploadForm.action, {
+      method: 'POST',
+      body: fd,
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+      credentials: 'same-origin'
+    })
+    .then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data){
+      renderResults(data);
+      refreshChecklist();
+    })
+    .catch(function(err){
+      resultsBox.removeAttribute('hidden');
+      resultsBox.innerHTML = '';  // static clear
+      var errRow = document.createElement('div');
+      errRow.className = 'ca-result-net-err';
+      errRow.textContent = 'Upload failed — check your connection and try again.';
+      resultsBox.appendChild(errRow);
+    })
+    .finally(function(){
+      // Restore button label with count (disabled state managed by renderStaging)
+      submitBtn.textContent = 'Upload & Parse';
+      var cspan = document.createElement('span');
+      cspan.id = 'caCount';
+      submitBtn.appendChild(cspan);
+      countSpan = document.getElementById('caCount');
+      renderStaging();
+    });
+  });
+
+  // ── Drop zone drag/drop ──
+  ['dragover','dragenter'].forEach(function(e){
+    dropZone.addEventListener(e, function(ev){ ev.preventDefault(); dropZone.classList.add('drag-over'); });
+  });
+  ['dragleave','drop'].forEach(function(e){
+    dropZone.addEventListener(e, function(ev){ ev.preventDefault(); dropZone.classList.remove('drag-over'); });
+  });
+  dropZone.addEventListener('drop', function(ev){
+    if (ev.dataTransfer && ev.dataTransfer.files.length) addFiles(ev.dataTransfer.files);
+  });
+
+  // ── File input change ──
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files.length) {
+      addFiles(fileInput.files);
+      fileInput.value = '';  // reset so same file can be re-selected after remove
+    }
+  });
+
+  // Initialize
+  renderStaging();
+})();
 </script>
 
 {# The statement list for the selected period — each row = full trust info + 1-click actions #}

@@ -35,11 +35,18 @@ def parse(filepath: str) -> list[dict]:
         raise ValueError(f"Could not read Aetna file: {e}")
     df.columns = df.columns.str.strip()
 
-    missing = XLSX_REQUIRED - set(df.columns)
-    if missing:
-        raise ValueError(f"Aetna file missing required columns: {missing}")
-
-    return _parse_xlsx_format(df)
+    # Two XLSX shapes exist. The older agency file has "Member Name" + "Writing
+    # Agent Name". The July-2026+ download is an XLSX with the SAME split columns
+    # as the CSV/per-agent format ("First Name"/"Last Name"/"Writing Agent NPN" +
+    # "First/Last Name"). Route each to its matching parser instead of rejecting
+    # the newer format (which errored AJ's July upload).
+    cols = set(df.columns)
+    if XLSX_REQUIRED <= cols:
+        return _parse_xlsx_format(df)
+    if CSV_REQUIRED <= cols:
+        return _parse_csv_format(df)
+    missing = XLSX_REQUIRED - cols
+    raise ValueError(f"Aetna file missing required columns: {missing}")
 
 
 def _parse_xlsx_format(df):

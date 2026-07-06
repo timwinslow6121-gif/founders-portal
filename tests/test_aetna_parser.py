@@ -36,3 +36,36 @@ def test_summary_row_skipped():
     recs = parse(AGENT)
     # the trailing "$202.44 x.55" summary row has no Medicare Number → skipped
     assert all(r["mbi"] for r in recs)
+
+
+def test_july_xlsx_with_csv_columns_parses(tmp_path):
+    """The July 2026 Aetna BOB is an XLSX whose columns match the CSV/per-agent
+    format (First Name / Last Name / Middle Initial / Writing Agent First+Last /
+    Coverage Effective Date / Member Status / Date of Birth) — NOT the older
+    'Member Name' + 'Writing Agent Name' agency shape. It must parse (route to the
+    split-column path), not raise 'missing required columns'."""
+    import openpyxl
+    p = tmp_path / "Aetna Book of Business.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active
+    ws.append(["Member ID", "Legacy Member ID", "Medicare Number", "Application ID",
+               "First Name", "Middle Initial", "Last Name", "Date of Birth",
+               "Phone Number", "Address Line 1", "Address Line 2", "City", "State",
+               "Zip Code", "Coverage Effective Date", "Member Status", "Plan Name",
+               "Term Date", "Writing Agent NPN", "Writing Agent First Name",
+               "Writing Agent Last Name"])
+    ws.append(["NG102285989500", "", "2AH6DF6NM54", "DRXB988R1817N",
+               "DENISE", "B", "EDDLEMAN", "1961-06-15", "7047871195",
+               "10 OLD CONCORD", "", "CHINA GROVE", "NC", "28023",
+               "2026-07-01", "A", "Aetna Eagle PPO", "", "12345678",
+               "Justin", "Basinger"])
+    wb.save(p)
+    recs = parse(str(p))
+    assert len(recs) == 1
+    r = recs[0]
+    assert r["carrier"] == "Aetna"
+    assert r["mbi"] == "2AH6DF6NM54"
+    assert r["first_name"] == "Denise" and r["last_name"] == "Eddleman"
+    assert r["dob"] is not None
+    assert r["status"] == "active"
+    assert r["agent_name"] == "Justin Basinger"
+    assert str(r["effective_date"]) == "2026-07-01"

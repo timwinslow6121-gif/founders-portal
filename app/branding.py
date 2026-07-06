@@ -8,7 +8,7 @@ CARRIER_BRAND = {
     "Aetna": "#7D3F98",
     "HealthSpring": "#9E28B5", "Healthspring": "#9E28B5",
     "GTL": "#2F61FE",
-    "Medico": "#EDC319", "Wellable": "#EDC319",
+    "Wellabe": "#EDC319", "Medico": "#EDC319", "Wellable": "#EDC319",
 }
 DEFAULT_BRAND = "#266EA5"
 

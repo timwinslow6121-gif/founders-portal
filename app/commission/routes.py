@@ -2235,9 +2235,12 @@ def recap_carrier_detail():
     period = request.args.get("period")
     carrier = request.args.get("carrier")
     q = (request.args.get("q") or "").strip().lower()
+    from app.commission.recap import canon_carrier
     blocks = build_carrier_blocks(agent_id, current_user.agency_id, period)
-    block = next((b for b in blocks if b.carrier == carrier), None)
-    if block is None:
+    # Match by CANONICAL name so clicking the "Wellabe" chip finds the underlying
+    # Medico/Wellable block(s) — the recap page collapses those to one Wellabe chip.
+    matching = [b for b in blocks if canon_carrier(b.carrier) == carrier]
+    if not matching:
         return {"carrier": carrier, "groups": []}
 
     def rowj(r):
@@ -2248,7 +2251,10 @@ def recap_carrier_detail():
                 "split": r.split_rate, "payout": r.payout}
 
     groups = []
-    for g in block.groups:
-        rows = [rowj(r) for r in g.rows if not q or q in (r.member_name or "").lower()]
-        groups.append({"kind": g.kind, "count": g.count, "subtotal": g.subtotal, "rows": rows})
-    return {"carrier": carrier, "total": block.total_payout, "groups": groups}
+    total = 0.0
+    for block in matching:
+        total += block.total_payout
+        for g in block.groups:
+            rows = [rowj(r) for r in g.rows if not q or q in (r.member_name or "").lower()]
+            groups.append({"kind": g.kind, "count": g.count, "subtotal": g.subtotal, "rows": rows})
+    return {"carrier": carrier, "total": total, "groups": groups}

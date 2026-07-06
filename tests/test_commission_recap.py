@@ -271,6 +271,37 @@ def test_lost_members_and_uhc_manual(db_session, agency):
                                              period_label="June 2026")) is None
 
 
+def test_medico_and_wellable_collapse_to_one_wellabe_container(db_session, agency):
+    """Medico is the parent company of Wellabe; we're contracted as Wellabe. The
+    dashboard must show ONE "Wellabe" container — never a separate "Medico" or the
+    misspelled "Wellable" — whether the contract/data is under either name."""
+    from app.models import User, AgentCarrierContract
+    from app.extensions import db
+    from app.commission.recap import build_recap, canon_carrier
+
+    assert canon_carrier("Medico") == "Wellabe"
+    assert canon_carrier("Wellable") == "Wellabe"
+    assert canon_carrier("Wellabe") == "Wellabe"
+    assert canon_carrier("Aetna") == "Aetna"
+
+    agent = User(name="Tim Winslow", email="tw@x.com", agency_id=agency.id)
+    db.session.add(agent); db.session.flush()
+    # Tim's real case: BOTH a Medico and a Wellable contract + one Medico data row
+    for c in ("Medico", "Wellable"):
+        db.session.add(AgentCarrierContract(agency_id=agency.id, agent_id=agent.id,
+                                            carrier=c, split_rate=0.55, is_active=True))
+    _mk_line(db, agency, agent, "Medico", "agent_commission", "new", 100.0, 0.55, "Ann")
+    db.session.flush()
+
+    r = build_recap(agent.id, agency.id, "May 2026")
+    names = [b.carrier for b in r.carriers]
+    assert "Medico" not in names
+    assert "Wellable" not in names
+    assert names.count("Wellabe") == 1        # exactly ONE, merged
+    wellabe = next(b for b in r.carriers if b.carrier == "Wellabe")
+    assert round(wellabe.total_payout, 2) == 55.00   # the Medico data landed under Wellabe
+
+
 def test_build_recap_headline_and_ytd(db_session, agency):
     from app.models import User, AgentRecapPeriod
     from app.extensions import db

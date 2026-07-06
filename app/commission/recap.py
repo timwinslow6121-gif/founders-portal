@@ -11,6 +11,14 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+
+def canon_carrier(name):
+    """Canonical DISPLAY carrier name. Medico + Wellable are the SAME carrier —
+    everything is branded "Wellabe" (Medico is the parent company). Collapse both
+    (and the misspelling "Wellable") to "Wellabe" so the dashboard shows ONE
+    Wellabe container, never a separate Medico or misspelled Wellable one."""
+    return "Wellabe" if name in ("Medico", "Wellable", "Wellabe") else name
+
 # Per-carrier mapping of native payment_type text → "is this a NEW enrollment?"
 # Only agent_commission rows can be new; chargeback/override/hra never are.
 # Verified against real ledger data (2026-06-09). Lowercased payment_type.
@@ -630,8 +638,7 @@ def commission_audit_overview(agency_id, period_label):
     # Canonicalize display names: Medico + Wellable are the SAME carrier (everything
     # is branded "Wellabe"; Medico is the parent). Collapse them to one chip, marked
     # uploaded if EITHER underlying name has a statement this period.
-    def canon(name):
-        return "Wellabe" if name in ("Medico", "Wellable", "Wellabe") else name
+    canon = canon_carrier
     seen = {}
     for c in expected:
         disp = canon(c)
@@ -858,9 +865,11 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
     carriers, agents_with_data = set(), set()
     for li in lis:
         p, k = split_breakdown(li)
-        carriers.add(li.carrier)
+        # Medico + Wellable are the same carrier — show ONE "Wellabe" column.
+        li_carrier = canon_carrier(li.carrier)
+        carriers.add(li_carrier)
         agents_with_data.add(li.agent_id)
-        key = (li.agent_id, li.carrier)
+        key = (li.agent_id, li_carrier)
         if li.classification == "founders_override":
             override[key] += k
         elif li.classification in PAYOUT_CLASSES:
@@ -881,9 +890,10 @@ def build_aggregate_matrix(agency_id, scope="month", period_label=None, year=Non
                     continue
             except ValueError:
                 continue
-        carriers.add(adj.carrier)
+        adj_carrier = canon_carrier(adj.carrier)
+        carriers.add(adj_carrier)
         agents_with_data.add(adj.agent_id)
-        pay[(adj.agent_id, adj.carrier)] += (adj.amount or 0.0)
+        pay[(adj.agent_id, adj_carrier)] += (adj.amount or 0.0)
 
     carriers = sorted(carriers)
     users = {u.id: u.name for u in User.query.filter_by(agency_id=agency_id).all()}
@@ -946,6 +956,22 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
           .filter_by(agency_id=agency_id, agent_id=agent_id, period_label=period_label).first())
 
     carriers = build_carrier_blocks(agent_id, agency_id, period_label)
+    # Canonicalize display names + MERGE blocks that collapse to the same carrier
+    # (Medico + Wellable → one "Wellabe" block). A data-bearing Medico block must
+    # render as "Wellabe", and if the agent somehow has both, they combine into one.
+    merged: dict = {}
+    for b in carriers:
+        disp = canon_carrier(b.carrier)
+        if disp not in merged:
+            b.carrier = disp
+            merged[disp] = b
+        else:
+            m = merged[disp]
+            m.total_payout += b.total_payout
+            m.new_members += b.new_members
+            m.lost_members += b.lost_members
+            m.groups.extend(b.groups)
+    carriers = list(merged.values())
     # UHC is now a real ledger carrier (R4 parser, 2026-06). The manual figure is a
     # legacy fallback ONLY for periods with no parsed UHC data — never add it on top
     # of a ledger UHC block (that would double-count). New manual entry is removed.
@@ -960,9 +986,11 @@ def build_recap(agent_id, agency_id, period_label) -> RecapView:
     # confirmed" is distinguishable from "statement not uploaded yet".
     from app.models import AgentCarrierContract
     status_map = carrier_period_status(agency_id, period_label)
-    contracted = {c.carrier for c in AgentCarrierContract.query
+    # Canonicalize contracted names so Medico + Wellable collapse to ONE "Wellabe"
+    # container (never a separate Medico or misspelled Wellable one).
+    contracted = {canon_carrier(c.carrier) for c in AgentCarrierContract.query
                   .filter_by(agent_id=agent_id, agency_id=agency_id, is_active=True).all()}
-    present = {b.carrier for b in carriers}
+    present = {canon_carrier(b.carrier) for b in carriers}
     for carrier in contracted - present:
         carriers.append(CarrierBlock(carrier=carrier, total_payout=0.0, new_members=0,
                                      status=status_map.get(carrier, "pending")))

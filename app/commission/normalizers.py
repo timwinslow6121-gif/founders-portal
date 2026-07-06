@@ -589,6 +589,7 @@ def normalize_humana(sheets):
             last_name=last,
             mbi=umid or None,
             carrier_member_id=str(g(row, "PID") or "").strip() or None,
+            member_group_key=str(g(row, "GrpNbr") or "").strip() or None,
             effective_date=_parse_date(g(row, "EffDate")),
             plan_contract=str(g(row, "Contract") or "").strip() or None,
             row_class=_classify_humana(g(row, "TxnTypeCd"), amount),

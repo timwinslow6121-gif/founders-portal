@@ -30,6 +30,7 @@ class MemberFact:
     last_name: str = ""
     mbi: Optional[str] = None
     carrier_member_id: Optional[str] = None
+    member_group_key: Optional[str] = None   # Humana GrpNbr — stable per-member crosswalk key
     dob: Optional[date] = None
     zip_code: Optional[str] = None
     phone: Optional[str] = None

@@ -46,6 +46,38 @@ def test_seed_links_mbi_bearing_facts_only(ctx):
     # money tables untouched
     assert CommissionLineItem.query.count() == 0
 
+def test_seed_prefers_real_customer_over_stub_on_shared_mbi(ctx):
+    """MINOR-3 regression: when a real and a stub customer share the same
+    humana_id, _match_by_mbi's .first() is arbitrary-order and may return the
+    stub. The seed must prefer the REAL (stub=False) customer so the crosswalk
+    row never points at a stub (which plan_cleanup then can't use as a keeper,
+    and which is CRITICAL-1 fuel — a stub that owns a crosswalk row)."""
+    from app.extensions import db
+    from app.models import Customer, CarrierIdCrosswalk
+    from app.commission.member_fact import MemberFact, RowClass
+    from scripts.seed_humana_crosswalk import seed_from_facts
+    app, agency_id = ctx
+    real = Customer(agency_id=agency_id, first_name="Eric", last_name="Tillman",
+                    full_name="Eric Tillman", humana_id="6Q77JG7KE39", stub=False)
+    stub = Customer(agency_id=agency_id, first_name="Eric", last_name="Tillman",
+                    full_name="Eric Tillman", humana_id="6Q77JG7KE39",
+                    stub=True, source="commission_import")
+    db.session.add_all([real, stub]); db.session.flush()
+    facts = [
+        MemberFact(carrier="Humana", full_name="Eric Tillman", first_name="Eric",
+                   last_name="Tillman", mbi="6Q77JG7KE39", carrier_member_id="827895454",
+                   member_group_key="00026457660K", row_class=RowClass.ENROLLMENT, amount=1.0,
+                   source_ref="h::1"),
+    ]
+    counts = seed_from_facts(facts, agency_id, apply=True)
+    assert counts["seeded"] == 1
+    row = CarrierIdCrosswalk.query.filter_by(agency_id=agency_id, carrier="Humana",
+                                             carrier_key="00026457660K").first()
+    assert row is not None
+    assert row.customer_id == real.id
+    assert row.customer_id != stub.id
+
+
 def test_seed_dry_run_writes_nothing(ctx):
     from app.extensions import db
     from app.models import Customer, CarrierIdCrosswalk

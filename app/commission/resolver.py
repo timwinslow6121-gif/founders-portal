@@ -133,11 +133,29 @@ def _crosswalk_lookup(fact: MemberFact, agency_id: int):
 
 def _crosswalk_write(fact: MemberFact, customer, agency_id: int, confidence: str):
     """Upsert (carrier, GrpNbr) → customer so future renewals ride this link.
-    Idempotent on the unique (agency_id, carrier, carrier_key)."""
+    Idempotent on the unique (agency_id, carrier, carrier_key).
+
+    A whole commission file is resolved in ONE uncommitted transaction with a
+    single trailing flush. Two rows sharing a GrpNbr (enrollment + renewal +
+    adjustment rows for the same member are routine in Humana files) would
+    each see `existing is None` from the no_autoflush committed-row check
+    below (it can't see an earlier row's still-PENDING insert this same
+    transaction) and each `add()` a row with the same
+    (agency_id, carrier, carrier_key) — UniqueViolation at end-of-file flush.
+    So ALSO check the session's pending-new objects for an already-staged
+    match before adding."""
     from app.models import CarrierIdCrosswalk
     key = (fact.member_group_key or "").strip()
     if not key or customer is None:
         return
+    # Pending (not-yet-flushed) objects added earlier THIS transaction —
+    # a plain query can't see these, so check db.session.new directly.
+    for obj in db.session.new:
+        if (isinstance(obj, CarrierIdCrosswalk)
+                and obj.agency_id == agency_id
+                and obj.carrier == fact.carrier
+                and obj.carrier_key == key):
+            return  # already staged this transaction — no-op
     with db.session.no_autoflush:
         existing = CarrierIdCrosswalk.query.filter_by(
             agency_id=agency_id, carrier=fact.carrier, carrier_key=key).first()

@@ -549,7 +549,7 @@ class CarrierIdCrosswalk(db.Model):
     carrier     = db.Column(db.String(32), nullable=False, index=True)
     carrier_key = db.Column(db.String(64), nullable=False)   # Humana GrpNbr, BCBS Customer No, ...
     key_kind    = db.Column(db.String(24), nullable=False)   # 'grpnbr' | 'customer_no' | 'member_id'
-    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     mbi         = db.Column(db.String(20))                   # captured when known
     confidence  = db.Column(db.String(24), nullable=False, default="exact_id")
     source_note = db.Column(db.String(256))

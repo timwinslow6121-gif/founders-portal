@@ -981,6 +981,37 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
         MatchSuggestion.suggested_customer_id.in_(loser_ids_resolved)
     ).update({"suggested_customer_id": keeper.id}, synchronize_session=False)
 
+    # CarrierIdCrosswalk needs the same collision handling as CustomerAorHistory
+    # because of UNIQUE (agency_id, carrier, carrier_key) — a crosswalk row can
+    # legitimately point at a stub loser (the seed's MBI match can land on a
+    # stub when a real+stub share humana_id), and a blind bulk UPDATE would
+    # collide if keeper and loser already share a (carrier, carrier_key).
+    # Mirror the CustomerAorHistory pattern: move keys the keeper lacks,
+    # delete duplicates the keeper already has. Must happen BEFORE the loser
+    # delete below or a leftover row raises ForeignKeyViolation on Postgres
+    # (CarrierIdCrosswalk.customer_id has no ondelete cascade at the FK).
+    from app.models import CarrierIdCrosswalk
+    keeper_xw_set = {
+        (row.carrier, row.carrier_key)
+        for row in CarrierIdCrosswalk.query.filter_by(customer_id=keeper.id).all()
+    }
+    loser_xws = (
+        CarrierIdCrosswalk.query
+        .filter(CarrierIdCrosswalk.customer_id.in_(loser_ids_resolved))
+        .all()
+    )
+    xw_moved = 0
+    for row in loser_xws:
+        key = (row.carrier, row.carrier_key)
+        if key in keeper_xw_set:
+            # Duplicate key — drop the loser copy; keeper already has it.
+            db.session.delete(row)
+        else:
+            row.customer_id = keeper.id
+            keeper_xw_set.add(key)  # prevent a second loser from colliding
+            xw_moved += 1
+    moved["CarrierIdCrosswalk"] = xw_moved
+
     # Report PolicyPayment transitively (moved via their policies above).
     moved["PolicyPayment"] = pp_count
 

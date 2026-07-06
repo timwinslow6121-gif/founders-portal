@@ -19,7 +19,7 @@ def upgrade():
         sa.Column("carrier", sa.String(length=32), nullable=False),
         sa.Column("carrier_key", sa.String(length=64), nullable=False),
         sa.Column("key_kind", sa.String(length=24), nullable=False),
-        sa.Column("customer_id", sa.Integer(), sa.ForeignKey("customers.id"), nullable=False),
+        sa.Column("customer_id", sa.Integer(), sa.ForeignKey("customers.id", ondelete="CASCADE"), nullable=False),
         sa.Column("mbi", sa.String(length=20)),
         sa.Column("confidence", sa.String(length=24), nullable=False, server_default="exact_id"),
         sa.Column("source_note", sa.String(length=256)),

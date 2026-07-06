@@ -15,7 +15,7 @@ import sys
 
 from app import create_app
 from app.extensions import db
-from app.models import CarrierIdCrosswalk
+from app.models import CarrierIdCrosswalk, Customer
 from app.commission.resolver import _match_by_mbi
 
 
@@ -34,6 +34,15 @@ def seed_from_facts(facts, agency_id, apply=False):
         if customer is None:
             counts["skipped_no_mbi_match"] += 1
             continue
+        if customer.stub:
+            # _match_by_mbi's .first() is arbitrary-order — when a real and a
+            # stub share this humana_id, prefer the real customer so the
+            # crosswalk never points at a stub the cleanup can't use as a
+            # keeper (and so this stub never becomes merge-Critical-1 fuel).
+            real = Customer.query.filter_by(
+                agency_id=agency_id, humana_id=fact.mbi, stub=False).first()
+            if real is not None:
+                customer = real
         existing = CarrierIdCrosswalk.query.filter_by(
             agency_id=agency_id, carrier="Humana", carrier_key=key).first()
         if existing is not None:

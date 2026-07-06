@@ -889,8 +889,11 @@ def _detect_carrier(filepath: str, filename: str) -> str:
         # BCBS BOB: "Agent #" + "Agent Name" + "ORIGEFFDATE"
         if "agent #" in header_set and "origeffdate" in header_set:
             return "BCBS"
-        # Devoted BOB: "Agent NPN" + "Member HICN"
+        # Devoted BOB: older "Agent NPN" + "Member HICN"; July-2026+ "Application
+        # Status Report" (every header prefixed, single Full Name, no member id).
         if "agent npn" in header_set and "member hicn" in header_set:
+            return "Devoted"
+        if any(h.startswith("application status report") for h in header_set):
             return "Devoted"
         # Aetna BOB: the older agency file has "Medicare Number" + "Writing Agent
         # Name"; the July-2026+ download has split columns ("Member ID" + "Medicare

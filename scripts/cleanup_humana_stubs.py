@@ -47,23 +47,26 @@ def _norm_name(c):
     return (c.full_name or "").strip().lower()
 
 
-def plan_cleanup_by_name_eff(agency_id):
-    """Second tier: pair a legacy Humana stub to a real customer by NAME + Humana
-    policy EFFECTIVE DATE, but ONLY when it is safe — proven against the whole book
-    that no two DIFFERENT real people share a name + non-Jan-1 effective date:
+def plan_cleanup_by_name_eff(agency_id, carrier="Humana"):
+    """Second tier: pair a legacy stub to a real customer by NAME + policy EFFECTIVE
+    DATE, but ONLY when it is safe — proven against the whole book that no two
+    DIFFERENT real people share a name + non-Jan-1 effective date:
 
-      1. the stub's Humana-policy effective date is NOT Jan 1 (the AEP mass-date,
+      1. the stub's <carrier>-policy effective date is NOT Jan 1 (the AEP mass-date,
          where thousands of plans share Jan 1 — a weak, coincidence-prone match);
       2. that (normalized name, eff-date) matches EXACTLY ONE real (stub=False)
-         Humana customer;
+         <carrier> customer;
       3. the name is not shared by 3+ customers total (the two-David-Whites guard).
 
+    Carrier-parameterized so it can whittle any carrier's stubs once their BOB
+    customers exist (VERIFY 0 true name+non-Jan1-eff collisions for that carrier
+    first — proven for Humana + Devoted; UHC had 1, so it is NOT safe as-is).
     Read-only: returns [{stub_id, keeper_id, eff, tier:'name_eff'}]. Lonely /
     Jan-1 / ambiguous / shared-name stubs are never listed."""
     from collections import defaultdict
 
-    # Index every Humana customer's (normalized name, eff-date) -> set of customer ids,
-    # split by stub vs real, plus a whole-book name-count for the shared-name guard.
+    # Index every <carrier> customer's (normalized name, eff-date) -> set of customer
+    # ids, split by stub vs real, plus a whole-book name-count for the shared-name guard.
     real_by_key = defaultdict(set)   # (name, eff) -> {real customer ids}
     name_count = defaultdict(int)    # normalized name -> total customers with it
     stub_effs = {}                   # stub id -> (name, eff)
@@ -72,7 +75,7 @@ def plan_cleanup_by_name_eff(agency_id):
     q = (db.session.query(Customer, Policy.effective_date)
          .join(Policy, Policy.customer_id == Customer.id)
          .filter(Customer.agency_id == agency_id,
-                 Policy.carrier.ilike("Humana%"),
+                 Policy.carrier.ilike(f"{carrier}%"),
                  Policy.effective_date.isnot(None)))
     for cust, eff in q.all():
         nm = _norm_name(cust)
@@ -110,6 +113,9 @@ def main():
     ap.add_argument("--tier", choices=["mbi", "name_eff", "both"], default="mbi",
                     help="mbi = crosswalk-MBI corroborated (default); "
                          "name_eff = name + non-Jan-1 eff-date unique match; both = union")
+    ap.add_argument("--carrier", default="Humana",
+                    help="carrier for the name_eff tier (default Humana). "
+                         "VERIFY 0 name+non-Jan1-eff collisions for that carrier first.")
     ap.add_argument("--apply", action="store_true")
     args = ap.parse_args()
     app = create_app()
@@ -121,7 +127,7 @@ def main():
         if args.tier in ("mbi", "both"):
             pairs += plan_cleanup(args.agency)
         if args.tier in ("name_eff", "both"):
-            pairs += plan_cleanup_by_name_eff(args.agency)
+            pairs += plan_cleanup_by_name_eff(args.agency, carrier=args.carrier)
         # de-dup by stub_id (a stub could qualify under both tiers) — keep first (mbi wins)
         seen, deduped = set(), []
         for p in pairs:

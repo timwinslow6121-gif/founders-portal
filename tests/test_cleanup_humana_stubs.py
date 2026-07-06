@@ -46,8 +46,8 @@ def test_plan_cleanup_pairs_stub_to_real_via_crosswalk(ctx):
 
 _MID = [0]
 
-def _mk(db, agency_id, name, *, stub, eff=None, **kw):
-    """Helper: a Humana customer + one Humana policy (for the name+eff tier).
+def _mk(db, agency_id, name, *, stub, eff=None, carrier="Humana", **kw):
+    """Helper: a customer + one policy for the name+eff tier.
     Each policy gets a unique member_id (the (carrier, member_id) unique index)."""
     from app.models import Customer, Policy
     fn, ln = (name.split(" ", 1) + [""])[:2]
@@ -56,7 +56,7 @@ def _mk(db, agency_id, name, *, stub, eff=None, **kw):
     db.session.add(c); db.session.flush()
     if eff is not None:
         _MID[0] += 1
-        db.session.add(Policy(agency_id=agency_id, carrier="Humana",
+        db.session.add(Policy(agency_id=agency_id, carrier=carrier,
                               member_id=f"M{_MID[0]}", customer_id=c.id,
                               effective_date=eff))
     db.session.flush()
@@ -104,3 +104,29 @@ def test_name_eff_tier_merges_unique_non_jan1_pairs_only(ctx):
     # every pair carries a reason/tier tag for the dry-run report
     for p in pairs:
         assert p.get("tier") == "name_eff"
+
+
+def test_name_eff_tier_is_carrier_parameterized(ctx):
+    """The name+eff tier must run per-carrier (not Humana-only) so it can whittle
+    Devoted/other stubs once their BOB customers exist. A Devoted stub with a
+    unique non-Jan-1 name+eff real twin merges when carrier='Devoted'."""
+    from app.extensions import db
+    from scripts.cleanup_humana_stubs import plan_cleanup_by_name_eff
+    from datetime import date
+    app, agency_id = ctx
+    real = _mk(db, agency_id, "Brandi Tucker", stub=False, eff=date(2026, 4, 1),
+               carrier="Devoted")
+    stub = _mk(db, agency_id, "Brandi Tucker", stub=True, eff=date(2026, 4, 1),
+               carrier="Devoted")
+    # a Humana stub with the same-shaped data must NOT be caught by a Devoted run
+    hum_stub = _mk(db, agency_id, "Someone Else", stub=True, eff=date(2026, 4, 1),
+                   carrier="Humana")
+    _mk(db, agency_id, "Someone Else", stub=False, eff=date(2026, 4, 1), carrier="Humana")
+
+    pairs = plan_cleanup_by_name_eff(agency_id, carrier="Devoted")
+    loser_ids = {p["stub_id"] for p in pairs}
+    assert stub.id in loser_ids
+    assert hum_stub.id not in loser_ids          # Devoted run ignores Humana stubs
+    # default still works for Humana
+    hpairs = plan_cleanup_by_name_eff(agency_id, carrier="Humana")
+    assert hum_stub.id in {p["stub_id"] for p in hpairs}

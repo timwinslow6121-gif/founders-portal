@@ -495,3 +495,16 @@ def test_normalize_uhc_nameless_no_mbi_row_is_non_customer():
                           writing_id_to_name={"6435806": "Rebekah Long"})
     assert len(facts) == 1
     assert facts[0].row_class == RowClass.NON_CUSTOMER   # payment only, no stub
+
+
+def test_normalize_humana_carries_grpnbr():
+    from app.commission.normalizers import normalize_humana
+    sheets = {"CommissionData_1": [
+        ["GrpName", "GrpNbr", "PID", "UMID", "EffDate", "Contract", "TxnTypeCd", "PaidAmount"],
+        ["AGNER SANDRA B", "00019275764K", "591236450", "", "2026-06-01", "H1036", "ARCM", 28.91],
+    ]}
+    facts = normalize_humana(sheets)
+    assert len(facts) == 1
+    assert facts[0].member_group_key == "00019275764K"
+    assert facts[0].carrier_member_id == "591236450"   # PID, unchanged
+    assert facts[0].mbi is None                          # renewal → no MBI, unchanged

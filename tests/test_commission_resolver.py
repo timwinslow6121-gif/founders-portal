@@ -702,3 +702,98 @@ def test_unresolved_commission_row_with_no_agent_parks_never_attributes_to_uploa
         assert Customer.query.count() == before              # no stub, no misattribution
         # no fabricated AOR interval at all (parking opens none)
         assert CustomerAorHistory.query.count() == 0
+
+
+def test_grpnbr_crosswalk_links_renewal_after_seed(db_session, app, agency, agent_user):
+    """A renewal (no MBI) with a GrpNbr already in the crosswalk resolves to that
+    customer — the durable path. And an ID match WRITES the crosswalk for next time."""
+    from app.extensions import db
+    from app.models import Customer, CarrierIdCrosswalk
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Sandra", last_name="Agner",
+                        full_name="Sandra Agner", humana_id="H73527562")
+        db.session.add(cust); db.session.flush()
+        # seed the crosswalk (as the seed script / a prior new-enrollment would)
+        db.session.add(CarrierIdCrosswalk(agency_id=agency.id, carrier="Humana",
+                       carrier_key="00019275764K", key_kind="grpnbr",
+                       customer_id=cust.id, confidence="exact_id"))
+        db.session.flush()
+        # a renewal fact: no MBI, PID that won't match a policy, but the SAME GrpNbr
+        fact = MemberFact(carrier="Humana", full_name="Sandra Agner",
+                          first_name="Sandra", last_name="Agner", mbi=None,
+                          carrier_member_id="591236450", member_group_key="00019275764K",
+                          row_class=RowClass.RENEWAL, amount=28.91,
+                          source_ref="humana::x::1")
+        res = resolve_customer(fact, agency_id=agency.id, agent_id=None,
+                               source="commission_import")
+        assert res.customer is not None and res.customer.id == cust.id
+        assert res.match_path == "crosswalk_key"
+
+
+def test_mbi_match_writes_crosswalk(db_session, app, agency, agent_user):
+    """A new-enrollment fact (has MBI) that matches by humana_id WRITES a crosswalk
+    row keyed on its GrpNbr, so the member's later renewals ride it."""
+    from app.extensions import db
+    from app.models import Customer, CarrierIdCrosswalk
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Eric", last_name="Tillman",
+                        full_name="Eric Tillman", humana_id="6Q77JG7KE39")
+        db.session.add(cust); db.session.flush()
+        fact = MemberFact(carrier="Humana", full_name="Eric Tillman",
+                          first_name="Eric", last_name="Tillman", mbi="6Q77JG7KE39",
+                          carrier_member_id="827895454", member_group_key="00026457660K",
+                          row_class=RowClass.ENROLLMENT, amount=202.41, source_ref="humana::x::2")
+        res = resolve_customer(fact, agency_id=agency.id, agent_id=None,
+                               source="commission_import")
+        assert res.customer.id == cust.id
+        xw = CarrierIdCrosswalk.query.filter_by(agency_id=agency.id, carrier="Humana",
+                                                carrier_key="00026457660K").first()
+        assert xw is not None and xw.customer_id == cust.id
+
+
+def test_crosswalk_write_idempotent_within_one_transaction(db_session, app, agency, agent_user):
+    """CRITICAL-2 regression: two facts sharing a GrpNbr in the SAME uncommitted
+    transaction (enrollment + renewal + adjustment rows for one member are
+    routine in a Humana file) must not each stage a CarrierIdCrosswalk insert
+    for the same (agency_id, carrier, carrier_key) — that would UniqueViolation
+    at flush. Calls _crosswalk_write directly (bypassing the full resolve flow,
+    whose OWN later queries happen to autoflush the first row before the second
+    call — masking the bug at that altitude) so the fix is exercised at the
+    exact seam where it lives: two writes, no intervening autoflush-triggering
+    query, then one flush. Without the fix this raises IntegrityError on SQLite
+    (which DOES enforce this unique constraint at flush time)."""
+    from app.extensions import db
+    from app.models import Customer, CarrierIdCrosswalk
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import _crosswalk_write
+
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Eric", last_name="Tillman",
+                        full_name="Eric Tillman", humana_id="6Q77JG7KE39")
+        db.session.add(cust); db.session.flush()
+
+        f1 = MemberFact(carrier="Humana", full_name="Eric Tillman",
+                        first_name="Eric", last_name="Tillman", mbi="6Q77JG7KE39",
+                        carrier_member_id="827895454", member_group_key="00026457660K",
+                        row_class=RowClass.ENROLLMENT, amount=202.41, source_ref="humana::x::1")
+        f2 = MemberFact(carrier="Humana", full_name="Eric Tillman",
+                        first_name="Eric", last_name="Tillman", mbi="6Q77JG7KE39",
+                        carrier_member_id="827895454", member_group_key="00026457660K",
+                        row_class=RowClass.ENROLLMENT, amount=10.00, source_ref="humana::x::2")
+
+        _crosswalk_write(f1, cust, agency.id, "exact_id")
+        _crosswalk_write(f2, cust, agency.id, "exact_id")
+
+        # The bug raised IntegrityError here (two pending inserts, same key).
+        db.session.flush()
+
+        rows = CarrierIdCrosswalk.query.filter_by(
+            agency_id=agency.id, carrier="Humana", carrier_key="00026457660K").all()
+        assert len(rows) == 1
+        assert rows[0].customer_id == cust.id

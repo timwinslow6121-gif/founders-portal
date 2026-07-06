@@ -1,14 +1,14 @@
 {
   "backwards_date_interval": 0,
   "carrier_counts_agree": 0,
-  "commission_import_stubs": 556,
+  "commission_import_stubs": 495,
   "count_only_via_metrics": 0,
   "duplicate_customers": 5,
   "links_resolve": 0,
   "no_name_policies": 56,
   "no_orphan_routes": 7,
-  "orphan_stub_customers": 556,
-  "payment_without_customer": 76,
-  "plan_id_orphans": 4611,
+  "orphan_stub_customers": 495,
+  "payment_without_customer": 668,
+  "plan_id_orphans": 4656,
   "statement_balance_complete": 0
 }

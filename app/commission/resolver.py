@@ -118,6 +118,40 @@ def _match_by_carrier_member_id(fact: MemberFact, agency_id: int):
     return Customer.query.get(p.customer_id) if p else None
 
 
+def _crosswalk_lookup(fact: MemberFact, agency_id: int):
+    """Customer for this fact's persistent carrier key (Humana GrpNbr), else None.
+    no_autoflush: mirrors _crosswalk — must not autoflush a pending stub mid-import."""
+    from app.models import CarrierIdCrosswalk
+    key = (fact.member_group_key or "").strip()
+    if not key:
+        return None
+    with db.session.no_autoflush:
+        row = CarrierIdCrosswalk.query.filter_by(
+            agency_id=agency_id, carrier=fact.carrier, carrier_key=key).first()
+    return Customer.query.get(row.customer_id) if row else None
+
+
+def _crosswalk_write(fact: MemberFact, customer, agency_id: int, confidence: str):
+    """Upsert (carrier, GrpNbr) → customer so future renewals ride this link.
+    Idempotent on the unique (agency_id, carrier, carrier_key)."""
+    from app.models import CarrierIdCrosswalk
+    key = (fact.member_group_key or "").strip()
+    if not key or customer is None:
+        return
+    with db.session.no_autoflush:
+        existing = CarrierIdCrosswalk.query.filter_by(
+            agency_id=agency_id, carrier=fact.carrier, carrier_key=key).first()
+    if existing is None:
+        db.session.add(CarrierIdCrosswalk(
+            agency_id=agency_id, carrier=fact.carrier, carrier_key=key,
+            key_kind="grpnbr", customer_id=customer.id,
+            mbi=(fact.mbi or None), confidence=confidence,
+            source_note="auto:resolver"))
+    elif existing.customer_id != customer.id:
+        # do not silently repoint a confirmed link; leave as-is (safe)
+        pass
+
+
 def _create_stub(fact: MemberFact, agency_id: int, agent_id: Optional[int],
                  source: str) -> Customer:
     """Create a stub Customer from whatever the fact provides."""
@@ -354,10 +388,19 @@ def _resolve_commission_match_or_park(fact: MemberFact, agency_id: int,
             result.policy = _attach_policy(fact, customer, agency_id, agent_id)
             result.created_policy = True
         result.match_path = match_path
+        # Every ID-based resolution (crosswalk_key, mbi, carrier_member_id) is an exact
+        # deterministic match — write/refresh the crosswalk so renewals ride it.
+        _crosswalk_write(fact, customer, agency_id, "exact_id")
         _apply_rapid_disenroll(result.policy, fact, result)
         _apply_carrier_switch(fact, customer, result.policy, agency_id, agent_id, result)
         _open_aor_interval(fact, customer, agency_id, agent_id, batch_id, result, source)
         return result
+
+    # 0. Persistent carrier-key crosswalk (Humana GrpNbr). The deterministic path
+    #    that carries renewals (no MBI) to the member linked earlier.
+    xw_customer = _crosswalk_lookup(fact, agency_id)
+    if xw_customer is not None:
+        return _attach(xw_customer, "crosswalk_key")
 
     # 1. crosswalk — deterministic re-link to an existing policy's customer.
     policy = _crosswalk(fact, agency_id)

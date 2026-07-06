@@ -702,3 +702,56 @@ def test_unresolved_commission_row_with_no_agent_parks_never_attributes_to_uploa
         assert Customer.query.count() == before              # no stub, no misattribution
         # no fabricated AOR interval at all (parking opens none)
         assert CustomerAorHistory.query.count() == 0
+
+
+def test_grpnbr_crosswalk_links_renewal_after_seed(db_session, app, agency, agent_user):
+    """A renewal (no MBI) with a GrpNbr already in the crosswalk resolves to that
+    customer — the durable path. And an ID match WRITES the crosswalk for next time."""
+    from app.extensions import db
+    from app.models import Customer, CarrierIdCrosswalk
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Sandra", last_name="Agner",
+                        full_name="Sandra Agner", humana_id="H73527562")
+        db.session.add(cust); db.session.flush()
+        # seed the crosswalk (as the seed script / a prior new-enrollment would)
+        db.session.add(CarrierIdCrosswalk(agency_id=agency.id, carrier="Humana",
+                       carrier_key="00019275764K", key_kind="grpnbr",
+                       customer_id=cust.id, confidence="exact_id"))
+        db.session.flush()
+        # a renewal fact: no MBI, PID that won't match a policy, but the SAME GrpNbr
+        fact = MemberFact(carrier="Humana", full_name="Sandra Agner",
+                          first_name="Sandra", last_name="Agner", mbi=None,
+                          carrier_member_id="591236450", member_group_key="00019275764K",
+                          row_class=RowClass.RENEWAL, amount=28.91,
+                          source_ref="humana::x::1")
+        res = resolve_customer(fact, agency_id=agency.id, agent_id=None,
+                               source="commission_import")
+        assert res.customer is not None and res.customer.id == cust.id
+        assert res.match_path == "crosswalk_key"
+
+
+def test_mbi_match_writes_crosswalk(db_session, app, agency, agent_user):
+    """A new-enrollment fact (has MBI) that matches by humana_id WRITES a crosswalk
+    row keyed on its GrpNbr, so the member's later renewals ride it."""
+    from app.extensions import db
+    from app.models import Customer, CarrierIdCrosswalk
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Eric", last_name="Tillman",
+                        full_name="Eric Tillman", humana_id="6Q77JG7KE39")
+        db.session.add(cust); db.session.flush()
+        fact = MemberFact(carrier="Humana", full_name="Eric Tillman",
+                          first_name="Eric", last_name="Tillman", mbi="6Q77JG7KE39",
+                          carrier_member_id="827895454", member_group_key="00026457660K",
+                          row_class=RowClass.ENROLLMENT, amount=202.41, source_ref="humana::x::2")
+        res = resolve_customer(fact, agency_id=agency.id, agent_id=None,
+                               source="commission_import")
+        assert res.customer.id == cust.id
+        xw = CarrierIdCrosswalk.query.filter_by(agency_id=agency.id, carrier="Humana",
+                                                carrier_key="00026457660K").first()
+        assert xw is not None and xw.customer_id == cust.id

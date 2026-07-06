@@ -21,16 +21,31 @@ is **per-carrier**, and several carriers share no usable key:
 | UHC | full MBI | **BOB has NO MBI column** | ❌ none |
 | Devoted | (per-agent) | Application report: name+DOB+NPN | ❌ by design |
 
-**The actual bugs (the crosswalk architecture from `2026-06-03-commission-customer-sync`
-+ `2026-06-22-identity-recovery` is RIGHT; these are why it doesn't fire):**
-1. **`extract_humana` (payments.py:180) reads a STALE 10-column layout** and hardcodes
-   `mbi=None, carrier_member_id=None` — the real file is 43 cols with MBI at col 7, PID
-   col 6, GrpNbr col 5. It throws away every ID and hands `_match_policy` only a name →
-   fuzzy-name match → stub on miss. **This is the direct cause of Sandra's split.**
-2. **Humana MBI, when captured, lands in `customers.humana_id`, not `customers.mbi`**
-   (portal Humana customers: have_full_mbi=12 vs have_humana_id=2319) — the matcher checks
-   `.mbi`, misses.
-3. **No name+last6-MBI or name+eff+plan fallback** in `_match_policy`.
+**CORRECTED root cause (verified 2026-07-04 by reading the LIVE resolver — the earlier
+draft mis-blamed the parser; that was wrong).** The live commission path is
+`normalize_humana` (normalizers.py) → `MemberFact` → `_resolve_commission_match_or_park`
+(resolver.py), NOT the legacy `extract_humana`/`_match_policy` in payments.py. The truth:
+1. **The parser is FINE.** `normalize_humana` already reads `mbi=UMID`, `carrier_member_id=PID`,
+   `EffDate`, `Contract` into a MemberFact. It does NOT throw IDs away.
+2. **The `humana_id` column is INTENTIONAL, not a bug.** `_create_stub` stores the Humana
+   MBI in `customers.humana_id` (resolver.py:124-127) AND `_match_by_mbi` matches Humana's
+   `fact.mbi` against `customers.humana_id` (resolver.py:95-96). Consistent by design. (The
+   `have_full_mbi=12 vs have_humana_id=2319` split is that consistency, not a defect.)
+3. **THE REAL GAP — renewals have no shared ID to any existing record.**
+   `_resolve_commission_match_or_park` tries, in order: crosswalk (Policy by
+   carrier+member_id) → `_match_by_mbi` → `_match_by_carrier_member_id` → else PARK. For a
+   **renewal** (Sandra Agner, `FrstYrRnwl=R`): `fact.mbi` is blank (Humana omits it on
+   renewals) so `_match_by_mbi` fails; her `PID` (591236450) ≠ the BOB customer's
+   `Policy.member_id` (which holds the `Humana ID` H73527562), so `_match_by_carrier_member_id`
+   fails → **PARK / legacy stub.** The resolver is doing the SAFE thing (never name-guessing);
+   it simply has no persistent way to know "GrpNbr 00019275764K = this customer."
+4. **So the fix is exactly the crosswalk (Tim's Option 3):** persist `GrpNbr ↔ customer ↔ MBI`
+   so that once a member is linked (via a new-enrollment MBI row), every future renewal —
+   which carries the SAME GrpNbr — rides the stored link. Sandra's legacy stub (2059) predates
+   item-1's park behavior; the cleanup collapses it into her real customer (6315).
+   **The parser and the humana_id column need NO change.** The work is: (a) capture GrpNbr onto
+   the MemberFact + the crosswalk, (b) add a crosswalk lookup as resolution step 1, (c) seed +
+   (d) clean up the legacy stubs.
 
 **Two lifecycle facts that shape the fix (proven):**
 - **Active/inactive = BOB col AE `Status`.** 948/948 blank-MBI Humana BOB rows are
@@ -62,26 +77,28 @@ The permanent equivalence store. One row per (carrier, carrier_key) → customer
 - Unique on `(agency_id, carrier, carrier_key)`.
 - This is the single seam every carrier's resolver reads/writes.
 
-### Component 2 — per-carrier resolver `resolve_member(carrier, row, agency_id)` (NEW helper)
-The "per-carrier matching map." Returns `(customer_id, confidence)` or `(None,'park')`.
-The ladder, tried in order, **stops at the first hit**:
-1. **Crosswalk hit** — `(carrier, GrpNbr/carrier_key)` in `carrier_id_crosswalk` → done
-   (this is the deterministic path that carries all future renewals).
-2. **Exact MBI** — commission MBI == `customers.mbi` OR `customers.humana_id` (fixes bug 2)
-   → link + **write the crosswalk row** (GrpNbr↔customer↔MBI) so renewals ride it forever.
-3. **MBI last-6 + name** — commission MBI's last 6 == active BOB row's Medicare-No last 6
-   AND name agrees (proven 0-collision) → link + write crosswalk.
-4. **name + effective-date + plan** vs an **active** BOB customer → if exactly one match,
-   link + write crosswalk (confidence `name_dob_plan`); if 0 or >1, **PARK** (never stub).
-- Per-carrier key extraction is a small table: Humana→GrpNbr(+MBI), BCBS→Customer No,
-  Aetna→Member ID, UHC→MBI(name+DOB fallback), Devoted→name+DOB+NPN.
+### Component 2 — add a crosswalk step to the EXISTING resolver
+Extend `_resolve_commission_match_or_park` (resolver.py) — do NOT build a parallel matcher.
+Add ONE new step at the FRONT of its existing ladder (crosswalk-Policy → `_match_by_mbi`
+→ `_match_by_carrier_member_id` → PARK), plus a write-back on success:
+- **New step 0 — `carrier_id_crosswalk` lookup:** `(agency_id, carrier, GrpNbr)` in the
+  new table → attach to that customer. This is the deterministic path that carries every
+  future renewal, and it runs BEFORE the existing MBI/carrier-id steps.
+- **Write-back:** whenever ANY step (crosswalk-Policy, `_match_by_mbi`,
+  `_match_by_carrier_member_id`) resolves a customer AND the fact has a `GrpNbr`, upsert a
+  `carrier_id_crosswalk` row `(carrier, GrpNbr) → customer` (+ mbi when present). That is
+  how a member linked once (via a new-enrollment MBI) seeds the key that carries their
+  renewals. Idempotent upsert on the unique `(agency_id, carrier, carrier_key)`.
+- **No name-matching added to the live path.** The name+eff+plan / last6 logic is used ONLY
+  by the one-time SEED + the human-confirm merge UI (below), never in the per-upload
+  resolver — the "David White" boundary stays intact.
 
-### Component 3 — fix `extract_humana` (+ audit other extractors)
-Read the real 43-col layout: `member_name`=GrpName, `mbi`=UMID(7), `carrier_member_id`=
-GrpNbr(5) (the stable key), plus PID/EffDate/Product/FrstYrRnwl for the resolver. Stop
-hardcoding None. Store the Humana MBI in `customers.mbi` (not `humana_id`) on stub creation,
-OR make the matcher read both (bug 2). Verify Aetna/BCBS/UHC/Devoted extractors emit their
-real keys too.
+### Component 3 — carry `GrpNbr` on the MemberFact (small, additive)
+`normalize_humana` already reads UMID/PID/EffDate/Contract. Add ONE field: read `GrpNbr`
+(the stable per-member key) onto the `MemberFact` (e.g. `fact.member_group_key`) so the
+resolver's crosswalk step + write-back can key on it. **The parser is otherwise unchanged;
+the `humana_id` column is unchanged** (storing Humana's MBI there is correct — `_match_by_mbi`
+reads it there). Other carriers keep their existing key extraction; only Humana gains GrpNbr.
 
 ### Component 4 — active-only pre-filter
 Before matching, ignore BOB rows where col AE `Status` != active (blank-MBI inactive noise).

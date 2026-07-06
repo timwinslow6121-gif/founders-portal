@@ -353,3 +353,34 @@ def test_active_plus_termed_import_termed_row_first_still_active(
         assert len(pols) == 1
         assert pols[0].status == "active"
         assert pols[0].plan_name == "Chronic Care C-SNP"
+
+
+def test_no_mbi_bob_row_with_synth_id_creates_and_links_customer(db_session, app, agency, agent_user):
+    """The July UHC/Devoted BOBs carry NO MBI — the parser synthesizes a stable
+    member_id (UHCND-/DVND-) from name+DOB. Such a row IS resolvable (member_id +
+    name + DOB) and MUST create a customer + link the policy to it — NOT get
+    quarantined as 'unresolvable' with an orphaned customer_id=NULL policy (the bug
+    that left 2,182 UHC + 505 Devoted policies unlinked on the July upload)."""
+    from app.extensions import db
+    from app.models import ImportBatch, Policy
+    from app.upload import _import_bob_row
+    from datetime import date
+
+    with app.app_context():
+        batch = ImportBatch(agency_id=agency.id, carrier="UHC", filename="uhc.xlsx",
+                            uploaded_by_id=agent_user.id, status="pending")
+        db.session.add(batch); db.session.commit()
+
+        rec = _bob_rec("UHC", "UHCND-ABC123", "",   # NO mbi
+                       first_name="Jane", last_name="Doe", full_name="Jane Doe",
+                       dob=date(1955, 3, 2))
+        unresolvable = []
+        with db.session.begin_nested():
+            outcome = _import_bob_row(rec, batch, agency.id, agent_user.id,
+                                      date.today(), unresolvable)
+        db.session.commit()
+
+        pol = Policy.query.filter_by(agency_id=agency.id, member_id="UHCND-ABC123").first()
+        assert pol is not None
+        assert pol.customer_id is not None            # LINKED, not orphaned
+        assert outcome == "new"                        # not "skipped"

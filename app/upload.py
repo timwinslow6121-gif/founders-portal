@@ -183,8 +183,17 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
     if rec.get("status") == "termed":
         return _route_termed_rec(rec, bulk_agency_id)   # shared termed path
 
-    # Quarantine non-Humana rows missing MBI — these cannot create a customer (D-11)
-    is_unresolvable = (not rec.get("mbi")) and rec.get("carrier") != "Humana"
+    # Quarantine only rows with NO usable identity. Historically this meant "no MBI
+    # and not Humana", but the July-2026 UHC/Devoted BOBs legitimately carry no MBI
+    # and instead a stable synthesized member_id (UHCND-/DVND-) + name + DOB — which
+    # the resolver CAN turn into a customer (member_id/name+DOB → new_strong). So a
+    # row is unresolvable ONLY when it has neither an MBI, nor a Humana member id,
+    # nor a (member_id + name) to key on. (Without this fix the July UHC/Devoted
+    # uploads created 2,182 + 505 policies with customer_id=NULL — orphaned.)
+    _has_id = bool((rec.get("mbi") or "").strip()) or bool((rec.get("member_id") or "").strip())
+    _has_name = bool((rec.get("first_name") or "").strip() or (rec.get("last_name") or "").strip()
+                     or (rec.get("full_name") or "").strip())
+    is_unresolvable = not (_has_id and _has_name)
     if is_unresolvable:
         unresolvable.append({
             "carrier": rec.get("carrier"),

@@ -537,6 +537,29 @@ _sa_event.listen(Customer, "before_insert", _sync_customer_full_name)
 _sa_event.listen(Customer, "before_update", _sync_customer_full_name)
 
 
+class CarrierIdCrosswalk(db.Model):
+    """Permanent (carrier, carrier_key) → customer equivalence. Lets a member
+    linked ONCE (e.g. via a new-enrollment MBI row) carry all future renewals —
+    which reuse the same carrier_key (Humana GrpNbr) but carry no MBI — to the
+    same customer deterministically. See
+    docs/superpowers/specs/2026-07-04-carrier-id-crosswalk-reconciliation-design.md."""
+    __tablename__ = "carrier_id_crosswalk"
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    carrier     = db.Column(db.String(32), nullable=False, index=True)
+    carrier_key = db.Column(db.String(64), nullable=False)   # Humana GrpNbr, BCBS Customer No, ...
+    key_kind    = db.Column(db.String(24), nullable=False)   # 'grpnbr' | 'customer_no' | 'member_id'
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    mbi         = db.Column(db.String(20))                   # captured when known
+    confidence  = db.Column(db.String(24), nullable=False, default="exact_id")
+    source_note = db.Column(db.String(256))
+    created_at  = db.Column(db.DateTime, server_default=db.func.now())
+    __table_args__ = (
+        db.UniqueConstraint("agency_id", "carrier", "carrier_key",
+                            name="uq_crosswalk_agency_carrier_key"),
+    )
+
+
 class CustomerContact(db.Model):
     """
     Point of contact for a customer — often a family member or case manager.

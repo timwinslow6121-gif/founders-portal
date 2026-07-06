@@ -443,3 +443,30 @@ def test_duplicates_view_rows_expose_context(db_session, app):
         assert ctxrow["carriers"] == ["UHC"]
         assert ctxrow["policy_count"] == 1
         assert ctxrow["source"] == "bob"
+
+
+def test_merge_donates_mbi_without_transient_duplicate(db_session, app):
+    """When a loser donates its MBI to a blank-MBI keeper, the loser's MBI must be
+    cleared as part of the SAME operation — otherwise keeper + (not-yet-deleted)
+    loser both hold the MBI momentarily and Postgres' partial unique index
+    ix_customers_mbi fires on flush (invisible on SQLite). Reproduces the Devoted
+    'Rene Barger' stub→real merge failure. Assert the keeper gets the MBI and no
+    OTHER surviving customer still holds it."""
+    from app.extensions import db
+    with app.app_context():
+        agency_id, actor = _agency_user(db_session)
+        keeper = _c(agency_id, first_name="Rene", last_name="Barger",
+                    full_name="Rene Barger", mbi=None)                 # blank MBI
+        loser = _c(agency_id, first_name="Rene", last_name="Barger",
+                   full_name="Rene Barger", stub=True, mbi="2U13N20CV96")
+        db.session.commit()
+
+        res = merge_customers(keeper.id, [loser.id], agency_id, actor)
+        db.session.commit()                                            # must NOT raise
+        assert res["ok"]
+        db.session.refresh(keeper)
+        assert keeper.mbi == "2U13N20CV96"                             # donated
+        # loser deleted; no surviving customer other than keeper holds the MBI
+        survivors = Customer.query.filter(Customer.mbi == "2U13N20CV96",
+                                          Customer.id != keeper.id).all()
+        assert survivors == []

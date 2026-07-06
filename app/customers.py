@@ -1018,6 +1018,12 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
     # Fill blank keeper fields from losers, highest-precedence source first.
     fillers = sorted(losers, key=_merge_precedence_key, reverse=True)
     filled = []
+    # Fields under a UNIQUE index (Postgres partial index ix_customers_mbi): copying
+    # the value to the keeper while the (not-yet-deleted) loser still holds it makes
+    # BOTH rows momentarily carry it → UniqueViolation on the next flush (invisible on
+    # SQLite). Clear it on the donor loser in the SAME step so it's never a transient
+    # duplicate. (Reproduced by the Devoted 'Rene Barger' stub→real merge.)
+    _UNIQUE_FILL_FIELDS = {"mbi"}
     for fld in _MERGE_FILL_FIELDS:
         if getattr(keeper, fld, None):
             continue
@@ -1025,6 +1031,8 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
             v = getattr(src, fld, None)
             if v:
                 setattr(keeper, fld, v)
+                if fld in _UNIQUE_FILL_FIELDS:
+                    setattr(src, fld, None)      # donor releases the unique value
                 filled.append(fld)
                 break
 

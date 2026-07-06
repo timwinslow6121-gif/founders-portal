@@ -872,8 +872,13 @@ def _detect_carrier(filepath: str, filename: str) -> str:
         header_set = set(h.lower() for h in headers)
         header_str = " ".join(str(h) for h in headers).lower()
 
-        # UHC BOB portal download: "mbiNumber" + "memberFirstName" + "agentId"
+        # UHC BOB portal download: older format "mbiNumber" + "memberFirstName";
+        # July-2026+ agent-centric BOB has NO mbiNumber — "agentId" + "memberFirstName"
+        # + "planStatus" (name+DOB keyed). Match either.
         if "mbinumber" in header_set and "memberfirstname" in header_set:
+            return "UHC"
+        if ("memberfirstname" in header_set and "memberlastname" in header_set
+                and "agentid" in header_set and "planstatus" in header_set):
             return "UHC"
         # Humana BOB: "CommRunDt" + "WaName" + "PaidAmount"
         if "commrundt" in header_set and "waname" in header_set:

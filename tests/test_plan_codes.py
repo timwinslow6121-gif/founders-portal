@@ -50,3 +50,12 @@ def test_medigap_letter():
     assert medigap_letter("AARP MEDICARE SUPPLEMENT PLAN G") == "G"
     assert medigap_letter("MedSup N 2019") == "N"
     assert medigap_letter("Some Random Plan") is None
+
+def test_dsnp_brand_names_are_not_misclassified_as_medigap():
+    from app.plan_codes import classify_plan, medigap_letter
+    for name in ("MEDICARE SUPREME D-SNP", "SUPRA D SNP", "SUPERIOR C SNP"):
+        assert classify_plan("", name) == "year_bound", name
+        assert medigap_letter(name) is None, name
+    # the real medigap cases still work (guard against over-tightening)
+    assert medigap_letter("AARP MEDICARE SUPPLEMENT PLAN G") == "G"
+    assert medigap_letter("MedSup N 2019") == "N"

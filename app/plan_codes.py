@@ -10,7 +10,7 @@ PERPETUAL = 0   # year sentinel for plans whose benefits are NOT annual (medigap
 # H#### / S#### / R#### + plan(3) + optional segment(3), '-' OR '_' (Humana dash,
 # Healthspring underscore). Normalized to dash form.
 _CODE_RE = re.compile(r"([HSR]\d{4})[-_](\d{3})(?:[-_](\d{3}))?")
-_MEDIGAP_LETTER_RE = re.compile(r"\bPLAN\s+([A-N])\b|SUP\w*\s+([A-N])\b")
+_MEDIGAP_LETTER_RE = re.compile(r"\bPLAN\s+([A-N])\b|\b(?:MED\s*SUP|SUPPLEMENT|SUPP)\w*\s+([A-N])\b")
 _MEDIGAP_KW = ("SUPP", "SUPPLEMENT", "MEDSUP", "AARPMODMEDSUP", "MES")
 _NAMED_KW = ("DVH", "DENTAL", "VISION", "HOSPITAL", "INDEMNITY", "IDV", "GTL", "EXTEND")
 

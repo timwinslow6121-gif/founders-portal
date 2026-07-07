@@ -9,7 +9,9 @@ from app.plan_codes import (classify_plan, extract_contract_code, cms_plan_id_of
 
 
 def _alias_hit(carrier, plan_name, year, agency_id):
-    """Match by the reviewed plan_name / plan_name_aliases on existing buckets."""
+    """Match by the reviewed plan_name / plan_name_aliases on existing buckets for
+    the given year only (year-scoped: a year_bound row won't match a prior year's
+    bucket; a named/medigap row matches at year=PERPETUAL)."""
     nm = (plan_name or "").strip().lower()
     if not nm:
         return None

@@ -135,6 +135,9 @@ class Policy(db.Model):
     plan_id = db.Column(db.Integer, db.ForeignKey("plans.id"), nullable=True, index=True)
     plan    = db.relationship("Plan", foreign_keys=[plan_id])
 
+    contract_code = db.Column(db.String(32), index=True)   # full 3-part CMS code H1036-335-001
+    plan_year     = db.Column(db.Integer, index=True)       # BOB-snapshot year, NOT eff-date year
+
     # Audit fields
     last_seen_date = db.Column(db.Date)            # date of most recent BOB import where record appeared
     import_batch_id = db.Column(db.Integer, db.ForeignKey("import_batches.id"))
@@ -364,6 +367,7 @@ class Plan(db.Model):
     # Lifecycle
     # status: current, legacy, sunset, discontinued
     status          = db.Column(db.String(32), default="current", nullable=False, index=True)
+    needs_review    = db.Column(db.Boolean, default=False, nullable=False)  # auto-created stub plan
     is_commissionable = db.Column(db.Boolean, default=True, nullable=False)
     auto_transitioned = db.Column(db.Boolean, default=False)    # carrier moved members automatically
     successor_plan_id = db.Column(db.Integer, db.ForeignKey("plans.id"), nullable=True)

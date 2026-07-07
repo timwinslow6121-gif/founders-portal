@@ -116,6 +116,13 @@ Expected: FAIL (`ModuleNotFoundError: No module named 'scripts.seed_plan_buckets
 data (leaves existing benefit fields alone — only fills name/type on create). CMS
 Organization Marketing Name → our carrier label. Read-only unless apply=True.
 
+COMPLEMENTARY to the EXISTING scripts/sync_cms_plan_data.py: THIS script CREATES the
+buckets (identity/name/type); sync_cms_plan_data.py ENRICHES existing buckets with CMS
+benefits (premium/MOOP/stars/copays) and skips-as-'unmatched' any plan with no bucket.
+Today only ~36 of ~187 NC buckets exist, so sync's 'unmatched' list is huge; after this
+seed runs, run sync and its 'unmatched' drops to ~0. Deploy order: seed (this) → sync.
+Do NOT fold creation into sync — keep create and enrich as separate one-job scripts.
+
 Usage:
   PYTHONPATH=/var/www/founders-portal ./venv/bin/python3 scripts/seed_plan_buckets.py \
       --agency 1 --file "docs/Medicare Landscape Files/CY2026_Landscape_202603/CY2026_Landscape_202603.csv" [--apply]
@@ -810,7 +817,7 @@ git commit -m "feat: BOB upload + repair sort policies into existing plan bucket
 
 After the whole-branch opus review passes:
 1. DB backup on VPS; `flask db upgrade` 034→035; confirm head 035; deploy code; restart cycled; login 200.
-2. **Seed the buckets:** `scripts/seed_plan_buckets.py --agency 1 --file <CMS Landscape CSV>` DRY-RUN → review counts WITH Tim → `--apply`. (Scp the CSV to the VPS first — it's not in git.)
+2. **Seed the buckets, THEN enrich:** `scripts/seed_plan_buckets.py --agency 1 --file <CMS Landscape CSV>` DRY-RUN → review counts WITH Tim → `--apply` (creates the ~187 buckets). Then run the EXISTING `scripts/sync_cms_plan_data.py` — now that the buckets exist, its 'unmatched' list drops to ~0 and it fills premium/MOOP/stars/copays. (Scp the CSV to the VPS first — it's not in git.)
 3. **Seed the reviewed alias map** for the carriers whose BOB names don't carry a code (UHC/BCBS) — Tim/AJ map the ~≤32 UHC + ≤9 BCBS distinct BOB plan-names to their bucket's `plan_name_aliases`. (UHC BOB can also be regenerated WITH the H+PBP+segment columns — then those beans self-label and need no alias.)
 4. **Repair:** `scripts/repair_plan_id_linkage.py --agency 1 --year 2026` DRY-RUN → review the leftover list WITH Tim (should be small once buckets+aliases are seeded) → `--apply`.
 5. Verify `plan_id_orphans` drops toward 0; spot-check a Humana + a medigap-G count; ratchet the baseline.

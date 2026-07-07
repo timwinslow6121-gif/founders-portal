@@ -59,3 +59,14 @@ def test_dsnp_brand_names_are_not_misclassified_as_medigap():
     # the real medigap cases still work (guard against over-tightening)
     assert medigap_letter("AARP MEDICARE SUPPLEMENT PLAN G") == "G"
     assert medigap_letter("MedSup N 2019") == "N"
+
+def test_supplemental_rx_and_word_boundary_not_misclassified_as_medigap():
+    from app.plan_codes import classify_plan
+    # bare SUPP/MES substrings must NOT orphan valid PDP/MA rows
+    assert classify_plan("PDP", "BLUE MEDICARE SUPPLEMENTAL RX") == "year_bound"
+    assert classify_plan("MAPD", "HUMANA JAMES CARE PLAN") == "year_bound"
+    assert classify_plan("PDP", "SUPPORT PLUS PDP") == "year_bound"
+    # real medigap still classified correctly
+    assert classify_plan("", "AARP MEDICARE SUPPLEMENT PLAN G") == "medigap"
+    assert classify_plan("MES", "HUMANA MED SUPP PLAN N") == "medigap"
+    assert classify_plan("AARPMODMEDSUP", "") == "medigap"

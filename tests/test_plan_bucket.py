@@ -63,3 +63,18 @@ def test_sorts_by_alias_when_no_code(ctx):
     res = find_plan_bucket("UHC", {"plan_name": "AARP Medicare Advantage from UHC NC-0015",
                                    "plan_type": "MA"}, 2026, agency_id)
     assert res["plan_id"] == bucket.id and res["matched_by"] == "alias"
+
+def test_alias_does_not_match_across_years(ctx):
+    from app.extensions import db
+    from app.plan_bucket import find_plan_bucket
+    app, agency_id = ctx
+    # a 2026 UHC bucket with a reviewed alias; importing a 2027 row must NOT link to it
+    _plan(db, agency_id, carrier="UHC", cms_plan_id="H5253-117", year=2026,
+          plan_name_aliases="aarp medicare advantage from uhc nc-0015")
+    res = find_plan_bucket("UHC", {"plan_name": "AARP Medicare Advantage from UHC NC-0015",
+                                   "plan_type": "MA"}, 2027, agency_id)
+    assert res["plan_id"] is None and res["matched_by"] is None    # no cross-year link
+    # same row in 2026 DOES match (control)
+    res26 = find_plan_bucket("UHC", {"plan_name": "AARP Medicare Advantage from UHC NC-0015",
+                                     "plan_type": "MA"}, 2026, agency_id)
+    assert res26["matched_by"] == "alias"

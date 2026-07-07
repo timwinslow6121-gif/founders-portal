@@ -14,7 +14,7 @@ def _alias_hit(carrier, plan_name, year, agency_id):
     if not nm:
         return None
     with db.session.no_autoflush:
-        for p in Plan.query.filter_by(agency_id=agency_id, carrier=carrier).all():
+        for p in Plan.query.filter_by(agency_id=agency_id, carrier=carrier, year=year).all():
             if p.plan_name and p.plan_name.strip().lower() == nm:
                 return p
             if p.plan_name_aliases:

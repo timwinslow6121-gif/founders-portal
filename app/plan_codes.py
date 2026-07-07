@@ -11,13 +11,13 @@ PERPETUAL = 0   # year sentinel for plans whose benefits are NOT annual (medigap
 # Healthspring underscore). Normalized to dash form.
 _CODE_RE = re.compile(r"([HSR]\d{4})[-_](\d{3})(?:[-_](\d{3}))?")
 _MEDIGAP_LETTER_RE = re.compile(r"\bPLAN\s+([A-N])\b|\b(?:MED\s*SUP|SUPPLEMENT|SUPP)\w*\s+([A-N])\b")
-_MEDIGAP_KW = ("SUPP", "SUPPLEMENT", "MEDSUP", "AARPMODMEDSUP", "MES")
+_MEDIGAP_KW_RE = re.compile(r"\b(?:SUPPLEMENT|MED\s*SUPP?|AARPMODMEDSUP|MEDSUP|SUPP|MES)\b")
 _NAMED_KW = ("DVH", "DENTAL", "VISION", "HOSPITAL", "INDEMNITY", "IDV", "GTL", "EXTEND")
 
 
 def classify_plan(plan_type: str, plan_name: str) -> str:
     blob = f"{plan_type or ''} {plan_name or ''}".upper()
-    if any(k in blob for k in _MEDIGAP_KW) or _MEDIGAP_LETTER_RE.search(blob):
+    if _MEDIGAP_KW_RE.search(blob) or _MEDIGAP_LETTER_RE.search(blob):
         return "medigap"
     if any(k in blob for k in _NAMED_KW):
         return "named"

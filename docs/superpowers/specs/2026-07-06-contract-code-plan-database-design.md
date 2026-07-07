@@ -29,45 +29,80 @@ book." Must agree across BOB + CMS ingest + commissions — **never conflicting 
    is the single source for commission/book numbers, with a build-failing guard test. No
    view computes plan counts on its own → conflicting counts become impossible by
    construction.
-2. **Contract code is the plan identity** — show the full 3-part code (`H1036-335-001`)
-   where we have the segment (the segment MATTERS: BCBS Mecklenburg/Union seg 1-2 vs worse
-   seg 3-4 benefits — agents use it to infer county + benefit tier), COUNT at the plan
-   level (2-part `cms_plan_id`).
-3. **The Plan module becomes the authoritative hub** — after linkage repair, every view
+2. **Unique plan identity = YEAR + full CMS code** (`2026+H1036-335-001`). MA/PDP plans are
+   1-year benefit contracts — the SAME code in a different year is a genuinely different
+   plan (different benefits). Carriers are inconsistent about signaling renewals (some keep
+   the old effective date), and CMS silently crosswalks members across codes at year rollover
+   (all `H1036-291` → `H1036-335` for 2026; 291 discontinued; the customer "changed plans"
+   without anyone submitting a change). So the plan a policy is ON must be tracked per year,
+   with the crosswalk/successor history retained **6+ years**. **Show** the full 3-part code
+   where the segment is known (the segment MATTERS: BCBS Mecklenburg/Union seg 1-2 vs worse
+   seg 3-4 benefits — agents infer county + benefit tier from it); **count** at the
+   `year + cms_plan_id` level.
+3. **Plan-year is SEPARATE from effective date.** `effective_date` = when the enrollment
+   relationship STARTED (permanent; a 2024 eff date means 3-year tenure) → feeds AOR/tenure
+   ONLY. **Plan-year** = which year's plan the member is on NOW → the year of the BOB
+   snapshot the policy appears in (the July-2026 book = the 2026 plan-year), NOT the eff
+   date. A 3-year customer on UHC NC-0015 since 2024 COUNTS in `2026+H5253-117` because they
+   are currently on the 2026 version; their 2024 eff date is irrelevant to the plan-year
+   count and untouched. AOR records key on eff/term dates, never plan-year → unaffected. No
+   double-counting: the same person appearing under `2025+CODE` (historical) and `2026+CODE`
+   (current) is correct — that's the year dimension, not a duplicate.
+4. **The Plan module becomes the authoritative hub** — after linkage repair, every view
    (dashboard, carrier drill-down, customer list, Plan module) cross-references the SAME
    linked Plan data and agrees.
-4. **Reuse, don't rebuild** — extend the existing `metrics.py` seam, the existing
+5. **Reuse, don't rebuild** — extend the existing `metrics.py` seam, the existing
    `Plan`/`Policy` models, the existing customers-list filter framework, the existing
-   integrity-guard mechanism.
+   integrity-guard mechanism. **The `Plan` model already supports year+code identity**:
+   `UniqueConstraint(agency_id, carrier, cms_plan_id, year)`, `successor_plan_id` +
+   `auto_transitioned` (the crosswalk chain), `status` (current/legacy/sunset/discontinued).
+   The gap is thin data (39 plans for 2026, ~1 for 2025/2023, 2 chains) + policies not
+   linking to the right YEAR's plan.
 
 ## Build order (dependency-ordered; each layer independently shippable + verifiable)
 
-### Layer 1 — Data foundation: repair plan_id linkage + capture the 3-part code
+### Layer 1 — Data foundation: capture year + 3-part code, link policy → the right year's Plan
 The whole thing rests on this; counts are meaningless until it's done.
 - **Add `Policy.contract_code` (String, nullable, indexed)** — the full raw 3-part
-  Contract-PBP-Segment string (`H1036-335-001`) parsed from the BOB row. The Policy still
-  LINKS to a `Plan` keyed on 2-part `cms_plan_id` for counting; the raw 3-part rides on the
-  policy for display/truth (never lose the segment). Migration adds the column.
-- **BOB upload going forward:** parse the contract code from the raw plan_name / carrier
-  fields → set `Policy.contract_code`; resolve `Policy.plan_id` via the existing
-  `_plan_alias_map` PLUS a new **embedded-code extractor** (regex `H####-###` /
-  `S####-###` in the raw plan_name → match a Plan by `cms_plan_id`).
+  Contract-PBP-Segment string (`H1036-335-001`) parsed from the BOB row (never lose the
+  segment). **Add `Policy.plan_year` (Integer, nullable, indexed)** = the BOB snapshot year
+  the policy was last seen in (NOT the effective-date year — see principle 3). Migration
+  adds both columns.
+- **`Policy.plan_id` links to the `Plan` row for `(carrier, cms_plan_id, plan_year)`** — the
+  correct YEAR's plan, not just the code. Counting keys on the linked Plan's
+  `(year, cms_plan_id)`.
+- **BOB upload going forward:** determine the snapshot year (an explicit BOB PlanYear column
+  where present — Humana carries one — else the import/as-of date's year) → set
+  `Policy.plan_year` + `Policy.contract_code`; resolve `Policy.plan_id` via the existing
+  `_plan_alias_map` PLUS a new **embedded-code extractor** (regex `H####-###`/`S####-###` in
+  the raw plan_name → match a Plan by `cms_plan_id` AND that year). A member whose BOB code
+  changed year-over-year (CMS crosswalk) simply links to the new year's Plan; the successor
+  chain records 291→335.
 - **One-time repair script** (`scripts/repair_plan_id_linkage.py`, dry-run/--apply,
   read-only planning): for each of the ~64 orphaned plan_names, (a) extract embedded
-  contract code → match Plan by cms_plan_id; (b) else alias-match; (c) backfill
-  `Policy.plan_id` + `Policy.contract_code`. Report the leftover unmatched names (a short
-  list) for Tim/AJ to map by hand (add the alias or create the Plan). Drives
-  `plan_id_orphans` toward 0.
-- **Auto-create missing Plan rows** where a contract code appears in the book but no Plan
-  exists (so the module lists every real plan) — carrier + cms_plan_id + a best-effort
-  name from the raw string; flagged `needs_review` for AJ to enrich (benefits/CMS sync).
-- **Outcome:** every active policy links to a Plan; the module + drill-down agree.
+  contract code → match Plan by cms_plan_id + plan_year; (b) else alias-match; (c) backfill
+  `Policy.plan_id` + `Policy.contract_code` + `Policy.plan_year`. Report leftover unmatched
+  names (a short list) for Tim/AJ to map by hand. Drives `plan_id_orphans` toward 0. DB
+  backup + dry-run → review the ~64 mappings WITH Tim → apply → real-Postgres verify.
+- **Auto-create missing Plan rows** where a `(code, year)` appears in the book but no Plan
+  exists — carrier + cms_plan_id + year + best-effort name from the raw string, flagged
+  `needs_review`. **Must sync with the shipped CMS-plan-info import** (the auto-created row
+  is a stub the existing CMS sync scripts + AJ's plan editor enrich via
+  `app/plan_provenance.py` — never presented as CMS-verified until enriched) **and agree
+  with the BOB + commission imports** (same `(carrier, cms_plan_id, year)` key everywhere).
+- **6-year retention:** past-year Plan rows + the successor chain are never deleted; a
+  policy's year-history is reconstructable from its Plan links over time (each BOB import
+  stamps the plan_year seen). The count for a PAST `year+code` is a historical query over
+  that retained data.
+- **Outcome:** every active policy links to the correct year's Plan; the module +
+  drill-down agree; year-over-year plan history is preserved.
 
 ### Layer 2 — Single-source counts (metrics.py) + guard test
-- **Extend `app/metrics.py`**: add `plan_count(scope)` and `by_contract_code(scope)` (and
-  a `by_plan` that groups on the LINKED Plan's cms_plan_id, not the raw string). `Scope`
-  gains an optional `contract_code` filter. These become the ONLY place plan/contract-code
-  counts are computed.
+- **Extend `app/metrics.py`**: add `plan_count(scope)` and `by_contract_code(scope)` that
+  group on the LINKED Plan's `(year, cms_plan_id)` — NOT the raw plan_name string. `Scope`
+  gains optional `contract_code` and `plan_year` filters (default plan_year = current year,
+  so "customers on this plan" means the current-year version unless a past year is asked
+  for). These become the ONLY place plan/contract-code counts are computed.
 - **Every view reads metrics** — Plan module member counts, carrier drill-down, dashboard
   plan counts, customer-list result count: all via `metrics.py`. None query Policy/Plan for
   counts directly.
@@ -81,12 +116,14 @@ The whole thing rests on this; counts are meaningless until it's done.
 ### Layer 3 — Contract code as plan identity everywhere
 - **Display:** wherever a plan appears (customers list column, customer profile policy row,
   carrier drill-down, Plan module list + detail), show the contract code — full 3-part
-  (`Policy.contract_code`) on the individual policy where present, 2-part (`Plan.cms_plan_id`)
-  for the plan record; plan name as the human-readable subtitle.
-- **Count:** every "how many customers/policies" number aggregates by the linked Plan
-  (2-part), via metrics.py (Layer 2) → complete + consistent.
-- **Click-through:** contract code is a link → Plan detail → that plan's customers
-  (filterable, Layer 4).
+  (`Policy.contract_code`) on the individual policy where present, `year + cms_plan_id`
+  (`2026 H5253-117`) for the plan record; plan name as the human-readable subtitle.
+- **Count:** every "how many customers/policies" number aggregates by the linked Plan's
+  `(year, cms_plan_id)`, via metrics.py (Layer 2) → complete + consistent. Default view =
+  the current plan-year; a year selector lets Brian look at a past year's plan.
+- **Click-through:** contract code is a link → that year's Plan detail → its customers
+  (filterable, Layer 4); the plan detail shows the successor/predecessor chain (e.g. this
+  2026 plan came from 2025's H1036-291 via CMS crosswalk).
 
 ### Layer 4 — Filterable dimensions (3-state) + the Brian-view
 - **Filters** (compose freely; pick a contract code, then narrow): agent, carrier,
@@ -109,8 +146,10 @@ The whole thing rests on this; counts are meaningless until it's done.
   via Overview→Humana).
 
 ## Architecture / files
-- **Models:** `Policy.contract_code` (new col + migration); possibly `Plan.needs_review`
-  (bool) for auto-created plans; a "confirmed no email" seam TBD in Layer 4 (nullable field).
+- **Models:** `Policy.contract_code` + `Policy.plan_year` (new cols + migration);
+  `Plan.needs_review` (bool) for auto-created plans (enriched via CMS sync + AJ editor); the
+  email/pharmacy/LIS 3-state nullable status fields (Layer 4). The `Plan`
+  year+code+successor identity already exists — reuse it.
 - **`app/metrics.py`:** `plan_count`, `by_contract_code`, `by_plan` (linked), `Scope`
   gains `contract_code`. Single source.
 - **`app/upload.py`:** parse `contract_code` + embedded-code plan_id resolution on BOB
@@ -141,9 +180,14 @@ The whole thing rests on this; counts are meaningless until it's done.
 
 ## Definition of done
 - `plan_id_orphans` at 0 (or the leftover short list explicitly triaged); every active
-  policy links to a Plan; `Policy.contract_code` populated where the BOB provides it.
-- Contract code shown (3-part where known) + counted (2-part) across dashboard, customer
-  list, carrier drill-down, and the Plan module — all agreeing, all via metrics.py.
+  policy links to the correct YEAR's Plan; `Policy.contract_code` + `Policy.plan_year`
+  populated where the BOB provides them.
+- Contract code shown (3-part where known) + counted by `year + cms_plan_id` across
+  dashboard, customer list, carrier drill-down, and the Plan module — all agreeing, all via
+  metrics.py; a year selector exposes past plan-years; the successor chain is visible on
+  plan detail.
+- Auto-created plans carry `(carrier, cms_plan_id, year)` matching the CMS import + BOB +
+  commission keys, flagged `needs_review` until enriched.
 - Guard test fails the build if plan counts are computed outside metrics.py OR if the
   module and drill-down disagree on a contract-code count.
 - The composable 3-state filter set live on the Plan-module hub + customer list; LIS

@@ -211,6 +211,33 @@ customer-list/plan filter: e.g. "customers on a plan where their pharmacy is out
 good-for-them plan where their pharmacy is preferred?), NOT an auto-steer. Reuse the existing
 `Pharmacy` model + `pharmacy_agents` pattern.
 
+### Layer 8 — SOB / EOC in-context (make the portal a pleasure, not a filing cabinet)
+**The north star (Tim):** the portal should be where the team LIVES — we only leave for the
+few things it genuinely can't replace (e.g. enrollments). A "Download SOB.pdf" link is the
+lazy fix ("here's the data, find it yourself, bugger off") — and it fails the real pain:
+*"we can't remember if/when/where we last downloaded it."* We are NOT re-keying 200-page
+docs into fields (infeasible; the top-asked facts — copays/premium/MOOP — are already
+structured). We want the DOCUMENTS themselves navigable + searchable IN the portal, in the
+context of the plan you're already looking at.
+
+**Scope:** the two authoritative docs per plan-year — **SOB** (Summary of Benefits, ~10-20pp)
+and **EOC** (Evidence of Coverage, 200+pp). Stored per `(plan, year)` (the `Plan.sob_url`
+seam already exists; extend for EOC).
+
+**Growth path (build the cheap tier first; each tier is independently useful):**
+- **v1 — In-portal searchable viewer.** A pop-up that renders the SOB/EOC without leaving
+  the portal, with in-document find. Solves "can't remember where I downloaded it" +
+  "don't want to leave the portal." Modest build.
+- **v2 — Full-text search across a plan's docs.** Extract the PDF text and index it, so
+  typing "insulin copay" or "skilled nursing prior auth" jumps to the passage/page. The
+  "type a question, land on the answer" experience.
+- **v3 — Ask this plan a question.** RAG over the SOB/EOC → plain-English answers with a
+  citation ("does this cover Ozempic?" → the passage + page). Most ambitious; needs the
+  extracted text + an LLM call. Default to the latest Claude model when built.
+
+Its own project, sequenced after the core plan-database layers are live and the team can see
+how they use the plan pages in practice.
+
 ## Architecture / files
 - **Models:** `Policy.contract_code` + `Policy.plan_year` (new cols + migration);
   `Plan.needs_review` (bool) for auto-created plans (enriched via CMS sync + AJ editor); the

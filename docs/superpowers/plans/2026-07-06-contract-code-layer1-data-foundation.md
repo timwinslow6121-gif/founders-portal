@@ -4,7 +4,7 @@
 
 **Goal:** Give every active policy a correct link to the right *year's* Plan (`plan_id`), a captured full 3-part `contract_code`, and a `plan_year`, so contract-code customer counts become complete and accurate — the data foundation for the whole contract-code plan database.
 
-**Architecture:** Add `Policy.contract_code` + `Policy.plan_year` + `Plan.needs_review` (migration 035). A new `app/plan_codes.py` module extracts the CMS contract code per carrier (Humana: regex on plan_name; Aetna: `CMS Contract Number`+`PBP Code`; generic: regex). BOB parsers emit `contract_code`; BOB upload sets `plan_year` (from the import's plan-year) + resolves `plan_id` by `(carrier, cms_plan_id, year)`, auto-creating a `needs_review` Plan when none exists. A one-time read-only `scripts/repair_plan_id_linkage.py` backfills the 4,756 existing orphans.
+**Architecture:** Add `Policy.contract_code` + `Policy.plan_year` + `Plan.needs_review` (migration 035). A new `app/plan_codes.py` module: `classify_plan` (year_bound vs medigap vs named, keyword-based since plan_type is messy), per-carrier code extraction (Humana/Healthspring regex on plan_name incl. underscore form; Aetna `CMS Contract Number`+`PBP Code`), and `plan_identity` (the plan-type-branched identity). BOB upload sets `contract_code`+`plan_year`, resolves `plan_id` by the identity (year-bound: `(carrier, cms_plan_id, year)`; medigap: `(carrier, plan_letter, PERPETUAL)`; named: `(carrier, plan_name, PERPETUAL)`), auto-creating a `needs_review` Plan when the identity has a key but no Plan. Year-bound rows with no extractable code (UHC/BCBS friendly names) fall to alias-match, else remain orphaned + reported. A one-time read-only `scripts/repair_plan_id_linkage.py` backfills existing orphans using the SAME resolver.
 
 **Tech Stack:** Python 3.10, Flask-SQLAlchemy, Flask-Migrate (Alembic), PostgreSQL 16 (prod) / SQLite (tests), pytest, openpyxl/pandas.
 
@@ -17,6 +17,16 @@
 - Every query agency-scoped. The repair script is read-only planning + explicit `--apply`; DB backup first; dry-run → review WITH Tim → apply; real-Postgres verify.
 - Migration head is currently `034`; new migration is `035`, `down_revision="034"`.
 - Do NOT change `effective_date` handling, AOR logic, or the commission modules.
+- **Per-carrier code-source reality (verified against the real July BOBs):** Humana embeds
+  the code in `plan_name` (`H1036-335`); Aetna carries `CMS Contract Number`+`PBP Code`
+  columns; Healthspring uses an underscore form (`H9725_015`) in some views. **UHC and BCBS
+  BOBs carry NO CMS code** — only friendly names ("AARP Medicare Advantage from UHC NC-0015",
+  "Blue Medicare Freedom+ PPO"). So those link ONLY by alias-match to a pre-seeded Plan;
+  until their Plans+aliases exist, those policies remain a legitimate LEFTOVER (never a wrong
+  link). The repair's leftover list is expected to be UHC/BCBS-heavy on a first run — that is
+  correct, not a bug. `classify_plan` defaults unrecognized/blank plan_types to `year_bound`
+  (they're annual-contract plans); it must NOT rely on `plan_type` alone (it's frequently the
+  plan name or blank in real data).
 
 ---
 
@@ -130,7 +140,7 @@ git commit -m "feat: Policy.contract_code + plan_year, Plan.needs_review (migrat
   - `PERPETUAL = 0` — the year sentinel for year-independent plans (Medigap/DVH/etc).
   - `extract_contract_code(carrier: str, rec: dict) -> Optional[str]` — the full contract code (`H1036-335-001` or 2-part `H1036-335`) for a BOB record, per carrier.
   - `cms_plan_id_of(contract_code: str) -> Optional[str]` — the 2-part `(contract, PBP)` key (`H1036-335`) from a full code, for Plan matching/counting.
-  - `is_year_bound(plan_type: str) -> bool` — True for MA/MAPD/PDP/DSNP/CSNP; False for medigap/dvh/dental/gtl/hospital-indemnity/other.
+  - `classify_plan(plan_type: str, plan_name: str) -> str` — returns `"medigap"` | `"named"` | `"year_bound"`. Because `plan_type` is a MESS in real data (often the plan NAME, blank, or a carrier code like AARPMODMEDSUP/MES/IDV), classification uses BOTH plan_type and plan_name keywords: medigap (supp/medsup/"plan G|N|F"/AARPMODMEDSUP/MES) → medigap; DVH/dental/vision/hospital-indemnity/IDV/GTL/"extend" → named; everything else → year_bound (the default — MA/MAPD/PDP/DSNP/CSNP and any unrecognized, since those are the annual-contract plans).
   - `medigap_letter(plan_name: str) -> Optional[str]` — the Medigap plan letter (G/N/F/...) from a plan name, else None.
   - `plan_identity(carrier: str, rec: dict, plan_year: int) -> dict` — the resolved identity for matching/creating a Plan. Returns `{"kind": "year_bound"|"medigap"|"named", "carrier": ..., "cms_plan_id": ...|None, "plan_letter": ...|None, "name_key": ...|None, "year": plan_year|PERPETUAL, "contract_code": ...|None}`.
 
@@ -155,18 +165,32 @@ def test_extract_returns_none_when_no_code():
     from app.plan_codes import extract_contract_code
     assert extract_contract_code("UHC", {"plan_name": "AARP Medicare Advantage NC-0015"}) is None
 
+def test_extract_handles_healthspring_underscore_code():
+    # Healthspring uses H9725_015 (underscore) in some views — normalize to H9725-015
+    from app.plan_codes import extract_contract_code
+    rec = {"plan_name": "2026_NC_H9725_015_HealthSpring Preferred Savings (HMO)"}
+    assert extract_contract_code("Healthspring", rec) == "H9725-015"
+
+def test_classify_uses_name_when_plan_type_is_messy():
+    from app.plan_codes import classify_plan
+    # plan_type blank but name says supplement → medigap
+    assert classify_plan("", "AARP MEDICARE SUPPLEMENT PLAN G") == "medigap"
+    # carrier plan_type codes
+    assert classify_plan("AARPMODMEDSUP", "") == "medigap"
+    assert classify_plan("MES", "HUMANA MED SUPP PLAN G") == "medigap"
+    # DVH / dental / hospital-indemnity / IDV → named
+    assert classify_plan("DVH", "DVH 1000") == "named"
+    assert classify_plan("Dental", "Dental Blue for Individuals PPO") == "named"
+    assert classify_plan("IDV", "NC EXTEND 1250 MNTH DEL '23") == "named"
+    # blank plan_type + an MA-looking name → year_bound (default)
+    assert classify_plan("", "Blue Medicare Freedom+ PPO") == "year_bound"
+    assert classify_plan("MA", "AARP Medicare Advantage from UHC NC-0001") == "year_bound"
+    assert classify_plan("PDP", "HUMANA VALUE RX PLAN PDP") == "year_bound"
+
 def test_generic_regex_picks_up_three_part_code():
     from app.plan_codes import extract_contract_code
     rec = {"plan_name": "Some Plan H1036-335-001 thing"}
     assert extract_contract_code("Humana", rec) == "H1036-335-001"
-
-def test_year_bound_vs_year_independent():
-    from app.plan_codes import is_year_bound
-    assert is_year_bound("MAPD") and is_year_bound("MA") and is_year_bound("PDP")
-    assert is_year_bound("DSNP") and is_year_bound("CSNP")
-    assert not is_year_bound("medigap") and not is_year_bound("MS")
-    assert not is_year_bound("DVH") and not is_year_bound("dental")
-    assert not is_year_bound("gtl") and not is_year_bound("other")
 
 def test_medigap_letter_extraction():
     from app.plan_codes import medigap_letter
@@ -205,15 +229,20 @@ it in a dedicated column (Aetna) use that; where it is embedded in the plan_name
 import re
 from typing import Optional
 
-# H#### or S#### + -PBP(3) + optional -segment(3)
-_CODE_RE = re.compile(r"([HSR]\d{4}-\d{3}(?:-\d{3})?)")
+# H#### / S#### / R#### + PBP(3) + optional segment(3), separated by '-' OR '_'
+# (Humana uses dashes: H1036-335; Healthspring uses underscores: H9725_015).
+_CODE_RE = re.compile(r"([HSR]\d{4})[-_](\d{3})(?:[-_](\d{3}))?")
 
 
 def _from_name(plan_name: str) -> Optional[str]:
     if not plan_name:
         return None
     m = _CODE_RE.search(plan_name.upper())
-    return m.group(1) if m else None
+    if not m:
+        return None
+    # Normalize to dash form: H9725-015 or H1036-335-001
+    parts = [m.group(1), m.group(2)] + ([m.group(3)] if m.group(3) else [])
+    return "-".join(parts)
 
 
 def extract_contract_code(carrier: str, rec: dict) -> Optional[str]:
@@ -241,23 +270,25 @@ def cms_plan_id_of(contract_code: str) -> Optional[str]:
 
 PERPETUAL = 0   # year sentinel for plans whose benefits are NOT annual (medigap/DVH/etc.)
 
-# Plan types whose identity is (carrier, cms_plan_id, YEAR). Everything else is
-# year-independent (medigap by letter; DVH/dental/GTL/hospital-indemnity by name).
-_YEAR_BOUND = {"ma", "mapd", "pdp", "dsnp", "csnp"}
-_MEDIGAP_TYPES = {"medigap", "ms", "medsupp", "mes", "aarpmodmedsup", "supplement"}
 _MEDIGAP_LETTER_RE = re.compile(r"\bPLAN\s+([A-N])\b")
 
+# Keyword signals. plan_type is unreliable (often the plan NAME, blank, or a carrier
+# code), so classify on BOTH plan_type and plan_name text.
+_MEDIGAP_KW = ("SUPP", "SUPPLEMENT", "MEDSUP", "AARPMODMEDSUP", "MES ", " MES", "MES")
+_NAMED_KW = ("DVH", "DENTAL", "VISION", "HOSPITAL", "INDEMNITY", "IDV", "GTL", "EXTEND")
 
-def is_year_bound(plan_type: str) -> bool:
-    return (plan_type or "").strip().lower() in _YEAR_BOUND
 
-
-def _is_medigap(plan_type: str, plan_name: str) -> bool:
-    pt = (plan_type or "").strip().lower()
-    if pt in _MEDIGAP_TYPES:
-        return True
-    nm = (plan_name or "").upper()
-    return "SUPP" in nm or "SUPPLEMENT" in nm or "MEDSUP" in nm
+def classify_plan(plan_type: str, plan_name: str) -> str:
+    """Which identity model applies: 'medigap' | 'named' | 'year_bound'. Uses keywords
+    across plan_type AND plan_name because plan_type is messy in real data. year_bound
+    is the DEFAULT (MA/MAPD/PDP/DSNP/CSNP + anything unrecognized — all annual contracts)."""
+    blob = f"{plan_type or ''} {plan_name or ''}".upper()
+    # medigap first (a supplement is never 'named'); the "PLAN G/N/F" pattern also = medigap
+    if any(k in blob for k in _MEDIGAP_KW) or _MEDIGAP_LETTER_RE.search(blob):
+        return "medigap"
+    if any(k in blob for k in _NAMED_KW):
+        return "named"
+    return "year_bound"
 
 
 def medigap_letter(plan_name: str) -> Optional[str]:
@@ -272,18 +303,19 @@ def _name_key(plan_name: str) -> str:
 
 def plan_identity(carrier: str, rec: dict, plan_year: int) -> dict:
     """Resolve the identity for matching/creating a Plan, branching on plan type.
-    year_bound → cms_plan_id + real year; medigap → plan_letter + PERPETUAL;
-    named (DVH/dental/GTL/hospital-indemnity/other) → name_key + PERPETUAL."""
+    year_bound → cms_plan_id (may be None → caller alias-matches) + real year;
+    medigap → plan_letter + PERPETUAL; named → name_key + PERPETUAL."""
     carrier = (carrier or "").strip()
     plan_type = rec.get("plan_type") or ""
     plan_name = rec.get("plan_name") or ""
-    if is_year_bound(plan_type):
+    kind = classify_plan(plan_type, plan_name)
+    if kind == "year_bound":
         code = extract_contract_code(carrier, rec)
         return {"kind": "year_bound", "carrier": carrier,
                 "cms_plan_id": cms_plan_id_of(code) if code else None,
                 "plan_letter": None, "name_key": None,
                 "year": plan_year, "contract_code": code}
-    if _is_medigap(plan_type, plan_name):
+    if kind == "medigap":
         return {"kind": "medigap", "carrier": carrier, "cms_plan_id": None,
                 "plan_letter": medigap_letter(plan_name), "name_key": None,
                 "year": PERPETUAL, "contract_code": None}

@@ -127,8 +127,12 @@ git commit -m "feat: Policy.contract_code + plan_year, Plan.needs_review (migrat
 **Interfaces:**
 - Consumes: nothing (pure functions).
 - Produces:
+  - `PERPETUAL = 0` — the year sentinel for year-independent plans (Medigap/DVH/etc).
   - `extract_contract_code(carrier: str, rec: dict) -> Optional[str]` — the full contract code (`H1036-335-001` or 2-part `H1036-335`) for a BOB record, per carrier.
   - `cms_plan_id_of(contract_code: str) -> Optional[str]` — the 2-part `(contract, PBP)` key (`H1036-335`) from a full code, for Plan matching/counting.
+  - `is_year_bound(plan_type: str) -> bool` — True for MA/MAPD/PDP/DSNP/CSNP; False for medigap/dvh/dental/gtl/hospital-indemnity/other.
+  - `medigap_letter(plan_name: str) -> Optional[str]` — the Medigap plan letter (G/N/F/...) from a plan name, else None.
+  - `plan_identity(carrier: str, rec: dict, plan_year: int) -> dict` — the resolved identity for matching/creating a Plan. Returns `{"kind": "year_bound"|"medigap"|"named", "carrier": ..., "cms_plan_id": ...|None, "plan_letter": ...|None, "name_key": ...|None, "year": plan_year|PERPETUAL, "contract_code": ...|None}`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -155,6 +159,34 @@ def test_generic_regex_picks_up_three_part_code():
     from app.plan_codes import extract_contract_code
     rec = {"plan_name": "Some Plan H1036-335-001 thing"}
     assert extract_contract_code("Humana", rec) == "H1036-335-001"
+
+def test_year_bound_vs_year_independent():
+    from app.plan_codes import is_year_bound
+    assert is_year_bound("MAPD") and is_year_bound("MA") and is_year_bound("PDP")
+    assert is_year_bound("DSNP") and is_year_bound("CSNP")
+    assert not is_year_bound("medigap") and not is_year_bound("MS")
+    assert not is_year_bound("DVH") and not is_year_bound("dental")
+    assert not is_year_bound("gtl") and not is_year_bound("other")
+
+def test_medigap_letter_extraction():
+    from app.plan_codes import medigap_letter
+    assert medigap_letter("AARP MEDICARE SUPPLEMENT PLAN G") == "G"
+    assert medigap_letter("MedSup N 2019") == "N"
+    assert medigap_letter("HUMANA MED SUPP PLAN G") == "G"
+    assert medigap_letter("Some Random Plan") is None
+
+def test_plan_identity_year_bound_medigap_and_named():
+    from app.plan_codes import plan_identity, PERPETUAL
+    # year-bound MA → cms_plan_id + real year
+    yb = plan_identity("Humana", {"plan_name": "HUMANA GOLD PLUS HMO POS H1036-335",
+                                  "plan_type": "MAPD"}, 2026)
+    assert yb["kind"] == "year_bound" and yb["cms_plan_id"] == "H1036-335" and yb["year"] == 2026
+    # medigap → plan_letter + PERPETUAL, NOT the calendar year
+    mg = plan_identity("BCBS", {"plan_name": "MEDSUP G 2019", "plan_type": "MS"}, 2026)
+    assert mg["kind"] == "medigap" and mg["plan_letter"] == "G" and mg["year"] == PERPETUAL
+    # DVH/named → name_key + PERPETUAL
+    dv = plan_identity("UHC", {"plan_name": "DVH 1000", "plan_type": "DVH"}, 2026)
+    assert dv["kind"] == "named" and dv["name_key"] and dv["year"] == PERPETUAL
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -205,6 +237,59 @@ def cms_plan_id_of(contract_code: str) -> Optional[str]:
     if len(parts) >= 2:
         return f"{parts[0]}-{parts[1]}"
     return None
+
+
+PERPETUAL = 0   # year sentinel for plans whose benefits are NOT annual (medigap/DVH/etc.)
+
+# Plan types whose identity is (carrier, cms_plan_id, YEAR). Everything else is
+# year-independent (medigap by letter; DVH/dental/GTL/hospital-indemnity by name).
+_YEAR_BOUND = {"ma", "mapd", "pdp", "dsnp", "csnp"}
+_MEDIGAP_TYPES = {"medigap", "ms", "medsupp", "mes", "aarpmodmedsup", "supplement"}
+_MEDIGAP_LETTER_RE = re.compile(r"\bPLAN\s+([A-N])\b")
+
+
+def is_year_bound(plan_type: str) -> bool:
+    return (plan_type or "").strip().lower() in _YEAR_BOUND
+
+
+def _is_medigap(plan_type: str, plan_name: str) -> bool:
+    pt = (plan_type or "").strip().lower()
+    if pt in _MEDIGAP_TYPES:
+        return True
+    nm = (plan_name or "").upper()
+    return "SUPP" in nm or "SUPPLEMENT" in nm or "MEDSUP" in nm
+
+
+def medigap_letter(plan_name: str) -> Optional[str]:
+    m = _MEDIGAP_LETTER_RE.search((plan_name or "").upper())
+    return m.group(1) if m else None
+
+
+def _name_key(plan_name: str) -> str:
+    """Normalized name key for year-independent named plans (DVH/dental/GTL)."""
+    return " ".join((plan_name or "").upper().split())
+
+
+def plan_identity(carrier: str, rec: dict, plan_year: int) -> dict:
+    """Resolve the identity for matching/creating a Plan, branching on plan type.
+    year_bound → cms_plan_id + real year; medigap → plan_letter + PERPETUAL;
+    named (DVH/dental/GTL/hospital-indemnity/other) → name_key + PERPETUAL."""
+    carrier = (carrier or "").strip()
+    plan_type = rec.get("plan_type") or ""
+    plan_name = rec.get("plan_name") or ""
+    if is_year_bound(plan_type):
+        code = extract_contract_code(carrier, rec)
+        return {"kind": "year_bound", "carrier": carrier,
+                "cms_plan_id": cms_plan_id_of(code) if code else None,
+                "plan_letter": None, "name_key": None,
+                "year": plan_year, "contract_code": code}
+    if _is_medigap(plan_type, plan_name):
+        return {"kind": "medigap", "carrier": carrier, "cms_plan_id": None,
+                "plan_letter": medigap_letter(plan_name), "name_key": None,
+                "year": PERPETUAL, "contract_code": None}
+    return {"kind": "named", "carrier": carrier, "cms_plan_id": None,
+            "plan_letter": None, "name_key": _name_key(plan_name),
+            "year": PERPETUAL, "contract_code": None}
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -216,7 +301,7 @@ Expected: PASS (all 4)
 
 ```bash
 git add app/plan_codes.py tests/test_plan_codes.py
-git commit -m "feat: app/plan_codes.py — per-carrier contract-code extraction"
+git commit -m "feat: app/plan_codes.py — per-carrier code extraction + plan-type identity (year-bound vs medigap/named PERPETUAL)"
 ```
 
 ---
@@ -331,6 +416,28 @@ def test_bob_row_sets_contract_code_plan_year_and_links_plan(db_session, app, ag
         plan = Plan.query.get(pol.plan_id)
         assert plan.cms_plan_id == "H1036-335" and plan.year == 2026
         assert plan.needs_review is True                # auto-created
+
+def test_medigap_bob_row_links_by_letter_and_perpetual_year(db_session, app, agency, agent_user):
+    """A Medigap BOB row links to a (carrier, plan_letter, year=PERPETUAL) Plan —
+    NOT split by calendar year. plan_year on the policy is the PERPETUAL sentinel."""
+    from app.extensions import db
+    from app.models import ImportBatch, Policy, Plan
+    from app.upload import _import_bob_row
+    from app.plan_codes import PERPETUAL
+    with app.app_context():
+        batch = ImportBatch(agency_id=agency.id, carrier="BCBS", filename="b.xlsx",
+                            uploaded_by_id=agent_user.id, status="pending")
+        db.session.add(batch); db.session.commit()
+        rec = _rec(carrier="BCBS", member_id="BM1", mbi="9N85W96WY95",
+                   plan_name="MEDSUP G 2019", plan_type="MS")
+        with db.session.begin_nested():
+            _import_bob_row(rec, batch, agency.id, agent_user.id, date.today(), [],
+                            plan_year=2026)
+        db.session.commit()
+        pol = Policy.query.filter_by(agency_id=agency.id, member_id="BM1").first()
+        assert pol.plan_year == PERPETUAL                 # not 2026 — medigap is year-independent
+        plan = Plan.query.get(pol.plan_id)
+        assert plan.plan_letter == "G" and plan.year == PERPETUAL and plan.plan_type == "medigap"
 ```
 
 **Decision (resolves the plan_year source):** `_import_bob_row` gains a keyword-only
@@ -351,26 +458,60 @@ In `app/upload.py`, add a helper (near `_plan_alias_map`):
 
 ```python
 def _resolve_or_create_plan(carrier, rec, plan_year, agency_id, alias_map):
-    """Return a Plan.id for this BOB row's (carrier, cms_plan_id, year), creating a
-    needs_review stub Plan when none exists. Falls back to alias_map by plan_name
-    when the row carries no extractable contract code (e.g. UHC friendly names)."""
-    from app.plan_codes import extract_contract_code, cms_plan_id_of
+    """Return (plan_id, contract_code) for this BOB row, branching on plan type:
+    year-bound → match/create by (carrier, cms_plan_id, plan_year);
+    medigap → by (carrier, plan_letter, year=PERPETUAL);
+    named (DVH/dental/GTL) → by (carrier, plan_name, year=PERPETUAL).
+    Auto-creates a needs_review Plan when none exists. Falls back to alias_map by
+    plan_name when a year-bound row carries no extractable code (UHC friendly names)."""
+    from app.plan_codes import plan_identity, PERPETUAL
     from app.models import Plan
-    code = extract_contract_code(carrier, rec)
-    cms_id = cms_plan_id_of(code) if code else None
-    if cms_id:
+    ident = plan_identity(carrier, rec, plan_year)
+    plan = None
+    if ident["kind"] == "year_bound":
+        if ident["cms_plan_id"]:
+            plan = Plan.query.filter_by(agency_id=agency_id, carrier=carrier,
+                                        cms_plan_id=ident["cms_plan_id"],
+                                        year=ident["year"]).first()
+            if plan is None:
+                plan = Plan(agency_id=agency_id, carrier=carrier,
+                            cms_plan_id=ident["cms_plan_id"], year=ident["year"],
+                            plan_name=(rec.get("plan_name") or ident["cms_plan_id"]),
+                            plan_type=(rec.get("plan_type") or "other"),
+                            status="current", needs_review=True)
+                db.session.add(plan); db.session.flush()
+        else:
+            # no code → alias match by plan_name (UHC etc.)
+            pid = alias_map.get((rec.get("plan_name") or "").strip().lower())
+            return pid, ident["contract_code"]
+    elif ident["kind"] == "medigap" and ident["plan_letter"]:
         plan = Plan.query.filter_by(agency_id=agency_id, carrier=carrier,
-                                    cms_plan_id=cms_id, year=plan_year).first()
+                                    plan_letter=ident["plan_letter"],
+                                    year=PERPETUAL).first()
         if plan is None:
-            plan = Plan(agency_id=agency_id, carrier=carrier, cms_plan_id=cms_id,
-                        year=plan_year, plan_name=(rec.get("plan_name") or cms_id),
+            plan = Plan(agency_id=agency_id, carrier=carrier,
+                        plan_letter=ident["plan_letter"], year=PERPETUAL,
+                        plan_name=(rec.get("plan_name") or f"Plan {ident['plan_letter']}"),
+                        plan_type="medigap", status="current", needs_review=True)
+            db.session.add(plan); db.session.flush()
+    elif ident["kind"] == "named" and ident["name_key"]:
+        plan = (Plan.query.filter_by(agency_id=agency_id, carrier=carrier,
+                                     year=PERPETUAL)
+                .filter(db.func.upper(Plan.plan_name) == ident["name_key"]).first())
+        if plan is None:
+            plan = Plan(agency_id=agency_id, carrier=carrier, year=PERPETUAL,
+                        plan_name=(rec.get("plan_name") or ""),
                         plan_type=(rec.get("plan_type") or "other"),
                         status="current", needs_review=True)
             db.session.add(plan); db.session.flush()
-        return plan.id, code
-    # no code → alias match by plan_name (unchanged behavior for UHC etc.)
-    return alias_map.get((rec.get("plan_name") or "").strip().lower()), code
+    return (plan.id if plan else None), ident["contract_code"]
 ```
+
+Note: the `Plan` unique constraint is `(agency_id, carrier, cms_plan_id, year)`. Medigap/named
+Plans have `cms_plan_id=NULL`, so multiple NULL-cms rows for the same carrier+year=PERPETUAL
+do NOT collide on that constraint (Postgres treats NULLs as distinct in a unique index) —
+which is why the match query filters on plan_letter / plan_name explicitly rather than
+relying on the constraint. This is correct + intended.
 
 Give `_import_bob_row` a keyword-only param: change its signature to end with
 `..., unresolvable, *, plan_year=None, alias_map=None)` and, at the top, default
@@ -381,7 +522,7 @@ three fields. For the NEW policy branch add to the `Policy(...)` kwargs:
 
 ```python
             contract_code=code,
-            plan_year=plan_year,
+            plan_year=effective_plan_year,
             plan_id=plan_id,
 ```
 
@@ -389,13 +530,30 @@ and for the EXISTING policy branch:
 
 ```python
         existing.contract_code = code or existing.contract_code
-        existing.plan_year = plan_year
+        existing.plan_year = effective_plan_year
         existing.plan_id = plan_id or existing.plan_id
 ```
 
-where `plan_id, code = _resolve_or_create_plan(rec["carrier"], rec, plan_year, agency_id, alias_map)` is computed once before both branches. (Remove/replace the old single `alias_map.get(...)` line so it doesn't double-resolve.)
+where, computed once before both branches:
 
-In `bulk_upload`, determine `plan_year` (e.g. `plan_year = batch.plan_year or date.today().year`) and thread it + `alias_map` into `_import_bob_row`.
+```python
+    plan_id, code = _resolve_or_create_plan(rec["carrier"], rec, plan_year, agency_id, alias_map)
+    # The policy's stored plan_year follows the plan-type identity: year-bound plans
+    # store the import year; year-independent plans (medigap/DVH/…) store PERPETUAL.
+    from app.plan_codes import plan_identity
+    effective_plan_year = plan_identity(rec["carrier"], rec, plan_year)["year"]
+```
+
+Use `effective_plan_year` (NOT the raw `plan_year`) when setting `Policy.plan_year` in both
+branches below. (Remove/replace the old single `alias_map.get(...)` line so it doesn't
+double-resolve.)
+
+In `bulk_upload`, determine `plan_year = date.today().year` and thread it + `alias_map` into
+`_import_bob_row`.
+
+**Also promote `_plan_alias_map` to module level:** it is currently a nested function inside
+`bulk_upload`. Move it to a module-level `def _plan_alias_map(agency_id)` in `app/upload.py`
+(same body) so Task 5's repair script can import it. `bulk_upload` calls the module-level one.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -423,8 +581,8 @@ git commit -m "feat: BOB upload sets contract_code+plan_year, links plan_id by (
 - Test: `tests/test_repair_plan_id_linkage.py`
 
 **Interfaces:**
-- Consumes: `extract_contract_code`, `cms_plan_id_of` (Task 2); `_resolve_or_create_plan` is upload-specific, so the script re-implements the SAME resolve-or-create logic against existing Policy rows (or imports the helper if it's import-context-free — prefer importing to stay DRY).
-- Produces: `plan_repairs(agency_id) -> dict` (read-only planning: counts + a list of leftover unmatched plan_names) and a `main()` CLI (`--agency`, `--year`, `--apply`). Backfills `plan_id` + `contract_code` + `plan_year` on orphaned active policies.
+- Consumes: `plan_identity`, `PERPETUAL` (Task 2); `_resolve_or_create_plan` (Task 4) — **import it** to stay DRY, so the repair uses the IDENTICAL plan-type branching (year-bound/medigap/named) as live upload. (`_resolve_or_create_plan` is import-context-free: it only touches `db.session`, `Plan`, `alias_map`, and the passed `rec`/`plan_year` — safe to call from a script.)
+- Produces: `plan_repairs(agency_id, year, apply=False) -> dict` (read-only planning by default: counts + a list of leftover unmatched plan_names) and a `main()` CLI (`--agency`, `--year`, `--apply`). Backfills `plan_id` + `contract_code` + `plan_year` on orphaned active policies via `_resolve_or_create_plan` — so medigap links by letter@PERPETUAL, year-bound by code@year, exactly like upload.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -483,6 +641,25 @@ def test_repair_dry_run_writes_nothing(ctx):
     assert res["linked"] == 1                          # counted
     assert Policy.query.filter_by(member_id="M1").first().plan_id is None  # not written
     assert Plan.query.count() == 0                     # no plan created in dry-run
+
+def test_repair_medigap_links_by_letter_perpetual(ctx):
+    """A medigap orphan links to a (carrier, plan_letter, year=PERPETUAL) Plan, and the
+    policy's plan_year is set to PERPETUAL — NOT the calendar year."""
+    from app.extensions import db
+    from app.models import Policy, Plan
+    from app.plan_codes import PERPETUAL
+    from scripts.repair_plan_id_linkage import plan_repairs
+    app, agency_id = ctx
+    db.session.add(Policy(agency_id=agency_id, carrier="BCBS", member_id="BM1",
+                          plan_name="MEDSUP G 2019", plan_type="MS",
+                          status="active", plan_id=None))
+    db.session.flush()
+    res = plan_repairs(agency_id, year=2026, apply=True)
+    assert res["linked"] == 1
+    pol = Policy.query.filter_by(member_id="BM1").first()
+    assert pol.plan_year == PERPETUAL
+    plan = Plan.query.get(pol.plan_id)
+    assert plan.plan_letter == "G" and plan.year == PERPETUAL
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -510,58 +687,32 @@ from collections import Counter
 from app import create_app
 from app.extensions import db
 from app.models import Policy, Plan
-from app.plan_codes import extract_contract_code, cms_plan_id_of
-
-
-def _alias_map(agency_id):
-    m = {}
-    for plan in Plan.query.filter_by(agency_id=agency_id).all():
-        if plan.plan_name:
-            m[plan.plan_name.strip().lower()] = plan.id
-        if plan.plan_name_aliases:
-            for a in plan.plan_name_aliases.split(","):
-                if a.strip():
-                    m[a.strip().lower()] = plan.id
-    return m
+from app.plan_codes import plan_identity
+from app.upload import _resolve_or_create_plan, _plan_alias_map
 
 
 def plan_repairs(agency_id, year, apply=False):
-    counts = {"linked": 0, "already": 0, "leftover": 0}
+    """Backfill plan_id + contract_code + plan_year on orphaned active policies, using
+    the SAME plan-type identity as live BOB upload (_resolve_or_create_plan). Read-only
+    unless apply=True. Leftover = a policy that resolves to no plan (no code, no letter,
+    no name/alias match) — surfaced for manual mapping, its link untouched."""
+    counts = {"linked": 0, "leftover": 0}
     leftover_names = Counter()
-    alias_map = _alias_map(agency_id)
+    alias_map = _plan_alias_map(agency_id)
     orphans = (Policy.query
                .filter(Policy.agency_id == agency_id, Policy.status == "active",
                        Policy.plan_id.is_(None))
                .all())
     for pol in orphans:
         rec = {"plan_name": pol.plan_name, "plan_type": pol.plan_type}
-        code = extract_contract_code(pol.carrier, rec)
-        cms_id = cms_plan_id_of(code) if code else None
-        plan_id = None
-        if cms_id:
-            plan = Plan.query.filter_by(agency_id=agency_id, carrier=pol.carrier,
-                                        cms_plan_id=cms_id, year=year).first()
-            if plan is None:
-                if apply:
-                    plan = Plan(agency_id=agency_id, carrier=pol.carrier,
-                                cms_plan_id=cms_id, year=year,
-                                plan_name=(pol.plan_name or cms_id),
-                                plan_type=(pol.plan_type or "other"),
-                                status="current", needs_review=True)
-                    db.session.add(plan); db.session.flush()
-                    plan_id = plan.id
-                else:
-                    plan_id = -1   # sentinel: would create
-            else:
-                plan_id = plan.id
-        else:
-            plan_id = alias_map.get((pol.plan_name or "").strip().lower())
+        ident = plan_identity(pol.carrier, rec, year)
+        plan_id, code = _resolve_or_create_plan(pol.carrier, rec, year, agency_id, alias_map)
         if plan_id:
             counts["linked"] += 1
-            if apply and plan_id != -1:
+            if apply:
                 pol.plan_id = plan_id
                 pol.contract_code = code
-                pol.plan_year = year
+                pol.plan_year = ident["year"]     # PERPETUAL for medigap/named, else the year
         else:
             counts["leftover"] += 1
             leftover_names[(pol.carrier, pol.plan_name)] += 1
@@ -571,8 +722,20 @@ def plan_repairs(agency_id, year, apply=False):
     else:
         db.session.rollback()
     return counts
+```
 
+Note: `_resolve_or_create_plan` *creates* a needs_review Plan when none exists — so on a
+DRY-RUN it would stage a Plan add that the trailing `db.session.rollback()` then discards
+(nothing persists). That's correct: dry-run reports what WOULD link (`linked` count +
+leftover list) and writes nothing. On `--apply`, the created Plans + policy links commit
+together.
 
+The imports above require `_resolve_or_create_plan` and a module-level `_plan_alias_map`
+in `app.upload`. `_plan_alias_map` is currently a NESTED function inside `bulk_upload` —
+**Task 4 must promote it to a module-level `def _plan_alias_map(agency_id)`** so both upload
+and this script share it (added to Task 4's wiring notes).
+
+```python
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--agency", type=int, required=True)
@@ -623,6 +786,8 @@ After the whole-branch opus review passes:
 3. Deploy code; confirm `systemctl restart` cycled; login 200.
 4. Run `scripts/repair_plan_id_linkage.py --agency 1 --year 2026` (DRY-RUN); **review the leftover plan_names list WITH Tim** (the ~non-embedded ones — Aetna/UHC friendly names needing an alias or a new Plan). Tim/AJ add aliases / create Plans for the leftovers.
 5. Re-run dry-run until leftovers are acceptable, then `--apply` (real Postgres).
-6. Verify: `plan_id_orphans` integrity invariant drops toward 0; spot-check a Humana contract-code count.
+6. Verify: `plan_id_orphans` integrity invariant drops toward 0; spot-check a Humana
+   contract-code count AND a medigap Plan-G count (confirm medigap didn't split by year and
+   links at year=PERPETUAL).
 7. Ratchet the `plan_id_orphans` baseline down. Update START HERE + BACKLOG.
 8. **Layer 2 (single-source metrics + guard) is the next plan** — do NOT start it here.

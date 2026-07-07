@@ -29,16 +29,26 @@ book." Must agree across BOB + CMS ingest + commissions — **never conflicting 
    is the single source for commission/book numbers, with a build-failing guard test. No
    view computes plan counts on its own → conflicting counts become impossible by
    construction.
-2. **Unique plan identity = YEAR + full CMS code** (`2026+H1036-335-001`). MA/PDP plans are
-   1-year benefit contracts — the SAME code in a different year is a genuinely different
-   plan (different benefits). Carriers are inconsistent about signaling renewals (some keep
-   the old effective date), and CMS silently crosswalks members across codes at year rollover
-   (all `H1036-291` → `H1036-335` for 2026; 291 discontinued; the customer "changed plans"
-   without anyone submitting a change). So the plan a policy is ON must be tracked per year,
-   with the crosswalk/successor history retained **6+ years**. **Show** the full 3-part code
-   where the segment is known (the segment MATTERS: BCBS Mecklenburg/Union seg 1-2 vs worse
-   seg 3-4 benefits — agents infer county + benefit tier from it); **count** at the
-   `year + cms_plan_id` level.
+2. **Plan identity is PLAN-TYPE-DEPENDENT — there are two models:**
+   - **Year-bound (MA / MAPD / PDP / DSNP / CSNP):** identity = `(carrier, cms_plan_id,
+     YEAR)` (`2026+H1036-335-001`). These are 1-year benefit contracts — the SAME code in a
+     different year is a genuinely different plan (different benefits). Carriers are
+     inconsistent about signaling renewals (some keep the old effective date), and CMS
+     silently crosswalks members across codes at year rollover (all `H1036-291` → `H1036-335`
+     for 2026; 291 discontinued; the customer "changed plans" without submitting one). Track
+     the plan a policy is ON per year, retain the crosswalk/successor history **6+ years**.
+     **Show** the full 3-part code where the segment is known (the segment MATTERS: BCBS
+     Mecklenburg/Union seg 1-2 vs worse seg 3-4 benefits — agents infer county + benefit tier
+     from it); **count** at the `year + cms_plan_id` level.
+   - **Year-INDEPENDENT (Medigap, DVH, Dental, Hospital-Indemnity, GTL):** these carry NO CMS
+     contract code and their benefits do NOT change annually — "2019 Plan G" = "2026 Plan G"
+     (the "2019" is a standardization *vintage*, not an annual benefit year). Identity =
+     `(carrier, plan_letter)` for Medigap (G/N/F — the LETTER is the identity), `(carrier,
+     normalized plan_name)` for DVH/Dental/Hospital-Indemnity/GTL. **ONE Plan row per such
+     plan**, with a **`PERPETUAL` year sentinel (`year = 0`)** meaning "not year-bound." A
+     customer on Plan G counts in the single Plan G row regardless of enrollment year — never
+     split into fake 2025-vs-2026 duplicates. (The `Plan` model already has `plan_letter` for
+     Medigap.)
 3. **Plan-year is SEPARATE from effective date.** `effective_date` = when the enrollment
    relationship STARTED (permanent; a 2024 eff date means 3-year tenure) → feeds AOR/tenure
    ONLY. **Plan-year** = which year's plan the member is on NOW → the year of the BOB
@@ -68,9 +78,14 @@ The whole thing rests on this; counts are meaningless until it's done.
   segment). **Add `Policy.plan_year` (Integer, nullable, indexed)** = the BOB snapshot year
   the policy was last seen in (NOT the effective-date year — see principle 3). Migration
   adds both columns.
-- **`Policy.plan_id` links to the `Plan` row for `(carrier, cms_plan_id, plan_year)`** — the
-  correct YEAR's plan, not just the code. Counting keys on the linked Plan's
-  `(year, cms_plan_id)`.
+- **`Policy.plan_id` links to the right Plan by the PLAN-TYPE identity rule:**
+  - Year-bound (MA/MAPD/PDP/DSNP/CSNP) → the `(carrier, cms_plan_id, plan_year)` Plan.
+  - Medigap → the `(carrier, plan_letter, year=PERPETUAL)` Plan (extract the letter G/N/F
+    from the plan_name; `Policy.plan_year` = PERPETUAL sentinel 0).
+  - DVH/Dental/Hospital-Indemnity/GTL → the `(carrier, normalized plan_name, year=PERPETUAL)`
+    Plan.
+  A `PERPETUAL = 0` constant lives in `app/plan_codes.py`. Counting keys on the linked Plan
+  (year-bound: `(year, cms_plan_id)`; year-independent: the Plan row itself, year ignored).
 - **BOB upload going forward:** determine the snapshot year (an explicit BOB PlanYear column
   where present — Humana carries one — else the import/as-of date's year) → set
   `Policy.plan_year` + `Policy.contract_code`; resolve `Policy.plan_id` via the existing

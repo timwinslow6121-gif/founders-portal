@@ -81,6 +81,8 @@ def _parse_xlsx_format(df):
             "county": "",
             "dob": None,
             "status": "active",
+            "cms_contract_number": _str(row, "CMS Contract Number"),
+            "pbp_code": _str(row, "PBP Code"),
         })
     return records
 
@@ -123,6 +125,8 @@ def _parse_csv_format(df):
             "county": "", "dob": _parse_date(row, "Date of Birth"),
             "commission_type": None,
             "status": status,
+            "cms_contract_number": _str(row, "CMS Contract Number"),
+            "pbp_code": _str(row, "PBP Code"),
         })
     return records
 

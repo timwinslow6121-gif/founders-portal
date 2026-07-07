@@ -69,3 +69,20 @@ def test_july_xlsx_with_csv_columns_parses(tmp_path):
     assert r["status"] == "active"
     assert r["agent_name"] == "Justin Basinger"
     assert str(r["effective_date"]) == "2026-07-01"
+
+
+def test_aetna_emits_contract_number_and_pbp(tmp_path):
+    import openpyxl
+    from app.parsers.aetna import parse
+    p = tmp_path / "Aetna Book of Business.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active
+    ws.append(["Member ID", "Medicare Number", "First Name", "Last Name",
+               "Coverage Effective Date", "Member Status", "Plan Name",
+               "Writing Agent NPN", "Writing Agent First Name", "Writing Agent Last Name",
+               "CMS Contract Number", "PBP Code"])
+    ws.append(["NG1", "2AH6DF6NM54", "Denise", "Eddleman", "2026-07-01", "A",
+               "Aetna Medicare Select (HMO-POS)", "123", "Justin", "Basinger",
+               "H5521", "241"])
+    wb.save(p)
+    r = parse(str(p))[0]
+    assert r["cms_contract_number"] == "H5521" and r["pbp_code"] == "241"

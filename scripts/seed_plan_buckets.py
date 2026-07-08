@@ -60,7 +60,11 @@ def seed_buckets_from_rows(rows, agency_id, apply=False):
             continue
         carrier = _carrier_of(row.get("Organization Marketing Name")
                               or row.get("Parent Organization Name"))
-        cms_id = (row.get("ContractPlanID") or "").strip().upper()
+        # CMS ContractPlanID is underscore-form (H1036_167); normalize to the canonical
+        # DASH form (H1036-167) that the whole system matches on — app/plan_codes
+        # cms_plan_id_of, sync_cms_plan_data's _cms_id, and find_plan_bucket all use dash.
+        # (Storing underscore here silently orphans every seeded bucket from the sorter.)
+        cms_id = (row.get("ContractPlanID") or "").strip().upper().replace("_", "-")
         if not carrier or not cms_id:
             counts["skipped"] += 1
             continue

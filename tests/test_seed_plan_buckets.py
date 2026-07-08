@@ -57,3 +57,21 @@ def test_seed_dry_run_writes_nothing(ctx):
     res = seed_buckets_from_rows([_cms_row()], agency_id, apply=False)
     assert res["created"] == 1
     assert Plan.query.count() == 0
+
+def test_seed_normalizes_real_cms_underscore_form_to_dash(ctx):
+    """The REAL CMS Landscape ContractPlanID is UNDERSCORE form (H1036_167). The bucket
+    must be stored DASH form (H1036-167) so it matches the sorter (cms_plan_id_of),
+    sync_cms_plan_data (_cms_id), and find_plan_bucket — all of which use dash. Storing
+    underscore silently orphans every seeded bucket. (This test data mirrors the real
+    file; the original fixture used dash and hid the bug.)"""
+    from app.models import Plan
+    from scripts.seed_plan_buckets import seed_buckets_from_rows
+    app, agency_id = ctx
+    rows = [_cms_row(**{"Contract ID": "H1036", "Plan ID": "167",
+                        "ContractPlanID": "H1036_167",              # real underscore form
+                        "ContractPlanSegmentID": "H1036_167_1",
+                        "Plan Name": "Humana Gold Plus SNP-DE"})]
+    res = seed_buckets_from_rows(rows, agency_id, apply=True)
+    assert res["created"] == 1
+    plan = Plan.query.filter_by(agency_id=agency_id, carrier="Humana").first()
+    assert plan.cms_plan_id == "H1036-167"   # DASH, not the raw underscore

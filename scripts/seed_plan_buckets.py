@@ -49,13 +49,19 @@ def _carrier_of(org: str):
     return _ORG_TO_CARRIER.get((org or "").strip().lower())
 
 
-def seed_buckets_from_rows(rows, agency_id, apply=False):
+def seed_buckets_from_rows(rows, agency_id, apply=False, states=("NC",)):
     """rows = iterable of CMS Landscape row dicts. Upsert one Plan per (carrier,
-    ContractPlanID, year). NC only; unknown org → skipped."""
+    ContractPlanID, year) for any row whose State Territory Abbreviation is in
+    `states` (default NC-only). Service-area-aware so an agency licensed in other
+    states (e.g. NC+SC) — or a white-label tenant elsewhere — seeds their states.
+    Out-of-state plans have their OWN CMS codes (an SC Humana Gold Plus is a
+    different plan than the NC one), so they never collide with NC buckets.
+    Unknown org → skipped."""
+    states = {s.strip().upper() for s in states}
     counts = {"created": 0, "updated": 0, "skipped": 0}
     seen = set()   # (carrier, cms_plan_id) handled this run
     for row in rows:
-        if (row.get("State Territory Abbreviation") or "").strip().upper() != "NC":
+        if (row.get("State Territory Abbreviation") or "").strip().upper() not in states:
             counts["skipped"] += 1
             continue
         carrier = _carrier_of(row.get("Organization Marketing Name")
@@ -96,14 +102,18 @@ def main():
     ap.add_argument("--agency", type=int, required=True)
     ap.add_argument("--file", required=True)
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--states", default="NC",
+                    help="comma-separated state abbrevs to seed (default NC). "
+                         "e.g. --states NC,SC,TX,WV,VA")
     args = ap.parse_args()
+    states = tuple(s.strip().upper() for s in args.states.split(",") if s.strip())
     app = create_app()
     with app.app_context():
         with open(args.file, encoding="latin-1") as f:
             rows = list(csv.DictReader(f))
-        res = seed_buckets_from_rows(rows, args.agency, apply=args.apply)
+        res = seed_buckets_from_rows(rows, args.agency, apply=args.apply, states=states)
         mode = "APPLIED" if args.apply else "DRY-RUN (no writes)"
-        print(f"[{mode}] NC plan-bucket seed, agency {args.agency}:")
+        print(f"[{mode}] plan-bucket seed ({'/'.join(states)}), agency {args.agency}:")
         for k, v in res.items():
             print(f"  {k}: {v}")
 

@@ -160,6 +160,84 @@ The whole thing rests on this; counts are meaningless until it's done.
   contract-code view are reachable directly (today the carrier drill-down is only reachable
   via Overview→Humana).
 
+### Layer 5 — Annual refresh workflow (the recurring AEP chore, not a scramble)
+Plan data is not one-and-done: each October/November CMS publishes next year's ~187 NC plans
++ crosswalks (`H1036-291` → next year's version). Make the yearly refresh a documented,
+one-command flow so AEP isn't a fire drill:
+- `seed_plan_buckets.py --year <next>` from next year's CMS Landscape → creates the new
+  year's buckets; `sync_cms_plan_data.py` enriches them.
+- **Auto-populate the successor/crosswalk chain** (`Plan.successor_plan_id` +
+  `auto_transitioned`, which already exist) from the CMS crosswalk file so members on a
+  discontinued plan carry to its successor without anyone submitting a change. 6-year
+  retention: old-year Plan rows + chains are never deleted.
+- This is how HealthSherpa/MedicareCenter stay current (they hit CMS APIs live by
+  code+ZIP); we do the file-based equivalent annually. At 8 agents / one metro / ~187 plans
+  it's a genuinely small annual chore — the design just makes it repeatable, not manual.
+
+### Layer 6 — County + segment awareness (agent geography intelligence)
+The CMS Landscape carries **County per plan-segment** — the data behind Tim's own example
+(BCBS Mecklenburg/Union get segment 1-2 with better benefits; other counties only get
+segment 3-4). Capture which counties each plan-segment serves so an agent seeing a
+segment-1 plan instantly knows the county + benefit tier without asking. Store as a
+per-(plan, county) association (or a `service_counties` field on the segment-level Plan).
+Nearly free — the seed already reads the CMS rows that carry it. High value for how the
+team actually works a lead.
+
+### Layer 7 — Pharmacy ↔ plan network status (the pharmacy-partnership lens) — CUSTOMER-FIRST
+**Framing (Tim, non-negotiable):** Agents' fiduciary duty is to the CUSTOMER, always. We
+recommend the plan that is genuinely best for the customer (their drugs, copays, benefits,
+doctors). Deep pharmacy-contract knowledge makes us BETTER agents FOR THE CUSTOMER — it is
+NOT a tool to steer customers to pharmacy-profitable plans. The pharmacy lens is a
+**tie-breaker ONLY**: when the customer-facing options are genuinely equivalent (same
+relevant drug copays + benefits), THEN — all else equal — favoring the plan that also keeps
+a partner pharmacy healthy is the ethical long game (a surviving independent pharmacy serves
+far more patients over time than any single steered enrollment; needs-of-the-many in a true
+tie). The feature SURFACES pharmacy-network status as one informed data point; it must never
+be presented as a profit-optimization/steering engine.
+
+**Why it matters:** Founders exists because independent pharmacies (Cannon Main, Cannon
+Sedgefield, TrueCare) partnered with agents who bring Medicare expertise — the pharmacies'
+health is the hand that feeds the agency. A plan reimburses a pharmacy by that pharmacy's
+network status with the plan's PBM: **preferred in-network** (best), **standard in-network**
+(lower), **out-of-network** (worst/none). Same customer, same plan, different pharmacy →
+different pharmacy margin.
+
+**Data model:** a `PlanPharmacyNetwork` many-to-many — `(plan_id, pharmacy_id) → status`
+(`preferred` | `standard` | `out` | `unknown`). Human-maintained per the pharmacies' real
+PBM contracts (the pharmacy owners know these); a small table (partner pharmacies × the ~187
+plans, mostly a handful of pharmacies). Surfaces on the plan detail + as a
+customer-list/plan filter: e.g. "customers on a plan where their pharmacy is out-of-network"
+= a *service opportunity to review at the customer's next annual check* (is there an equally-
+good-for-them plan where their pharmacy is preferred?), NOT an auto-steer. Reuse the existing
+`Pharmacy` model + `pharmacy_agents` pattern.
+
+### Layer 8 — SOB / EOC in-context (make the portal a pleasure, not a filing cabinet)
+**The north star (Tim):** the portal should be where the team LIVES — we only leave for the
+few things it genuinely can't replace (e.g. enrollments). A "Download SOB.pdf" link is the
+lazy fix ("here's the data, find it yourself, bugger off") — and it fails the real pain:
+*"we can't remember if/when/where we last downloaded it."* We are NOT re-keying 200-page
+docs into fields (infeasible; the top-asked facts — copays/premium/MOOP — are already
+structured). We want the DOCUMENTS themselves navigable + searchable IN the portal, in the
+context of the plan you're already looking at.
+
+**Scope:** the two authoritative docs per plan-year — **SOB** (Summary of Benefits, ~10-20pp)
+and **EOC** (Evidence of Coverage, 200+pp). Stored per `(plan, year)` (the `Plan.sob_url`
+seam already exists; extend for EOC).
+
+**Growth path (build the cheap tier first; each tier is independently useful):**
+- **v1 — In-portal searchable viewer.** A pop-up that renders the SOB/EOC without leaving
+  the portal, with in-document find. Solves "can't remember where I downloaded it" +
+  "don't want to leave the portal." Modest build.
+- **v2 — Full-text search across a plan's docs.** Extract the PDF text and index it, so
+  typing "insulin copay" or "skilled nursing prior auth" jumps to the passage/page. The
+  "type a question, land on the answer" experience.
+- **v3 — Ask this plan a question.** RAG over the SOB/EOC → plain-English answers with a
+  citation ("does this cover Ozempic?" → the passage + page). Most ambitious; needs the
+  extracted text + an LLM call. Default to the latest Claude model when built.
+
+Its own project, sequenced after the core plan-database layers are live and the team can see
+how they use the plan pages in practice.
+
 ## Architecture / files
 - **Models:** `Policy.contract_code` + `Policy.plan_year` (new cols + migration);
   `Plan.needs_review` (bool) for auto-created plans (enriched via CMS sync + AJ editor); the
@@ -167,13 +245,20 @@ The whole thing rests on this; counts are meaningless until it's done.
   year+code+successor identity already exists — reuse it.
 - **`app/metrics.py`:** `plan_count`, `by_contract_code`, `by_plan` (linked), `Scope`
   gains `contract_code`. Single source.
-- **`app/upload.py`:** parse `contract_code` + embedded-code plan_id resolution on BOB
-  import.
+- **`scripts/seed_plan_buckets.py`:** create the ~187 NC buckets from CMS (Layer 1);
+  `scripts/sync_cms_plan_data.py` (exists) enriches them. Complementary.
+- **`app/plan_codes.py` + `app/plan_bucket.py`:** sorting keys + `find_plan_bucket`
+  (sort-into-existing-bucket, never create).
+- **`app/upload.py`:** set `contract_code`/`plan_year`/`plan_id` via `find_plan_bucket`;
+  a miss → plan_id NULL + review queue.
 - **`scripts/repair_plan_id_linkage.py`:** one-time backfill (dry-run/--apply).
 - **`app/carriers.py` + `app/customers.py` + templates:** read counts from metrics.py;
   contract-code column/filter; unify the two plan views; nav.
 - **`app/integrity.py` + `tests/test_integrity_guards.py`:** plan_id_orphans → 0 baseline;
   new module-vs-drilldown consistency invariant; guard forbidding out-of-metrics counts.
+- **Layer 6:** `service_counties` on the segment-level Plan (or a plan↔county assoc).
+- **Layer 7:** `PlanPharmacyNetwork` model `(plan_id, pharmacy_id, status)`; reuses the
+  existing `Pharmacy` model; surfaced on plan detail + as a filter.
 
 ## Constraints (carry from the codebase)
 - Every query agency-scoped. Counts ONLY via metrics.py (guard-enforced).
@@ -181,10 +266,15 @@ The whole thing rests on this; counts are meaningless until it's done.
   review the ~64 mappings WITH Tim → apply; real-Postgres verify; confirm restart cycled;
   times EST/EDT.
 - Opus whole-branch review on the data path (Layer 1 backfill touches 4,756 policies).
-- No fabricated data: a Plan auto-created from a book code is flagged `needs_review`, not
-  presented as CMS-verified. A filter over unknown data shows "unknown", never a false 0.
+- **Buckets first, sort don't create** (jelly-bean model): the parser matches a BOB row to
+  an EXISTING seeded bucket; it NEVER auto-creates a Plan on a failed match. A miss → the
+  policy stays plan_id=NULL + is surfaced to a human review queue (map it, or deliberately
+  confirm a genuinely-new bucket). This prevents "an orange bean in the red bucket."
+- No fabricated data: a filter over unknown data shows "unknown", never a false 0.
 - Reuse the existing `Plan` provenance seam (`app/plan_provenance.py`) for any benefit
   enrichment; don't blind-overwrite human-verified plan data.
+- **Pharmacy-network is customer-first, tie-breaker-only** (Layer 7) — surfaced as an
+  informed data point, never a steering/profit-optimization engine.
 
 ## Explicitly out of scope (YAGNI / later)
 - Bulk email/pharmacy/LIS data-ENTRY tooling — the filters self-populate as BOB/agent data
@@ -201,8 +291,12 @@ The whole thing rests on this; counts are meaningless until it's done.
   dashboard, customer list, carrier drill-down, and the Plan module — all agreeing, all via
   metrics.py; a year selector exposes past plan-years; the successor chain is visible on
   plan detail.
-- Auto-created plans carry `(carrier, cms_plan_id, year)` matching the CMS import + BOB +
-  commission keys, flagged `needs_review` until enriched.
+- The ~187 NC buckets are seeded from CMS (`(carrier, cms_plan_id, year)`) + supplemental
+  plans; the BOB parser sorts into them; unmatched rows are queued for human review, never
+  auto-bucketed.
+- (Later layers) annual refresh is one command per year with the crosswalk chain auto-
+  populated; county/segment captured; the `PlanPharmacyNetwork` relationship surfaced
+  customer-first as a tie-breaker signal.
 - Guard test fails the build if plan counts are computed outside metrics.py OR if the
   module and drill-down disagree on a contract-code count.
 - The composable 3-state filter set live on the Plan-module hub + customer list; LIS

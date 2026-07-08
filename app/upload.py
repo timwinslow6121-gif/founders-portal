@@ -175,11 +175,17 @@ def _dedupe_bob_records(records):
     return out
 
 
-def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvable):
+def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvable,
+                     *, plan_year=None, plan_review=None):
     """Import ONE BOB record: match/update-or-create its Policy + upsert the
     Customer master. Returns "new", "updated", or "skipped" (for an unresolvable
     no-MBI row). Runs inside a per-row savepoint in the caller, so a raise here
-    rolls back only this row."""
+    rolls back only this row.
+
+    Also sorts the row into an EXISTING plan bucket via find_plan_bucket (jelly-bean
+    model — never creates a Plan). A miss leaves Policy.plan_id NULL and, if
+    plan_review is provided, records (carrier, plan_name, plan_type) for human review."""
+    plan_year = plan_year or date.today().year
     if rec.get("status") == "termed":
         return _route_termed_rec(rec, bulk_agency_id)   # shared termed path
 
@@ -203,6 +209,12 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
             "plan_name": rec.get("plan_name"),
             "effective_date": str(rec.get("effective_date")) if rec.get("effective_date") else None,
         })
+
+    from app.plan_bucket import find_plan_bucket
+    _b = find_plan_bucket(rec["carrier"], rec, plan_year, bulk_agency_id)
+    if _b["plan_id"] is None and rec.get("plan_name") and plan_review is not None:
+        plan_review.append({"carrier": rec["carrier"], "plan_name": rec.get("plan_name"),
+                            "plan_type": rec.get("plan_type")})
 
     # Primary match: carrier + member_id
     existing = Policy.query.filter_by(
@@ -241,6 +253,9 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         _fill_if_blank(existing, "commission_type", rec.get("commission_type"))
         if bulk_agent_id:
             existing.agent_id = bulk_agent_id
+        existing.contract_code = _b["contract_code"] or existing.contract_code
+        existing.plan_year = _b["plan_year"]
+        existing.plan_id = _b["plan_id"] or existing.plan_id
         outcome = "updated"
     else:
         policy = Policy(
@@ -257,6 +272,8 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
             state=rec.get("state", ""), zip_code=rec.get("zip_code", ""),
             agent_id_carrier=rec["agent_id"], status=rec["status"],
             last_seen_date=today, import_batch_id=batch.id,
+            contract_code=_b["contract_code"], plan_year=_b["plan_year"],
+            plan_id=_b["plan_id"],
         )
         db.session.add(policy)
         outcome = "new"
@@ -993,6 +1010,7 @@ def bulk_upload():
         new_count = updated_count = 0
         unresolvable = []
         skipped_rows = []
+        plan_review = []
         for rec in records:
             # Per-row savepoint: if ANY DB op for this row fails (e.g. a unique-
             # constraint violation we didn't pre-empt), roll back JUST this row so
@@ -1001,7 +1019,8 @@ def bulk_upload():
             try:
                 with db.session.begin_nested():
                     outcome = _import_bob_row(
-                        rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvable)
+                        rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvable,
+                        plan_year=date.today().year, plan_review=plan_review)
                 if outcome == "new":
                     new_count += 1
                 elif outcome == "updated":
@@ -1012,6 +1031,17 @@ def bulk_upload():
                 skipped_rows.append({"carrier": rec.get("carrier"),
                                      "member_id": rec.get("member_id"),
                                      "full_name": rec.get("full_name"), "error": str(e)})
+
+        # Plan-bucket misses are a DIFFERENT category from unresolvable rows: the
+        # policy WAS created/updated, only plan_id is left NULL for later mapping
+        # (via the repair script / plan_id_orphans invariant) — do not pollute the
+        # quarantine modal, just log a summary for visibility.
+        if plan_review:
+            current_app.logger.info(
+                "BOB import: %d rows had no matching plan bucket (plan_id left NULL "
+                "for review): %s" % (
+                    len(plan_review),
+                    ", ".join(sorted({r["plan_name"] for r in plan_review}))))
 
         # Persist quarantined rows onto the batch for inline resolution via the modal
         if unresolvable:

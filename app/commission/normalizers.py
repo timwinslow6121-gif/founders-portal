@@ -456,12 +456,22 @@ def _classify_humana(txn_type, amount):
     return RowClass.RENEWAL
 
 
+_NAME_SUFFIXES = {"JR", "SR", "II", "III", "IV", "V"}
+
+
 def _humana_name(grp_name):
-    """'VILLEGAS ANASTACIO Z' -> (full as-is, first(guess), last(guess))."""
+    """Humana GrpName is 'LAST [SUFFIX] FIRST [MIDDLE]' (e.g. 'VILLEGAS ANASTACIO Z' or
+    'MORGAN JR BILLY N'). Return (full as-is, first(guess), last(guess)). The first-name
+    guess is the first NON-SUFFIX token after the last name — a suffix (JR/SR/III…) right
+    after the last name must NOT be mistaken for the first name (that dropped the real
+    first name and produced customers stored as 'Jr Morgan')."""
     s = str(grp_name or "").strip()
     parts = s.split()
     if len(parts) >= 2:
-        return s, parts[1], parts[0]
+        last = parts[0]
+        rest = [p for p in parts[1:] if p.upper().strip(".") not in _NAME_SUFFIXES]
+        first = rest[0] if rest else ""
+        return s, first, last
     return s, "", s
 
 

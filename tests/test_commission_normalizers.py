@@ -11,6 +11,26 @@ import pytest
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "commission")
 
 
+def test_humana_name_handles_suffix_last_first_order():
+    """Humana GrpName is 'LAST [SUFFIX] FIRST [MIDDLE]'. The first-name guess must be the
+    REAL first name, NOT a suffix (JR/SR/III) — the old code took parts[1] blindly and
+    mangled 'MORGAN JR BILLY N' into first='JR' (dropping Billy)."""
+    from app.commission.normalizers import _humana_name
+    # no suffix — unchanged behavior
+    _, first, last = _humana_name("VILLEGAS ANASTACIO Z")
+    assert first == "ANASTACIO" and last == "VILLEGAS"
+    # suffix after last name — skip it, first = real first name
+    _, first, last = _humana_name("MORGAN JR BILLY N")
+    assert first == "BILLY" and last == "MORGAN"
+    _, first, last = _humana_name("GILBERT III EARL J")
+    assert first == "EARL" and last == "GILBERT"
+    _, first, last = _humana_name("HENDERSON JR DAN")
+    assert first == "DAN" and last == "HENDERSON"
+    # single token — safe
+    _, first, last = _humana_name("CHER")
+    assert last == "CHER"
+
+
 def test_memberfact_defaults_and_required_fields():
     from app.commission.member_fact import MemberFact, RowClass
 

@@ -41,6 +41,57 @@ def _grouped(scope, col):
              "pct": round(n / total * 100, 1) if total else 0.0} for k, n in rows]
 
 
+def _by_plan(scope):
+    """Group active policies by their LINKED Plan bucket (plan_id), NOT the free-text
+    Policy.plan_name. Each row keys off the canonical bucket (name + plan_id, so the UI
+    links via the id — no name string-match). Policies with no plan_id collapse into ONE
+    honest 'Unlinked' row (plan_id=None), not clickable. Rows sum to the carrier total."""
+    from app.models import Plan
+    base = _policy_q(scope)
+    total = base.count()
+    rows = (base.with_entities(Policy.plan_id, func.count(Policy.id))
+            .group_by(Policy.plan_id).all())
+    # resolve plan_id → canonical (name, type) in one query
+    ids = [pid for pid, _ in rows if pid is not None]
+    plans = {p.id: p for p in Plan.query.filter(Plan.id.in_(ids)).all()} if ids else {}
+    out = []
+    unlinked = 0
+    for pid, n in rows:
+        if pid is None or pid not in plans:
+            unlinked += n
+            continue
+        p = plans[pid]
+        out.append({"key": p.plan_name or f"Plan {pid}", "plan_id": pid, "count": n,
+                    "pct": round(n / total * 100, 1) if total else 0.0})
+    out.sort(key=lambda r: r["count"], reverse=True)
+    if unlinked:
+        out.append({"key": "Unlinked / needs plan", "plan_id": None, "count": unlinked,
+                    "pct": round(unlinked / total * 100, 1) if total else 0.0})
+    return out
+
+
+def _by_plan_type(scope):
+    """Plan-type mix derived from the LINKED bucket's type (clean MA/PDP/medigap/dvh),
+    NOT the unreliable free-text Policy.plan_type. Unlinked policies → 'Unknown'.
+    Reconciles to the carrier total so it agrees with the Plans container."""
+    from app.models import Plan
+    base = _policy_q(scope)
+    total = base.count()
+    rows = (base.with_entities(Policy.plan_id, func.count(Policy.id))
+            .group_by(Policy.plan_id).all())
+    ids = [pid for pid, _ in rows if pid is not None]
+    plans = {p.id: p for p in Plan.query.filter(Plan.id.in_(ids)).all()} if ids else {}
+    tally = {}
+    for pid, n in rows:
+        p = plans.get(pid) if pid is not None else None
+        key = (p.plan_type if p and p.plan_type else "Unknown")
+        tally[key] = tally.get(key, 0) + n
+    out = [{"key": k, "count": v, "pct": round(v / total * 100, 1) if total else 0.0}
+           for k, v in tally.items()]
+    out.sort(key=lambda r: r["count"], reverse=True)
+    return out
+
+
 def book_breakdown(scope) -> dict:
     by_agent_rows = (_policy_q(scope)
                      .with_entities(Policy.agent_id, func.count(Policy.id))
@@ -54,8 +105,8 @@ def book_breakdown(scope) -> dict:
                          "count": n, "pct": round(n / total * 100, 1) if total else 0.0})
     return {
         "by_carrier": _grouped(scope, Policy.carrier),
-        "by_plan_type": _grouped(scope, Policy.plan_type),
-        "by_plan": _grouped(scope, Policy.plan_name),
+        "by_plan_type": _by_plan_type(scope),
+        "by_plan": _by_plan(scope),
         "by_agent": by_agent,
     }
 

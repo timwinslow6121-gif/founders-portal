@@ -217,12 +217,12 @@
     </thead>
     <tbody>
       {% for row in book.by_plan %}
-      <tr {% if plan_id_map.get(row.key) %}style="cursor:pointer;" onclick="window.location='{{ url_for('carriers.plan_detail', plan_id=plan_id_map.get(row.key)) }}'"{% endif %}>
+      <tr {% if row.plan_id %}style="cursor:pointer;" onclick="window.location='{{ url_for('carriers.plan_detail', plan_id=row.plan_id) }}'"{% endif %}>
         <td>
-          {% if plan_id_map.get(row.key) %}
-          <a href="{{ url_for('carriers.plan_detail', plan_id=plan_id_map.get(row.key)) }}" style="text-decoration:none;color:var(--gold);">{{ row.key }}</a>
+          {% if row.plan_id %}
+          <a href="{{ url_for('carriers.plan_detail', plan_id=row.plan_id) }}" style="text-decoration:none;color:var(--gold);">{{ row.key }}</a>
           {% else %}
-          {{ row.key }}
+          <span class="text-muted">{{ row.key }}</span>
           {% endif %}
         </td>
         <td>{{ row.count }}</td>

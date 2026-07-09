@@ -146,20 +146,14 @@ def carrier_detail(carrier):
                 balance = {"state": state, "delta": delta}
 
     book = book_breakdown(scope)
-    # Best-effort plan_id resolution for linking the plans table to plan_detail
-    # (not a book/money count — just an id lookup keyed off names already in `book`).
-    plan_names = [r["key"] for r in book["by_plan"] if r["key"] and r["key"] != "—"]
-    plan_id_map = {}
-    if plan_names:
-        for p in (Plan.query.filter_by(agency_id=agency_id, carrier=carrier)
-                  .filter(Plan.plan_name.in_(plan_names)).all()):
-            plan_id_map[p.plan_name] = p.id
+    # book["by_plan"] rows now carry plan_id directly (grouped on the linked bucket),
+    # so the template links via row.plan_id — no name string-match needed.
 
     return render_template("carrier_detail.html",
         carrier=carrier, color=carrier_color(carrier),
         total=total, agency_total=agency_total, pct_of_agency=pct_of_agency,
         coverage=attribution_coverage(scope),
-        book=book, plan_id_map=plan_id_map,
+        book=book,
         money=commission_totals(Scope(agency_id=agency_id, agent_id=agent_id,
                                       carrier=carrier, period=period)),
         balance=balance,

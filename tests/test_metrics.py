@@ -61,3 +61,56 @@ def test_attribution_coverage(seeded, app):
     with app.app_context():
         cov = attribution_coverage(Scope(agency_id=ag))
         assert cov["total"] == 5 and cov["attributed"] == 4 and cov["pct"] == 80.0
+
+
+@pytest.fixture
+def plan_linked(db_session, app):
+    """Two Aetna policies linked to one canonical Plan bucket (whose name DIFFERS from the
+    policies' free-text plan_name), plus one unlinked Aetna policy — the exact Value-Plus
+    situation: bucket 'Value Plus HMO' vs policy 'Aetna Medicare Value Plus (HMO)'."""
+    from app.models import Plan
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        bucket = Plan(agency_id=ag.id, carrier="Aetna", cms_plan_id="H3146-006", year=2026,
+                      plan_name="Value Plus HMO", plan_type="MA", status="current")
+        db.session.add(bucket); db.session.flush()
+        for i in range(2):
+            db.session.add(Policy(carrier="Aetna", member_id=f"a{i}", status="active",
+                                  agency_id=ag.id, plan_id=bucket.id,
+                                  plan_name="Aetna Medicare Value Plus (HMO)",  # differs!
+                                  plan_type="MAPD"))                            # differs!
+        # one unlinked (no plan_id) — garbage free-text name
+        db.session.add(Policy(carrier="Aetna", member_id="a9", status="active",
+                              agency_id=ag.id, plan_id=None, plan_name="PLUS",
+                              plan_type=""))
+        db.session.commit()
+        yield ag.id, bucket.id
+
+
+def test_by_plan_groups_on_plan_id_not_freetext(plan_linked, app):
+    """by_plan groups by the LINKED plan bucket (canonical name + plan_id for clickability),
+    NOT the policies' free-text plan_name. The 2 Value-Plus policies collapse to ONE row
+    keyed to the bucket; the unlinked one becomes a single 'Unlinked' row. All rows sum to
+    the carrier total (nothing hidden)."""
+    ag, bucket_id = plan_linked
+    with app.app_context():
+        rows = book_breakdown(Scope(agency_id=ag, carrier="Aetna"))["by_plan"]
+        linked = [r for r in rows if r.get("plan_id") == bucket_id]
+        assert len(linked) == 1
+        assert linked[0]["count"] == 2
+        assert linked[0]["key"] == "Value Plus HMO"          # canonical bucket name
+        unlinked = [r for r in rows if r.get("plan_id") is None]
+        assert len(unlinked) == 1 and unlinked[0]["count"] == 1
+        assert sum(r["count"] for r in rows) == 3            # reconciles to carrier total
+
+
+def test_by_plan_type_derives_from_linked_bucket(plan_linked, app):
+    """policy-type mix derives type from the LINKED bucket (clean 'MA'), not the policies'
+    free-text plan_type ('MAPD'). The unlinked policy is 'Unknown'. Reconciles to total."""
+    ag, bucket_id = plan_linked
+    with app.app_context():
+        rows = book_breakdown(Scope(agency_id=ag, carrier="Aetna"))["by_plan_type"]
+        by = {r["key"]: r["count"] for r in rows}
+        assert by.get("MA") == 2                              # from bucket, not 'MAPD'
+        assert by.get("Unknown") == 1                         # the unlinked one
+        assert sum(r["count"] for r in rows) == 3

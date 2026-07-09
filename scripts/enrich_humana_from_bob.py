@@ -65,9 +65,13 @@ def _blank(v):
     return v is None or (isinstance(v, str) and not v.strip())
 
 
-def _bob_by_humana_id(path):
-    """Humana ID (upper) -> dict of the BOB fields we use. Later active row wins for
-    fill data; inactive date captured from whichever row carries it."""
+def _nkey(s):
+    return " ".join((s or "").upper().split())
+
+
+def _bob_indexes(path):
+    """Return (by_hid, by_name). by_hid: Humana ID -> merged rec. by_name: name -> list of
+    Humana IDs (to tell unique from shared). Each rec = {inactive, fields, humana_id}."""
     wb = openpyxl.load_workbook(path, read_only=True)
     ws = wb.active
     it = ws.iter_rows(values_only=True)
@@ -78,30 +82,29 @@ def _bob_by_humana_id(path):
         i = idx.get(name)
         return row[i] if i is not None and i < len(row) else None
 
-    out = {}
+    by_hid, by_name = {}, {}
     for row in it:
         if not row:
             continue
         hid = str(g(row, "Humana ID") or "").strip().upper()
         if not hid:
             continue
-        rec = out.setdefault(hid, {"inactive": None, "fields": {}})
+        rec = by_hid.setdefault(hid, {"inactive": None, "fields": {}, "humana_id": hid})
         inact = _to_date(g(row, "Inactive Date"))
-        # keep the LATEST inactive date (a plan-change row may term earlier)
         if inact and (rec["inactive"] is None or inact > rec["inactive"]):
             rec["inactive"] = inact
-        # an ACTIVE row (no inactive date) is the best source of current contact fields
-        prefer = inact is None or not rec["fields"]
-        if prefer:
+        if inact is None or not rec["fields"]:
             rec["fields"] = {attr: g(row, col) for attr, col in _FILL.items()}
+        nm = _nkey(f"{g(row, 'MbrFirstName') or ''} {g(row, 'MbrLastName') or ''}")
+        by_name.setdefault(nm, set()).add(hid)
     wb.close()
-    return out
+    return by_hid, by_name
 
 
 def enrich(agency_id, bob_path, apply=False):
-    bob = _bob_by_humana_id(bob_path)
+    by_hid, by_name = _bob_indexes(bob_path)
     counts = {"filled_fields": 0, "customers_filled": 0, "termed": 0, "mbi_moved": 0,
-              "no_bob_match": 0}
+              "id_backfilled": 0, "matched_by_name": 0, "no_bob_match": 0, "ambiguous": 0}
     fill_detail = {}
     custs = (Customer.query
              .join(Policy, Policy.customer_id == Customer.id)
@@ -116,7 +119,19 @@ def enrich(agency_id, bob_path, apply=False):
             if apply:
                 c.mbi = c.humana_id.strip().upper()
 
-        rec = bob.get(hid) if hid.startswith("H") else None
+        # match: real Humana ID first, else UNIQUE name (and backfill the ID)
+        rec = by_hid.get(hid) if hid.startswith("H") else None
+        if rec is None and not hid.startswith("H"):
+            hids = by_name.get(_nkey(c.full_name), set())
+            if len(hids) == 1:
+                rec = by_hid[next(iter(hids))]
+                counts["matched_by_name"] += 1
+                if _blank(c.humana_id):        # backfill the permanent ID
+                    counts["id_backfilled"] += 1
+                    if apply:
+                        c.humana_id = rec["humana_id"]
+            elif len(hids) > 1:
+                counts["ambiguous"] += 1
         if rec is None:
             counts["no_bob_match"] += 1
             continue
@@ -172,6 +187,9 @@ def main():
             print(f"      {f}: {n}")
         print(f"  policies auto-termed (BOB inactive): {res['termed']}")
         print(f"  MBI moved humana_id->mbi:            {res['mbi_moved']}")
+        print(f"  matched by unique name (ID-less):    {res['matched_by_name']}")
+        print(f"  Humana ID backfilled onto stub:      {res['id_backfilled']}")
+        print(f"  ambiguous (shared name, skipped):    {res['ambiguous']}")
         print(f"  customers not in BOB:                {res['no_bob_match']}")
 
 

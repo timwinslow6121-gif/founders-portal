@@ -109,6 +109,26 @@ def test_moves_mbi_from_humana_id_column(ctx, tmp_path):
     assert res["mbi_moved"] == 1
 
 
+def test_idless_stub_matches_by_unique_name_fills_and_backfills_id(ctx, tmp_path):
+    """An ID-less commission stub (no Humana ID) matches the BOB by UNIQUE name → fills its
+    blank fields, auto-terms if inactive, AND backfills the Humana ID for permanent linking."""
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from scripts.enrich_humana_from_bob import enrich
+    app, agency_id = ctx
+    # John Abernathy is in the BOB (H222, inactive 4/30) — stub has no Humana ID
+    c = _cust(db, agency_id, humana_id=None, first_name="John", last_name="Abernathy",
+              full_name="John Abernathy", dob=None)
+    p = _humana_pol(db, agency_id, c)
+    db.session.commit()
+    res = enrich(agency_id, _bob(tmp_path), apply=True)
+    got = db.session.get(Customer, c.id)
+    assert got.humana_id == "H222"                        # ID backfilled
+    assert got.dob == datetime.date(1948, 7, 21)          # field filled by name-match
+    assert db.session.get(Policy, p.id).status == "termed"  # auto-termed
+    assert res["matched_by_name"] == 1 and res["id_backfilled"] == 1
+
+
 def test_dry_run_writes_nothing(ctx, tmp_path):
     from app.extensions import db
     from app.models import Customer, Policy

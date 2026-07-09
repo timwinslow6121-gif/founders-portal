@@ -129,6 +129,39 @@ def test_idless_stub_matches_by_unique_name_fills_and_backfills_id(ctx, tmp_path
     assert res["matched_by_name"] == 1 and res["id_backfilled"] == 1
 
 
+def _bob_with_renewal(tmp_path):
+    """A member with a 12/31/2025-inactive OLD plan row AND a 1/1/2026 ACTIVE new plan row
+    = an AEP plan renewal, NOT a termination."""
+    import openpyxl
+    p = tmp_path / "Humana Book of business.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active
+    ws.append(["Humana ID", "MbrFirstName", "MbrLastName", "Birth Date", "Gender",
+               "Primary Phone", "Secondary Phone", "Resident Address", "Resident City",
+               "Resident State", "Resident Zip Code", "Resident County", "Inactive Date",
+               "Medicare No", "Plan Name"])
+    ws.append(["H333", "Clifton", "Winecoff", "", "M", "", "", "", "", "", "", "",
+               "12/31/2025", "XXXXXEF56", "Gold Plus H1036-291"])   # old plan ended
+    ws.append(["H333", "Clifton", "Winecoff", "", "M", "", "", "", "", "", "", "",
+               "", "XXXXXEF56", "Gold Plus H1036-335"])             # new plan ACTIVE
+    wb.save(p)
+    return str(p)
+
+
+def test_renewal_not_termed(ctx, tmp_path):
+    """A member with an inactive old plan BUT an active new plan (AEP renewal) must NOT be
+    termed — the regression that would have wrongly termed 103 active members."""
+    from app.extensions import db
+    from app.models import Policy
+    from scripts.enrich_humana_from_bob import enrich
+    app, agency_id = ctx
+    c = _cust(db, agency_id, "H333")
+    p = _humana_pol(db, agency_id, c)
+    db.session.commit()
+    res = enrich(agency_id, _bob_with_renewal(tmp_path), apply=True)
+    assert db.session.get(Policy, p.id).status == "active"   # NOT termed — still current
+    assert res["termed"] == 0
+
+
 def test_dry_run_writes_nothing(ctx, tmp_path):
     from app.extensions import db
     from app.models import Customer, Policy

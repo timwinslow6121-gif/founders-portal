@@ -97,8 +97,11 @@ def _bob_indexes(path):
         fields = {attr: g(row, col) for attr, col in _FILL.items()}
 
         if hid:
-            rec = by_hid.setdefault(hid, {"inactive": None, "fields": {}, "humana_id": hid})
-            if inact and (rec["inactive"] is None or inact > rec["inactive"]):
+            rec = by_hid.setdefault(hid, {"inactive": None, "fields": {}, "humana_id": hid,
+                                          "has_active": False})
+            if inact is None:
+                rec["has_active"] = True       # an active row → member is CURRENT
+            elif rec["inactive"] is None or inact > rec["inactive"]:
                 rec["inactive"] = inact
             if inact is None or not rec["fields"]:
                 rec["fields"] = fields
@@ -115,10 +118,12 @@ def _bob_indexes(path):
         if name_recs.get(nm) == "AMBIGUOUS":
             continue
         rec = name_recs.setdefault(nm, {"inactive": None, "fields": {},
-                                        "humana_id": hid or None})
+                                        "humana_id": hid or None, "has_active": False})
         if hid and not rec.get("humana_id"):
             rec["humana_id"] = hid
-        if inact and (rec["inactive"] is None or inact > rec["inactive"]):
+        if inact is None:
+            rec["has_active"] = True           # a current row → do NOT term this member
+        elif rec["inactive"] is None or inact > rec["inactive"]:
             rec["inactive"] = inact
         if inact is None or not rec["fields"]:
             rec["fields"] = fields
@@ -179,8 +184,10 @@ def enrich(agency_id, bob_path, apply=False):
             if filled_here:
                 counts["customers_filled"] += 1
 
-        # (2) auto-term the Humana policy if the BOB says inactive
-        if rec["inactive"]:
+        # (2) auto-term the Humana policy ONLY if the member has an inactive date AND NO
+        # active row anywhere in the BOB. A 12/31 inactive + a 1/1 active row = an AEP
+        # plan RENEWAL (still a current customer) — must NOT be termed.
+        if rec["inactive"] and not rec.get("has_active"):
             pol = Policy.query.filter_by(agency_id=agency_id, carrier="Humana",
                                          customer_id=c.id, status="active").first()
             if pol:

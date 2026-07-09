@@ -35,3 +35,10 @@ docs/.obsidian/workspace-mobile.json
 # Local git worktrees (isolated workspaces)
 .worktrees/
 .superpowers/
+
+# Large CMS data + design scratch (not for git)
+docs/Medicare Landscape Files/pbp-benefits-2026/
+*.zip
+Claude lux files/
+Founder_Portal_Lux_Design/
+stitch_founders_portal_lux/

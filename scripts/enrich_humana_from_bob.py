@@ -82,27 +82,52 @@ def _bob_indexes(path):
         i = idx.get(name)
         return row[i] if i is not None and i < len(row) else None
 
-    by_hid, by_name = {}, {}
+    # Index BY NAME over ALL rows (incl. inactive rows with NO Humana ID — those carry the
+    # term signal for the commission stubs). by_name maps name -> a single merged rec (or
+    # marks it ambiguous if 2+ DISTINCT people share the name).
+    by_hid = {}
+    name_recs = {}      # name -> rec ; name -> "AMBIGUOUS"
+    name_ids = {}       # name -> set of distinct Humana IDs seen (to detect real dups)
     for row in it:
         if not row:
             continue
         hid = str(g(row, "Humana ID") or "").strip().upper()
-        if not hid:
-            continue
-        rec = by_hid.setdefault(hid, {"inactive": None, "fields": {}, "humana_id": hid})
+        nm = _nkey(f"{g(row, 'MbrFirstName') or ''} {g(row, 'MbrLastName') or ''}")
         inact = _to_date(g(row, "Inactive Date"))
+        fields = {attr: g(row, col) for attr, col in _FILL.items()}
+
+        if hid:
+            rec = by_hid.setdefault(hid, {"inactive": None, "fields": {}, "humana_id": hid})
+            if inact and (rec["inactive"] is None or inact > rec["inactive"]):
+                rec["inactive"] = inact
+            if inact is None or not rec["fields"]:
+                rec["fields"] = fields
+
+        if not nm:
+            continue
+        name_ids.setdefault(nm, set())
+        if hid:
+            name_ids[nm].add(hid)
+        # if this name has 2+ distinct Humana IDs, it's 2+ real people → ambiguous
+        if len(name_ids[nm]) > 1:
+            name_recs[nm] = "AMBIGUOUS"
+            continue
+        if name_recs.get(nm) == "AMBIGUOUS":
+            continue
+        rec = name_recs.setdefault(nm, {"inactive": None, "fields": {},
+                                        "humana_id": hid or None})
+        if hid and not rec.get("humana_id"):
+            rec["humana_id"] = hid
         if inact and (rec["inactive"] is None or inact > rec["inactive"]):
             rec["inactive"] = inact
         if inact is None or not rec["fields"]:
-            rec["fields"] = {attr: g(row, col) for attr, col in _FILL.items()}
-        nm = _nkey(f"{g(row, 'MbrFirstName') or ''} {g(row, 'MbrLastName') or ''}")
-        by_name.setdefault(nm, set()).add(hid)
+            rec["fields"] = fields
     wb.close()
-    return by_hid, by_name
+    return by_hid, name_recs
 
 
 def enrich(agency_id, bob_path, apply=False):
-    by_hid, by_name = _bob_indexes(bob_path)
+    by_hid, name_recs = _bob_indexes(bob_path)
     counts = {"filled_fields": 0, "customers_filled": 0, "termed": 0, "mbi_moved": 0,
               "id_backfilled": 0, "matched_by_name": 0, "no_bob_match": 0, "ambiguous": 0}
     fill_detail = {}
@@ -119,19 +144,20 @@ def enrich(agency_id, bob_path, apply=False):
             if apply:
                 c.mbi = c.humana_id.strip().upper()
 
-        # match: real Humana ID first, else UNIQUE name (and backfill the ID)
+        # match: real Humana ID first, else UNIQUE name (and backfill the ID if the BOB
+        # name row carries one). name_recs value is a rec, or "AMBIGUOUS" for shared names.
         rec = by_hid.get(hid) if hid.startswith("H") else None
         if rec is None and not hid.startswith("H"):
-            hids = by_name.get(_nkey(c.full_name), set())
-            if len(hids) == 1:
-                rec = by_hid[next(iter(hids))]
+            nr = name_recs.get(_nkey(c.full_name))
+            if nr == "AMBIGUOUS":
+                counts["ambiguous"] += 1
+            elif nr is not None:
+                rec = nr
                 counts["matched_by_name"] += 1
-                if _blank(c.humana_id):        # backfill the permanent ID
+                if _blank(c.humana_id) and rec.get("humana_id"):   # backfill permanent ID
                     counts["id_backfilled"] += 1
                     if apply:
                         c.humana_id = rec["humana_id"]
-            elif len(hids) > 1:
-                counts["ambiguous"] += 1
         if rec is None:
             counts["no_bob_match"] += 1
             continue

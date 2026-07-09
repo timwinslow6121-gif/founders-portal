@@ -114,3 +114,24 @@ def test_by_plan_type_derives_from_linked_bucket(plan_linked, app):
         assert by.get("MA") == 2                              # from bucket, not 'MAPD'
         assert by.get("Unknown") == 1                         # the unlinked one
         assert sum(r["count"] for r in rows) == 3
+
+
+def test_plan_type_casing_canonicalized(db_session, app):
+    """The two bucket generations use 'MA'/'PDP' vs 'mapd'/'pdp' — the mix collapses the
+    casing so they don't split into separate rows. MA and MAPD stay DISTINCT."""
+    from app.models import Plan
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        b_ma = Plan(agency_id=ag.id, carrier="Aetna", cms_plan_id="H1-1", year=2026,
+                    plan_name="A", plan_type="MA", status="current")
+        b_mapd = Plan(agency_id=ag.id, carrier="Aetna", cms_plan_id="H1-2", year=2026,
+                      plan_name="B", plan_type="mapd", status="current")  # lowercase
+        db.session.add_all([b_ma, b_mapd]); db.session.flush()
+        db.session.add(Policy(carrier="Aetna", member_id="m1", status="active",
+                              agency_id=ag.id, plan_id=b_ma.id))
+        db.session.add(Policy(carrier="Aetna", member_id="m2", status="active",
+                              agency_id=ag.id, plan_id=b_mapd.id))
+        db.session.commit()
+        rows = book_breakdown(Scope(agency_id=ag.id, carrier="Aetna"))["by_plan_type"]
+        by = {r["key"]: r["count"] for r in rows}
+        assert by == {"MA": 1, "MAPD": 1}      # canonical labels, still distinct, no 'mapd'

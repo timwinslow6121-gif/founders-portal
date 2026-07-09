@@ -70,10 +70,26 @@ def _by_plan(scope):
     return out
 
 
+# Canonical plan-type label — collapses the casing drift between the two bucket
+# generations (CMS seed "MA"/"PDP" vs old-gen "mapd"/"pdp") so the mix reads cleanly.
+# NOTE: MA and MAPD are kept DISTINCT (MA = Advantage no-drug, MAPD = with drug) — both
+# are Part C. The full Part-C-parent + SNP/network taxonomy is a separate Layer-2/3 spec.
+_PLAN_TYPE_LABEL = {
+    "ma": "MA", "mapd": "MAPD", "pdp": "PDP", "medigap": "Medigap", "ms": "Medigap",
+    "dvh": "DVH", "dental": "DVH", "pffs": "PFFS", "": "Unknown",
+}
+
+
+def _canon_plan_type(pt):
+    pt = (pt or "").strip()
+    return _PLAN_TYPE_LABEL.get(pt.lower(), pt)
+
+
 def _by_plan_type(scope):
-    """Plan-type mix derived from the LINKED bucket's type (clean MA/PDP/medigap/dvh),
-    NOT the unreliable free-text Policy.plan_type. Unlinked policies → 'Unknown'.
-    Reconciles to the carrier total so it agrees with the Plans container."""
+    """Plan-type mix derived from the LINKED bucket's type (clean MA/MAPD/PDP/Medigap/DVH),
+    NOT the unreliable free-text Policy.plan_type; casing canonicalized so the two bucket
+    generations don't split (MA vs mapd). Unlinked policies → 'Unknown'. Reconciles to the
+    carrier total so it agrees with the Plans container."""
     from app.models import Plan
     base = _policy_q(scope)
     total = base.count()
@@ -84,7 +100,7 @@ def _by_plan_type(scope):
     tally = {}
     for pid, n in rows:
         p = plans.get(pid) if pid is not None else None
-        key = (p.plan_type if p and p.plan_type else "Unknown")
+        key = _canon_plan_type(p.plan_type) if p and p.plan_type else "Unknown"
         tally[key] = tally.get(key, 0) + n
     out = [{"key": k, "count": v, "pct": round(v / total * 100, 1) if total else 0.0}
            for k, v in tally.items()]

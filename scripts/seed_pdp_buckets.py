@@ -20,21 +20,26 @@ from app.models import Plan
 
 YEAR = 2026
 
-# The NC standalone PDPs our agents sell. (carrier, cms_plan_id, plan_name).
-# Extend/adjust by hand each AEP.
+# NC standalone PDPs. Names + codes VERIFIED against the authoritative CMS sheet
+# "2026 North Carolina Stand-Alone Prescription Drug Plan Organizations"
+# (docs/Medicare Landscape Files/PDP Info/). Extend/adjust by hand each AEP.
+# NOTE: S5617-359 (HealthSpring Extra Rx SC) + S5601-017 (SilverScript Plus) are NOT on
+# the 2026 NC sheet but real members hold them (SC out-of-state / grandfathered) — kept.
 _PDP_PLANS = [
     ("Aetna",        "S5601-016", "SilverScript Choice (PDP)"),
-    ("Aetna",        "S5601-017", "SilverScript Plus (PDP)"),
+    ("Aetna",        "S5601-017", "SilverScript Plus (PDP)"),        # not on 2026 NC sheet; real members
     ("BCBS",         "S5540-002", "Blue Medicare Rx Standard (PDP)"),
     ("BCBS",         "S5540-004", "Blue Medicare Rx Enhanced (PDP)"),
     ("Healthspring", "S5617-217", "HealthSpring Assurance Rx (PDP)"),
-    ("Healthspring", "S5617-358", "HealthSpring Extra Rx (PDP)"),
-    ("Healthspring", "S5617-359", "HealthSpring Extra Rx (PDP)"),
+    ("Healthspring", "S5617-358", "HealthSpring Extra Rx (PDP)"),    # NC
+    ("Healthspring", "S5617-359", "HealthSpring Extra Rx (PDP)"),    # SC (out-of-state)
     ("Humana",       "S5884-133", "Humana Basic Rx Plan (PDP)"),
-    ("Humana",       "S5884-154", "Humana Premier Rx Plan (PDP)"),
     ("Humana",       "S5884-187", "Humana Value Rx Plan (PDP)"),
+    ("Humana",       "S5884-154", "Humana Premier Rx Plan (PDP)"),
     ("UHC",          "S5921-353", "AARP Medicare Rx Saver from UHC (PDP)"),
     ("UHC",          "S5921-390", "AARP Medicare Rx Preferred from UHC (PDP)"),
+    ("Wellcare",     "S4802-081", "WellCare Classic (PDP)"),
+    ("Wellcare",     "S4802-143", "WellCare Value Script (PDP)"),
 ]
 
 

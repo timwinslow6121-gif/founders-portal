@@ -9,6 +9,6 @@
   "no_orphan_routes": 7,
   "orphan_stub_customers": 495,
   "payment_without_customer": 668,
-  "plan_id_orphans": 366,
+  "plan_id_orphans": 316,
   "statement_balance_complete": 0
 }

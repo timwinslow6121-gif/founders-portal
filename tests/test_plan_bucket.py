@@ -53,6 +53,31 @@ def test_sorts_medigap_by_letter_at_perpetual(ctx):
     assert res["plan_id"] == bucket.id and res["matched_by"] == "letter"
     assert res["plan_year"] == PERPETUAL
 
+def test_sorts_medigap_by_letter_at_any_year(ctx):
+    """Medigap buckets stored at year=2026 (not PERPETUAL) still match by letter — the
+    sorter matches a medigap bucket regardless of year (Plan G is Plan G every year)."""
+    from app.extensions import db
+    from app.plan_bucket import find_plan_bucket
+    app, agency_id = ctx
+    bucket = _plan(db, agency_id, carrier="BCBS", plan_letter="G", plan_type="medigap",
+                   year=2026, cms_plan_id=None, plan_name="Supplement Plan G")
+    res = find_plan_bucket("BCBS", {"plan_name": "MEDSUP G 2019", "plan_type": "MS"},
+                           2026, agency_id)
+    assert res["plan_id"] == bucket.id and res["matched_by"] == "letter"
+
+def test_sorts_medigap_by_alias_when_no_letter(ctx):
+    """A medigap name with NO extractable letter ('AARP MEDICARE SUPPLEMENT PLAN') still
+    matches via the reviewed alias on the bucket — the medigap branch tries aliases too."""
+    from app.extensions import db
+    from app.plan_bucket import find_plan_bucket
+    app, agency_id = ctx
+    bucket = _plan(db, agency_id, carrier="UHC", plan_letter="G", plan_type="medigap",
+                   year=2026, cms_plan_id=None, plan_name="Medicare Supplement Plan G",
+                   plan_name_aliases="AARP MEDICARE SUPPLEMENT PLAN")
+    res = find_plan_bucket("UHC", {"plan_name": "AARP MEDICARE SUPPLEMENT PLAN",
+                                   "plan_type": "medigap"}, 2026, agency_id)
+    assert res["plan_id"] == bucket.id and res["matched_by"] in ("alias", "letter")
+
 def test_sorts_by_alias_when_no_code(ctx):
     from app.extensions import db
     from app.plan_bucket import find_plan_bucket

@@ -50,13 +50,25 @@ def find_plan_bucket(carrier, rec, plan_year, agency_id) -> dict:
         return out
     if kind == "medigap":
         out["plan_year"] = PERPETUAL
+        # Match by plan letter at ANY year — a medigap plan's benefits are standardized by
+        # letter and don't change annually (Plan G is Plan G), so a bucket stored at 2026
+        # or PERPETUAL both count. (The Layer-1 buckets happen to sit at 2026.)
         letter = medigap_letter(plan_name)
         if letter:
             with db.session.no_autoflush:
-                p = Plan.query.filter_by(agency_id=agency_id, carrier=carrier,
-                                         plan_letter=letter, year=PERPETUAL).first()
+                p = (Plan.query
+                     .filter_by(agency_id=agency_id, carrier=carrier, plan_letter=letter)
+                     .order_by(Plan.year.asc()).first())
             if p:
                 out.update(plan_id=p.id, matched_by="letter")
+                return out
+        # No extractable letter (e.g. "AARP MEDICARE SUPPLEMENT PLAN") → try the reviewed
+        # alias/name on existing medigap buckets, at year 2026 or PERPETUAL.
+        for yr in (plan_year, PERPETUAL):
+            p = _alias_hit(carrier, plan_name, yr, agency_id)
+            if p:
+                out.update(plan_id=p.id, matched_by="alias")
+                return out
         return out
     # named (DVH/dental/GTL/hospital-indemnity)
     out["plan_year"] = PERPETUAL

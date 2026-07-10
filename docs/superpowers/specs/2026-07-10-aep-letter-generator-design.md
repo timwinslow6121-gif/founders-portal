@@ -18,7 +18,16 @@ Each AEP (Oct 15 – Dec 7), Founders agents mail **thousands** of plan-specific
 
 ## 2. Key Decisions (locked during brainstorming)
 
-1. **Vendor = pluggable, pay-per-piece, NO monthly subscription** (behind a swappable `MailVendor` interface). All-in per-piece **includes postage** (presorted, cheaper than retail stamps) + paper + printing + folding + envelope + insertion + mailing. **Lob is REJECTED** — its Growth plan carries a ~$550/mo subscription floor, wrong for Founders' seasonal, spiky AEP volume (~5,000 own-book letters + potentially 2,000–10,000 per pharmacy × ~8 partner pharmacies → tens of thousands of pieces concentrated in Oct–Dec, ~zero the rest of the year). **Leading candidates (confirmed pay-as-you-go, postage included, no minimum):** PostGrid (Lob-equivalent API, zero monthly commitment) and Postalytics (Free tier $1.42/piece all-in, no minimum). Note: at ~30k seasonal pieces the **per-piece rate dominates** subscription fees, so a *seasonal* subscription tier may still net cheaper — this is a procurement decision (get real quotes for Founders' volume), NOT an architecture decision. The interface is vendor-agnostic; the chosen vendor is one adapter. See §6.
+1. **Vendor = a HIGH-VOLUME bulk mailing house with pay-per-piece pricing, NO monthly subscription, and NO per-month volume cap** (behind a swappable `MailVendor` interface). All-in per-piece **includes postage** (presorted, cheaper than retail stamps) + paper + printing + folding + envelope + insertion + mailing. Founders' volume is **seasonal and spiky**: ~5,000 own-book letters + potentially 2,000–10,000 per pharmacy × ~8 partner pharmacies → **tens of thousands of pieces concentrated in Oct–Dec, ~zero the rest of the year**. This profile REJECTS the low-volume transactional APIs:
+   - **Lob — REJECTED:** ~$550/mo subscription floor.
+   - **PostGrid — REJECTED as primary:** its "no-commitment" pay-as-you-go tier **caps at 500 mailings/month** (overage fees / forced upgrade beyond that) — a low-volume tier, not a bulk one.
+   - **Postalytics:** Free tier $1.42/piece all-in, no minimum — viable but subscription tiers only pay off at high *monthly* volume (not our seasonal pattern).
+
+   **Leading candidates (built for 1 → tens of thousands/millions of pieces, no minimum, no monthly fee, no cap, API-driven, postage included):**
+   - **LetterStream** — no monthly fee, no minimum, no cap; first-class letters ~$1.23 each all-in; API. Best profile match.
+   - **PCM Integrations** — no setup/monthly minimums, pay-per-piece, national print network "scales to millions/month," batch API.
+
+   Note: at ~30k seasonal pieces the **per-piece rate dominates** any platform fee, so the final pick is a **procurement decision** (get real per-piece quotes from LetterStream + PCM for Founders' volume) — NOT an architecture decision. The interface is vendor-agnostic; the chosen vendor is one adapter. See §6.
 2. **Letter authoring = constrained fields → guaranteed one page.** Not a free rich-text blob. Brian/AJ fill labeled boxes with character budgets; the sum of budgets is calibrated to fit one 8.5×11 page with locked header + footer. Live char counters + preview. (Validated: a real reportlab one-page render fits with headroom — `docs/AEP Letters/SAMPLE_Modern_AEP_Letter.pdf`.)
 3. **Two letter styles:** **Classic** (Brian's serif design, faithfully recreated) and **Modern** (research-backed redesign — see §4.3). Both selectable per template.
 4. **Campaign = per-year plan→letter map, authored once by Brian/AJ.** The anti-disaster spine: because recipients are gathered **by plan**, a customer can land in exactly one BOB bundle → "same person got two different letters" becomes structurally impossible.
@@ -106,7 +115,7 @@ Portal renders template + merged data → **PDF** (reportlab, extending the `lab
 ## 6. Vendor Integration (pluggable, pay-per-piece)
 
 - `app/mail_vendor/` with a `MailVendor` interface: `submit(batch, pdfs, recipients) -> vendor_batch_ref`, `status(ref)`, `estimate(count) -> cents`. **Vendor choice is config, not code** (`MAIL_VENDOR=postgrid|postalytics|...`).
-- **No subscription-floor vendors** (Lob rejected, §2 decision 1). Build the adapter for the vendor Founders actually contracts. **PostGrid** is the closest drop-in (Lob-style API: submit HTML/PDF + address list, presorted first-class, pay-per-piece, postage bundled). **Postalytics** is a viable alternative (Free tier, no minimum). Both are pay-as-you-go.
+- **High-volume, no-subscription, no-cap bulk mailer only** (Lob + PostGrid rejected, §2 decision 1). Build the adapter for the vendor Founders actually contracts. **LetterStream** (best profile match: no monthly fee, no minimum, no cap, ~$1.23/letter all-in, API to submit PDF + address list) or **PCM Integrations** (pay-per-piece, national print network, batch API). Both are pay-as-you-go and handle tens of thousands of seasonal pieces.
 - Config (VPS `.env`): `<VENDOR>_API_KEY`, `MAIL_VENDOR`, `MAIL_FROM_ADDRESS` (return address), `MAIL_PER_PIECE_CENTS` (fallback estimate rate until the live API rate is wired).
 - Status updates via the vendor's webhook (signature-verified like existing Quo/Calendly webhooks) OR polling; either updates `mail_batch.status` + item statuses.
 - **Cost estimate** shown on Screen 3 uses the live vendor rate if available, else `MAIL_PER_PIECE_CENTS`. Because volume can be tens of thousands seasonally, the estimate must be visible and reasonably accurate before any submit.
@@ -150,7 +159,7 @@ Rough phase order (details → writing-plans):
 3. **Letter render engine** (reportlab, Classic + Modern; merge fields; brand header/footer + locked disclaimer; one-page guarantee) — reuse/extend `labels.py`.
 4. **Campaign builder** (plan→letter map) — admin-only.
 5. **Agent send wizard** (3 screens; bundle resolution; household de-dupe; per-row deselect; inline address write-back; label print) — reuse `labels.py` address logic + Founders theme.
-6. **Mail-vendor adapter** (PostGrid or the chosen pay-per-piece vendor: submit/status/estimate; test-mode; webhook) behind the `MailVendor` interface.
+6. **Mail-vendor adapter** (LetterStream/PCM or the chosen bulk pay-per-piece vendor: submit/status/estimate; test-mode; webhook) behind the `MailVendor` interface.
 7. **Batch tracking / admin spend view** + audit.
 8. **Pharmacy blast** (ephemeral CSV import audience: all-aged or plan-targeted).
 

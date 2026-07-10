@@ -10,7 +10,7 @@
 
 Each AEP (Oct 15 – Dec 7), Founders agents mail **thousands** of plan-specific letters to their customers. Today this is brutal manual labor: organize the BOB by carrier+plan, hand-analyze each plan's ANOC into a "key changes" box, print at a shop, fold, stuff, label, postmark, and drop off — while making sure each customer gets the **correct** letter and no one gets two. Brian has Cannon's staff for this; most agents rely on spouses/pharmacy staff (sometimes paid).
 
-**Goal:** an agent picks their suggested mailings, reviews the recipient list, and clicks send — and a print-and-mail vendor (Lob) prints, folds, stuffs, addresses, postmarks, and mails every letter. Personalized per agent (headshot/phone/QR) automatically. The hard back-end is invisible; the agent experience is three screens.
+**Goal:** an agent picks their suggested mailings, reviews the recipient list, and clicks send — and a pay-per-piece print-and-mail vendor prints, folds, stuffs, addresses, postmarks, and mails every letter. Personalized per agent (headshot/phone/QR) automatically. The hard back-end is invisible; the agent experience is three screens.
 
 **Non-goals (this spec):** live CMS/ANOC API ingestion (the changes box is hand-authored — human expertise, see §4.1); auto-generating letter copy; bulk customer email (this is physical mail only); a general campaign/marketing engine beyond AEP letters.
 
@@ -18,7 +18,7 @@ Each AEP (Oct 15 – Dec 7), Founders agents mail **thousands** of plan-specific
 
 ## 2. Key Decisions (locked during brainstorming)
 
-1. **Vendor = Lob** (reference), behind a swappable interface. All-in per-piece (~$1) **includes postage** (presorted, cheaper than retail stamps) + paper + printing + folding + envelope + insertion + mailing. Founders holds the account. A different vendor (PostGrid/Click2Mail) can swap in without touching the rest.
+1. **Vendor = pluggable, pay-per-piece, NO monthly subscription** (behind a swappable `MailVendor` interface). All-in per-piece **includes postage** (presorted, cheaper than retail stamps) + paper + printing + folding + envelope + insertion + mailing. **Lob is REJECTED** — its Growth plan carries a ~$550/mo subscription floor, wrong for Founders' seasonal, spiky AEP volume (~5,000 own-book letters + potentially 2,000–10,000 per pharmacy × ~8 partner pharmacies → tens of thousands of pieces concentrated in Oct–Dec, ~zero the rest of the year). **Leading candidates (confirmed pay-as-you-go, postage included, no minimum):** PostGrid (Lob-equivalent API, zero monthly commitment) and Postalytics (Free tier $1.42/piece all-in, no minimum). Note: at ~30k seasonal pieces the **per-piece rate dominates** subscription fees, so a *seasonal* subscription tier may still net cheaper — this is a procurement decision (get real quotes for Founders' volume), NOT an architecture decision. The interface is vendor-agnostic; the chosen vendor is one adapter. See §6.
 2. **Letter authoring = constrained fields → guaranteed one page.** Not a free rich-text blob. Brian/AJ fill labeled boxes with character budgets; the sum of budgets is calibrated to fit one 8.5×11 page with locked header + footer. Live char counters + preview. (Validated: a real reportlab one-page render fits with headroom — `docs/AEP Letters/SAMPLE_Modern_AEP_Letter.pdf`.)
 3. **Two letter styles:** **Classic** (Brian's serif design, faithfully recreated) and **Modern** (research-backed redesign — see §4.3). Both selectable per template.
 4. **Campaign = per-year plan→letter map, authored once by Brian/AJ.** The anti-disaster spine: because recipients are gathered **by plan**, a customer can land in exactly one BOB bundle → "same person got two different letters" becomes structurally impossible.
@@ -99,17 +99,19 @@ Portal renders template + merged data → **PDF** (reportlab, extending the `lab
 - **Inline address edit** (✎) — opens street/city/state/zip fields; Save **writes back to `Customer`** (respecting `manually_edited`; sets it true), fixing it for labels + future mailings too. `⚠ no address` rows open editable by default.
 - 🖨 print these labels. Primary button → send.
 
-**Screen 3 — Confirm & send.** Full page. Per-mailing counts + total + **estimated Lob cost shown up front**. Green "Send N letters for delivery". On submit: create `mail_batch`(+items), render PDFs, hand to the Lob adapter, set `submitted` → poll/webhook to `in_production`/`mailed`. A sent/tracked record (count, cost, expected-in-mailboxes date) visible to the agent AND admins.
+**Screen 3 — Confirm & send.** Full page. Per-mailing counts + total + **estimated mail cost shown up front**. Green "Send N letters for delivery". On submit: create `mail_batch`(+items), render PDFs, hand to the mail-vendor adapter, set `submitted` → poll/webhook to `in_production`/`mailed`. A sent/tracked record (count, cost, expected-in-mailboxes date) visible to the agent AND admins.
 
 ---
 
-## 6. Vendor Integration (Lob adapter)
+## 6. Vendor Integration (pluggable, pay-per-piece)
 
-- `app/mail_vendor/` with a `MailVendor` interface: `submit(batch, pdfs, recipients) -> vendor_batch_ref`, `status(ref)`, `estimate(count) -> cents`.
-- `LobVendor` implements it (Lob Letters API: HTML/PDF + address list; presorted first-class). Config: `LOB_API_KEY` (VPS `.env`), `MAIL_VENDOR=lob`, `MAIL_FROM_ADDRESS` (return address).
-- Cost estimate uses a configurable per-piece rate until the live API rate is wired.
-- Status updates via Lob webhook (mounted under `/comms/webhook/lob` style, signature-verified like existing webhooks) OR polling; either updates `mail_batch.status` + item statuses.
-- **Test-mode:** Lob test key + a dry-run that renders PDFs and shows the batch without mailing (so agents/Brian can preview end-to-end before a live send).
+- `app/mail_vendor/` with a `MailVendor` interface: `submit(batch, pdfs, recipients) -> vendor_batch_ref`, `status(ref)`, `estimate(count) -> cents`. **Vendor choice is config, not code** (`MAIL_VENDOR=postgrid|postalytics|...`).
+- **No subscription-floor vendors** (Lob rejected, §2 decision 1). Build the adapter for the vendor Founders actually contracts. **PostGrid** is the closest drop-in (Lob-style API: submit HTML/PDF + address list, presorted first-class, pay-per-piece, postage bundled). **Postalytics** is a viable alternative (Free tier, no minimum). Both are pay-as-you-go.
+- Config (VPS `.env`): `<VENDOR>_API_KEY`, `MAIL_VENDOR`, `MAIL_FROM_ADDRESS` (return address), `MAIL_PER_PIECE_CENTS` (fallback estimate rate until the live API rate is wired).
+- Status updates via the vendor's webhook (signature-verified like existing Quo/Calendly webhooks) OR polling; either updates `mail_batch.status` + item statuses.
+- **Cost estimate** shown on Screen 3 uses the live vendor rate if available, else `MAIL_PER_PIECE_CENTS`. Because volume can be tens of thousands seasonally, the estimate must be visible and reasonably accurate before any submit.
+- **Test-mode:** vendor test key + a dry-run that renders PDFs and shows the batch without mailing (so agents/Brian preview end-to-end before a live send).
+- **Procurement note (business, not code):** get real per-piece quotes from PostGrid + Postalytics for Founders' actual seasonal volume (~5k own book + pharmacy blasts); at ~30k pieces the per-piece rate dominates any seasonal platform fee, so compare on total-season cost. This does not gate the build — the interface is vendor-neutral and the adapter is a thin, late phase.
 
 ---
 
@@ -148,8 +150,8 @@ Rough phase order (details → writing-plans):
 3. **Letter render engine** (reportlab, Classic + Modern; merge fields; brand header/footer + locked disclaimer; one-page guarantee) — reuse/extend `labels.py`.
 4. **Campaign builder** (plan→letter map) — admin-only.
 5. **Agent send wizard** (3 screens; bundle resolution; household de-dupe; per-row deselect; inline address write-back; label print) — reuse `labels.py` address logic + Founders theme.
-6. **Lob adapter** (submit/status/estimate; test-mode; webhook) behind the `MailVendor` interface.
+6. **Mail-vendor adapter** (PostGrid or the chosen pay-per-piece vendor: submit/status/estimate; test-mode; webhook) behind the `MailVendor` interface.
 7. **Batch tracking / admin spend view** + audit.
 8. **Pharmacy blast** (ephemeral CSV import audience: all-aged or plan-targeted).
 
-Each phase = its own tested slice; the whole feature gets an opus whole-branch review before deploy (money + external-send path). Household de-dupe, address write-back, and the Lob submit path each warrant real-data verification.
+Each phase = its own tested slice; the whole feature gets an opus whole-branch review before deploy (money + external-send path). Household de-dupe, address write-back, and the mail-vendor submit path each warrant real-data verification.

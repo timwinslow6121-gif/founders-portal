@@ -9,7 +9,21 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-07-09_
+_Last updated: 2026-07-10_
+
+## ▶▶ ACTIVE PRIORITY — carrier-by-carrier BOB↔DB reconciliation (100% accurate customers+policies)
+- 🔴 **THE #1 thing (Tim, 2026-07-10).** Per carrier: diff authoritative BOB vs DB line-by-line, active-only, fix till they tie. Track active policies AND active customers. Foundation for the Brian-view (don't build that report on dirty data). See `memory/session-handoff-2026-07-10-carrier-reconciliation.md`.
+- ✅ **Aetna DONE 95→79** (14 phantom dups removed incl. SilverScript-PDP mislink bug; Burner term; Byrd orphan; plan-type metadata fixed 69 MAPD/10 PDP/0 MA; Don Long retired-user id=18 created; money intact). PENDING: 4 switchers (cross-carrier pass).
+- 🔴 **Humana (+174)** + **HealthSpring (+1)** — ready now (full ID-keyed BOBs).
+- ⏸ **Devoted (−477!) / UHC (+101) / BCBS** — blocked on AJ sending FULL exports (current UHC+Devoted files are lossy visible-rows, no MBI/member_id).
+- 🔑 **Cross-carrier switcher pass** — term stale BOB rows for members who moved carriers + merge their dup customer records (needs all carriers' full data). THE killer feature: portal knows a member's true current carrier across all BOBs.
+- ⬜ **Reconciliation integrity invariant** — add a radar check that DB active per carrier == reconciled BOB active.
+
+## 🆕 New features spec'd/queued this session
+- ⬜ 🔴 **AEP Letter Generator** — fully spec'd `docs/superpowers/specs/2026-07-10-aep-letter-generator-design.md` (Classic+Modern letter, campaign map, 3-page send wizard, bulk-mail vendor). Vendor = procurement-open (need closed-face+live-stamp, no subscription: Click2Mail/Addressers/PCM). Multi-phase build. AJ pulling last-yr piece-count+cost.
+- ⬜ 🟠 **Retired-agent AOR + worklist** — Don Long user id=18 created; need Cynthia Mortimer + recover their customers (re-parse raw Aetna/UHC commission files) + "retired book" claim-worklist. Money→Brian @50% unchanged.
+- ⬜ 🟠 **Aetna carrier PAGE redesign** — Tim picked flat & sortable table + coverage-category filters (Part C / PDP / Medigap only). Build after data clean.
+- ⬜ **Quo webhooks 403** — missing `QUO_WEBHOOK_SIGNING_KEY` + `QUO_API_KEY` in VPS .env. Tim pasting keys → append + restart.
 
 ---
 

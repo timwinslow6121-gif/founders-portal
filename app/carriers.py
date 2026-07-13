@@ -235,37 +235,22 @@ def plan_detail(plan_id):
         successor_plan_id=plan_id, agency_id=current_user.agency_id
     ).all()
 
-    # Customers currently on this plan (matched by carrier + plan_name)
-    aliases = [a.strip() for a in (plan.plan_name_aliases or "").split(",") if a.strip()]
-    name_matches = [plan.plan_name] + aliases
+    # Active members on this plan — matched by the plan_id FK (the single source of
+    # truth used by the carrier list), NOT brittle free-text plan_name matching.
+    # (Fixes the list-vs-detail count mismatch across all carriers, 2026-07: policies
+    # are linked via plan_id but their free-text plan_name doesn't match the bucket
+    # name, so the old name/alias/cms-ilike matching under- or mis-counted.)
     customers_on_plan = (
         Policy.query
         .filter(
-            Policy.carrier == plan.carrier,
-            Policy.plan_name.in_(name_matches),
+            Policy.plan_id == plan.id,
             Policy.status == "active",
             Policy.agency_id == current_user.agency_id,
         )
         .order_by(Policy.full_name)
-        .limit(200)
+        .limit(500)
         .all()
     )
-
-    # Also match by cms_plan_id if set
-    if plan.cms_plan_id:
-        # Some BOB files store the plan ID directly
-        id_matches = (
-            Policy.query
-            .filter(
-                Policy.carrier == plan.carrier,
-                Policy.plan_name.ilike(f"%{plan.cms_plan_id}%"),
-                Policy.status == "active",
-                Policy.agency_id == current_user.agency_id,
-                Policy.id.notin_([p.id for p in customers_on_plan]),
-            )
-            .limit(50).all()
-        )
-        customers_on_plan = customers_on_plan + id_matches
 
     details = _parse_details(plan.details_json)
 

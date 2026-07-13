@@ -240,17 +240,21 @@ def plan_detail(plan_id):
     # (Fixes the list-vs-detail count mismatch across all carriers, 2026-07: policies
     # are linked via plan_id but their free-text plan_name doesn't match the bucket
     # name, so the old name/alias/cms-ilike matching under- or mis-counted.)
-    customers_on_plan = (
+    _member_q = (
         Policy.query
         .filter(
             Policy.plan_id == plan.id,
             Policy.status == "active",
             Policy.agency_id == current_user.agency_id,
         )
-        .order_by(Policy.full_name)
-        .limit(500)
-        .all()
     )
+    # TRUE total (unlimited) drives the displayed count so it always matches the
+    # carrier list; the rendered row list is capped for page performance (large
+    # plans have 1000+ members — don't render them all).
+    member_count = _member_q.count()
+    ROW_CAP = 500
+    customers_on_plan = _member_q.order_by(Policy.full_name).limit(ROW_CAP).all()
+    members_truncated = member_count > len(customers_on_plan)
 
     details = _parse_details(plan.details_json)
 
@@ -258,6 +262,9 @@ def plan_detail(plan_id):
         plan=plan,
         predecessors=predecessors,
         customers_on_plan=customers_on_plan,
+        member_count=member_count,
+        members_truncated=members_truncated,
+        row_cap=ROW_CAP,
         plan_types=dict(PLAN_TYPES),
         statuses=dict(STATUSES),
         details=details,

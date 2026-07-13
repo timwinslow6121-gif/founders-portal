@@ -113,8 +113,8 @@
 <div class="detail-grid-3" style="margin-bottom:16px">
   <div class="detail-card" style="text-align:center">
     <h3>Members on this plan</h3>
-    <div class="member-count">{{ customers_on_plan | length }}</div>
-    <div class="member-sub">active policies matched</div>
+    <div class="member-count">{{ member_count }}</div>
+    <div class="member-sub">active policies</div>
   </div>
   <div class="detail-card" style="text-align:center">
     <h3>Initial commission</h3>
@@ -332,7 +332,7 @@
 {% if customers_on_plan %}
 <div class="card" style="margin-top:8px">
   <div style="padding:16px 24px 10px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--slate)">
-    Active members on this plan ({{ customers_on_plan | length }})
+    Active members on this plan ({{ member_count }}){% if members_truncated %} — showing first {{ row_cap }}{% endif %}
   </div>
   <table class="data-table">
     <thead>

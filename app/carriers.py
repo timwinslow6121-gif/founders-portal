@@ -23,7 +23,7 @@ carriers_bp = Blueprint("carriers", __name__)
 PLAN_TYPES = [
     ("mapd",    "MAPD — Medicare Advantage + Part D"),
     ("pdp",     "PDP — Standalone Drug Plan"),
-    ("medigap", "Medigap / Medicare Supplement"),
+    ("medigap", "Medigap"),
     ("dvh",     "Dental / Vision / Hearing"),
     ("gtl",     "GTL / Life / Hospital Indemnity"),
     ("other",   "Other"),

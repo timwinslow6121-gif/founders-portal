@@ -49,6 +49,17 @@
 .table-scroll { overflow-x:auto; }
 .empty-state { padding:48px 20px; text-align:center; color:var(--slate); font-size:13px; }
 .data-table tbody tr[onclick] { cursor:pointer; transition:background .12s; }
+
+/* ── Refine pills (network / SNP / drug) ── */
+.refine-pills { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+.refine-group { display:inline-flex; gap:6px; align-items:center; }
+.refine-label { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--slate); margin-right:2px; }
+.rpill { font-size:12px; font-weight:600; padding:5px 12px; border-radius:999px; cursor:pointer;
+  background:var(--surface); border:1px solid var(--border); color:var(--ivory);
+  transition:all .15s; font-family:var(--font-sans); }
+.rpill:hover { border-color:var(--gold); }
+.rpill.on { background:var(--gold); border-color:var(--gold); color:#fff; }
+:root[data-theme="dark"] .rpill.on { color:#0E1726; }
 {% endblock %}
 
 {% block content %}
@@ -96,8 +107,10 @@
   </a>
 </div>
 
-{# ── Secondary filters (carrier / year / status) ── #}
+{# ── Search + carrier/year/status (server-side) ── #}
 <div class="filter-bar">
+  <input type="text" id="plan-search" class="filter-select" style="min-width:220px;max-width:320px"
+         placeholder="Search CMS ID or plan name…" autocomplete="off">
   <form method="get" action="{{ url_for('carriers.plan_list') }}" id="filter-form" style="display:contents">
     <input type="hidden" name="plan_type" value="{{ selected_plan_type }}">
     <select name="carrier" class="filter-select {% if selected_carrier != 'all' %}filter-active{% endif %}" onchange="this.form.submit()">
@@ -117,6 +130,27 @@
   </form>
 </div>
 
+{# ── Part C refine pills (network / SNP / drug) — client-side multi-select ── #}
+<div class="refine-pills" id="refine-pills">
+  <span class="refine-group">
+    <span class="refine-label">Network</span>
+    <button class="rpill" data-dim="net" data-val="hmo">HMO</button>
+    <button class="rpill" data-dim="net" data-val="hmo_pos">HMO-POS</button>
+    <button class="rpill" data-dim="net" data-val="ppo">PPO</button>
+  </span>
+  <span class="refine-group">
+    <span class="refine-label">SNP</span>
+    <button class="rpill" data-dim="snp" data-val="csnp">C-SNP</button>
+    <button class="rpill" data-dim="snp" data-val="dsnp">D-SNP</button>
+  </span>
+  <span class="refine-group">
+    <span class="refine-label">Drug</span>
+    <button class="rpill" data-dim="drug" data-val="mapd">MAPD</button>
+    <button class="rpill" data-dim="drug" data-val="ma">MA only</button>
+  </span>
+  <a href="#" id="refine-clear" class="filter-clear" style="display:none">✕ Clear refine</a>
+</div>
+
 <div class="card">
   {% if plans %}
   <div class="table-scroll">
@@ -126,13 +160,21 @@
         <th style="width:38%">Plan</th>
         <th style="width:20%">Carrier</th>
         <th style="width:16%">Type</th>
-        <th style="width:14%;text-align:right">Members</th>
+        <th style="width:14%;text-align:right;cursor:pointer;user-select:none" id="sort-members">
+          Members <span id="sort-arrow" style="opacity:.5">▾</span>
+        </th>
         {% if current_user.is_admin %}<th style="width:12%"></th>{% endif %}
       </tr>
     </thead>
     <tbody>
       {% for p in plans %}
-      <tr onclick="window.location='{{ url_for('carriers.plan_detail', plan_id=p.id) }}'">
+      {% set n = member_counts.get(p.id, 0) %}
+      <tr class="plan-row" onclick="window.location='{{ url_for('carriers.plan_detail', plan_id=p.id) }}'"
+          data-members="{{ n }}"
+          data-net="{{ p.plan_subtype or '' }}"
+          data-snp="{% if p.is_csnp %}csnp {% endif %}{% if p.is_dsnp %}dsnp {% endif %}"
+          data-drug="{{ p.plan_type }}"
+          data-search="{{ (p.cms_plan_id ~ ' ' ~ p.plan_name ~ ' ' ~ (p.friendly_name or '') ~ ' ' ~ p.carrier)|lower }}">
         <td style="max-width:0">
           <div class="plan-cell">
             {% if p.cms_plan_id %}
@@ -148,7 +190,6 @@
         <td class="carrier-cell">{{ p.carrier }}</td>
         <td><span class="plan-type-tag tag-{{ p.plan_type }}">{{ p.plan_type.upper() }}</span></td>
         <td style="text-align:right">
-          {% set n = member_counts.get(p.id, 0) %}
           <span class="members-cell {% if not n %}members-zero{% endif %}">{{ n }}</span>
         </td>
         {% if current_user.is_admin %}
@@ -158,6 +199,7 @@
         {% endif %}
       </tr>
       {% endfor %}
+      <tr id="no-matches" style="display:none"><td colspan="{{ 5 if current_user.is_admin else 4 }}" class="empty-state">No plans match these filters.</td></tr>
     </tbody>
   </table>
   </div>
@@ -168,4 +210,76 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+(function(){
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.plan-row'));
+  if (!rows.length) return;
+  var tbody = rows[0].parentNode;
+  var search = document.getElementById('plan-search');
+  var pills = Array.prototype.slice.call(document.querySelectorAll('.rpill'));
+  var refineClear = document.getElementById('refine-clear');
+  var noMatch = document.getElementById('no-matches');
+  var sortHdr = document.getElementById('sort-members');
+  var sortArrow = document.getElementById('sort-arrow');
+  var active = { net:new Set(), snp:new Set(), drug:new Set() };
+  var sortDir = null; // null=original, 'desc', 'asc'
+
+  function apply(){
+    var q = (search.value || '').trim().toLowerCase();
+    var anyRefine = active.net.size||active.snp.size||active.drug.size;
+    refineClear.style.display = anyRefine ? '' : 'none';
+    var shown = 0;
+    rows.forEach(function(r){
+      var ok = true;
+      if (q && r.dataset.search.indexOf(q) === -1) ok = false;
+      if (ok && active.net.size  && !active.net.has(r.dataset.net)) ok = false;
+      if (ok && active.snp.size){
+        var snps = (r.dataset.snp||'').trim().split(/\s+/);
+        var hit = false; active.snp.forEach(function(v){ if(snps.indexOf(v)>=0) hit=true; });
+        if (!hit) ok = false;
+      }
+      if (ok && active.drug.size && !active.drug.has(r.dataset.drug)) ok = false;
+      r.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    noMatch.style.display = shown ? 'none' : '';
+  }
+
+  search.addEventListener('input', apply);
+  pills.forEach(function(p){
+    p.addEventListener('click', function(){
+      var dim = p.dataset.dim, val = p.dataset.val;
+      if (active[dim].has(val)){ active[dim].delete(val); p.classList.remove('on'); }
+      else { active[dim].add(val); p.classList.add('on'); }
+      apply();
+    });
+  });
+  refineClear.addEventListener('click', function(e){
+    e.preventDefault();
+    ['net','snp','drug'].forEach(function(d){ active[d].clear(); });
+    pills.forEach(function(p){ p.classList.remove('on'); });
+    apply();
+  });
+
+  // sort by members (toggle desc -> asc -> original)
+  var original = rows.slice();
+  sortHdr.addEventListener('click', function(){
+    if (sortDir === null) sortDir = 'desc';
+    else if (sortDir === 'desc') sortDir = 'asc';
+    else sortDir = null;
+    var ordered;
+    if (sortDir === null){ ordered = original; sortArrow.textContent='▾'; sortArrow.style.opacity='.5'; }
+    else {
+      ordered = rows.slice().sort(function(a,b){
+        var x=+a.dataset.members, y=+b.dataset.members;
+        return sortDir==='desc' ? y-x : x-y;
+      });
+      sortArrow.textContent = sortDir==='desc' ? '▾' : '▴';
+      sortArrow.style.opacity='1';
+    }
+    ordered.forEach(function(r){ tbody.insertBefore(r, noMatch); });
+  });
+})();
+</script>
 {% endblock %}

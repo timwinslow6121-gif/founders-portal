@@ -3,7 +3,31 @@
 <!-- ════════════════════════════════════════════════════════════════════
      START HERE (new session) — keep this block current at every session end.
      ════════════════════════════════════════════════════════════════════ -->
-## 🧭 START HERE — current state (updated 2026-07-10)
+## 🧭 START HERE — current state (updated 2026-07-13)
+
+**▶▶ ACTIVE PRIORITY unchanged: CARRIER-BY-CARRIER BOB↔DB RECONCILIATION to 100% accurate customers/policies** (see the 2026-07-10 block below for the full methodology — it still governs). **Blocked on AJ** for the two big carriers: still NEED full UHC (w/ MBI) + Devoted (CSV w/ member_record_locator) exports — the current files are lossy visible-rows downloads. Tim texted AJ. BCBS/Wellabe/GTL BOBs also still needed.
+
+**✅ THIS SESSION (2026-07-13) — CARRIERS & PLANS MODULE fully redesigned + plan-type data corrected + 2 more carriers reconciled. All shipped + LIVE. Read `memory/session-handoff-2026-07-13-carriers-page-plantype.md`.**
+
+**Carriers & Plans page — redesigned + made accurate (Brian-demo-ready):**
+- **Two count bugs fixed** (were showing wrong numbers): plan-detail counted by free-text `plan_name` not `plan_id` (→ 0/contradicting counts on EVERY carrier); and it capped the count at the `.limit()` (Gold Plus showed 500 vs real 1803). Both now count by `plan_id` + true unlimited `.count()`. Verified all carriers detail==list.
+- **Full redesign** (was a cluttered 14-col table): at-a-glance **coverage summary chips** (All / Part C / PDP / Medigap / DVH, click-to-filter, Part C = MA+MAPD) + slim **4-col CMS-ID-first table** (CMS code on top, plan name under; Carrier; Type; Members) whole-row-clickable to drill down. Benefit specs live on the detail page. **Global Founders plan-type pill palette** promoted to base.html (MAPD=blue, MA=teal, PDP=violet, Medigap=gold, DVH=green, SNP=deep-blue; light+dark). Verified via headless screenshots.
+- **Filters/search/sort** (all client-side, instant): **faceted refine pills** — Network [HMO/HMO-POS/PPO] + SNP [C-SNP/D-SNP] + Drug [MAPD/MA] (OR within a dimension, AND across — Tim confirmed this is what he wants); **live search** (CMS ID or plan name); **click Members header to sort**. Backed by a backfill of `plan_subtype`+`is_csnp`+`is_dsnp` parsed from plan names (106+12+14 filled — were mostly empty).
+- **Punch-list fixes:** hide 0-member plans (reappear when they gain one); SilverScript Plus S5601-017 → `discontinued`; Medigap/DVH (no CMS ID) show the plan name as the top line; medigap terminology standardized to "Medigap" everywhere (labels + display names "Medigap Plan X", no carrier prefix — it's a column); reclassified 5 mislabeled "legacy" active plans → current.
+
+**⭐ PLAN-TYPE DATA FULLY CORRECTED (Tim caught "lots of MAPD labelled MA-only"):** the `plan_type` field was badly wrong (82 MAPD plans mislabeled `ma`, incl. all D-SNP/C-SNP which ALWAYS have drug). Fixed via the **authoritative NC SHIIP MA Landscape** (`docs/Medicare Landscape Files/` / the Mecklenburg 2026 PDF): **"Annual Part-D Deductible = N/A" is the definitive MA-only signal — far better than name-parsing** (name-guessing missed BCBS Medical Only-134, Honor Giveback PPO-52, Freedom+-21). **True MA-only = 222 active members across 5 plans** (BCBS Medical Only H3449-012=134, Honor Giveback H5525-065=52, Freedom+ H3404-004=21, AARP Patriot No-Rx H5253-040=13, USAA Honor H5216-343=2); everything else with drug = MAPD (4,633). ⚠ Only Mecklenburg verified — other-county Landscape PDFs would close the last gap for plans not in that file. Many DB backups taken (`/root/founders_pre_*` — plantype_norm, network_snp, ma_mapd_fix, landscape_maonly, etc.).
+
+**Reconciliation progress this session:** **HealthSpring ✅ 59→58** (termed Robert Owen, term_date 4/30 already set, ties to BOB). **Humana** — the "+174" was mostly a KEY-FORMAT ARTIFACT not real problems: matching on member_id-OR-humana_id-OR-MBI matched 2412/2445, 0 BOB-actives missing; applied 5 SAFE fixes (4 genuine terms w/ term_date + GROUP MANUAL junk) → **2445→2440**; **28 HELD** (legacy no-DOB/mangled-JR-name stubs where "not in BOB" is unreliable + 5 real-ID no-matches + 2 dup pairs — NOT bulk-termed).
+
+**⚠ AETNA SWITCHERS — my earlier "4 switchers" was WRONG (DOB-only matching = false positives):** re-examined, 3 of 4 were unrelated people sharing a birthdate (Baker→"Sorrow", A.Lala→"Phillips", Lambert→"Grace"). Only **Barbara Overcash confirmed** (name+dob+EXACT address, Aetna Plus→UHC). **LESSON: switcher detection needs name+dob+address, NEVER dob-alone.** All Aetna SilverScript-Plus cleanup HELD for the cross-carrier pass.
+
+**🆕 3 NEW FEATURES queued in BACKLOG (Tim's ideas 2026-07-13, all to do RIGHT not rushed):** (1) **Part-B Giveback filter** — needs authoritative Part-B rebate data first (name-parsing unreliable: HealthSpring Preferred Savings has a giveback but no "Giveback" in the name; givebacks come with AND without Rx). (2) **Secondary/retirement coverage flag on customers** (SHP teachers / TRICARE-VA-CHAMPVA military / cops-EMS-judges / FEHB postal — drives plan choice) — brainstorm→spec. (3) **Track non-commissionable PDP enrollments** (free Medicare.gov signups that leave no trace connecting them to Founders) — brainstorm→spec, biggest value.
+
+**▶ NEXT SESSION:** when AJ delivers UHC/Devoted → reconcile them + the **cross-carrier switcher pass** (Overcash merge + re-detect switchers via name+dob+address + Humana 28 + coexistence dups). Then the per-agent×carrier Brian-view on clean data. Also queued: dedupe the 2 "Medigap Plan N" buckets (284/285); other-county MA Landscape PDFs to finish MA-only verification; the 3 new features. Quo 403 = missing QUO_WEBHOOK_SIGNING_KEY + QUO_API_KEY in VPS .env (Tim pasting).
+
+---
+
+## 🧭 (prev) START HERE — current state (updated 2026-07-10)
 
 **▶▶ THIS IS THE ACTIVE PRIORITY (Tim, 2026-07-10): CARRIER-BY-CARRIER BOB↔DB RECONCILIATION to 100% accurate customers+policies.** Read `memory/session-handoff-2026-07-10-carrier-reconciliation.md`. Tim's method (the ONLY fool-proof one): for each carrier, diff the authoritative BOB (source of truth) against the DB line-by-line, active-only, and fix until they tie. Track BOTH **active policies** AND **active customers** (invariant: active policies ≥ customers; a person can hold >1 policy). This is the #1 thing the portal must do + it's the foundation of the Brian-view (do NOT build the per-agent×carrier plan-mix until data is clean — a pretty report on wrong data destroys Brian's trust).
 

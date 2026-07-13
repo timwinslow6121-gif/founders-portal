@@ -9,15 +9,18 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-07-10_
+_Last updated: 2026-07-13_
 
 ## ▶▶ ACTIVE PRIORITY — carrier-by-carrier BOB↔DB reconciliation (100% accurate customers+policies)
-- 🔴 **THE #1 thing (Tim, 2026-07-10).** Per carrier: diff authoritative BOB vs DB line-by-line, active-only, fix till they tie. Track active policies AND active customers. Foundation for the Brian-view (don't build that report on dirty data). See `memory/session-handoff-2026-07-10-carrier-reconciliation.md`.
-- ✅ **Aetna DONE 95→79** (14 phantom dups removed incl. SilverScript-PDP mislink bug; Burner term; Byrd orphan; plan-type metadata fixed 69 MAPD/10 PDP/0 MA; Don Long retired-user id=18 created; money intact). PENDING: 4 switchers (cross-carrier pass).
-- 🔴 **Humana (+174)** + **HealthSpring (+1)** — ready now (full ID-keyed BOBs).
-- ⏸ **Devoted (−477!) / UHC (+101) / BCBS** — blocked on AJ sending FULL exports (current UHC+Devoted files are lossy visible-rows, no MBI/member_id).
-- 🔑 **Cross-carrier switcher pass** — term stale BOB rows for members who moved carriers + merge their dup customer records (needs all carriers' full data). THE killer feature: portal knows a member's true current carrier across all BOBs.
+- 🔴 **THE #1 thing (Tim, 2026-07-10).** Per carrier: diff authoritative BOB vs DB line-by-line, active-only, fix till they tie. Track active policies AND active customers. Foundation for the Brian-view (don't build that report on dirty data). See `memory/session-handoff-2026-07-13-carriers-page-plantype.md` (newest) + `-2026-07-10-carrier-reconciliation.md` (methodology).
+- ✅ **Aetna DONE 95→79** (14 phantom dups; plan-type metadata fixed; Don Long retired-user id=18; money intact). PENDING: switchers (cross-carrier pass).
+- ✅ **HealthSpring DONE 59→58** (2026-07-13; termed Robert Owen, term_date already set, ties to BOB).
+- 🟡 **Humana** (2026-07-13): the "+174" was mostly a KEY-FORMAT ARTIFACT — member_id-OR-humana_id-OR-MBI matching matched 2412/2445, 0 missing. Applied 5 SAFE fixes (4 terms + GROUP MANUAL) → 2440. **28 HELD** (legacy no-DOB/mangled-JR stubs where "not in BOB" is unreliable + 5 real-ID no-match + 2 dup pairs) — NOT bulk-termed.
+- ⏸ **Devoted (−477!) / UHC / BCBS** — blocked on AJ sending FULL exports (current UHC+Devoted files are lossy visible-rows, no MBI/member_id).
+- 🔑 **Cross-carrier switcher pass** — term stale BOB rows for members who moved carriers + merge dup customer records. ⚠ **MUST match name+dob+ADDRESS, NOT dob-alone** (2026-07-13: dob-only gave false positives — 3 of 4 "Aetna switchers" were unrelated same-DOB people). Only Barbara Overcash confirmed (Aetna Plus→UHC). Needs all carriers' full data. THE killer feature: portal knows a member's true current carrier across all BOBs.
 - ⬜ **Reconciliation integrity invariant** — add a radar check that DB active per carrier == reconciled BOB active.
+- ✅ **Plan-type data (MA/MAPD) FULLY CORRECTED 2026-07-13** via authoritative NC SHIIP MA Landscape (N/A Part-D-deductible = MA-only, beats name-parsing). True MA-only = 222 members / 5 plans; rest = MAPD 4633. Only Mecklenburg county verified — other-county Landscape PDFs would finish it.
+- ⬜ 🟢 **Carriers page** — dedupe the 2 "Medigap Plan N" buckets (plan 284/285).
 
 ## 🆕 New features spec'd/queued this session
 - ⬜ 🟠 **Part-B Giveback filter (carrier page)** — Tim (2026-07-13): Part-B givebacks are increasingly popular (rising Medicare premiums). ORTHOGONAL to drug coverage — giveback WITH Rx (HealthSpring Preferred Savings H9725-015) AND without Rx (HealthSpring Courage H9725-005). ⚠ Name-parsing is UNRELIABLE — most say "Giveback" but Preferred Savings does NOT. **Need authoritative Part-B rebate data first** (CMS PBP file `PartB_Giveback_Amount` column, or an NC SHIIP Landscape variant that lists the Part-B premium reduction). Then backfill a `part_b_giveback` flag + add a filter pill (its own dimension). Do NOT ship on name-guessing.

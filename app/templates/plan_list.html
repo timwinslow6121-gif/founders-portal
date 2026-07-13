@@ -123,9 +123,9 @@
   <table class="data-table">
     <thead>
       <tr>
-        <th style="width:40%">Plan</th>
+        <th style="width:38%">Plan</th>
         <th style="width:20%">Carrier</th>
-        <th style="width:14%">Type</th>
+        <th style="width:16%">Type</th>
         <th style="width:14%;text-align:right">Members</th>
         {% if current_user.is_admin %}<th style="width:12%"></th>{% endif %}
       </tr>
@@ -136,11 +136,13 @@
         <td style="max-width:0">
           <div class="plan-cell">
             {% if p.cms_plan_id %}
+              {# CMS-coded plan (MA/MAPD/PDP): code on top, plan name underneath #}
               <span class="plan-cms">{{ p.cms_plan_id }}</span>
+              <span class="plan-name" title="{{ p.plan_name }}">{{ p.friendly_name or p.plan_name }}</span>
             {% else %}
-              <span class="plan-cms missing">no CMS ID</span>
+              {# No CMS ID (Medigap/DVH): the plan/letter name IS the identifier #}
+              <span class="plan-cms" style="font-family:var(--font-sans)">{{ p.friendly_name or p.plan_name }}</span>
             {% endif %}
-            <span class="plan-name" title="{{ p.plan_name }}">{{ p.friendly_name or p.plan_name }}</span>
           </div>
         </td>
         <td class="carrier-cell">{{ p.carrier }}</td>

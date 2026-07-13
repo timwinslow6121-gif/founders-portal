@@ -209,6 +209,12 @@ def plan_list():
                 .all())
         member_counts = {plan_id: count for plan_id, count in rows}
 
+    # Only show plans that currently have at least one active member. A plan with
+    # 0 members is noise in the book view; it reappears automatically the moment it
+    # gains a member. (Admins adding a brand-new plan still reach it via + Add plan
+    # / edit; this only trims the LIST.)
+    plans = [p for p in plans if member_counts.get(p.id, 0) > 0]
+
     # Pre-parse details_json for each plan (avoids JSON parsing in template)
     details_map = {p.id: _parse_details(p.details_json) for p in plans}
 

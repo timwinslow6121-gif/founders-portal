@@ -176,7 +176,9 @@ def plan_list():
         q = q.filter_by(year=year)
     if carrier != "all":
         q = q.filter_by(carrier=carrier)
-    if plan_type != "all":
+    if plan_type == "part_c":
+        q = q.filter(Plan.plan_type.in_(["ma", "mapd"]))   # Part C = MA + MAPD
+    elif plan_type != "all":
         q = q.filter_by(plan_type=plan_type)
     if status != "all":
         q = q.filter_by(status=status)
@@ -210,10 +212,43 @@ def plan_list():
     # Pre-parse details_json for each plan (avoids JSON parsing in template)
     details_map = {p.id: _parse_details(p.details_json) for p in plans}
 
+    # Coverage-category summary (drives the at-a-glance chips + click-to-filter).
+    # Part C = MA + MAPD (both Medicare Advantage). Computed WITHOUT the plan_type
+    # filter (but with year/carrier/status) so the chips always show every category
+    # for the current scope and clicking one filters the table into it.
+    _CATEGORY_OF = {
+        "ma": "part_c", "mapd": "part_c",
+        "pdp": "pdp", "medigap": "medigap", "ms": "medigap",
+        "dvh": "dvh", "dental": "dvh",
+    }
+    sq = _base_query()
+    if year:
+        sq = sq.filter_by(year=year)
+    if carrier != "all":
+        sq = sq.filter_by(carrier=carrier)
+    if status != "all":
+        sq = sq.filter_by(status=status)
+    summary_plans = sq.all()
+    _spids = [p.id for p in summary_plans]
+    _scounts = {}
+    if _spids:
+        _scounts = dict(
+            db.session.query(Policy.plan_id, func.count(Policy.id))
+            .filter(Policy.plan_id.in_(_spids), Policy.status == 'active',
+                    Policy.agency_id == current_user.agency_id)
+            .group_by(Policy.plan_id).all())
+    summary = {"total": 0, "part_c": 0, "pdp": 0, "medigap": 0, "dvh": 0, "other": 0}
+    _pt_by_plan = {p.id: (p.plan_type or "").lower() for p in summary_plans}
+    for pid, cnt in _scounts.items():
+        cat = _CATEGORY_OF.get(_pt_by_plan.get(pid, ""), "other")
+        summary[cat] += cnt
+        summary["total"] += cnt
+
     return render_template("plan_list.html",
         plans=plans,
         member_counts=member_counts,
         details_map=details_map,
+        summary=summary,
         years=years,
         carriers=carriers,
         plan_types=PLAN_TYPES,

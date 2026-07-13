@@ -711,6 +711,45 @@
       }
     }
 
+    /* ── Canonical plan-type tags (portal-wide; Founders-anchored) ──
+       MAPD=blue, MA=teal, PDP=violet, Medigap=gold, DVH=green, SNP=deep-blue,
+       PPO/HMO network = muted. Used by plan_list, plan_detail, carrier_detail. */
+    .plan-type-tag {
+      display: inline-block;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 10px; white-space: nowrap; line-height: 1.5;
+    }
+    .tag-mapd    { background: color-mix(in srgb, #266EA5 15%, transparent); color: #266EA5; }
+    .tag-ma      { background: color-mix(in srgb, #3AA6A0 16%, transparent); color: #2E8A85; }
+    .tag-pdp     { background: color-mix(in srgb, #7B68EE 15%, transparent); color: #6A57DD; }
+    .tag-medigap { background: color-mix(in srgb, #C98A00 16%, transparent); color: #B37D00; }
+    .tag-ms      { background: color-mix(in srgb, #C98A00 16%, transparent); color: #B37D00; }
+    .tag-dvh     { background: color-mix(in srgb, var(--green) 18%, transparent); color: #3F9C63; }
+    .tag-dental  { background: color-mix(in srgb, var(--green) 18%, transparent); color: #3F9C63; }
+    .tag-gtl,
+    .tag-other,
+    .tag-        { background: color-mix(in srgb, var(--slate) 15%, transparent); color: var(--slate); }
+    /* SNP + network sub-flags */
+    .tag-snp     { background: color-mix(in srgb, #1B4F78 16%, transparent); color: #1B4F78; }
+    .tag-net     { background: transparent; color: var(--slate); border: 1px solid var(--border); }
+    @media (prefers-color-scheme: dark) {
+      .tag-ma      { color: #5AC7C0; }
+      .tag-pdp     { color: #A594F5; }
+      .tag-medigap, .tag-ms { color: #E0A94A; }
+      .tag-dvh, .tag-dental { color: #7BD49B; }
+      .tag-snp     { color: #6FA8D8; }
+    }
+    :root[data-theme="dark"] .tag-ma { color: #5AC7C0; }
+    :root[data-theme="dark"] .tag-pdp { color: #A594F5; }
+    :root[data-theme="dark"] .tag-medigap, :root[data-theme="dark"] .tag-ms { color: #E0A94A; }
+    :root[data-theme="dark"] .tag-dvh, :root[data-theme="dark"] .tag-dental { color: #7BD49B; }
+    :root[data-theme="dark"] .tag-snp { color: #6FA8D8; }
+    :root[data-theme="light"] .tag-ma { color: #2E8A85; }
+    :root[data-theme="light"] .tag-pdp { color: #6A57DD; }
+    :root[data-theme="light"] .tag-medigap, :root[data-theme="light"] .tag-ms { color: #B37D00; }
+    :root[data-theme="light"] .tag-dvh, :root[data-theme="light"] .tag-dental { color: #3F9C63; }
+    :root[data-theme="light"] .tag-snp { color: #1B4F78; }
+
     {% block styles %}{% endblock %}
   </style>
 </head>

@@ -324,6 +324,16 @@
       <option value="none" {% if f_medicaid == 'none' %}selected{% endif %}>None / Unknown</option>
     </select>
 
+    {% if languages %}
+    <select name="language" class="filter-select {% if f_language %}filter-active{% endif %}"
+            onchange="this.form.submit()">
+      <option value="">All Languages</option>
+      {% for lang in languages %}
+      <option value="{{ lang }}" {% if f_language == lang %}selected{% endif %}>{{ lang }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+
     {% if current_user.is_admin %}
     <select name="agent_id" class="filter-select {% if f_agent_id %}filter-active{% endif %}"
             onchange="this.form.submit()">

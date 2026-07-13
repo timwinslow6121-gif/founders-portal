@@ -149,7 +149,8 @@ def _name_search_filter(q_str):
     return db.and_(*per_token)
 
 
-def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid):
+def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid,
+                            f_language=None):
     """Apply the standard customer list filters to a query. Used by both list and export routes."""
     name_filter = _name_search_filter(q_str)
     if name_filter is not None:
@@ -190,6 +191,8 @@ def _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_
             )
         else:
             query = query.filter(Customer.medicaid_level == f_medicaid)
+    if f_language:
+        query = query.filter(Customer.language == f_language)
     return query
 
 
@@ -211,10 +214,12 @@ def customers_list():
     f_plan_type = request.args.get("plan_type", "").strip()
     f_agent_id  = request.args.get("agent_id", type=int)
     f_medicaid  = request.args.get("medicaid", "").strip()
+    f_language  = request.args.get("language", "").strip()
 
     query = _customer_query(include_former=include_former)
 
-    query = _apply_customer_filters(query, q, f_carrier, f_plan_type, f_agent_id, f_medicaid)
+    query = _apply_customer_filters(query, q, f_carrier, f_plan_type, f_agent_id, f_medicaid,
+                                    f_language)
 
     _sort_cols = {
         "name":     [Customer.last_name, Customer.first_name],
@@ -245,6 +250,11 @@ def customers_list():
     agents = (User.query.filter_by(agency_id=current_user.agency_id)
               .filter(User.is_admin == False)
               .order_by(User.name).all()) if current_user.is_admin else []
+
+    languages = [r[0] for r in
+        db.session.query(Customer.language).filter_by(agency_id=current_user.agency_id)
+        .filter(Customer.language.isnot(None), Customer.language != "")
+        .distinct().order_by(Customer.language).all() if r[0]]
 
     # Shared saved views visible to this user
     shared_views = CustomerSavedView.query.filter_by(
@@ -299,9 +309,10 @@ def customers_list():
         q=q, sort=sort, dir=dir_, include_former=include_former,
         f_carrier=f_carrier, f_plan_type=f_plan_type,
         f_agent_id=str(f_agent_id) if f_agent_id else "", f_medicaid=f_medicaid,
+        f_language=f_language,
         stats={"total": total_count, "active": active_count,
                "termed": termed_count, "medicaid": medicaid_count},
-        carriers=carriers, agents=agents,
+        carriers=carriers, agents=agents, languages=languages,
         shared_views=shared_views,
         policy_info=policy_info,
     )
@@ -315,11 +326,13 @@ def customers_export():
     f_plan_type    = request.args.get("plan_type", "").strip()
     f_agent_id     = request.args.get("agent_id", type=int)
     f_medicaid     = request.args.get("medicaid", "").strip()
+    f_language     = request.args.get("language", "").strip()
     include_former = request.args.get("include_former") == "1"
 
     query = _customer_query(include_former=include_former)
 
-    query = _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid)
+    query = _apply_customer_filters(query, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid,
+                                    f_language)
 
     rows = query.options(
         joinedload(Customer.primary_agent),

@@ -362,6 +362,7 @@
         {{ editable_field(customer, "zip_code", "ZIP", customer.zip_code, can_edit, field_conflicts) }}
         {{ editable_field(customer, "county", "County", customer.county, can_edit, field_conflicts) }}
         {{ editable_field(customer, "medicaid_level", "Medicaid", customer.medicaid_level, can_edit, field_conflicts) }}
+        {{ editable_field(customer, "language", "Preferred language", customer.language, can_edit, field_conflicts) }}
         <div class="detail-row"><span class="detail-label">Lead source</span><span class="detail-value">{{ customer.lead_source or '—' }}</span></div>
         <div class="detail-row"><span class="detail-label">Pharmacy</span><span class="detail-value">
           {% if customer.pharmacy %}{{ customer.pharmacy.name }}

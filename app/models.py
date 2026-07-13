@@ -481,6 +481,7 @@ class Customer(db.Model):
     # Medicare / Medicaid
     medicaid_level    = db.Column(db.String(32))   # Full / QMB / SLMB / QI / None
     medicaid_id       = db.Column(db.String(64))
+    language          = db.Column(db.String(32))   # preferred language: English / Spanish / … (agent-set or carrier-import)
 
     # Pipeline
     deal_stage        = db.Column(db.String(32), default="Active")

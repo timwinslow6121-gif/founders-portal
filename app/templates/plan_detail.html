@@ -131,7 +131,7 @@
       <span class="status-dot dot-{{ plan.status }}"></span>{{ plan.status_label }}
       {% if plan.is_dsnp %}<span class="flag">D-SNP</span>{% endif %}
       {% if plan.is_csnp %}<span class="flag">C-SNP</span>{% endif %}
-      {% if plan.is_5star %}<span class="flag">5★</span>{% endif %}
+      {% if plan.star_rating %}<span class="flag">{{ "%g"|format(plan.star_rating) }}★</span>{% elif plan.is_5star %}<span class="flag">5★</span>{% endif %}
       {% if not plan.is_commissionable %}<span class="flag flag-nocomm">Non-commissionable</span>{% endif %}
     </p>
   </div>
@@ -181,8 +181,10 @@
   <span class="member-count" style="margin:0">{{ member_count }}</span>
   <span class="member-sub">active member{{ 's' if member_count != 1 }} on this plan
     {%- if members_truncated %} · showing first {{ row_cap }}{% endif %}</span>
-  <a href="{{ url_for('customers.customers_list', plan_type=plan.plan_type) }}"
-     style="margin-left:auto;font-size:12px;color:var(--gold);text-decoration:none">View members →</a>
+  {% if customers_on_plan %}
+  <a href="#members"
+     style="margin-left:auto;font-size:12px;color:var(--gold);text-decoration:none">View members ↓</a>
+  {% endif %}
 </div>
 
 {# Age-rated note for Medigap/DVH #}
@@ -225,7 +227,7 @@
 
 {# Members on this plan #}
 {% if customers_on_plan %}
-<div class="card" style="margin-top:8px">
+<div class="card" id="members" style="margin-top:8px">
   <div style="padding:16px 24px 10px;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--slate)">
     Active members on this plan ({{ member_count }}){% if members_truncated %} — showing first {{ row_cap }}{% endif %}
   </div>

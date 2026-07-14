@@ -39,8 +39,79 @@
 @media (max-width: 768px) {
   .detail-grid, .detail-grid-3 { grid-template-columns: 1fr; }
 }
+
+.benefit-block { margin-top:10px; padding:10px 12px; background:var(--surface-low); border:1px solid var(--border); border-radius:10px; }
+.bb-title { font-size:12px; font-weight:700; color:var(--ivory-bright); margin-bottom:6px; }
+.bb-body { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.bb-amount { font-size:15px; font-weight:800; color:var(--gold); }
+.bb-tag { font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; background:color-mix(in srgb, var(--green) 16%, transparent); color:var(--green); }
+.bb-note { font-size:11px; color:var(--slate); }
+.bb-matrix { width:100%; border-collapse:collapse; font-size:12px; margin-top:4px; }
+.bb-matrix th { text-align:right; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--slate); padding:2px 6px; }
+.bb-matrix th:first-child { text-align:left; }
+.bb-matrix td { padding:3px 6px; border-top:1px solid var(--border); color:var(--ivory); }
+.bb-matrix td:not(:first-child) { text-align:right; font-variant-numeric:tabular-nums; }
 {% endblock %}
 {% block content %}
+
+{% macro benefit_row(label, key, details) %}
+  {% set v = details.get(key) %}
+  {% if v %}
+  <div class="kv-row"><span class="kv-label">{{ label }}</span><span class="kv-value">{{ v }}</span></div>
+  {% endif %}
+{% endmacro %}
+
+{% macro otc_block(details) %}
+  {% set amt = details.get('otc_allowance') %}
+  {% if amt %}
+  <div class="benefit-block">
+    <div class="bb-title">OTC / flex card</div>
+    <div class="bb-body">
+      <span class="bb-amount">{{ amt }}</span>
+      {% if details.get('otc_usage') %}<span class="bb-tag">{{ details.get('otc_usage') }}</span>{% endif %}
+      {% if details.get('otc_retailers') %}<span class="bb-note">{{ details.get('otc_retailers') }}</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro dental_block(details) %}
+  {% set has = details.get('dental_prev_innet') or details.get('dental_major_innet') or details.get('dental_allowance') %}
+  {% if has %}
+  <div class="benefit-block">
+    <div class="bb-title">Dental{% if details.get('dental_deductible') %} · deductible {{ details.get('dental_deductible') }}{% endif %}</div>
+    <table class="bb-matrix">
+      <tr><th></th><th>In-network</th><th>Out-of-network</th></tr>
+      <tr><td>Preventive</td><td>{{ details.get('dental_prev_innet') or '—' }}</td><td>{{ details.get('dental_prev_oon') or '—' }}</td></tr>
+      <tr><td>Basic</td><td>{{ details.get('dental_basic_innet') or '—' }}</td><td>{{ details.get('dental_basic_oon') or '—' }}</td></tr>
+      <tr><td>Major</td><td>{{ details.get('dental_major_innet') or '—' }}</td><td>{{ details.get('dental_major_oon') or '—' }}</td></tr>
+    </table>
+    {% if details.get('dental_note') %}<div class="bb-note">{{ details.get('dental_note') }}</div>{% endif %}
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro medigap_block(medigap_rows) %}
+  {% if medigap_rows %}
+  <div class="benefit-block">
+    <div class="bb-title">What this plan covers</div>
+    <table class="bb-matrix">
+      {% for benefit, cov in medigap_rows %}
+      <tr><td>{{ benefit }}</td><td style="text-align:right">{{ cov }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro hi_riders_block(details) %}
+  {% if details.get('hi_riders') %}
+  <div class="benefit-block">
+    <div class="bb-title">Riders (added)</div>
+    <div class="bb-note">{{ details.get('hi_riders') }}</div>
+  </div>
+  {% endif %}
+{% endmacro %}
 
 <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
   <div>
@@ -52,6 +123,8 @@
     <h1 class="page-title">{{ plan.plan_name }}</h1>
     <p class="page-sub">
       {{ plan.carrier }} &nbsp;·&nbsp; {{ plan.year }}
+      &nbsp;·&nbsp;
+      <span style="font-family:monospace">{{ plan.display_id }}</span>
       &nbsp;·&nbsp;
       <span class="plan-type-tag tag-{{ plan.plan_type }}">{{ plan.plan_type.upper() }}</span>
       &nbsp;
@@ -130,195 +203,43 @@
   </div>
 </div>
 
-<div class="detail-grid">
-  {# Plan identity #}
-  <div class="detail-card">
-    <h3>Plan details</h3>
-    <div class="kv-row"><span class="kv-label">Carrier</span><span class="kv-value">{{ plan.carrier }}</span></div>
-    <div class="kv-row"><span class="kv-label">Plan ID</span><span class="kv-value" style="font-family:monospace">{{ plan.display_id }}</span></div>
-    {% if plan.plan_subtype %}
-    <div class="kv-row"><span class="kv-label">Subtype</span><span class="kv-value">{{ plan.plan_subtype.upper() }}</span></div>
-    {% endif %}
-    {% if plan.star_rating %}
-    <div class="kv-row"><span class="kv-label">Star rating</span><span class="kv-value">{{ plan.star_rating }} ★</span></div>
-    {% endif %}
+{# Age-rated note for Medigap/DVH #}
+{% if category in ('medigap', 'dvh') %}
+  <div class="detail-card" style="margin-bottom:16px">
+    <div class="kv-row"><span class="kv-label">Monthly premium</span><span class="kv-value">Age-rated (per quote)</span></div>
+  </div>
+{% endif %}
+
+{% for group in sections %}
+<div class="detail-card" style="margin-bottom:16px">
+  <h3>{{ group.title }}</h3>
+  {% for label, key in group.rows %}
+    {{ benefit_row(label, key, details) }}
+  {% endfor %}
+  {% if 'otc' in group.blocks %}{{ otc_block(details) }}{% endif %}
+  {% if 'dental' in group.blocks %}{{ dental_block(details) }}{% endif %}
+  {% if 'medigap_grid' in group.blocks %}{{ medigap_block(medigap_rows) }}{% endif %}
+  {% if 'hi_riders' in group.blocks %}{{ hi_riders_block(details) }}{% endif %}
+  {% if group.title in ('Drugs',) and oop_cap %}
+    <div class="kv-row"><span class="kv-label">Annual OOP cap ({{ plan.year }})</span><span class="kv-value">{{ oop_cap }}</span></div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if current_user.is_admin %}
+<details class="detail-card" style="margin-bottom:16px">
+  <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--slate)">Admin &amp; commission details</summary>
+  <div style="margin-top:12px">
+    <div class="kv-row"><span class="kv-label">Commission type</span><span class="kv-value">{{ {"pmpm":"Per Member Per Month","percent_premium":"% of Premium","flat_annual":"Flat Annual"}.get(plan.comm_type, plan.comm_type) }}</span></div>
+    <div class="kv-row"><span class="kv-label">Initial</span><span class="kv-value">{% if plan.comm_initial %}${{ "%.2f"|format(plan.comm_initial) }}{% else %}—{% endif %}</span></div>
+    <div class="kv-row"><span class="kv-label">Renewal</span><span class="kv-value">{% if plan.comm_renewal %}${{ "%.2f"|format(plan.comm_renewal) }}{% else %}—{% endif %}</span></div>
+    {% if plan.external_id %}<div class="kv-row"><span class="kv-label">External ID</span><span class="kv-value" style="font-family:monospace;font-size:11px">{{ plan.external_id }}</span></div>{% endif %}
+    {% if plan.plan_name_aliases %}<div class="kv-row"><span class="kv-label">BOB aliases</span><span class="kv-value" style="font-size:11px">{{ plan.plan_name_aliases }}</span></div>{% endif %}
     <div class="kv-row"><span class="kv-label">Service area</span><span class="kv-value">{{ plan.service_area or '—' }}</span></div>
-    {% if plan.external_id %}
-    <div class="kv-row"><span class="kv-label">External ID</span><span class="kv-value" style="font-family:monospace;font-size:11px">{{ plan.external_id }}</span></div>
-    {% endif %}
-    {% if plan.plan_name_aliases %}
-    <div class="kv-row"><span class="kv-label">BOB aliases</span><span class="kv-value" style="font-size:11px">{{ plan.plan_name_aliases }}</span></div>
-    {% endif %}
+    {% if current_user.is_admin %}<div style="margin-top:10px"><a href="{{ url_for('carriers.plan_edit', plan_id=plan.id) }}" class="btn-secondary" style="font-size:11px">Edit plan / benefits</a></div>{% endif %}
   </div>
-
-  {# Benefits snapshot #}
-  <div class="detail-card">
-    <h3>Benefits snapshot</h3>
-    <div class="kv-row"><span class="kv-label">Monthly premium</span>
-      <span class="kv-value">{% if plan.monthly_premium is not none %}${{ "%.2f"|format(plan.monthly_premium) }}{% else %}—{% endif %}</span></div>
-    <div class="kv-row"><span class="kv-label">Annual OOP max</span>
-      <span class="kv-value">{% if plan.annual_oopm %}${{ "{:,.0f}".format(plan.annual_oopm) }}{% else %}—{% endif %}</span></div>
-    <div class="kv-row"><span class="kv-label">PCP copay</span><span class="kv-value">{{ plan.pcp_copay or '—' }}</span></div>
-    <div class="kv-row"><span class="kv-label">Specialist copay</span><span class="kv-value">{{ plan.specialist_copay or '—' }}</span></div>
-    <div class="kv-row"><span class="kv-label">ER copay</span><span class="kv-value">{{ plan.er_copay or '—' }}</span></div>
-    <div class="kv-row"><span class="kv-label">Drug Tier 1</span><span class="kv-value">{{ plan.drug_tier1 or '—' }}</span></div>
-    <div class="kv-row"><span class="kv-label">Drug Tier 2</span><span class="kv-value">{{ plan.drug_tier2 or '—' }}</span></div>
-    <div class="kv-row"><span class="kv-label">Drug Tier 3</span><span class="kv-value">{{ plan.drug_tier3 or '—' }}</span></div>
-  </div>
-
-  {# Commission details #}
-  <div class="detail-card">
-    <h3>Commission details</h3>
-    <div class="kv-row"><span class="kv-label">Commission type</span>
-      <span class="kv-value">{{ {"pmpm":"Per Member Per Month","percent_premium":"% of Premium","flat_annual":"Flat Annual"}.get(plan.comm_type, plan.comm_type) }}</span></div>
-    <div class="kv-row"><span class="kv-label">Initial rate</span>
-      <span class="kv-value">{% if plan.comm_initial %}{{ "$%.2f"|format(plan.comm_initial) }}{% else %}—{% endif %}</span></div>
-    <div class="kv-row"><span class="kv-label">Renewal rate</span>
-      <span class="kv-value">{% if plan.comm_renewal %}{{ "$%.2f"|format(plan.comm_renewal) }}{% else %}—{% endif %}</span></div>
-    <div class="kv-row"><span class="kv-label">True-up rate</span>
-      <span class="kv-value">{% if plan.comm_trueup %}{{ "$%.2f"|format(plan.comm_trueup) }}{% else %}—{% endif %}</span></div>
-    <div class="kv-row"><span class="kv-label">HRA bonus</span>
-      <span class="kv-value">{% if plan.hra_bonus %}${{ "%.0f"|format(plan.hra_bonus) }}{% else %}—{% endif %}</span></div>
-    {% if plan.comm_notes %}
-    <div style="margin-top:10px;font-size:12px;color:var(--slate)">{{ plan.comm_notes }}</div>
-    {% endif %}
-  </div>
-
-</div>
-
-{# ============ SOB Snapshot: Medical Benefits ============ #}
-<div class="detail-card" style="margin-top:16px">
-  <h3 style="margin:0 0 16px 0; color:var(--ivory); font-size:16px;">Medical Benefits</h3>
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px;">
-    <div class="kv-row">
-      <span class="kv-label">Inpatient Hospital</span>
-      <span class="kv-value">
-        {{ details.get('inpatient_hospital') or '—' }}
-        {% if details.get('inpatient_hospital_note') %}
-          <span style="font-size:11px;color:var(--slate);margin-left:6px">[{{ details.get('inpatient_hospital_note') }}]</span>
-        {% endif %}
-      </span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">SNF</span>
-      <span class="kv-value">{{ details.get('snf') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Outpatient Surgery</span>
-      <span class="kv-value">{{ details.get('outpatient_surgery') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Ambulance</span>
-      <span class="kv-value">{{ details.get('ambulance') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">PCP Copay</span>
-      <span class="kv-value">{{ plan.pcp_copay or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Specialist Copay</span>
-      <span class="kv-value">{{ plan.specialist_copay or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">ER Copay</span>
-      <span class="kv-value">{{ plan.er_copay or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Urgent Care</span>
-      <span class="kv-value">{{ plan.urgent_care_copay or details.get('urgent_care_copay') or '—' }}</span>
-    </div>
-  </div>
-</div>
-
-{# ============ SOB Snapshot: Supplemental Benefits ============ #}
-<div class="detail-card" style="margin-top:16px">
-  <h3 style="margin:0 0 16px 0; color:var(--ivory); font-size:16px;">Supplemental Benefits</h3>
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px;">
-    <div class="kv-row">
-      <span class="kv-label">Dental Allowance</span>
-      <span class="kv-value">
-        {{ details.get('dental_allowance') or '—' }}
-        {% if details.get('dental_note') %}
-          <span style="font-size:11px;color:var(--slate);margin-left:6px">[{{ details.get('dental_note') }}]</span>
-        {% endif %}
-      </span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Vision Allowance</span>
-      <span class="kv-value">
-        {{ details.get('vision_allowance') or '—' }}
-        {% if details.get('vision_note') %}
-          <span style="font-size:11px;color:var(--slate);margin-left:6px">[{{ details.get('vision_note') }}]</span>
-        {% endif %}
-      </span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Hearing</span>
-      <span class="kv-value">
-        {{ details.get('hearing') or '—' }}
-        {% if details.get('hearing_note') %}
-          <span style="font-size:11px;color:var(--slate);margin-left:6px">[{{ details.get('hearing_note') }}]</span>
-        {% endif %}
-      </span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">OTC Allowance</span>
-      <span class="kv-value">
-        {{ details.get('otc_allowance') or '—' }}
-        {% if details.get('otc_note') %}
-          <span style="font-size:11px;color:var(--slate);margin-left:6px">[{{ details.get('otc_note') }}]</span>
-        {% endif %}
-      </span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Healthy Food Card</span>
-      <span class="kv-value">{{ details.get('healthy_food_card') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Transportation</span>
-      <span class="kv-value">{{ details.get('transportation') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Gym / Fitness</span>
-      <span class="kv-value">{{ details.get('gym') or '—' }}</span>
-    </div>
-  </div>
-</div>
-
-{# ============ SOB Snapshot: Prescriptions ============ #}
-<div class="detail-card" style="margin-top:16px">
-  <h3 style="margin:0 0 16px 0; color:var(--ivory); font-size:16px;">Prescriptions</h3>
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px 24px;">
-    <div class="kv-row">
-      <span class="kv-label">Drug Deductible</span>
-      <span class="kv-value">{{ details.get('drug_deductible') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Deductible Exempt Tiers</span>
-      <span class="kv-value">{{ details.get('drug_deductible_exempt_tiers') or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Tier 1 (Preferred Generic)</span>
-      <span class="kv-value">{{ plan.drug_tier1 or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Tier 2 (Generic)</span>
-      <span class="kv-value">{{ plan.drug_tier2 or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Tier 3 (Preferred Brand)</span>
-      <span class="kv-value">{{ plan.drug_tier3 or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Tier 4 (Non-Preferred)</span>
-      <span class="kv-value">{{ plan.drug_tier4 or '—' }}</span>
-    </div>
-    <div class="kv-row">
-      <span class="kv-label">Tier 5 (Specialty)</span>
-      <span class="kv-value">{{ plan.drug_tier5 or '—' }}</span>
-    </div>
-  </div>
-</div>
+</details>
+{% endif %}
 
 {# Members on this plan #}
 {% if customers_on_plan %}

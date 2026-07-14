@@ -34,14 +34,15 @@
 - Monthly premium · Annual Rx deductible (+ which tiers it applies to) · Drug tiers 1–5 · Preferred-pharmacy note · **Annual OOP cap** (year-driven: 2025 $2,000 / 2026 $2,100 / 2027 $2,400 — keyed off `plan.year`, NOT hardcoded).
 
 ### 3.3 Medigap (Medicare Supplement) — short
-- Plan letter (prominent) · Monthly premium · What it covers (standardized benefit grid for that letter — e.g. G covers Part B deductible, N doesn't fully) · Household discount · Rate type (community / issue-age / attained-age). No copays/networks/OTC/dental (Medigap just pays the gaps).
+- Plan letter (prominent) · Monthly premium (age-rated / per-person — show "age-rated" not a single figure) · What it covers (standardized benefit grid for that letter) · Household discount · Rate type (community / issue-age / attained-age). No copays/networks/OTC/dental (Medigap just pays the gaps).
+- **Standardized benefit grid** is FIXED CMS data (same every year, all carriers) — hardcode a `MEDIGAP_GRID = {letter: {benefit: pct}}` from the official chart (medicare.gov/health-drug-plans/medigap/basics/compare-plan-benefits — WebFetch 403s it, but the grid is public/stable). Benefits: Part A coinsurance+hospital (365 days), Part B coinsurance/copay, Blood (3 pints), Part A hospice coinsurance, SNF coinsurance, Part A deductible, Part B deductible, Part B excess charges, Foreign travel emergency, OOP limit (K/L). Plan G = everything except Part B deductible; Plan N = like G but with copays + no Part B excess. Render the covered-gaps for the plan's letter from this static grid — no per-plan data entry needed.
 
 ### 3.4 DVH (standalone Dental/Vision/Hearing)
-Grounded in the real Humana Extend 1250 sheet (`docs/Medicare Landscape Files/IDVH Plan Files/Humana/`):
-- Monthly premium · Annual benefit maximum · Calendar-year deductible
-- **Dental** (reuses the Part C dental mini-block): Preventive / Basic / Major, each **in-network vs OON %**, with **per-tier waiting period** (Humana: Prev none / Basic 6mo / Major 12mo)
-- Vision (exam + eyewear allowance, in/out network) · Hearing (exam + hearing-aid allowance)
-- Waiting periods surfaced per service.
+Grounded in real sheets: Humana Extend 1250 + Bright Plus, and BCBS Dental Blue (`docs/Medicare Landscape Files/IDVH Plan Files/`). Ignore Physicians Mutual (Tim is the only agent with that contract). **Note on carrier shape:** Humana Extend is ONE bundled DVH plan; **BCBS "Dental Blue" is actually 3 separate dental products (Preventive Plus PPO / Core 1000 / Value 1500 PPO) + 2 vision products (Exam / Exam Plus) sold à la carte** — each is its own Plan row with its own matrix. The template handles them the same way (each Plan row renders its own benefits); no special-casing.
+- **Premium is AGE-RATED / per-person, NOT a fixed plan attribute** (BCBS + Humana sheets both state "premiums based on age of each covered member"). So on the plan snapshot, show "Premium: age-rated (per quote)" — do NOT show a single plan-level premium. (Same caveat as Medigap.)
+- Annual benefit maximum · Calendar-year deductible
+- **Dental** (reuses the Part C dental mini-block): Preventive / Basic / Major, each **in-network vs OON %**, with **per-tier waiting period** (Humana: Prev none / Basic 6mo / Major 12mo; BCBS varies per product — Preventive Plus has same in/out-of-net, Core/Value differ).
+- Vision (exam + eyewear/frames allowance, in/out network — BCBS via EyeMed, Humana via EyeMed) · Hearing (exam + hearing-aid allowance — Humana via TruHearing).
 
 ### 3.5 Hospital Indemnity (GTL / Wellabe) — base + rider menu
 HI is fundamentally different: a **base benefit set + a large menu of optional riders**, all per-plan-selectable (Tim: "super customizable... each agent will have to select as either not added or what the benefit amount is"). Grounded in the GTL Advantage Plus Elite + Wellabe docs (`docs/Medicare Landscape Files/Hospital Indemnity Files/`).
@@ -67,10 +68,10 @@ Two benefits are structured, not single values — they get dedicated small form
 - **Star rating / commission / pills:** reuse existing model fields + the global `.plan-type-tag` classes.
 
 ## 6. Open items (confirm during build — not blockers)
-1. **BCBS DVH product sheet** — get it to ground BCBS DVH fields (Humana Extend 1250 already in docs). BCBS HI is OUT of scope (under-65 only, per Tim).
-2. **DVH rate standardization** — verify whether Humana/BCBS DVH premiums are standardized (like Medigap letters) vs vary by person; affects whether premium is a plan attribute or per-enrollment.
-3. **Medigap standardized benefit grid** — source the letter→covered-gaps table (standard CMS Medigap chart) to render "what G/N covers".
-4. **Which benefit fields to backfill vs. leave agent-entered** — most Part C benefit data isn't populated yet; the page will show what exists + let agents fill the rest. A CMS PBP backfill (the `pbp-benefits-2026/` files already on hand) could pre-populate copays/OTC/dental for Part C — optional enhancement.
+1. ✅ **BCBS DVH sheet** — obtained (`IDVH Plan Files/BCBS/`); grounded §3.4. BCBS HI is OUT of scope (under-65 only). Physicians Mutual DVH ignored (Tim is sole contract holder).
+2. ✅ **DVH rate question answered** — DVH premiums are **age-rated / per-person**, NOT standardized (both BCBS + Humana sheets confirm). So DVH + Medigap show "age-rated (per quote)" at plan level, not a single premium.
+3. ✅ **Medigap grid** — static CMS chart, hardcode `MEDIGAP_GRID` (§3.3). No per-plan data entry.
+4. **Which benefit fields to backfill vs. leave agent-entered** — most Part C benefit data isn't populated yet; the page shows what exists + lets agents fill the rest. A CMS PBP backfill (the `pbp-benefits-2026/` files already on hand) could pre-populate copays/OTC/dental for Part C — optional enhancement (build phase 6).
 
 ## 7. Build sequencing (for the implementation plan)
 1. **Provenance vocabulary + structured keys** (OTC, Dental matrix, HI base+riders, imaging, therapy, SNF-range) + the `PLAN_TYPE_SECTIONS` config.

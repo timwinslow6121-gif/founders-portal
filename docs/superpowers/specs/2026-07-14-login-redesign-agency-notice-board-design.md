@@ -114,7 +114,7 @@ Replaces the current file entirely. Layout per the approved artifact:
 
 - **Left panel — Agency Notice Board** (dark "stage", single-dark by design — it's "the screen", a deliberate choice not an omission):
   - Heading "Agency Notice Board" + subtitle.
-  - **AEP countdown card** pinned first (green accent, `aep_days` interpolated). Label uses the target AEP year — the calendar year of the next Oct 15 (`days_until_aep` can return it, or the template derives it): e.g. "AEP 2026 Countdown / 93 Days".
+  - **AEP countdown card** pinned first (green accent, `aep_days` interpolated). Label uses `aep_year` (the calendar year of the next Oct 15, returned by `next_aep`): e.g. "AEP 2026 Countdown / 93 Days".
   - Then `notices` in order, each rendered by `notice_type` → icon + accent (info=blue, payout=green, alert=rose).
   - **Empty state:** if `notices` is empty, show the AEP card + a quiet "All clear — no active notices" line. Never an empty void.
 - **Right panel — login** (theme-aware light/dark, device default + toggle, same no-flash pattern as the rest of the portal):

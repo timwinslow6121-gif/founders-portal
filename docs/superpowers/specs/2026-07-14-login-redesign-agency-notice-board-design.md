@@ -155,3 +155,8 @@ Subagent-driven-development: fresh implementer per task + per-task spec+quality 
 - Rich text / images / links in notice bodies (plain text only).
 - A display cap on notice count (deferred; priority ordering + expiry is enough for now — revisit if the board ever overflows).
 - Notice read-tracking / dismissal (it's a login-screen board, not an inbox).
+- **External RSS / industry-news feed** — rejected: external content on a pre-auth page + a live fetch on the login critical path + noise diluting "your agency's board." Not a good fit here; a separate agent-only news reader could be considered later.
+
+## Future work (separate build — do NOT fold in here)
+
+**Upcoming Events feed (agent-only, on the dashboard).** Events (meeting times, contracting webinars, internal reviews) are useful but NOT public-safe — meeting times/topics on a pre-login page leak the agency's schedule. So events live BEHIND login, on the dashboard, not on the login board. It's a distinct surface with its own model (`AgencyEvent`: title, `event_date`/time, optional location/link, agency-scoped), its own admin CRUD, and opposite visibility logic (upcoming = `event_date >= today`, ascending). Roughly the same size as this build, with its own open questions (recurring events? RSVP? tie into the existing Calendly integration?). Brainstorm→spec on its own after this ships.

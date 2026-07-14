@@ -84,6 +84,23 @@ BENEFIT_KEYS = [
     "gym",
     "hearing", "hearing_note",
     "drug_deductible", "drug_deductible_exempt_tiers",
+    "medical_deductible",
+    "part_b_giveback",
+    "outpatient_hospital",
+    "imaging",
+    "therapy",
+    "ambulance_ground", "ambulance_air",
+    "otc_usage", "otc_retailers",          # OTC structured extras (amount stays otc_allowance)
+    "dental_deductible",
+    "dental_prev_innet", "dental_prev_oon",
+    "dental_basic_innet", "dental_basic_oon",
+    "dental_major_innet", "dental_major_oon",
+    "annual_max", "dvh_deductible", "waiting_periods",
+    "preferred_pharmacy_note",
+    "household_discount", "rate_type",
+    "hi_hospital_confinement", "hi_max_days", "hi_observation",
+    "hi_er", "hi_mental_health", "hi_snf", "hi_riders",
+    "vision_allowance", "hearing_allowance",
 ]
 
 
@@ -299,6 +316,30 @@ def plan_detail(plan_id):
 
     details = _parse_details(plan.details_json)
 
+    from app.plan_sections import (sections_for, coverage_category,
+                                   oop_cap_for_year, medigap_coverage)
+
+    # Surface real Plan columns under the keys the section config expects, WITHOUT
+    # clobbering anything already set in details_json (details_json wins if present).
+    _col_display = {
+        "monthly_premium": (f"${plan.monthly_premium:,.2f}"
+                            if plan.monthly_premium is not None else None),
+        "annual_oopm": (f"${plan.annual_oopm:,.0f}" if plan.annual_oopm else None),
+        "pcp_copay": plan.pcp_copay, "specialist_copay": plan.specialist_copay,
+        "er_copay": plan.er_copay,
+        "drug_tier1": plan.drug_tier1, "drug_tier2": plan.drug_tier2,
+        "drug_tier3": plan.drug_tier3, "drug_tier4": plan.drug_tier4,
+        "drug_tier5": plan.drug_tier5,
+    }
+    for k, v in _col_display.items():
+        if not details.get(k) and v:
+            details[k] = v
+
+    category = coverage_category(plan.plan_type)
+    sections = sections_for(plan)
+    oop_cap = oop_cap_for_year(plan.year)
+    medigap_rows = medigap_coverage(getattr(plan, "plan_letter", None))
+
     return render_template("plan_detail.html",
         plan=plan,
         predecessors=predecessors,
@@ -309,6 +350,8 @@ def plan_detail(plan_id):
         plan_types=dict(PLAN_TYPES),
         statuses=dict(STATUSES),
         details=details,
+        sections=sections, category=category, oop_cap=oop_cap,
+        medigap_rows=medigap_rows,
     )
 
 

@@ -1068,6 +1068,46 @@ class RoadmapItem(db.Model):
         return f"<RoadmapItem #{self.id} {self.type}/{self.status} {self.title!r}>"
 
 
+class AgencyNotice(db.Model):
+    """A public-safe announcement shown on the pre-login Agency Notice Board.
+    Admin-managed (see app/notices.py + docs/superpowers/specs/2026-07-14-login-
+    redesign-agency-notice-board-design.md). NOTE: rendered PRE-AUTH, so content
+    must be public-safe (no member names / dollar amounts / internal specifics).
+    The AEP countdown is auto-computed, NOT a row here."""
+    __tablename__ = "agency_notices"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    agency_id    = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agency       = db.relationship("Agency", foreign_keys=[agency_id])
+
+    notice_type  = db.Column(db.String(16), nullable=False, default="info")  # info | alert
+    title        = db.Column(db.String(200), nullable=False)
+    body         = db.Column(db.Text, nullable=False)
+    is_active    = db.Column(db.Boolean, nullable=False, default=True)
+    show_until   = db.Column(db.Date)          # optional auto-hide date; NULL = no expiry
+    priority     = db.Column(db.Integer, nullable=False, default=0)  # higher = earlier
+
+    created_at   = db.Column(db.DateTime, server_default=db.func.now())
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_by   = db.relationship("User", foreign_keys=[created_by_id])
+
+    NOTICE_TYPES = ("info", "alert")
+
+    @classmethod
+    def visible_for(cls, agency_id, today):
+        """Notices to show on the login board for this agency, in display order.
+        Active + not-yet-expired (show_until NULL or >= today), priority desc then newest."""
+        return (cls.query
+                .filter(cls.agency_id == agency_id,
+                        cls.is_active.is_(True),
+                        db.or_(cls.show_until.is_(None), cls.show_until >= today))
+                .order_by(cls.priority.desc(), cls.created_at.desc())
+                .all())
+
+    def __repr__(self):
+        return f"<AgencyNotice #{self.id} {self.notice_type} {self.title!r}>"
+
+
 class SmsTemplate(db.Model):
     """
     Pre-approved SMS message templates for agent use in SC-5 SMS blast/send flows.

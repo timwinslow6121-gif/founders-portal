@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Login Notices{% endblock %}
+{% block styles %}
+<style>
+  .badge-info{background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue);}
+  .badge-alert{background:color-mix(in srgb,#C0392B 16%,transparent);color:#C0392B;}
+</style>
+{% endblock %}
+{% block content %}
+<div style="max-width:920px;margin:0 auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">
+    <h1 style="font-family:var(--serif);color:var(--ivory-bright);margin:0;">Login Notices</h1>
+    <a href="{{ url_for('notices.admin_notice_new') }}" class="btn btn-primary">+ New notice</a>
+  </div>
+  <p style="color:var(--slate);font-size:13.5px;margin:-8px 0 18px;">
+    These appear on the <strong>public login page</strong>. Keep them public-safe — no member names,
+    dollar amounts, or internal details. The AEP countdown is automatic and always shown.
+  </p>
+  {% for n in notices %}
+    {% set expired = n.show_until and n.show_until < today %}
+    <div class="card" style="display:flex;gap:14px;align-items:flex-start;margin-bottom:12px;
+         {% if not n.is_active or expired %}opacity:.6;{% endif %}">
+      <span class="badge badge-{{ presentation[n.notice_type].accent if n.notice_type in presentation else 'info' }}">
+        {{ n.notice_type }}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;color:var(--ivory-bright);">{{ n.title }}</div>
+        <div style="color:var(--slate);font-size:13.5px;margin-top:3px;">{{ n.body }}</div>
+        <div style="color:var(--slate);font-size:12px;margin-top:6px;">
+          priority {{ n.priority }}
+          {% if n.show_until %} · until {{ n.show_until.strftime('%b %-d, %Y') }}{% endif %}
+          {% if not n.is_active %} · <strong>inactive</strong>{% endif %}
+          {% if expired %} · <strong>expired</strong>{% endif %}
+        </div>
+      </div>
+      <a href="{{ url_for('notices.admin_notice_edit', notice_id=n.id) }}" class="btn btn-secondary">Edit</a>
+      <form method="post" action="{{ url_for('notices.admin_notice_delete', notice_id=n.id) }}"
+            onsubmit="return confirm('Delete this notice?');" style="margin:0;">
+        <button class="btn btn-secondary" type="submit">Delete</button>
+      </form>
+    </div>
+  {% else %}
+    <p style="color:var(--slate);">No notices yet. The AEP countdown still shows on the login page.</p>
+  {% endfor %}
+</div>
+{% endblock %}

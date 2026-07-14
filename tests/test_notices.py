@@ -56,3 +56,60 @@ def test_notice_presentation_covers_types():
     assert set(NOTICE_PRESENTATION) == {"info", "alert"}
     for v in NOTICE_PRESENTATION.values():
         assert "accent" in v and "icon" in v
+
+
+def _login(client, uid):
+    # pytest-flask's autouse request-context fixture keeps one app context
+    # (and therefore one `g`) alive for the whole test function; flask-login
+    # caches the resolved user on `g._login_user` per app-context, so it must
+    # be cleared whenever a test switches which user is logged in mid-test
+    # (see tests/test_roadmap.py for the same precedent) or current_user
+    # won't re-resolve against the new session `_user_id`.
+    from flask import g
+    g.pop("_login_user", None)
+    with client.session_transaction() as s:
+        s["_user_id"] = str(uid)
+
+
+def test_non_admin_forbidden(db_session, app, client, agency, agent_user):
+    _login(client, agent_user.id)
+    assert client.get("/admin/notices").status_code == 403
+
+
+def test_admin_can_create_notice(db_session, app, client, agency, admin_user):
+    _login(client, admin_user.id)
+    r = client.post("/admin/notices/new", data={
+        "notice_type": "alert", "title": "Portal maintenance",
+        "body": "Brief downtime tonight.", "priority": "3", "show_until": "", "is_active": "on",
+    }, follow_redirects=True)
+    assert r.status_code == 200
+    with app.app_context():
+        n = AgencyNotice.query.filter_by(title="Portal maintenance").first()
+        assert n and n.notice_type == "alert" and n.priority == 3 and n.show_until is None
+
+
+def test_blank_title_rerenders_not_500(db_session, app, client, agency, admin_user):
+    _login(client, admin_user.id)
+    r = client.post("/admin/notices/new", data={
+        "notice_type": "info", "title": "", "body": "x", "priority": "0", "is_active": "on"})
+    assert r.status_code == 200          # re-render, not a 500
+    assert b"Title" in r.data
+
+
+def test_bad_notice_type_rejected(db_session, app, client, agency, admin_user):
+    _login(client, admin_user.id)
+    client.post("/admin/notices/new", data={
+        "notice_type": "danger", "title": "Bad", "body": "x", "priority": "0", "is_active": "on"})
+    with app.app_context():
+        assert AgencyNotice.query.filter_by(title="Bad").first() is None
+
+
+def test_delete_removes_notice(db_session, app, client, agency, admin_user):
+    _login(client, admin_user.id)
+    client.post("/admin/notices/new", data={
+        "notice_type": "info", "title": "Temp", "body": "x", "priority": "0", "is_active": "on"})
+    with app.app_context():
+        nid = AgencyNotice.query.filter_by(title="Temp").first().id
+    client.post(f"/admin/notices/{nid}/delete")
+    with app.app_context():
+        assert AgencyNotice.query.get(nid) is None

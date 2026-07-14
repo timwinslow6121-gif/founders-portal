@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit notice" if notice else "New notice" }}{% endblock %}
+{% block styles %}
+<style>
+  .badge-info{background:color-mix(in srgb,var(--blue) 16%,transparent);color:var(--blue);}
+  .badge-alert{background:color-mix(in srgb,#C0392B 16%,transparent);color:#C0392B;}
+</style>
+{% endblock %}
+{% block content %}
+<div style="max-width:620px;margin:0 auto;">
+  <h1 style="font-family:var(--serif);color:var(--ivory-bright);">
+    {{ "Edit notice" if notice else "New notice" }}</h1>
+  <p style="color:var(--slate);font-size:13px;">
+    Shows on the <strong>public login page</strong> — no member names, dollar amounts, or internal details.</p>
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}<div class="badge badge-{{ 'alert' if cat=='error' else 'info' }}"
+      style="display:block;margin:8px 0;">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% macro val(field, default='') %}{{ (form.get(field) if form else None) or (notice[field] if notice else None) or default }}{% endmacro %}
+  <form method="post" class="card" style="display:flex;flex-direction:column;gap:14px;">
+    <label>Type
+      <select name="notice_type">
+        {% set cur = (form.get('notice_type') if form else None) or (notice.notice_type if notice else 'info') %}
+        {% for t in types %}<option value="{{ t }}" {{ 'selected' if t==cur else '' }}>{{ t }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Title <input type="text" name="title" maxlength="200" value="{{ val('title') }}"></label>
+    <label>Message <textarea name="body" rows="3">{{ val('body') }}</textarea></label>
+    <label>Priority (higher shows first)
+      <input type="number" name="priority" value="{{ val('priority', 0) }}"></label>
+    <label>Show until (optional — auto-hides after this date)
+      <input type="date" name="show_until"
+        value="{{ (form.get('show_until') if form else None) or (notice.show_until.isoformat() if notice and notice.show_until else '') }}"></label>
+    <label style="display:flex;gap:8px;align-items:center;">
+      <input type="checkbox" name="is_active"
+        {{ 'checked' if (not notice) or (notice and notice.is_active) else '' }}> Active</label>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a href="{{ url_for('notices.admin_notices') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

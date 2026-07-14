@@ -175,32 +175,14 @@
 {% endif %}
 
 {# Top stats row #}
-<div class="detail-grid-3" style="margin-bottom:16px">
-  <div class="detail-card" style="text-align:center">
-    <h3>Members on this plan</h3>
-    <div class="member-count">{{ member_count }}</div>
-    <div class="member-sub">active policies</div>
-  </div>
-  <div class="detail-card" style="text-align:center">
-    <h3>Initial commission</h3>
-    {% if plan.is_commissionable and plan.comm_initial %}
-    <div class="comm-highlight">
-      {% if plan.comm_type == 'pmpm' %}${{ "%.2f"|format(plan.comm_initial) }}<span style="font-size:0.7em;color:var(--slate)">/mo</span>
-      {% elif plan.comm_type == 'percent_premium' %}{{ "%.1f"|format(plan.comm_initial * 100) }}<span style="font-size:0.7em;color:var(--slate)">%</span>
-      {% else %}${{ "%.2f"|format(plan.comm_initial) }}{% endif %}
-    </div>
-    {% else %}<div class="member-sub">Non-commissionable</div>{% endif %}
-  </div>
-  <div class="detail-card" style="text-align:center">
-    <h3>Renewal commission</h3>
-    {% if plan.is_commissionable and plan.comm_renewal %}
-    <div class="comm-highlight">
-      {% if plan.comm_type == 'pmpm' %}${{ "%.2f"|format(plan.comm_renewal) }}<span style="font-size:0.7em;color:var(--slate)">/mo</span>
-      {% elif plan.comm_type == 'percent_premium' %}{{ "%.1f"|format(plan.comm_renewal * 100) }}<span style="font-size:0.7em;color:var(--slate)">%</span>
-      {% else %}${{ "%.2f"|format(plan.comm_renewal) }}{% endif %}
-    </div>
-    {% else %}<div class="member-sub">—</div>{% endif %}
-  </div>
+{# One headline stat only — member count. No KPI cards (commission lives in the
+   collapsed admin footer). Spec: "No KPI cards. The only headline number is # of members." #}
+<div class="detail-card" style="margin-bottom:16px;display:flex;align-items:baseline;gap:14px">
+  <span class="member-count" style="margin:0">{{ member_count }}</span>
+  <span class="member-sub">active member{{ 's' if member_count != 1 }} on this plan
+    {%- if members_truncated %} · showing first {{ row_cap }}{% endif %}</span>
+  <a href="{{ url_for('customers.customers_list', plan_type=plan.plan_type) }}"
+     style="margin-left:auto;font-size:12px;color:var(--gold);text-decoration:none">View members →</a>
 </div>
 
 {# Age-rated note for Medigap/DVH #}

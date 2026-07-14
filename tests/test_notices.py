@@ -125,3 +125,17 @@ def test_login_route_runs_with_active_notice(db_session, app, client, agency):
         db.session.commit()
     r = client.get("/auth/login")  # unauthenticated
     assert r.status_code == 200
+
+
+def test_login_page_shows_notices_and_aep(db_session, app, client, agency):
+    with app.app_context():
+        from app.models import AgencyNotice
+        from app.extensions import db
+        aid = app.config.get("DEFAULT_AGENCY_ID", 1)
+        db.session.add(AgencyNotice(agency_id=aid, notice_type="info",
+            title="Beta Notice", body="In active development.", is_active=True, priority=1))
+        db.session.commit()
+    r = client.get("/auth/login")
+    assert r.status_code == 200
+    assert b"Beta Notice" in r.data
+    assert b"Countdown" in r.data

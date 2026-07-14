@@ -36,3 +36,23 @@ def test_visible_for_filters_and_orders(db_session, app, agency):
         titles = [r.title for r in rows]
         assert titles == ["active", "future_exp"]  # inactive/expired/other-agency excluded; priority desc
         assert active.id and future.id
+
+
+from app.notices import next_aep, NOTICE_PRESENTATION
+
+
+def test_next_aep_before_oct15():
+    assert next_aep(date(2026, 7, 14)) == (93, 2026)
+
+def test_next_aep_on_oct15():
+    assert next_aep(date(2026, 10, 15)) == (0, 2026)
+
+def test_next_aep_after_oct15_rolls_to_next_year():
+    d, y = next_aep(date(2026, 11, 1))
+    assert y == 2027
+    assert d == (date(2027, 10, 15) - date(2026, 11, 1)).days
+
+def test_notice_presentation_covers_types():
+    assert set(NOTICE_PRESENTATION) == {"info", "alert"}
+    for v in NOTICE_PRESENTATION.values():
+        assert "accent" in v and "icon" in v

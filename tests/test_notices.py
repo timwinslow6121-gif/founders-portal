@@ -113,3 +113,15 @@ def test_delete_removes_notice(db_session, app, client, agency, admin_user):
     client.post(f"/admin/notices/{nid}/delete")
     with app.app_context():
         assert AgencyNotice.query.get(nid) is None
+
+
+def test_login_route_runs_with_active_notice(db_session, app, client, agency):
+    """The login route's board read must not crash the page, even with a live
+    notice present. Does NOT assert notice text is in the HTML — the current
+    login.html template doesn't render these context vars yet (Task 5)."""
+    with app.app_context():
+        db.session.add(AgencyNotice(agency_id=agency.id, notice_type="info",
+            title="Beta Notice", body="In active development.", is_active=True, priority=1))
+        db.session.commit()
+    r = client.get("/auth/login")  # unauthenticated
+    assert r.status_code == 200

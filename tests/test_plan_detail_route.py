@@ -69,3 +69,11 @@ def test_plan_detail_route_builds_sections_context(ctx, monkeypatch):
     # Plan columns surfaced into details under the keys the section config expects
     assert captured["details"]["monthly_premium"] == "$0.00"
     assert captured["details"]["pcp_copay"] == "$0"
+
+
+def test_new_benefit_keys_are_saved(ctx):
+    app, agency_id, uid, pid = ctx
+    from app.carriers import BENEFIT_KEYS
+    for k in ["otc_usage", "dental_major_innet", "hi_riders", "annual_max",
+              "imaging", "therapy", "ambulance_air", "part_b_giveback"]:
+        assert k in BENEFIT_KEYS

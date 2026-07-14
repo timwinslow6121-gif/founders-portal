@@ -9,7 +9,7 @@
 Two goals in one build:
 
 1. **Replace the login screen.** The current login (`app/templates/login.html`, 116 lines) uses an animated compounding-pestle logo. AJ dislikes it ("the pestle looks like a penis"). Retire it for a clean, professional split-screen that matches the Founders portal theme.
-2. **Add a live Agency Notice Board.** The new login's left panel is an at-a-glance board of agency updates — an AEP countdown, next commission payout, carrier maintenance alerts — turning the login from a gate into the first useful screen of the day. Fits the "Agent Operating System" framing and is demo-worthy for Brian.
+2. **Add a live Agency Notice Board.** The new login's left panel is an at-a-glance board of PUBLIC-SAFE agency updates — an AEP countdown, Founders-portal maintenance/status, general info — turning the login from a gate into the first useful screen of the day. Fits the "Agent Operating System" framing and is demo-worthy for Brian. (Sensitive/operational items like commission pay dates and events live BEHIND login — see Future work.)
 
 Approved mockups (interactive artifacts):
 - Login v2 (split-screen, Founders-themed): `https://claude.ai/code/artifact/643d85fc-fbe0-436e-a36b-c6c2927dea01`
@@ -34,7 +34,7 @@ New table `agency_notices`, modeled on the existing `RoadmapItem` pattern (agenc
 |---|---|---|
 | `id` | Integer PK | |
 | `agency_id` | Integer FK → agencies.id, **NOT NULL**, indexed | multi-tenant scoping (see Database Rules) |
-| `notice_type` | String(16), NOT NULL, default `info` | allowlist: `info` / `payout` / `alert` → drives icon + accent color |
+| `notice_type` | String(16), NOT NULL, default `info` | allowlist: `info` / `alert` → drives icon + accent color |
 | `title` | String(200), NOT NULL | validated non-blank before insert |
 | `body` | Text, NOT NULL | plain text; rendered autoescaped (no `|safe`) |
 | `is_active` | Boolean, NOT NULL, default `True` | manual on/off |
@@ -57,7 +57,7 @@ def visible_for(cls, agency_id, today):
             .all())
 ```
 
-`notice_type` → presentation is a small module-level map (icon SVG name + CSS accent class): `info`→blue/info-icon, `payout`→green/dollar-icon, `alert`→rose/triangle-icon. One place, shared by template + tests.
+`notice_type` → presentation is a small module-level map (icon SVG name + CSS accent class): `info`→blue/info-icon, `alert`→rose/triangle-icon. One place, shared by template + tests. (Only two types for now; the map is the extension point if more are added later.)
 
 ### Unit 2 — AEP countdown helper (pure function)
 
@@ -115,7 +115,7 @@ Replaces the current file entirely. Layout per the approved artifact:
 - **Left panel — Agency Notice Board** (dark "stage", single-dark by design — it's "the screen", a deliberate choice not an omission):
   - Heading "Agency Notice Board" + subtitle.
   - **AEP countdown card** pinned first (green accent, `aep_days` interpolated). Label uses `aep_year` (the calendar year of the next Oct 15, returned by `next_aep`): e.g. "AEP 2026 Countdown / 93 Days".
-  - Then `notices` in order, each rendered by `notice_type` → icon + accent (info=blue, payout=green, alert=rose).
+  - Then `notices` in order, each rendered by `notice_type` → icon + accent (info=blue, alert=rose).
   - **Empty state:** if `notices` is empty, show the AEP card + a quiet "All clear — no active notices" line. Never an empty void.
 - **Right panel — login** (theme-aware light/dark, device default + toggle, same no-flash pattern as the rest of the portal):
   - Founders blue→green logo mark (the real `app/static/img/founders-mark.svg`, NOT the pestle).
@@ -142,7 +142,9 @@ Replaces the current file entirely. Layout per the approved artifact:
 ## Rollout
 
 1. Migration **037** — create `agency_notices`. `down_revision = "036"`.
-2. Idempotent seed script (`scripts/seed_agency_notices.py`, dry-run/`--apply`) — 2–3 public-safe starter notices so the board isn't empty on first deploy (e.g. a payout-date card + a generic "certification season" info card). Idempotent on `(agency_id, title)`.
+2. Idempotent seed script (`scripts/seed_agency_notices.py`, dry-run/`--apply`) — two public-safe starter notices so the board isn't empty on first deploy (the AEP countdown is the auto-computed pinned widget, not a seed row). Idempotent on `(agency_id, title)`:
+   - **Founders Portal maintenance** (`alert`): "Founders Portal maintenance is performed periodically. The portal may be briefly unavailable during updates." — strictly about THIS portal; no carrier/UHC references.
+   - **Beta notice** (`info`): "The Founders Portal is in active development. Some features may not work exactly as expected — thanks for your patience. Spotted something off? Log it on the Roadmap board." (Sets expectations + nudges toward the existing bug-intake.)
 3. Deploy to VPS (assistant does it, not handed to Tim): DB backup first (`PGPASSWORD=… pg_dump …`), `FLASK_APP=wsgi.py ./venv/bin/flask db upgrade`, restart, verify `/login` renders the board AND Google sign-in still completes end-to-end (the pre-auth read must not break login).
 
 ## Build method
@@ -159,4 +161,4 @@ Subagent-driven-development: fresh implementer per task + per-task spec+quality 
 
 ## Future work (separate build — do NOT fold in here)
 
-**Upcoming Events feed (agent-only, on the dashboard).** Events (meeting times, contracting webinars, internal reviews) are useful but NOT public-safe — meeting times/topics on a pre-login page leak the agency's schedule. So events live BEHIND login, on the dashboard, not on the login board. It's a distinct surface with its own model (`AgencyEvent`: title, `event_date`/time, optional location/link, agency-scoped), its own admin CRUD, and opposite visibility logic (upcoming = `event_date >= today`, ascending). Roughly the same size as this build, with its own open questions (recurring events? RSVP? tie into the existing Calendly integration?). Brainstorm→spec on its own after this ships.
+**Upcoming Events + pay dates (agent-only, behind login).** Events (meeting times, contracting webinars, internal reviews) and commission pay dates are useful but NOT public-safe — meeting times/topics and a payout schedule on a pre-login page leak the agency's rhythms. So these live BEHIND login, on the dashboard, not on the login board. Likely a distinct surface with its own model (`AgencyEvent`: title, `event_date`/time, optional location/link, agency-scoped), its own admin CRUD, and opposite visibility logic (upcoming = `event_date >= today`, ascending). A "next commission payout" date fits naturally here too. Roughly the same size as this build, with its own open questions (recurring events? RSVP? tie into the existing Calendly integration?). Brainstorm→spec on its own after this ships.

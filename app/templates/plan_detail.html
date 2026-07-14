@@ -3,7 +3,9 @@
 {% block styles %}
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 .detail-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+/* Benefit sheet reads as a document column, not stretched across a widescreen —
+   caps the label→value gap on wide monitors. */
+.detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; max-width: 780px; }
 .detail-card h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--slate); margin: 0 0 14px; }
 

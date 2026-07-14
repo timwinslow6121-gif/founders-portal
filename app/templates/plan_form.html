@@ -449,6 +449,229 @@ details.form-card > div.section-body {
     </div>
   </details>
 
+  {# ============ Snapshot Benefits (optional; shown on the plan page by type) ============ #}
+  <details class="form-card" style="margin-bottom:16px">
+    <summary>
+      <h3>Snapshot Benefits</h3>
+      <span class="toggle-chevron"></span>
+    </summary>
+    <div class="section-body">
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="otc_usage">OTC Usage</label>
+          <input type="text" id="otc_usage" name="otc_usage" class="form-input"
+                 value="{{ details.get('otc_usage') or '' }}"
+                 placeholder="online only / in-store (CVS)">
+        </div>
+        <div>
+          <label class="form-label" for="otc_retailers">OTC Retailers</label>
+          <input type="text" id="otc_retailers" name="otc_retailers" class="form-input"
+                 value="{{ details.get('otc_retailers') or '' }}"
+                 placeholder="CVS, Walmart">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="dental_deductible">Dental Deductible</label>
+          <input type="text" id="dental_deductible" name="dental_deductible" class="form-input"
+                 value="{{ details.get('dental_deductible') or '' }}"
+                 placeholder="$50">
+        </div>
+        <div>
+          <label class="form-label" for="medical_deductible">Medical Deductible</label>
+          <input type="text" id="medical_deductible" name="medical_deductible" class="form-input"
+                 value="{{ details.get('medical_deductible') or '' }}"
+                 placeholder="$0">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="dental_prev_innet">Dental Preventive (in-network)</label>
+          <input type="text" id="dental_prev_innet" name="dental_prev_innet" class="form-input"
+                 value="{{ details.get('dental_prev_innet') or '' }}"
+                 placeholder="100%">
+        </div>
+        <div>
+          <label class="form-label" for="dental_prev_oon">Dental Preventive (OON)</label>
+          <input type="text" id="dental_prev_oon" name="dental_prev_oon" class="form-input"
+                 value="{{ details.get('dental_prev_oon') or '' }}"
+                 placeholder="Not covered">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="dental_basic_innet">Dental Basic (in-network)</label>
+          <input type="text" id="dental_basic_innet" name="dental_basic_innet" class="form-input"
+                 value="{{ details.get('dental_basic_innet') or '' }}"
+                 placeholder="80%">
+        </div>
+        <div>
+          <label class="form-label" for="dental_basic_oon">Dental Basic (OON)</label>
+          <input type="text" id="dental_basic_oon" name="dental_basic_oon" class="form-input"
+                 value="{{ details.get('dental_basic_oon') or '' }}"
+                 placeholder="Not covered">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="dental_major_innet">Dental Major (in-network)</label>
+          <input type="text" id="dental_major_innet" name="dental_major_innet" class="form-input"
+                 value="{{ details.get('dental_major_innet') or '' }}"
+                 placeholder="50%">
+        </div>
+        <div>
+          <label class="form-label" for="dental_major_oon">Dental Major (OON)</label>
+          <input type="text" id="dental_major_oon" name="dental_major_oon" class="form-input"
+                 value="{{ details.get('dental_major_oon') or '' }}"
+                 placeholder="Not covered">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="part_b_giveback">Part-B Giveback</label>
+          <input type="text" id="part_b_giveback" name="part_b_giveback" class="form-input"
+                 value="{{ details.get('part_b_giveback') or '' }}"
+                 placeholder="$40/mo">
+        </div>
+        <div>
+          <label class="form-label" for="outpatient_hospital">Outpatient Hospital</label>
+          <input type="text" id="outpatient_hospital" name="outpatient_hospital" class="form-input"
+                 value="{{ details.get('outpatient_hospital') or '' }}"
+                 placeholder="$275">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="imaging">Imaging (X-ray/MRI/CT)</label>
+          <input type="text" id="imaging" name="imaging" class="form-input"
+                 value="{{ details.get('imaging') or '' }}"
+                 placeholder="$0-$295">
+        </div>
+        <div>
+          <label class="form-label" for="therapy">Therapy (PT/OT/ST)</label>
+          <input type="text" id="therapy" name="therapy" class="form-input"
+                 value="{{ details.get('therapy') or '' }}"
+                 placeholder="$40/visit">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="ambulance_ground">Ambulance Ground</label>
+          <input type="text" id="ambulance_ground" name="ambulance_ground" class="form-input"
+                 value="{{ details.get('ambulance_ground') or '' }}"
+                 placeholder="$275">
+        </div>
+        <div>
+          <label class="form-label" for="ambulance_air">Ambulance Air</label>
+          <input type="text" id="ambulance_air" name="ambulance_air" class="form-input"
+                 value="{{ details.get('ambulance_air') or '' }}"
+                 placeholder="$500">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="hearing_allowance">Hearing Allowance</label>
+          <input type="text" id="hearing_allowance" name="hearing_allowance" class="form-input"
+                 value="{{ details.get('hearing_allowance') or '' }}"
+                 placeholder="$1,000/yr">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="preferred_pharmacy_note">Preferred Pharmacy Note</label>
+          <input type="text" id="preferred_pharmacy_note" name="preferred_pharmacy_note" class="form-input"
+                 value="{{ details.get('preferred_pharmacy_note') or '' }}"
+                 placeholder="CVS/Walmart preferred cost-share">
+        </div>
+        <div>
+          <label class="form-label" for="waiting_periods">Waiting Periods (DVH)</label>
+          <input type="text" id="waiting_periods" name="waiting_periods" class="form-input"
+                 value="{{ details.get('waiting_periods') or '' }}"
+                 placeholder="6mo basic, 12mo major">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="annual_max">Annual Max (DVH)</label>
+          <input type="text" id="annual_max" name="annual_max" class="form-input"
+                 value="{{ details.get('annual_max') or '' }}"
+                 placeholder="$1,500/yr">
+        </div>
+        <div>
+          <label class="form-label" for="dvh_deductible">DVH Deductible</label>
+          <input type="text" id="dvh_deductible" name="dvh_deductible" class="form-input"
+                 value="{{ details.get('dvh_deductible') or '' }}"
+                 placeholder="$50">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="household_discount">Household Discount (Medigap)</label>
+          <input type="text" id="household_discount" name="household_discount" class="form-input"
+                 value="{{ details.get('household_discount') or '' }}"
+                 placeholder="7%">
+        </div>
+        <div>
+          <label class="form-label" for="rate_type">Rate Type (Medigap)</label>
+          <input type="text" id="rate_type" name="rate_type" class="form-input"
+                 value="{{ details.get('rate_type') or '' }}"
+                 placeholder="attained-age">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="hi_hospital_confinement">HI Hospital Confinement (daily)</label>
+          <input type="text" id="hi_hospital_confinement" name="hi_hospital_confinement" class="form-input"
+                 value="{{ details.get('hi_hospital_confinement') or '' }}"
+                 placeholder="$150/day">
+        </div>
+        <div>
+          <label class="form-label" for="hi_max_days">HI Max Days</label>
+          <input type="text" id="hi_max_days" name="hi_max_days" class="form-input"
+                 value="{{ details.get('hi_max_days') or '' }}"
+                 placeholder="365">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="hi_observation">HI Observation</label>
+          <input type="text" id="hi_observation" name="hi_observation" class="form-input"
+                 value="{{ details.get('hi_observation') or '' }}"
+                 placeholder="$75/day">
+        </div>
+        <div>
+          <label class="form-label" for="hi_er">HI ER (injury)</label>
+          <input type="text" id="hi_er" name="hi_er" class="form-input"
+                 value="{{ details.get('hi_er') or '' }}"
+                 placeholder="$100">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="hi_mental_health">HI Mental Health (daily)</label>
+          <input type="text" id="hi_mental_health" name="hi_mental_health" class="form-input"
+                 value="{{ details.get('hi_mental_health') or '' }}"
+                 placeholder="$100/day">
+        </div>
+        <div>
+          <label class="form-label" for="hi_snf">HI SNF (daily)</label>
+          <input type="text" id="hi_snf" name="hi_snf" class="form-input"
+                 value="{{ details.get('hi_snf') or '' }}"
+                 placeholder="$75/day">
+        </div>
+      </div>
+      <div class="benefit-row">
+        <div>
+          <label class="form-label" for="hi_riders">HI Riders (added)</label>
+          <input type="text" id="hi_riders" name="hi_riders" class="form-input"
+                 value="{{ details.get('hi_riders') or '' }}"
+                 placeholder="Ambulance $200; Cancer $10,000">
+        </div>
+        <div></div>
+      </div>
+    </div>
+  </details>
+
   {# Section 4: Commissions #}
   <div class="form-card" style="margin-bottom:16px">
     <h3>Commission rates</h3>

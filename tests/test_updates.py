@@ -37,3 +37,31 @@ def test_visible_for_filters_orders(db_session, app, agency):
         # type + carrier filter
         f = CarrierUpdate.visible_for(agency.id, today, update_type="commission", carrier="Humana")
         assert [r.title for r in f] == ["humana_comm"]
+
+
+from app.updates import UPDATE_PRESENTATION, plan_affect
+
+
+def test_presentation_covers_all_types():
+    from app.models import CarrierUpdate
+    assert set(UPDATE_PRESENTATION) == set(CarrierUpdate.UPDATE_TYPES)
+    for v in UPDATE_PRESENTATION.values():
+        assert "label" in v and "icon" in v and "accent" in v
+
+
+def test_plan_affect_counts_active_members(db_session, app, agency):
+    from app.models import Plan, Policy
+    from app.extensions import db
+    with app.app_context():
+        p = Plan(agency_id=agency.id, carrier="Humana", plan_name="Gold Plus HMO",
+                 year=2026, plan_type="mapd", status="current",
+                 needs_review=False, is_commissionable=True, has_unresolved_conflicts=False)
+        db.session.add(p); db.session.commit()
+        for i, st in enumerate(["active", "active", "termed"]):
+            db.session.add(Policy(agency_id=agency.id, carrier="Humana",
+                                  member_id=f"M{i}", plan_id=p.id, status=st))
+        db.session.commit()
+        res = plan_affect(p.id, agency.id)
+        assert res["count"] == 2 and res["plan_name"] == "Gold Plus HMO"
+        assert plan_affect(None, agency.id) is None
+        assert plan_affect(999999, agency.id) is None   # missing plan → None, no raise

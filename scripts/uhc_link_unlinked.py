@@ -86,4 +86,35 @@ def main(apply):
 
 
 if __name__ == "__main__":
-    main("--apply" in sys.argv)
+    if "--diagnose" in sys.argv:
+        diagnose()
+    else:
+        main("--apply" in sys.argv)
+
+
+def diagnose():
+    """Read-only: why aren't the unlinked policies matching the BOB?"""
+    app = create_app()
+    with app.app_context():
+        bob = pd.read_excel(BOB_PATH, header=2, dtype=str).dropna(how="all")
+        bob = bob[bob["policyTermDate"] == "2300-01-01"]
+        bob_mbi = {norm(x) for x in bob["mbiNumber"]}
+        bob_member = {norm(x) for x in bob["memberNumber"]}
+        from app.models import Customer
+        unlinked = Policy.query.filter_by(carrier="UHC", status="active", plan_id=None).all()
+        no_mbi = sum(1 for p in unlinked if not norm(p.mbi))
+        synth = sum(1 for p in unlinked if str(p.member_id).startswith("uhc::"))
+        inbob = 0
+        for p in unlinked:
+            if norm(p.mbi) in bob_mbi or norm(p.member_id) in bob_member or norm(p.member_id) in bob_mbi:
+                inbob += 1
+        print(f"unlinked total: {len(unlinked)}")
+        print(f"  no mbi: {no_mbi}")
+        print(f"  synthetic uhc:: member_id: {synth}")
+        print(f"  matched in BOB by mbi/member: {inbob}")
+        print("\nsample:")
+        for p in unlinked[:15]:
+            c = Customer.query.get(p.customer_id) if p.customer_id else None
+            nm = c.full_name if c else "?"
+            hit = norm(p.mbi) in bob_mbi or norm(p.member_id) in bob_member or norm(p.member_id) in bob_mbi
+            print(f"  pid {p.id} | {nm} | mbi={p.mbi} member_id={p.member_id} | {p.plan_type} | in_bob={hit}")

@@ -8,7 +8,8 @@ from google.auth.transport import requests as google_requests
 from app.models import User
 from app.extensions import db, login_manager
 from app.audit import log_event
-from datetime import datetime
+from app.notices import board_notices, next_aep, NOTICE_PRESENTATION
+from datetime import datetime, date
 @login_manager.user_loader
 def load_user(user_id):
 	return User.query.get(int(user_id))
@@ -49,7 +50,23 @@ def make_flow():
 
 @auth.route('/login')
 def login():
-    return render_template('login.html')
+    return _render_login()
+
+
+def _render_login(error=None):
+    """Login page with the public-safe notice board. The board read is defensive:
+    a failure NEVER blocks the Google-SSO button (the board is enhancement, not a gate)."""
+    today = date.today()
+    aid = current_app.config.get("DEFAULT_AGENCY_ID", 1)  # pre-auth: no current_user
+    try:
+        notices = board_notices(aid, today)
+    except Exception:
+        current_app.logger.exception("notice board read failed; showing login without it")
+        notices = []
+    aep_days, aep_year = next_aep(today)
+    return render_template('login.html', error=error, notices=notices,
+                           aep_days=aep_days, aep_year=aep_year,
+                           presentation=NOTICE_PRESENTATION)
 
 @auth.route('/google')
 def google_login():
@@ -122,7 +139,7 @@ def callback():
     if domain != ALLOWED_DOMAIN:
         log_event("login_nondomain", category="auth", severity="alert",
                   detail=f"attempted {email}", agency_id_override=1)
-        return render_template('login.html',
+        return _render_login(
             error='Access restricted to @foundersinsuranceagency.com accounts.')
 
     user = _get_or_create_oauth_user(

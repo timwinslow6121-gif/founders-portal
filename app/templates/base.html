@@ -858,6 +858,9 @@
         <a href="{{ url_for('roadmap.roadmap_board') }}" class="nav-item {% if request.endpoint == 'roadmap.roadmap_board' %}active{% endif %}">
           <span class="nav-dot"></span>Roadmap
         </a>
+        <a href="{{ url_for('notices.admin_notices') }}" class="nav-item {% if request.endpoint and request.endpoint.startswith('notices.') %}active{% endif %}">
+          <span class="nav-dot"></span>Notices
+        </a>
         <div class="nav-section-label">Alerts</div>
         <a href="{{ url_for('comms.resolution_queue') }}"
            class="nav-item {% if '/comms/resolution' in request.path %}active{% endif %}">

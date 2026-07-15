@@ -1108,6 +1108,51 @@ class AgencyNotice(db.Model):
         return f"<AgencyNotice #{self.id} {self.notice_type} {self.title!r}>"
 
 
+class CarrierUpdate(db.Model):
+    """A curated Medicare/carrier intelligence post on the behind-login Updates hub
+    (see app/updates.py + docs/superpowers/specs/2026-07-15-medicare-updates-hub-design.md).
+    Any agent posts; everyone sees the shared board; owner edits own; admin pins/deletes.
+    Optional plan_id links a post to a Plan → the hub shows 'affects N active members'."""
+    __tablename__ = "carrier_updates"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    agency_id    = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    agency       = db.relationship("Agency", foreign_keys=[agency_id])
+
+    update_type  = db.Column(db.String(24), nullable=False, default="general")
+    carrier      = db.Column(db.String(64))                       # optional tag
+    title        = db.Column(db.String(200), nullable=False)
+    body         = db.Column(db.Text, nullable=False)
+    plan_id      = db.Column(db.Integer, db.ForeignKey("plans.id", ondelete="SET NULL"))
+    plan         = db.relationship("Plan", foreign_keys=[plan_id])
+    event_date   = db.Column(db.Date)                            # for training/important-date
+    is_pinned    = db.Column(db.Boolean, nullable=False, default=False)
+    is_active    = db.Column(db.Boolean, nullable=False, default=True)
+    show_until   = db.Column(db.Date)                            # optional auto-hide
+
+    posted_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    posted_by    = db.relationship("User", foreign_keys=[posted_by_id])
+    created_at   = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at   = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    UPDATE_TYPES = ("commission", "network", "carrier_notice",
+                    "training", "important_date", "general")
+
+    @classmethod
+    def visible_for(cls, agency_id, today, *, update_type=None, carrier=None):
+        q = cls.query.filter(cls.agency_id == agency_id,
+                             cls.is_active.is_(True),
+                             db.or_(cls.show_until.is_(None), cls.show_until >= today))
+        if update_type:
+            q = q.filter(cls.update_type == update_type)
+        if carrier:
+            q = q.filter(cls.carrier == carrier)
+        return q.order_by(cls.is_pinned.desc(), cls.created_at.desc()).all()
+
+    def __repr__(self):
+        return f"<CarrierUpdate #{self.id} {self.update_type} {self.title!r}>"
+
+
 class SmsTemplate(db.Model):
     """
     Pre-approved SMS message templates for agent use in SC-5 SMS blast/send flows.

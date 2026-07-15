@@ -59,6 +59,8 @@ New table `carrier_updates`, modeled on the `RoadmapItem` / `AgencyNotice` patte
 
 `UPDATE_TYPES = ("commission","network","carrier_notice","training","important_date","general")`.
 Presentation map `update_type → {icon, accent}` in `app/updates.py` (one place, template+tests agree).
+The six types cover v1; the list is intentionally extensible — adding a type later is one
+tuple entry + one presentation-map entry (Tim: "might need to add some later").
 
 **Visibility rule** — one classmethod:
 ```python
@@ -167,7 +169,8 @@ Nightly cron → fetch_news.py → each NewsSource.feed_url → feedparser → k
   deploy (DB backup, `FLASK_APP=wsgi.py flask db upgrade`, restart, verify `/updates`
   renders + post/filter work + a plan-linked post shows the live count).
 - **Phase 2 (separate deploy):** migration **039** (NewsSource/NewsItem/NewsKeyword) →
-  add `feedparser` to requirements → **Tim provides 5–10 sources** → verify each feed
+  add `feedparser` to requirements → **Tim provides 5–10 sources** (KFF.org is a confirmed
+  starter — Tim is asking colleagues for their go-to Medicare sources) → verify each feed
   parses → seed sources + default keywords → add cron entry → run `fetch_news.py` once
   manually → verify the "From around Medicare" panel populates.
 

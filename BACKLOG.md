@@ -9,7 +9,11 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-07-13_
+_Last updated: 2026-07-14_
+
+## ✅ Shipped 2026-07-14 — login redesign + agency notice board (LIVE)
+- ✅ **New login page + Agency Notice Board** — retired the animated pestle logo (AJ's request). Split-screen: left = public-safe notice board (auto-computed **AEP countdown** pinned + admin `info`/`alert` notices), right = theme-aware Google SSO. New `AgencyNotice` model (**migration 037**), `/admin/notices` CRUD (`notices_bp`), defensive pre-auth read (a board failure never blocks SSO). 6-task subagent build + opus whole-branch review (READY TO MERGE, 0 findings). Suite 629. **Deployed + live-verified** (login 200 renders board, no pestle, /admin/notices 302-gated, 2 seed notices applied, no errors). Spec+plan `docs/superpowers/specs|plans/2026-07-14-login-redesign-agency-notice-board*`. ⚠ Tim still to eyeball a real Google sign-in end-to-end.
+- ⬜ 🟠 **Upcoming Events feed (agent-only, behind login) — FOLLOW-UP to the notice board.** Events (meeting times, webinars, internal reviews) + commission pay dates are NOT public-safe → live on the DASHBOARD, not the login board. Own model (`AgencyEvent`: title/date/location/link) + admin CRUD + dashboard widget (upcoming = event_date >= today, ascending). Open Qs: recurring? RSVP? Calendly tie-in? Brainstorm→spec. (Noted in the login spec's "Future work".)
 
 ## ▶▶ ACTIVE PRIORITY — carrier-by-carrier BOB↔DB reconciliation (100% accurate customers+policies)
 - 🔴 **THE #1 thing (Tim, 2026-07-10).** Per carrier: diff authoritative BOB vs DB line-by-line, active-only, fix till they tie. Track active policies AND active customers. Foundation for the Brian-view (don't build that report on dirty data). See `memory/session-handoff-2026-07-13-carriers-page-plantype.md` (newest) + `-2026-07-10-carrier-reconciliation.md` (methodology).

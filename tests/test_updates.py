@@ -65,3 +65,69 @@ def test_plan_affect_counts_active_members(db_session, app, agency):
         assert res["count"] == 2 and res["plan_name"] == "Gold Plus HMO"
         assert plan_affect(None, agency.id) is None
         assert plan_affect(999999, agency.id) is None   # missing plan → None, no raise
+
+
+from tests.test_roadmap import _login
+
+
+def _admin(client, admin_user):
+    _login(client, admin_user.id)
+
+def test_hub_renders_for_agent(client, app, agency, agent_user):
+    _login(client, agent_user.id)
+    with app.app_context():
+        _mk(agency.id, title="Humana killed Gold Plus", update_type="commission", carrier="Humana")
+    r = client.get("/updates")
+    assert r.status_code == 200
+    assert b"Humana killed Gold Plus" in r.data
+
+def test_any_agent_can_post(client, app, agency, agent_user):
+    _login(client, agent_user.id)
+    r = client.post("/updates/new", data={
+        "update_type": "network", "carrier": "Humana",
+        "title": "Tryon Medical added for 2026", "body": "Big for Union county.",
+        "event_date": "", "plan_id": "", "show_until": ""}, follow_redirects=True)
+    assert r.status_code == 200
+    with app.app_context():
+        from app.models import CarrierUpdate
+        u = CarrierUpdate.query.filter_by(title="Tryon Medical added for 2026").first()
+        assert u and u.update_type == "network" and u.posted_by_id == agent_user.id
+
+def test_blank_title_rerenders_not_500(client, app, agency, agent_user):
+    _login(client, agent_user.id)
+    r = client.post("/updates/new", data={"update_type": "general", "title": "", "body": "x"})
+    assert r.status_code == 200 and b"Title" in r.data
+
+def test_bad_type_rejected(client, app, agency, agent_user):
+    _login(client, agent_user.id)
+    client.post("/updates/new", data={"update_type": "spam", "title": "X", "body": "y"})
+    with app.app_context():
+        from app.models import CarrierUpdate
+        assert CarrierUpdate.query.filter_by(title="X").first() is None
+
+def test_owner_can_edit_nonowner_cannot(client, app, agency, agent_user, admin_user):
+    _login(client, agent_user.id)
+    with app.app_context():
+        u = _mk(agency.id, title="mine"); u.posted_by_id = agent_user.id
+        from app.extensions import db; db.session.commit(); uid = u.id
+    # owner edits ok
+    assert client.post(f"/updates/{uid}/edit", data={
+        "update_type": "general", "title": "mine v2", "body": "b"}).status_code in (200, 302)
+    # a DIFFERENT non-admin agent cannot
+    with app.app_context():
+        from app.models import User; from app.extensions import db
+        other = User(email="o@test.com", name="Other", is_admin=False, agency_id=agency.id)
+        db.session.add(other); db.session.commit(); oid = other.id
+    _login(client, oid)
+    assert client.post(f"/updates/{uid}/edit", data={
+        "update_type": "general", "title": "hijack", "body": "b"}).status_code == 403
+
+def test_delete_and_pin_admin_only(client, app, agency, agent_user, admin_user):
+    with app.app_context():
+        u = _mk(agency.id, title="pinnable"); uid = u.id
+    _login(client, agent_user.id)
+    assert client.post(f"/updates/{uid}/delete").status_code == 403
+    assert client.post(f"/updates/{uid}/pin").status_code == 403
+    _login(client, admin_user.id)
+    assert client.post(f"/updates/{uid}/pin").status_code in (200, 302)
+    assert client.post(f"/updates/{uid}/delete").status_code in (200, 302)

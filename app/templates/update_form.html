@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:640px;margin:0 auto;">
+  <h1 style="font-family:var(--serif);color:var(--ivory-bright);">{{ "Edit update" if update else "Post an update" }}</h1>
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}<div class="badge" style="display:block;margin:8px 0;">{{ m }}</div>{% endfor %}
+  {% endwith %}
+  {% macro val(f, d='') %}{{ (form.get(f) if form else None) or (update[f] if update else None) or d }}{% endmacro %}
+  <form method="post" class="card" style="display:flex;flex-direction:column;gap:14px;">
+    <label>Type
+      <select name="update_type">
+        {% set cur = (form.get('update_type') if form else None) or (update.update_type if update else 'general') %}
+        {% for t in types %}<option value="{{ t }}" {{ 'selected' if t==cur else '' }}>{{ presentation[t].label }}</option>{% endfor %}
+      </select></label>
+    <label>Carrier (optional)
+      <select name="carrier">
+        {% set cc = (form.get('carrier') if form else None) or (update.carrier if update else '') %}
+        <option value="">— none —</option>
+        {% for c in carriers %}<option value="{{ c }}" {{ 'selected' if c==cc else '' }}>{{ c }}</option>{% endfor %}
+      </select></label>
+    <label>Title <input type="text" name="title" maxlength="200" value="{{ val('title') }}"></label>
+    <label>Message <textarea name="body" rows="4">{{ val('body') }}</textarea></label>
+    <label>Affects a specific plan? (optional — search)
+      <input type="text" id="planSearch" autocomplete="off"
+             placeholder="type a plan name or CMS id…"
+             value="{{ update.plan.plan_name if update and update.plan else '' }}">
+      <input type="hidden" name="plan_id" id="planId" value="{{ update.plan_id if update and update.plan_id else '' }}">
+      <div id="planResults" style="border:1px solid var(--border);border-radius:8px;display:none;"></div>
+    </label>
+    <label>Event date (optional — training/webinar/important date)
+      <input type="date" name="event_date" value="{{ update.event_date.isoformat() if update and update.event_date else (form.get('event_date') if form else '') }}"></label>
+    <label>Show until (optional — auto-hides after)
+      <input type="date" name="show_until" value="{{ update.show_until.isoformat() if update and update.show_until else (form.get('show_until') if form else '') }}"></label>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" type="submit">Save</button>
+      <a href="{{ url_for('updates.updates_hub') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+<script>
+  const ps=document.getElementById('planSearch'), pid=document.getElementById('planId'), pr=document.getElementById('planResults');
+  let t; ps.addEventListener('input', ()=>{ clearTimeout(t); pid.value=''; t=setTimeout(async()=>{
+    const q=ps.value.trim(); if(q.length<2){pr.style.display='none';return;}
+    const res=await fetch('{{ url_for("updates.plan_search") }}?q='+encodeURIComponent(q));
+    const rows=await res.json(); pr.innerHTML=''; pr.style.display=rows.length?'block':'none';
+    rows.forEach(r=>{ const d=document.createElement('div'); d.textContent=r.label;
+      d.style.cssText='padding:7px 10px;cursor:pointer;'; d.onclick=()=>{ps.value=r.label;pid.value=r.id;pr.style.display='none';};
+      pr.appendChild(d); }); }, 200); });
+</script>
+{% endblock %}

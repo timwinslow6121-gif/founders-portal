@@ -85,13 +85,6 @@ def main(apply):
             print("\nDRY-RUN — no changes written.")
 
 
-if __name__ == "__main__":
-    if "--diagnose" in sys.argv:
-        diagnose()
-    else:
-        main("--apply" in sys.argv)
-
-
 def diagnose():
     """Read-only: why aren't the unlinked policies matching the BOB?"""
     app = create_app()
@@ -118,3 +111,10 @@ def diagnose():
             nm = c.full_name if c else "?"
             hit = norm(p.mbi) in bob_mbi or norm(p.member_id) in bob_member or norm(p.member_id) in bob_mbi
             print(f"  pid {p.id} | {nm} | mbi={p.mbi} member_id={p.member_id} | {p.plan_type} | in_bob={hit}")
+
+
+if __name__ == "__main__":
+    if "--diagnose" in sys.argv:
+        diagnose()
+    else:
+        main("--apply" in sys.argv)

@@ -63,12 +63,23 @@ before the caller's commit; verify it still records correctly under the wrap (it
 directly kills the root cause for BOTH bugs at once, with the lowest blast radius. It's
 the exact pattern already proven in this codebase (the UHC commission resolver
 `_crosswalk`/`_match_by_mbi`/`_find_name_dob_match` no_autoflush fix, commit c1ba8c2).
-The caller's transaction ownership (`merge_customers` never commits; the caller does) is
-unchanged.
+The caller owns the *outer* transaction (`merge_customers` never calls
+`db.session.commit()` itself for its own mutations — the caller does that after a
+successful return). Note this is not "no commit inside" in the absolute sense:
+`merge_customers` calls `log_event()` near the end, and `log_event` commits
+internally as part of its own best-effort audit-write contract (see
+`app/audit.py`) — so a call to `merge_customers` does perform a real commit of
+everything staged so far, before the caller's own explicit commit. This is
+pre-existing behavior, unrelated to and unaffected by this fix.
 
-**Scope of the change:** `merge_customers` only. Because the `/customers/merge` UI path
-(`execute_merge`) delegates to the same engine, it is fixed for free — the review
-confirms this (no separate change needed).
+**Scope of the change:** `merge_customers` only. **Correction:** of the two callers,
+only `customer_merge()` (`/admin/customers/merge`) delegates to `merge_customers`.
+The other UI path, `execute_merge()` (`/customers/merge/<a_id>/<b_id>`), has its
+own separate inline merge logic — it does NOT call `merge_customers` and is
+untouched by this fix. `execute_merge` has the same AOR-collision update pattern
+that produced Bug 2 above, so it likely carries the same latent autoflush-ordering
+risk under Postgres. That is a pre-existing, out-of-scope issue — logged here for
+a later look, not fixed in this change.
 
 ## Architecture / data flow
 

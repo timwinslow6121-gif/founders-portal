@@ -1041,11 +1041,21 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
         # Fill blank keeper fields from losers, highest-precedence source first.
         fillers = sorted(losers, key=_merge_precedence_key, reverse=True)
         filled = []
-        # Fields under a UNIQUE index (Postgres partial index ix_customers_mbi): copying
-        # the value to the keeper while the (not-yet-deleted) loser still holds it makes
-        # BOTH rows momentarily carry it → UniqueViolation on the next flush (invisible on
-        # SQLite). Clear it on the donor loser in the SAME step so it's never a transient
-        # duplicate. (Reproduced by the Devoted 'Rene Barger' stub→real merge.)
+        # Fields under a UNIQUE index (Postgres partial index ix_customers_mbi):
+        # setting BOTH rows' mbi in one flush is unsafe even inside no_autoflush.
+        # SQLAlchemy's flush batches same-table UPDATEs into one executemany
+        # ordered by ascending primary key, and ix_customers_mbi is a
+        # non-deferrable constraint (checked per-row as the executemany runs,
+        # not at transaction end) — so if keeper.id < donor.id (the common case:
+        # real keeper has the lower id, stub donor the higher one), the keeper's
+        # mbi-adopt UPDATE is emitted and checked BEFORE the donor's clear,
+        # and Postgres raises UniqueViolation even though both changes are in
+        # the same flush. The only safe order is: clear the donor and flush
+        # THAT alone first (releasing the value in the DB), then set it on the
+        # keeper. The explicit flush() below is not suppressed by no_autoflush
+        # (that context only stops *implicit* autoflushes on query); it runs
+        # fine. (Reproduced by the Devoted 'Rene Barger' stub→real merge, and by
+        # any keeper-id-less-than-donor-id case generally.)
         _UNIQUE_FILL_FIELDS = {"mbi"}
         for fld in _MERGE_FILL_FIELDS:
             if getattr(keeper, fld, None):
@@ -1053,9 +1063,12 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
             for src in fillers:
                 v = getattr(src, fld, None)
                 if v:
-                    setattr(keeper, fld, v)
                     if fld in _UNIQUE_FILL_FIELDS:
                         setattr(src, fld, None)      # donor releases the unique value
+                        db.session.flush()           # ...and it lands in the DB now
+                        setattr(keeper, fld, v)       # ...before the keeper adopts it
+                    else:
+                        setattr(keeper, fld, v)
                     filled.append(fld)
                     break
 

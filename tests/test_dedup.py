@@ -2,7 +2,9 @@ import pytest
 from datetime import date
 from app.extensions import db
 from app.models import Customer, Agency, Policy, CommissionLineItem, CommissionStatement
+from app.models import CustomerAorHistory, User
 from app.dedup import find_no_mbi_clusters, cluster_signal
+from app.customers import merge_customers
 
 
 def _cust(agency_id, **kw):
@@ -146,3 +148,54 @@ def test_one_person_many_product_lines_is_not_a_duplicate(app, db_session):
         clusters = find_no_mbi_clusters(agency_id)
         # Only one customer named Pat Jones — no cluster of size > 1.
         assert not any(c.id in cl.member_ids and len(cl.member_ids) > 1 for cl in clusters)
+
+
+def test_merge_adopts_loser_mbi_three_way(app, db_session):
+    """A keeper with no MBI + a loser carrying one → keeper adopts it, loser gone,
+    no IntegrityError. 3-way shape (keeper + two losers, one carries the MBI)."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        keeper = _cust(aid, first_name="Annie", last_name="Maready",
+                       full_name="Annie Maready", dob=date(1951, 5, 6))   # no mbi
+        loser1 = _cust(aid, first_name="Annie", last_name="Maready",
+                       full_name="Annie Maready", dob=date(1951, 5, 6),
+                       mbi="7WY1YQ0NP99", stub=True)                       # carries mbi
+        loser2 = _cust(aid, first_name="Annie", last_name="Maready",
+                       full_name="Annie Maready", stub=True)              # no mbi/dob
+        db.session.commit()
+        res = merge_customers(keeper.id, [loser1.id, loser2.id], aid, "test")
+        db.session.commit()
+        assert res["ok"] is True and res["merged"] == 2
+        k = db.session.get(Customer, keeper.id)
+        assert k is not None and k.mbi == "7WY1YQ0NP99"
+        assert db.session.get(Customer, loser1.id) is None
+        assert db.session.get(Customer, loser2.id) is None
+
+
+def test_merge_shared_aor_chapter_no_null_customer(app, db_session):
+    """Keeper + loser each hold the SAME (carrier, effective_date) AOR chapter →
+    after merge the keeper has exactly one, no AOR row has NULL customer_id, loser gone."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        keeper = _cust(aid, first_name="Jerry", last_name="Goodman",
+                       full_name="Jerry Goodman", dob=date(1945, 5, 16))
+        loser = _cust(aid, first_name="Jerry", last_name="Goodman",
+                      full_name="Jerry Goodman", dob=date(1945, 5, 16), stub=True)
+        agent = User(name="A", email="aor-agent@x.com", agency_id=aid)
+        db.session.add(agent); db.session.flush()
+        for cid in (keeper.id, loser.id):
+            db.session.add(CustomerAorHistory(
+                agency_id=aid, customer_id=cid, agent_id=agent.id, carrier="Humana",
+                effective_date=date(2024, 1, 1)))
+        db.session.commit()
+        res = merge_customers(keeper.id, [loser.id], aid, "test")
+        db.session.commit()
+        assert res["ok"] is True
+        chapters = CustomerAorHistory.query.filter_by(customer_id=keeper.id).all()
+        assert len(chapters) == 1 and chapters[0].effective_date == date(2024, 1, 1)
+        # no orphaned / null-customer AOR rows anywhere
+        assert CustomerAorHistory.query.filter(
+            CustomerAorHistory.customer_id.is_(None)).count() == 0
+        assert db.session.get(Customer, loser.id) is None

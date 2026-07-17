@@ -913,166 +913,188 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
         return {"ok": False, "merged": 0, "filled": [], "moved": {},
                 "error": "contradictory dob or mbi in cluster"}
 
-    loser_ids_resolved = [l.id for l in losers]
+    # All mutations run under no_autoflush: this function does a sequence of
+    # synchronize_session=False bulk UPDATEs + per-row changes + deletes, and a
+    # mid-sequence autoflush (any query triggers one) can push partial state to
+    # Postgres in a constraint-violating order — the keeper adopting a loser's MBI
+    # before the donor-clear flushes (ix_customers_mbi UniqueViolation), or an AOR
+    # customer_id update flushing before keeper.id is settled. Suppressing autoflush
+    # stages everything and lets it land together at the caller's commit. Invisible
+    # on SQLite; reproduced live on Postgres 2026-07-17 (Annie Maready 3-way + shared
+    # Humana AOR chapters). See docs/superpowers/specs/2026-07-17-merge-engine-autoflush-fix-design.md.
+    with db.session.no_autoflush:
+        loser_ids_resolved = [l.id for l in losers]
 
-    # Count PolicyPayments that will follow transitively (via Policy.customer_id).
-    # PolicyPayment has no customer_id column — linkage is through policy_id.
-    loser_policy_ids = [
-        p.id for p in
-        Policy.query.filter(Policy.customer_id.in_(loser_ids_resolved)).all()
-    ]
-    pp_count = (
-        PolicyPayment.query
-        .filter(PolicyPayment.policy_id.in_(loser_policy_ids))
-        .count()
-    ) if loser_policy_ids else 0
+        # Count PolicyPayments that will follow transitively (via Policy.customer_id).
+        # PolicyPayment has no customer_id column — linkage is through policy_id.
+        loser_policy_ids = [
+            p.id for p in
+            Policy.query.filter(Policy.customer_id.in_(loser_ids_resolved)).all()
+        ]
+        pp_count = (
+            PolicyPayment.query
+            .filter(PolicyPayment.policy_id.in_(loser_policy_ids))
+            .count()
+        ) if loser_policy_ids else 0
 
-    moved = {}
+        moved = {}
 
-    # Reattach all child models that DO have a customer_id column.
-    # Scope is customer_id.in_(loser_ids_resolved): the losers were already fetched
-    # agency-scoped (Customer.agency_id == agency_id above), so any row pointing at a
-    # loser IS this agency's row. We deliberately do NOT also filter on model.agency_id
-    # here — Policy.agency_id is nullable with no ondelete, so a legacy NULL-agency
-    # policy would be silently skipped by that filter and then orphaned when the loser
-    # is deleted, re-introducing the exact ForeignKeyViolation this reattach prevents.
-    for model in (Policy, CustomerNote, CustomerContact, CommissionLineItem):
-        n = (
-            model.query
-            .filter(model.customer_id.in_(loser_ids_resolved))
-            .update({"customer_id": keeper.id}, synchronize_session=False)
+        # Reattach all child models that DO have a customer_id column.
+        # Scope is customer_id.in_(loser_ids_resolved): the losers were already fetched
+        # agency-scoped (Customer.agency_id == agency_id above), so any row pointing at a
+        # loser IS this agency's row. We deliberately do NOT also filter on model.agency_id
+        # here — Policy.agency_id is nullable with no ondelete, so a legacy NULL-agency
+        # policy would be silently skipped by that filter and then orphaned when the loser
+        # is deleted, re-introducing the exact ForeignKeyViolation this reattach prevents.
+        for model in (Policy, CustomerNote, CustomerContact, CommissionLineItem):
+            n = (
+                model.query
+                .filter(model.customer_id.in_(loser_ids_resolved))
+                .update({"customer_id": keeper.id}, synchronize_session=False)
+            )
+            moved[model.__name__] = n
+
+        # CustomerAorHistory needs special handling because of
+        # UniqueConstraint("customer_id", "carrier", "effective_date",
+        #                  name="uq_aor_customer_carrier_date").
+        # A blind bulk UPDATE collides when keeper and loser share the same
+        # (carrier, effective_date) enrollment chapter — this is the normal case
+        # when merging duplicate records of the same person.
+        # Fix: move only chapters the keeper does NOT already have; delete the rest
+        # (they represent the same chapter, already present on the keeper).
+        #
+        # NULL effective_date: Postgres treats NULLs as distinct in a unique index,
+        # so two (carrier, NULL) rows never collide at the DB level.  We mirror that
+        # here: only consider a collision when effective_date IS NOT NULL.
+        keeper_aor_set = {
+            (row.carrier, row.effective_date)
+            for row in CustomerAorHistory.query.filter_by(customer_id=keeper.id).all()
+            if row.effective_date is not None
+        }
+        loser_aors = (
+            CustomerAorHistory.query
+            .filter(CustomerAorHistory.customer_id.in_(loser_ids_resolved))
+            .all()
         )
-        moved[model.__name__] = n
+        aor_moved = 0
+        for row in loser_aors:
+            key = (row.carrier, row.effective_date)
+            if row.effective_date is not None and key in keeper_aor_set:
+                # Duplicate chapter — drop the loser copy; keeper already has it.
+                db.session.delete(row)
+            else:
+                row.customer_id = keeper.id
+                if row.effective_date is not None:
+                    keeper_aor_set.add(key)  # prevent a second loser from colliding
+                aor_moved += 1
+        moved["CustomerAorHistory"] = aor_moved
 
-    # CustomerAorHistory needs special handling because of
-    # UniqueConstraint("customer_id", "carrier", "effective_date",
-    #                  name="uq_aor_customer_carrier_date").
-    # A blind bulk UPDATE collides when keeper and loser share the same
-    # (carrier, effective_date) enrollment chapter — this is the normal case
-    # when merging duplicate records of the same person.
-    # Fix: move only chapters the keeper does NOT already have; delete the rest
-    # (they represent the same chapter, already present on the keeper).
-    #
-    # NULL effective_date: Postgres treats NULLs as distinct in a unique index,
-    # so two (carrier, NULL) rows never collide at the DB level.  We mirror that
-    # here: only consider a collision when effective_date IS NOT NULL.
-    keeper_aor_set = {
-        (row.carrier, row.effective_date)
-        for row in CustomerAorHistory.query.filter_by(customer_id=keeper.id).all()
-        if row.effective_date is not None
-    }
-    loser_aors = (
-        CustomerAorHistory.query
-        .filter(CustomerAorHistory.customer_id.in_(loser_ids_resolved))
-        .all()
-    )
-    aor_moved = 0
-    for row in loser_aors:
-        key = (row.carrier, row.effective_date)
-        if row.effective_date is not None and key in keeper_aor_set:
-            # Duplicate chapter — drop the loser copy; keeper already has it.
-            db.session.delete(row)
-        else:
-            row.customer_id = keeper.id
-            if row.effective_date is not None:
-                keeper_aor_set.add(key)  # prevent a second loser from colliding
-            aor_moved += 1
-    moved["CustomerAorHistory"] = aor_moved
+        # C1: Repoint both MatchSuggestion FK columns so delete(loser) never
+        # raises a ForeignKeyViolation.  MatchSuggestion.agency_id is nullable
+        # (confirmed in models.py) — a stale NULL-agency suggestion could still
+        # reference a loser.  We intentionally omit the agency_id filter here so
+        # we catch any dangling row regardless of its agency_id value (the loser
+        # ids are already agency-scoped upstream, so there is no cross-tenant risk
+        # in updating without the agency guard).
+        from app.models import MatchSuggestion
+        MatchSuggestion.query.filter(
+            MatchSuggestion.stub_customer_id.in_(loser_ids_resolved)
+        ).update({"stub_customer_id": keeper.id}, synchronize_session=False)
+        MatchSuggestion.query.filter(
+            MatchSuggestion.suggested_customer_id.in_(loser_ids_resolved)
+        ).update({"suggested_customer_id": keeper.id}, synchronize_session=False)
 
-    # C1: Repoint both MatchSuggestion FK columns so delete(loser) never
-    # raises a ForeignKeyViolation.  MatchSuggestion.agency_id is nullable
-    # (confirmed in models.py) — a stale NULL-agency suggestion could still
-    # reference a loser.  We intentionally omit the agency_id filter here so
-    # we catch any dangling row regardless of its agency_id value (the loser
-    # ids are already agency-scoped upstream, so there is no cross-tenant risk
-    # in updating without the agency guard).
-    from app.models import MatchSuggestion
-    MatchSuggestion.query.filter(
-        MatchSuggestion.stub_customer_id.in_(loser_ids_resolved)
-    ).update({"stub_customer_id": keeper.id}, synchronize_session=False)
-    MatchSuggestion.query.filter(
-        MatchSuggestion.suggested_customer_id.in_(loser_ids_resolved)
-    ).update({"suggested_customer_id": keeper.id}, synchronize_session=False)
+        # CarrierIdCrosswalk needs the same collision handling as CustomerAorHistory
+        # because of UNIQUE (agency_id, carrier, carrier_key) — a crosswalk row can
+        # legitimately point at a stub loser (the seed's MBI match can land on a
+        # stub when a real+stub share humana_id), and a blind bulk UPDATE would
+        # collide if keeper and loser already share a (carrier, carrier_key).
+        # Mirror the CustomerAorHistory pattern: move keys the keeper lacks,
+        # delete duplicates the keeper already has. Must happen BEFORE the loser
+        # delete below or a leftover row raises ForeignKeyViolation on Postgres
+        # (CarrierIdCrosswalk.customer_id has no ondelete cascade at the FK).
+        from app.models import CarrierIdCrosswalk
+        keeper_xw_set = {
+            (row.carrier, row.carrier_key)
+            for row in CarrierIdCrosswalk.query.filter_by(customer_id=keeper.id).all()
+        }
+        loser_xws = (
+            CarrierIdCrosswalk.query
+            .filter(CarrierIdCrosswalk.customer_id.in_(loser_ids_resolved))
+            .all()
+        )
+        xw_moved = 0
+        for row in loser_xws:
+            key = (row.carrier, row.carrier_key)
+            if key in keeper_xw_set:
+                # Duplicate key — drop the loser copy; keeper already has it.
+                db.session.delete(row)
+            else:
+                row.customer_id = keeper.id
+                keeper_xw_set.add(key)  # prevent a second loser from colliding
+                xw_moved += 1
+        moved["CarrierIdCrosswalk"] = xw_moved
 
-    # CarrierIdCrosswalk needs the same collision handling as CustomerAorHistory
-    # because of UNIQUE (agency_id, carrier, carrier_key) — a crosswalk row can
-    # legitimately point at a stub loser (the seed's MBI match can land on a
-    # stub when a real+stub share humana_id), and a blind bulk UPDATE would
-    # collide if keeper and loser already share a (carrier, carrier_key).
-    # Mirror the CustomerAorHistory pattern: move keys the keeper lacks,
-    # delete duplicates the keeper already has. Must happen BEFORE the loser
-    # delete below or a leftover row raises ForeignKeyViolation on Postgres
-    # (CarrierIdCrosswalk.customer_id has no ondelete cascade at the FK).
-    from app.models import CarrierIdCrosswalk
-    keeper_xw_set = {
-        (row.carrier, row.carrier_key)
-        for row in CarrierIdCrosswalk.query.filter_by(customer_id=keeper.id).all()
-    }
-    loser_xws = (
-        CarrierIdCrosswalk.query
-        .filter(CarrierIdCrosswalk.customer_id.in_(loser_ids_resolved))
-        .all()
-    )
-    xw_moved = 0
-    for row in loser_xws:
-        key = (row.carrier, row.carrier_key)
-        if key in keeper_xw_set:
-            # Duplicate key — drop the loser copy; keeper already has it.
-            db.session.delete(row)
-        else:
-            row.customer_id = keeper.id
-            keeper_xw_set.add(key)  # prevent a second loser from colliding
-            xw_moved += 1
-    moved["CarrierIdCrosswalk"] = xw_moved
+        # Report PolicyPayment transitively (moved via their policies above).
+        moved["PolicyPayment"] = pp_count
 
-    # Report PolicyPayment transitively (moved via their policies above).
-    moved["PolicyPayment"] = pp_count
+        # Fill blank keeper fields from losers, highest-precedence source first.
+        fillers = sorted(losers, key=_merge_precedence_key, reverse=True)
+        filled = []
+        # Fields under a UNIQUE index (Postgres partial index ix_customers_mbi): copying
+        # the value to the keeper while the (not-yet-deleted) loser still holds it makes
+        # BOTH rows momentarily carry it → UniqueViolation on the next flush (invisible on
+        # SQLite). Clear it on the donor loser in the SAME step so it's never a transient
+        # duplicate. (Reproduced by the Devoted 'Rene Barger' stub→real merge.)
+        _UNIQUE_FILL_FIELDS = {"mbi"}
+        for fld in _MERGE_FILL_FIELDS:
+            if getattr(keeper, fld, None):
+                continue
+            for src in fillers:
+                v = getattr(src, fld, None)
+                if v:
+                    setattr(keeper, fld, v)
+                    if fld in _UNIQUE_FILL_FIELDS:
+                        setattr(src, fld, None)      # donor releases the unique value
+                    filled.append(fld)
+                    break
 
-    # Fill blank keeper fields from losers, highest-precedence source first.
-    fillers = sorted(losers, key=_merge_precedence_key, reverse=True)
-    filled = []
-    # Fields under a UNIQUE index (Postgres partial index ix_customers_mbi): copying
-    # the value to the keeper while the (not-yet-deleted) loser still holds it makes
-    # BOTH rows momentarily carry it → UniqueViolation on the next flush (invisible on
-    # SQLite). Clear it on the donor loser in the SAME step so it's never a transient
-    # duplicate. (Reproduced by the Devoted 'Rene Barger' stub→real merge.)
-    _UNIQUE_FILL_FIELDS = {"mbi"}
-    for fld in _MERGE_FILL_FIELDS:
-        if getattr(keeper, fld, None):
-            continue
-        for src in fillers:
-            v = getattr(src, fld, None)
-            if v:
-                setattr(keeper, fld, v)
-                if fld in _UNIQUE_FILL_FIELDS:
-                    setattr(src, fld, None)      # donor releases the unique value
-                filled.append(fld)
-                break
+        # Explicit flush before deleting losers: every reattachment above (Policy/
+        # CustomerNote/CustomerContact/CommissionLineItem bulk UPDATEs, the
+        # CustomerAorHistory/CarrierIdCrosswalk per-row customer_id reassignments,
+        # the MatchSuggestion repoints, the MBI fill) must land in the DB BEFORE
+        # a loser is deleted. Otherwise SQLAlchemy's delete-cascade FK-nullify for
+        # the loser's relationships re-queries the DB, sees those children still
+        # pointing at the loser (their Python-side reassignment hasn't been
+        # flushed), and nulls a NOT NULL customer_id out from under us — a
+        # regression no_autoflush would otherwise reintroduce here (the pre-fix
+        # code's incidental per-query autoflushes happened to flush this first).
+        db.session.flush()
 
-    # Delete emptied losers.
-    for loser in losers:
-        db.session.delete(loser)
+        # Delete emptied losers.
+        for loser in losers:
+            db.session.delete(loser)
 
-    log_event(
-        action="customer_merge",
-        category="admin",
-        detail=(
-            f"keeper={keeper.id} losers={loser_ids_resolved} "
-            f"filled={filled} moved={moved}"
-        ),
-        user=actor,
-        customer_id=keeper.id,
-        record_count=len(losers),
-        agency_id_override=agency_id,
-    )
+        log_event(
+            action="customer_merge",
+            category="admin",
+            detail=(
+                f"keeper={keeper.id} losers={loser_ids_resolved} "
+                f"filled={filled} moved={moved}"
+            ),
+            user=actor,
+            customer_id=keeper.id,
+            record_count=len(losers),
+            agency_id_override=agency_id,
+        )
 
-    return {
-        "ok": True,
-        "merged": len(losers),
-        "filled": filled,
-        "moved": moved,
-        "error": None,
-    }
+        return {
+            "ok": True,
+            "merged": len(losers),
+            "filled": filled,
+            "moved": moved,
+            "error": None,
+        }
 
 
 # ---------------------------------------------------------------------------

@@ -34,17 +34,22 @@ def main(apply=False):
                 losers = [i for i in cl.member_ids if i != cl.keeper_id]
                 print(f"  keeper {cl.keeper_id} <- {losers} [{cl.signal}]")
                 if apply:
-                    res = merge_customers(cl.keeper_id, losers, ag.id, actor)
-                    if res["ok"]:
-                        db.session.commit()
-                        merged = res.get("merged", 0)
-                        filled = res.get("filled") or []
-                        print(f"    merged {merged}, filled {', '.join(filled) or 'nothing'}")
-                        total_merged += merged
-                        total_filled += len(filled)
-                    else:
+                    try:
+                        res = merge_customers(cl.keeper_id, losers, ag.id, actor)
+                        if res["ok"]:
+                            db.session.commit()
+                            merged = res.get("merged", 0)
+                            filled = res.get("filled") or []
+                            print(f"    merged {merged}, filled {', '.join(filled) or 'nothing'}")
+                            total_merged += merged
+                            total_filled += len(filled)
+                        else:
+                            db.session.rollback()
+                            print(f"    SKIPPED: {res['error']}")
+                            total_skipped += 1
+                    except Exception as e:
                         db.session.rollback()
-                        print(f"    SKIPPED: {res['error']}")
+                        print(f"    SKIPPED cluster {cl.keeper_id} — {e}")
                         total_skipped += 1
 
         if apply:

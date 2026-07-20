@@ -1,0 +1,55 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H8800",
+            "planId": "002",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/21/2025 1:26:10 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/31/2025 10:07:57 AM EDT",
+                "planName": "Total Senior Care - Medicare Small Only (PACE)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "TOTAL SENIOR CARE, INC.",
+                "organizationMarketingName": "Total Senior Care, Inc.",
+                "geographicName": "Cattaraugus, Allegany and Chautauqua counties",
+                "organizationType": "National PACE",
+                "segmentName": "Not Available",
+                "planTypeLabel": "National PACE",
+                "hpmsPlanType": "20",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            }
+        }
+    ]
+}

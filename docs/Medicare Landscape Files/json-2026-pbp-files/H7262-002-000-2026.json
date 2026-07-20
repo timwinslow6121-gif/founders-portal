@@ -1,0 +1,55 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H7262",
+            "planId": "002",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/21/2025 7:18:50 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/20/2025 6:18:09 PM EDT",
+                "planName": "TRU Community Care (PACE)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "TRU COMMUNITY CARE",
+                "organizationMarketingName": "TRU PACE",
+                "geographicName": "Counties: AD, BO, JE, WE, BR",
+                "organizationType": "National PACE",
+                "segmentName": "Not Available",
+                "planTypeLabel": "National PACE",
+                "hpmsPlanType": "20",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            }
+        }
+    ]
+}

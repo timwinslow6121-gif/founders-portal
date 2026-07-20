@@ -1,0 +1,55 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H9323",
+            "planId": "002",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/22/2025 5:00:48 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/27/2025 12:28:43 PM EDT",
+                "planName": "Beacon of LIFE PACE (PACE)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "BEACON OF LIFE CENTRAL NJ, LLC",
+                "organizationMarketingName": "BoldAge PACE",
+                "geographicName": "Monmouth Co., Ocean Co., & parts of Burlington Co.",
+                "organizationType": "National PACE",
+                "segmentName": "Not Available",
+                "planTypeLabel": "National PACE",
+                "hpmsPlanType": "20",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,42 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "S5584",
+            "planId": "802",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "6/2/2025 9:31:52 AM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/28/2025 7:29:17 PM EDT",
+                "planName": "Prescription Blue Employer Plan non-CY (PDP)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "BCBS OF MICHIGAN MUTUAL INSURANCE COMPANY",
+                "organizationMarketingName": "Blue Cross Blue Shield of Michigan",
+                "geographicName": "State of Michigan",
+                "organizationType": "PDP",
+                "segmentName": "Not Available",
+                "planTypeLabel": "Medicare Prescription Drug Plan",
+                "hpmsPlanType": "29",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "Yes",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": null
+            }
+        }
+    ]
+}

@@ -1,0 +1,107 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "S5593",
+            "planId": "002",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/17/2025 4:28:26 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/8/2025 10:02:54 AM EDT",
+                "planName": "Blue Rx PDP Plus (PDP)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "HM HEALTH INSURANCE COMPANY",
+                "organizationMarketingName": "Highmark Blue Shield",
+                "geographicName": "Pennsylvania  and West Virginia",
+                "organizationType": "PDP",
+                "segmentName": "Not Available",
+                "planTypeLabel": "Medicare Prescription Drug Plan",
+                "hpmsPlanType": "29",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": null
+            },
+            "rx": {
+                "section": "Rx",
+                "rxDetails": {
+                    "rxSetup": {
+                        "section": "Rx Setup",
+                        "status": "Completed",
+                        "statusCode": "C",
+                        "lastUpdatedAt": "07/17/2025 04:26:47 PM EDT",
+                        "rxSetupDetails": {
+                            "drugBenefitType": "DS",
+                            "retailPharmacyNetwork": "1",
+                            "mailOrderPharmacyNetwork": "1",
+                            "longTermCare": "1",
+                            "outOfNetwork": "1",
+                            "sponsorAttest": "1",
+                            "planPayOtc": "2"
+                        },
+                        "definedStandardLocationsAndLocationSupply": {
+                            "section": "Defined Standard - Locations and Location Supply",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "07/17/2025 04:26:47 PM EDT",
+                            "definedStandardLocationsAndLocationSupplyDetails": {
+                                "retailOneMonthDaysSupply": "31",
+                                "retailTwoMonthDaysSupply": "",
+                                "retailThreeMonthDaysSupply": "100",
+                                "mailOrderOneMonthDaysSupply": "",
+                                "mailOrderTwoMonthDaysSupply": "",
+                                "mailOrderThreeMonthDaysSupply": "100",
+                                "longTermCareDaysSupply": "31",
+                                "outOfNetworkOtherDaysSupply": "",
+                                "outOfNetworkOneMonthDaysSupply": "31",
+                                "dsZeroDollarAdultVaccineAttestation": "1",
+                                "allDrugsExtendedDaySupply": "1",
+                                "hasFirstFillSupplyLimit": "2"
+                            }
+                        },
+                        "dsInsulinCostShare": {
+                            "section": "DS Insulin Cost Share",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "07/17/2025 04:26:47 PM EDT",
+                            "dsInsulinCostShareDetails": {
+                                "insulinDsRetailOneMonthCopayment": "35.00",
+                                "insulinDsRetailThreeMonthCopayment": "105.00",
+                                "insulinDsMailOrderThreeMonthCopayment": "105.00",
+                                "insulinDsLongTermCareCopayment": "35.00",
+                                "insulinDsOutOfNetworkCopayment": "35.00",
+                                "insulinDsRetailOneMonthCoinsurance": "20",
+                                "insulinDsRetailThreeMonthCoinsurance": "20",
+                                "insulinDsMailOrderThreeMonthCoinsurance": "20",
+                                "insulinDsLongTermCareCoinsurance": "20",
+                                "insulinDsOutOfNetworkCoinsurance": "20",
+                                "insulinAttestation": "1"
+                            }
+                        },
+                        "rxNotes": {
+                            "section": "Rx Notes",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "07/17/2025 04:26:47 PM EDT"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

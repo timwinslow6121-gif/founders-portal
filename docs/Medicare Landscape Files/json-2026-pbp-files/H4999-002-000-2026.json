@@ -1,0 +1,55 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H4999",
+            "planId": "002",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/23/2025 12:31:53 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/21/2025 1:20:29 PM EDT",
+                "planName": "LIFE Northwestern Pennsylvania (PACE)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "LIFE Northwestern Pennsylvania, LLC",
+                "organizationMarketingName": "LIFE Northwestern Pennsylvania",
+                "geographicName": "Counties: Erie, War, Craw, Mer, Ven, McK, For, Cla",
+                "organizationType": "National PACE",
+                "segmentName": "Not Available",
+                "planTypeLabel": "National PACE",
+                "hpmsPlanType": "20",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            }
+        }
+    ]
+}

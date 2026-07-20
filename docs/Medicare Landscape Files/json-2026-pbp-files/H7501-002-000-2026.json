@@ -1,0 +1,55 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H7501",
+            "planId": "002",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/21/2025 6:13:48 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/28/2025 2:19:00 PM EDT",
+                "planName": "CalOptima Health PACE (PACE)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "ORANGE COUNTY HEALTH AUTHORITY",
+                "organizationMarketingName": "CalOptima PACE",
+                "geographicName": "Orange County, California",
+                "organizationType": "National PACE",
+                "segmentName": "Not Available",
+                "planTypeLabel": "National PACE",
+                "hpmsPlanType": "20",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            }
+        }
+    ]
+}

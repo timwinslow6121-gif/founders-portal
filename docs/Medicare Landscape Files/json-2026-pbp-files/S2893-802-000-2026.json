@@ -1,0 +1,42 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "S2893",
+            "planId": "802",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "6/2/2025 11:20:36 AM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/22/2025 12:16:09 PM EDT",
+                "planName": "Blue MedicareRx (PDP)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "ANTHEM INSURANCE CO. & BCBSMA & BCBSRI & BCBSVT",
+                "organizationMarketingName": "Blue MedicareRx",
+                "geographicName": "Connecticut, Massachusetts, Rhode Island, Vermont",
+                "organizationType": "PDP",
+                "segmentName": "Not Available",
+                "planTypeLabel": "Medicare Prescription Drug Plan",
+                "hpmsPlanType": "29",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "Yes",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": null
+            }
+        }
+    ]
+}

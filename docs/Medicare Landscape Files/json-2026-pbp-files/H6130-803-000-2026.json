@@ -1,0 +1,98 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H6130",
+            "planId": "803",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "5/20/2025 11:23:52 AM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/20/2025 10:49:33 AM EDT",
+                "planName": "Fenyx Health Group MSA 100 (MSA)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "FENYX HEALTH INSURANCE COMPANY",
+                "organizationMarketingName": "Fenyx Health",
+                "geographicName": "Fenyx Health Group MSA 100",
+                "organizationType": "MSA",
+                "segmentName": "Not Available",
+                "planTypeLabel": "MSA",
+                "hpmsPlanType": "07",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "Yes",
+                "isOfferRx": "Not Applicable",
+                "contractIsOfferPartD": "Not Applicable",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "No",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": null,
+                    "hospiceCare": null,
+                    "projectedMemberMonths": "2000",
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            },
+            "planLevelCostSharing": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/20/2025 10:50:04 AM EDT",
+                "planLevelCostSharingDetails": {
+                    "tcsMedServices": "",
+                    "tcsNonMedServices": "",
+                    "redCostSharing": "",
+                    "csbUniCost": "2",
+                    "csbPlnMaRebatesPrtBPram": "2",
+                    "csbPartBPrmReducAmt": null,
+                    "csbAnnualMsaDeducAmt": "15000.00",
+                    "csbAnnualCmsEnrolMsa": "1200.00",
+                    "selectTcsMedCovBenfit": "",
+                    "selectTcsNonMedCovBenfit": ""
+                },
+                "planDeductible": null,
+                "maxEnrolleeCostLimit": null,
+                "planCoveredCostSharing": null,
+                "lppoRppoDeductible": null,
+                "differentialDeductible": null,
+                "mandatorySupplementalBenefits": null,
+                "lppoRppoMaxEnrolleeCostLimit": null
+            },
+            "costShareGroups": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/20/2025 10:50:06 AM EDT",
+                "outOfNetworkGroups": null,
+                "pointOfServiceGroups": null,
+                "reductionInCostSharing": null,
+                "combinedSupplementalBenefits": null,
+                "optionalSupplementalPackages": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/20/2025 10:50:06 AM EDT",
+                    "optionalSupplementalPackagesDetails": {
+                        "pkgTypeCd": "0",
+                        "pkgNum": "0",
+                        "optSupPackagesData": []
+                    }
+                }
+            }
+        }
+    ]
+}

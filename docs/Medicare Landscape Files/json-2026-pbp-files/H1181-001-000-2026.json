@@ -1,0 +1,438 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H1181",
+            "planId": "001",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "5/30/2025 9:09:36 AM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/4/2025 9:06:08 PM EDT",
+                "planName": "Network Health Prime (MSA)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "NETWORK HEALTH INSURANCE CORPORATION",
+                "organizationMarketingName": "Network Health Medicare Advantage Plans",
+                "geographicName": "Wisconsin",
+                "organizationType": "MSA",
+                "segmentName": "Not Available",
+                "planTypeLabel": "MSA",
+                "hpmsPlanType": "07",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Not Applicable",
+                "contractIsOfferPartD": "Not Applicable",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "No",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": null,
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            },
+            "planLevelCostSharing": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/4/2025 9:06:08 PM EDT",
+                "planLevelCostSharingDetails": {
+                    "csbUniCost": "2",
+                    "csbAnnualMsaDeducAmt": "4000",
+                    "csbAnnualCmsEnrolMsa": "1750"
+                },
+                "planDeductible": null,
+                "maxEnrolleeCostLimit": null,
+                "planCoveredCostSharing": null,
+                "lppoRppoDeductible": null,
+                "differentialDeductible": null,
+                "mandatorySupplementalBenefits": null,
+                "lppoRppoMaxEnrolleeCostLimit": null
+            },
+            "costShareGroups": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/4/2025 9:06:09 PM EDT",
+                "outOfNetworkGroups": null,
+                "pointOfServiceGroups": null,
+                "reductionInCostSharing": null,
+                "combinedSupplementalBenefits": null,
+                "optionalSupplementalPackages": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/4/2025 9:06:09 PM EDT",
+                    "optionalSupplementalPackagesDetails": {
+                        "pkgTypeCd": "0",
+                        "pkgNum": "0",
+                        "optSupPackagesData": [
+                            {
+                                "optSupPkgId": "1",
+                                "optSupPkgName": "OSB - 2026 - 1_Dental",
+                                "optSupPkgDesc": "OSB - 2026 - 1_Dental",
+                                "optSupPkgStatus": "C",
+                                "optSupNonMedBenSel": "16c10,16c,16b2,16b,16c2,16c7,16b5,16c5,16c8,16b1,16b3,16b6,16c3,16b4,16c4,16c1",
+                                "optSupMaxPlanBenCov": "1",
+                                "optSupMaxPlanBenCovAmt": "1000.00",
+                                "optSupMaxPlanBenCovPrdty": "3",
+                                "optSupEnrlDed": "1",
+                                "optSupEnrlDedAmt": "100.00",
+                                "optSupEnrlDedBenSel": "16c10,16c2,16c7,16c5,16c8,16c3,16c4,16c1",
+                                "optSupPkgNum": "e797a9de-09c8-4413-898b-1e3b68c3fd99",
+                                "benefitPackages": [
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b",
+                                        "benefitPackagesInfo": {
+                                            "DentalCoinsuranceComponent": {
+                                                "bdDentalCoinsurancePerYesNoMinMax": "2"
+                                            },
+                                            "DentalCopaymentComponent": {
+                                                "bdDentalCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "PlanBenefitCoverageComponent": {
+                                                "bdMaximumPlanBenefitCoverageYesNo": "2"
+                                            },
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "MoopAmountComponent": {
+                                                "bdMoopAmountYesNo": "2"
+                                            },
+                                            "DeductibleAmountComponent": {
+                                                "bdMedicareDeductibleYesNo": "2"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b1",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "2"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "2",
+                                                "bdIndicateNumOfVisit": "2",
+                                                "bdBenefitUnlimitedPeriodicity": "3"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b2",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "2"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "2",
+                                                "bdIndicateNumOfVisit": "1",
+                                                "bdBenefitUnlimitedPeriodicity": "3"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b3",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "2"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "2",
+                                                "bdIndicateNumOfVisit": "1",
+                                                "bdBenefitUnlimitedPeriodicity": "3"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b4",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "2"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "2",
+                                                "bdIndicateNumOfVisit": "2",
+                                                "bdBenefitUnlimitedPeriodicity": "3"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b5",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "2"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "2",
+                                                "bdIndicateNumOfVisit": "1",
+                                                "bdBenefitUnlimitedPeriodicity": "3"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16b6",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "2"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "2",
+                                                "bdIndicateNumOfVisit": "1",
+                                                "bdBenefitUnlimitedPeriodicity": "3"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c",
+                                        "benefitPackagesInfo": {
+                                            "MoopCostTypeComponent": {
+                                                "moopCostTypeAmtYesNo": "2"
+                                            },
+                                            "MaxPlancoverageComprehensiveDentalComponent": {
+                                                "bdMaxPlanComprehensiveDentalYesNo": "2"
+                                            },
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "DeductibleAmountComponent": {
+                                                "bdMedicareDeductibleYesNo": "2"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c1",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c2",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c3",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c4",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c5",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c7",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c8",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "categoryTypeId": 2,
+                                        "categoryCode": "16c10",
+                                        "benefitPackagesInfo": {
+                                            "PriorAuthorizationReferralNmBenefitComponent": {
+                                                "bdAuthorizationYesNo": "2",
+                                                "bdReferralYesNo": "2"
+                                            },
+                                            "CoinsuranceComponent": {
+                                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                                "bdCoinsuranceAmount": "50"
+                                            },
+                                            "CopaymentComponent": {
+                                                "bdCopaymentAmountYesNoMinMax": "2"
+                                            },
+                                            "BenefitUnlimitedComponent": {
+                                                "bdBenefitUnlimitedYesNo": "1"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,35 @@
+- generic [ref=f4e2]:
+  - generic [ref=f4e3]:
+    - generic [ref=f4e4]:
+      - heading "Agency Notice Board" [level=2] [ref=f4e5]
+      - paragraph [ref=f4e6]: Critical updates and schedules for your book of business.
+      - generic [ref=f4e7]:
+        - generic [ref=f4e13]:
+          - generic [ref=f4e14]:
+            - generic [ref=f4e15]: AEP 2026 Countdown
+            - generic [ref=f4e16]: 93 Days
+          - generic [ref=f4e17]: Ensure all Scopes of Appointment are prepped ahead of the enrollment window.
+        - generic [ref=f4e22]:
+          - generic [ref=f4e23]: Founders Portal maintenance
+          - generic [ref=f4e25]: The portal may be briefly unavailable during periodic updates.
+        - generic [ref=f4e31]:
+          - generic [ref=f4e32]: Portal is in active development
+          - generic [ref=f4e34]: Some features may not work exactly as expected — thanks for your patience. Spotted something off? Log it on the Roadmap board.
+    - generic [ref=f4e35]: Founders Insurance Agency
+  - generic [ref=f4e37]:
+    - button "Toggle theme" [ref=f4e38] [cursor=pointer]: 🌙
+    - generic [ref=f4e39]:
+      - generic [ref=f4e40]:
+        - heading "Founders Portal" [level=1] [ref=f4e45]
+        - generic [ref=f4e46]: Agent Operating System
+      - generic [ref=f4e47]:
+        - heading "Welcome Back" [level=2] [ref=f4e48]
+        - paragraph [ref=f4e49]: Sign in to access your dashboard and commissions.
+        - link "Sign in with Google" [ref=f4e50] [cursor=pointer]:
+          - /url: /auth/google
+        - generic [ref=f4e57]:
+          - text: Restricted to
+          - strong [ref=f4e60]: "@foundersinsuranceagency.com"
+      - generic [ref=f4e61]:
+        - generic [ref=f4e62]: HIPAA Compliant Environment
+        - paragraph [ref=f4e66]: All portal activity is monitored and logged for security. Do not access on public networks.

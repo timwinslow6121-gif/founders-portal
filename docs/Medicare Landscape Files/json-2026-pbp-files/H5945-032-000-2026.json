@@ -1,0 +1,3935 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H5945",
+            "planId": "032",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/9/2025 1:12:38 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/17/2025 2:00:33 PM EDT",
+                "planName": "Prominence Veteran (HMO)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "PROMINENCE HEALTHFIRST",
+                "organizationMarketingName": "Prominence Health Plan",
+                "geographicName": "Nevada",
+                "organizationType": "Local CCP",
+                "segmentName": "Not Available",
+                "planTypeLabel": "HMO",
+                "hpmsPlanType": "01",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Not Applicable",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "No",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "moopLimits": [
+                    {
+                        "inNetwork": {
+                            "lower": "$0 - $4200",
+                            "intermediate": "$4201 - $6750",
+                            "mandatory": "$6751 - $9250"
+                        }
+                    }
+                ],
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": null,
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            },
+            "standardBid": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/17/2025 2:00:45 PM EDT",
+                "standardBidDetails": {
+                    "innServiceCat": "2",
+                    "oonServiceCat": null,
+                    "posServiceCat": null,
+                    "planLvlDedAndMoop": "2",
+                    "visTrvlPrgm": "2"
+                }
+            },
+            "benefitOfferings": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/30/2025 12:19:51 PM EDT",
+                "medicare": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/17/2025 2:00:49 PM EDT",
+                    "medicareBenefitOfferingDetails": [
+                        {
+                            "categoryCode": "1a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "1b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-3",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-4",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "4a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "4b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "5a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "5b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "6",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7c",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7d",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7e1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7e2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7f",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7g",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7h1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7h2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7i",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7j",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7k",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "8a1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "8a2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "8b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "8b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "8b3",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "9a1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "9a2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "9b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "9c1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "9c2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "9d",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "10a1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "10a2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "11a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "11b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "11b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "11c1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "11c2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "12",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14d",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14e1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14e2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14e4",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14e5",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "15-1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "15-2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "15-3",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18a",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        }
+                    ]
+                },
+                "nonMedicare": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/30/2025 12:19:51 PM EDT",
+                    "nonMedicareBenefitOfferingDetails": [
+                        {
+                            "categoryCode": "1a1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "1a2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "1a3",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "1b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "1b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "2-1",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-1",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-3",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "3-4",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "4c1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "4c2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "4c3",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "7f",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "10b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "10b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "13a",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "13b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "13c",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "13d",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "13e",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "13f",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14b",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c1",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c3",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c4",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c5",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c6",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c7",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c8",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c9",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c10",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c11",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c12",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c13",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c14",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c15",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c16",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c17",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c18",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c19",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c20",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c21",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "14c22",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "15",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16b3",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16b4",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16b5",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16b6",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c3",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c4",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c5",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c6",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c7",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c8",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c9",
+                            "categoryEditedName": null,
+                            "boInNetwork": "2",
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "16c10",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17a1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17a2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17b3",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17b4",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "17b5",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18a1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18a2",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18b1",
+                            "categoryEditedName": null,
+                            "boInNetwork": "1",
+                            "inNetworkOptionSelected": "2",
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18b2",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18b3",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18b4",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        },
+                        {
+                            "categoryCode": "18c",
+                            "categoryEditedName": null,
+                            "boInNetwork": null,
+                            "inNetworkOptionSelected": null,
+                            "boOutOfNetwork": null
+                        }
+                    ]
+                }
+            },
+            "planLevelCostSharing": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/30/2025 12:20:35 PM EDT",
+                "planLevelCostSharingDetails": {
+                    "tcsMedServices": "2",
+                    "tcsNonMedServices": "2",
+                    "redCostSharing": "2",
+                    "csbUniCost": "1",
+                    "csbPlnMaRebatesPrtBPram": null,
+                    "csbPartBPrmReducAmt": null,
+                    "csbAnnualMsaDeducAmt": null,
+                    "csbAnnualCmsEnrolMsa": null,
+                    "selectTcsMedCovBenfit": null,
+                    "selectTcsNonMedCovBenfit": null
+                },
+                "planDeductible": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/30/2025 12:20:23 PM EDT",
+                    "planDeductibleDetails": {
+                        "hasInNetworkDed": "2",
+                        "inNetworkChrgPartBDed": null,
+                        "inNetworkDedAmount": null,
+                        "hasCombinedDed": null,
+                        "combinedChrgPartBDed": null,
+                        "combinedDedAmount": null,
+                        "hasOutOfNetworkDed": null,
+                        "outOfNetworkChrgPartBDed": null,
+                        "outOfNetworkDedAmount": null,
+                        "hasNonNetworkDed": null,
+                        "nonNetworkChrgPartBDed": null,
+                        "nonNetworkDedAmount": null,
+                        "inNetwork": null,
+                        "combinedInNetwork": null,
+                        "outOfNetwork": null,
+                        "nonNetwork": null,
+                        "combOonNonMedCovBenSlctAll": null,
+                        "combOonMedCovBenSlctAll": null,
+                        "combOonNonMedCovBenChk": null,
+                        "combOonMedCovBenChk": null,
+                        "combInnNonMedCovBenSlctAll": null,
+                        "combInnMedCovBenSlctAll": null,
+                        "combInnNonMedCovBenChk": null,
+                        "combInnMedCovBenChk": null,
+                        "innNonMedCovBenSlctAll": null,
+                        "innMedCovBenSlctAll": null,
+                        "innNonMedCovBenChk": null,
+                        "innMedCovBenChk": null,
+                        "oonNonMedCovBenSlctAll": null,
+                        "oonMedCovBenSlctAll": null,
+                        "oonNonMedCovBenChk": null,
+                        "oonMedCovBenChk": null,
+                        "nonNetMedCovBenChk": null,
+                        "nonNetNonMedCovBenChk": null,
+                        "nonNetMedCovBenSlctAll": null,
+                        "nonNetNonMedCovBenSlctAll": null,
+                        "medicareServices": null,
+                        "nonMedicareServices": null,
+                        "nonNetMoopMedCovBenChk": null,
+                        "nonNetMoopMedCovBenSlctAll": null
+                    }
+                },
+                "maxEnrolleeCostLimit": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/30/2025 12:20:35 PM EDT",
+                    "maxEnrolleeCostLimitDetails": {
+                        "inNWMoop": "1",
+                        "typeInNWMoop": "2",
+                        "inNWMoopAmount": "6500.00",
+                        "innMoopMedCovBenChk": "1",
+                        "innMoopMedCovBenSlctAll": "1",
+                        "innMoopNonMedCovBenChk": "2",
+                        "innMoopNonMedCovBenSlctAll": null,
+                        "outOfNWMoop": null,
+                        "outOfNWMoopAmount": null,
+                        "oonMoopMedCovBenChk": null,
+                        "oonMoopMedCovBenSlctAll": null,
+                        "oonMoopNonMedCovBenChk": null,
+                        "oonMoopNonMedCovBenSlctAll": null,
+                        "combinedMoop": null,
+                        "typeCombinedMoop": null,
+                        "combinedMoopAmount": null,
+                        "combInnMoopMedCovBenChk": null,
+                        "combInnMoopMedCovBenSlctAll": null,
+                        "combInnMoopNonMedCovBenChk": null,
+                        "combInnMoopNonMedCovBenSlctAll": null,
+                        "combOonMoopMedCovBenChk": null,
+                        "combOonMoopMedCovBenSlctAll": null,
+                        "combOonMoopNonMedCovBenChk": null,
+                        "combOonMoopNonMedCovBenSlctAll": null,
+                        "nonNWMoop": null,
+                        "typeNonNWMoop": null,
+                        "nonNWMoopAmount": null,
+                        "nonNetMoopMedCovBenChk": null,
+                        "nonNetMoopMedCovBenSlctAll": null,
+                        "nonNetMoopNonMedCovBenChk": null,
+                        "nonNetMoopNonMedCovBenSlctAll": null,
+                        "medicareServices": [
+                            {
+                                "categoryCode": "1a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "1b",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "3-1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "3-2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "3-3",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "3-4",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "4a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "4b",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "5a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "5b",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "6",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7b",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7c",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7d",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7e1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7e2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7f",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7g",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7h1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7h2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7i",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7j",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "7k",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "8a1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "8a2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "8b1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "8b2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "8b3",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "9a1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "9a2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "9b",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "9c1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "9c2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "9d",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "10a1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "10a2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "11a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "11b1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "11b2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "11c1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "11c2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "12",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "14a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "14d",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "14e1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "14e2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "14e4",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "14e5",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "15-1",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "15-2",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "15-3",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "16a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "17a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "17b",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            },
+                            {
+                                "categoryCode": "18a",
+                                "moopInNetwork": "1",
+                                "moopCombinedInNetwork": null,
+                                "moopCombinedOutOfNetwork": null,
+                                "moopOutOfNetwork": null,
+                                "moopNonNetwork": null
+                            }
+                        ],
+                        "nonMedicareServices": null
+                    }
+                },
+                "planCoveredCostSharing": null,
+                "lppoRppoDeductible": null,
+                "differentialDeductible": null,
+                "mandatorySupplementalBenefits": null,
+                "lppoRppoMaxEnrolleeCostLimit": null
+            },
+            "priorAuthorizationAndReferral": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/17/2025 2:03:46 PM EDT",
+                "priorAuthorization": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/17/2025 2:03:38 PM EDT",
+                    "priorAuthorizationDetails": {
+                        "inNetworkAuthServiceCategoryRequired": "1",
+                        "inNetworkAuthServiceCategorySelections": {
+                            "medicare": [
+                                "1a",
+                                "1b",
+                                "2",
+                                "3-1",
+                                "3-2",
+                                "3-3",
+                                "3-4",
+                                "5a",
+                                "5b",
+                                "6",
+                                "7b",
+                                "7c",
+                                "7d",
+                                "7e1",
+                                "7e2",
+                                "7f",
+                                "7g",
+                                "7h1",
+                                "7h2",
+                                "7i",
+                                "7j",
+                                "7k",
+                                "8a1",
+                                "8a2",
+                                "8b1",
+                                "8b2",
+                                "8b3",
+                                "9a1",
+                                "9a2",
+                                "9b",
+                                "9c1",
+                                "9c2",
+                                "9d",
+                                "10a1",
+                                "10a2",
+                                "11a",
+                                "11b1",
+                                "11b2",
+                                "11c1",
+                                "11c2",
+                                "12",
+                                "15-2",
+                                "15-3"
+                            ],
+                            "nonMedicare": [
+                                "7b1",
+                                "7f",
+                                "10b1",
+                                "13c"
+                            ]
+                        }
+                    }
+                },
+                "priorReferral": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/17/2025 2:03:46 PM EDT",
+                    "priorReferralDetails": {
+                        "inNetworkReferralServiceCategoryRequired": "1",
+                        "inNetworkReferralServiceCategorySelections": {
+                            "medicare": [
+                                "7d"
+                            ],
+                            "nonMedicare": []
+                        }
+                    }
+                }
+            },
+            "visitorTravel": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/17/2025 2:03:53 PM EDT",
+                "visitorTravelDetails": {
+                    "visTrvlPrgm": "2",
+                    "visTrvlBenefitType": null,
+                    "visTrvlGeoArea": null
+                }
+            },
+            "costShareGroups": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/30/2025 12:21:00 PM EDT",
+                "outOfNetworkGroups": null,
+                "pointOfServiceGroups": null,
+                "reductionInCostSharing": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/30/2025 12:20:57 PM EDT",
+                    "reductionInCostSharingDetails": {
+                        "pkgTypeCd": "0",
+                        "pkgNum": "0",
+                        "ricGroupsData": []
+                    }
+                },
+                "combinedSupplementalBenefits": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/30/2025 12:20:55 PM EDT",
+                    "combinedSupplementalBenefitsDetails": {
+                        "pkgTypeCd": "0",
+                        "pkgNum": "0",
+                        "combNetworkGroupData": [
+                            {
+                                "combGroupId": "99081386-0806-44b4-b86b-5bb76f8d2180",
+                                "combGroupName": "Combined Supplemental Benefits 1",
+                                "nonMedCovBenCombSupp": "16b1,16b2,16b3,16b4,16b5,16b6,16c1,16c2,16c3,16c4,16c7,16c8,16c10",
+                                "combSuppBenMaxAmnt": "1",
+                                "maxPlanBenCovAmnt": "3000.00",
+                                "combSuppBenMaxAmntPrdty": "3",
+                                "enrLimitCombSuppBen": "2",
+                                "combSuppBenModeDev": "5",
+                                "otherDesc": "",
+                                "combSuppBenShareVistLimit": "2",
+                                "groupStatus": "C",
+                                "combMaxPlanBenCovPrdtyOther": "",
+                                "indicateNoOfShareVisit": "",
+                                "combSupBenShareVistPrdty": ""
+                            }
+                        ]
+                    }
+                },
+                "optionalSupplementalPackages": {
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "5/30/2025 12:21:00 PM EDT",
+                    "optionalSupplementalPackagesDetails": {
+                        "pkgTypeCd": "0",
+                        "pkgNum": "0",
+                        "optSupPackagesData": []
+                    }
+                }
+            },
+            "vbid": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/30/2025 12:21:19 PM EDT",
+                "vbidMAUniformitySSBCIDetails": {
+                    "vbidMaSsbciChkbIAttest": null,
+                    "vbidMaSsbciAddBen": "2",
+                    "vbidMaSsbciSpecSuppBen": "2"
+                },
+                "vbidReductionInCostSharing": {
+                    "section": "VBID Reduction in Cost Sharing",
+                    "status": "Completed",
+                    "statusCode": "C",
+                    "lastUpdatedAt": "07/09/2025 01:12:07 PM EDT",
+                    "vbidReductionInCostSharePackages": []
+                },
+                "vbidAdditionalBenefits": null
+            },
+            "benefitDetails": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "7/9/2025 11:42:31 AM EDT",
+                "benefitDetailsInfo": [
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "1a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CostSharingTierComponent": {
+                                "bdCostSharingYesNo": "1",
+                                "bdNumberOfTiers": "2",
+                                "bdLowestCostTier": "1"
+                            },
+                            "TierCoinsuranceComponent": {
+                                "bdCoinsurancePercentageYesNo": "2",
+                                "bdCoinsuranceTier3YesNo": "",
+                                "bdCoinsuranceTier3Percentage": "",
+                                "bdNumberOfTiers": "2"
+                            },
+                            "TierCopaymentComponent": {
+                                "bdCopaymentAmountYesNo": "1",
+                                "bdCopaymentTier1YesNo": "2",
+                                "bdCopaymentTier2YesNo": "2",
+                                "bdCopaymentTier3YesNo": "",
+                                "bdCopaymentTier1Amt": "0.00",
+                                "bdCopaymentTier2Amt": "0.00",
+                                "bdCopaymentTier3Amt": "",
+                                "bdCopaymentTier1DayIntervalStay": {
+                                    "bdDayIntervalCopaymentNumber": "2",
+                                    "bdDayInterval1CopaymentAmount": "350.00",
+                                    "bdDayInterval1BeginDay": "1",
+                                    "bdDayInterval1EndDay": "6",
+                                    "bdDayInterval2CopaymentAmount": "0.00",
+                                    "bdDayInterval2BeginDay": "7",
+                                    "bdDayInterval2EndDay": "90"
+                                },
+                                "bdCopaymentTier1DayIntervalReserve": {
+                                    "bdDayIntervalCopaymentNumber": "0"
+                                },
+                                "bdCopaymentTier2DayIntervalStay": {
+                                    "bdDayIntervalCopaymentNumber": "2",
+                                    "bdDayInterval1CopaymentAmount": "425.00",
+                                    "bdDayInterval1BeginDay": "1",
+                                    "bdDayInterval1EndDay": "6",
+                                    "bdDayInterval2CopaymentAmount": "0.00",
+                                    "bdDayInterval2BeginDay": "7",
+                                    "bdDayInterval2EndDay": "90"
+                                },
+                                "bdCopaymentTier2DayIntervalReserve": {
+                                    "bdDayIntervalCopaymentNumber": "0"
+                                },
+                                "bdNumberOfTiers": "2"
+                            },
+                            "PartABTierDeductibleComponent": {
+                                "bdPartAandBTierDeductibleYesNo": "2",
+                                "bdPartAandBTier1DeductibleAmt": "",
+                                "bdPartAandBTier2DeductibleAmt": "",
+                                "bdPartAandBTier3DeductibleAmt": "",
+                                "bdNumberOfTiers": "2"
+                            },
+                            "InpatientHospitalAcuteBenefitPeriodComponent": {
+                                "bdMedInpatientHospitalAcuteBenefitPeriod": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "1b",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "CostSharingTierComponent": {
+                                "bdCostSharingYesNo": "2"
+                            },
+                            "TierCoinsuranceComponent": {
+                                "bdCoinsurancePercentageYesNo": "2",
+                                "bdCoinsuranceTier2YesNo": "",
+                                "bdCoinsuranceTier3YesNo": "",
+                                "bdCoinsuranceTier2Percentage": "",
+                                "bdCoinsuranceTier3Percentage": "",
+                                "bdNumberOfTiers": "1"
+                            },
+                            "TierCopaymentComponent": {
+                                "bdCopaymentAmountYesNo": "1",
+                                "bdCopaymentTier1YesNo": "2",
+                                "bdCopaymentTier2YesNo": "",
+                                "bdCopaymentTier3YesNo": "",
+                                "bdCopaymentTier1Amt": "0.00",
+                                "bdCopaymentTier2Amt": "",
+                                "bdCopaymentTier3Amt": "",
+                                "bdCopaymentTier1DayIntervalStay": {
+                                    "bdDayIntervalCopaymentNumber": "2",
+                                    "bdDayInterval1CopaymentAmount": "330.00",
+                                    "bdDayInterval1BeginDay": "1",
+                                    "bdDayInterval1EndDay": "5",
+                                    "bdDayInterval2CopaymentAmount": "0.00",
+                                    "bdDayInterval2BeginDay": "6",
+                                    "bdDayInterval2EndDay": "90"
+                                },
+                                "bdCopaymentTier1DayIntervalReserve": {
+                                    "bdDayIntervalCopaymentNumber": "2",
+                                    "bdDayInterval1CopaymentAmount": "330.00",
+                                    "bdDayInterval1BeginDay": "1",
+                                    "bdDayInterval1EndDay": "5",
+                                    "bdDayInterval2CopaymentAmount": "0.00",
+                                    "bdDayInterval2BeginDay": "6",
+                                    "bdDayInterval2EndDay": "60"
+                                },
+                                "bdNumberOfTiers": "1"
+                            },
+                            "PartABTierDeductibleComponent": {
+                                "bdPartAandBTierDeductibleYesNo": "2",
+                                "bdPartAandBTier1DeductibleAmt": "",
+                                "bdPartAandBTier2DeductibleAmt": "",
+                                "bdPartAandBTier3DeductibleAmt": "",
+                                "bdNumberOfTiers": "1"
+                            },
+                            "InpatientHospitalAcuteBenefitPeriodComponent": {
+                                "bdMedInpatientHospitalAcuteBenefitPeriod": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "2",
+                        "benefitDetails": {
+                            "SnfAdmissionComponent": {
+                                "bdSNFAdmissionYesNo": "1",
+                                "bdNumberOfHospitaldays": "0"
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CostSharingTierComponent": {
+                                "bdCostSharingYesNo": "2"
+                            },
+                            "TierCoinsuranceComponent": {
+                                "bdCoinsurancePercentageYesNo": "2",
+                                "bdCoinsuranceTier2YesNo": "",
+                                "bdCoinsuranceTier3YesNo": "",
+                                "bdCoinsuranceTier2Percentage": "",
+                                "bdCoinsuranceTier3Percentage": "",
+                                "bdNumberOfTiers": "1"
+                            },
+                            "TierCopaymentComponent": {
+                                "bdCopaymentAmountYesNo": "1",
+                                "bdCopaymentTier1YesNo": "2",
+                                "bdCopaymentTier2YesNo": "",
+                                "bdCopaymentTier3YesNo": "",
+                                "bdCopaymentTier2Amt": "",
+                                "bdCopaymentTier3Amt": "",
+                                "bdCopaymentTier1DayIntervalStay": {
+                                    "bdDayIntervalCopaymentNumber": "2",
+                                    "bdDayInterval1CopaymentAmount": "10.00",
+                                    "bdDayInterval1BeginDay": "1",
+                                    "bdDayInterval1EndDay": "20",
+                                    "bdDayInterval2CopaymentAmount": "218.00",
+                                    "bdDayInterval2BeginDay": "21",
+                                    "bdDayInterval2EndDay": "100"
+                                },
+                                "bdNumberOfTiers": "1"
+                            },
+                            "InpatientHospitalAcuteBenefitPeriodComponent": {
+                                "bdMedInpatientHospitalAcuteBenefitPeriod": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "3",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "3-1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "3-2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "3-3",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "3-4",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "4a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsAdmWaivedTimelineComponent": {
+                                "CoinsAdmWaivedTimelineComptCoinsurance": {
+                                    "bdCoinsuranceAmountYesNoMinMax": "2",
+                                    "bdCoinsuranceMinAmount": ""
+                                }
+                            },
+                            "CopayAdmWaivedTimelineComponent": {
+                                "CopayAdmWaivedTimelineComptCopayment": {
+                                    "bdCopaymentAmountYesNoMinMax": "1",
+                                    "bdCopaymentAmount": "130.00"
+                                },
+                                "CopayAdmWaivedTimelineComptAdmissionWaiver": {
+                                    "admissionWaiverYesNo": "1",
+                                    "admissionWaiverDaysOrHoursYesNo": "1",
+                                    "admissionWaiverDaysValue": "3"
+                                }
+                            },
+                            "OneToggleQuestionComponent": {
+                                "bdOneToggleQuestion": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "4b",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "CoinsAdmWaivedTimelineComponent": {
+                                "CoinsAdmWaivedTimelineComptCoinsurance": {
+                                    "bdCoinsuranceAmountYesNoMinMax": "2",
+                                    "bdCoinsuranceMinAmount": ""
+                                }
+                            },
+                            "CopayAdmWaivedTimelineComponent": {
+                                "CopayAdmWaivedTimelineComptCopayment": {
+                                    "bdCopaymentAmountYesNoMinMax": "1",
+                                    "bdCopaymentAmount": "30.00"
+                                },
+                                "CopayAdmWaivedTimelineComptAdmissionWaiver": {
+                                    "admissionWaiverYesNo": "1",
+                                    "admissionWaiverDaysOrHoursYesNo": "1",
+                                    "admissionWaiverDaysValue": "3"
+                                }
+                            },
+                            "OneToggleQuestionComponent": {
+                                "bdOneToggleQuestion": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "4c",
+                        "benefitDetails": {
+                            "MaximumPlanBenefitCoverageUnlimitedComponent": {
+                                "bdMaxPlanBenefitUnlimitedCoverageYesNo": "1",
+                                "bdMaxPlanBenefitUnlimitedCoverageAmtYesNo": "2",
+                                "bdMaxPlanBenefitUnlimitedCoverageAmt": "25000.00"
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "4c1",
+                        "benefitDetails": {
+                            "CoinsuranceAdmissionWaivedHospitalComponent": {
+                                "bdCoinsuranceComponent": {
+                                    "bdCoinsuranceAmountYesNoMinMax": "2",
+                                    "bdCoinsuranceMinAmount": ""
+                                }
+                            },
+                            "CopaymentAdmissionWaivedHospitalComponent": {
+                                "bdCopayComponent": {
+                                    "bdCopaymentAmountYesNoMinMax": "1",
+                                    "bdCopaymentAmount": "130.00"
+                                },
+                                "bdCopaymentAdmissionWaivedHospitalYesNo": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "4c2",
+                        "benefitDetails": {
+                            "CoinsuranceAdmissionWaivedHospitalComponent": {
+                                "bdCoinsuranceComponent": {
+                                    "bdCoinsuranceAmountYesNoMinMax": "2",
+                                    "bdCoinsuranceMinAmount": ""
+                                }
+                            },
+                            "CopaymentAdmissionWaivedHospitalComponent": {
+                                "bdCopayComponent": {
+                                    "bdCopaymentAmountYesNoMinMax": "1",
+                                    "bdCopaymentAmount": "30.00"
+                                },
+                                "bdCopaymentAdmissionWaivedHospitalYesNo": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "5a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "55.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "5b",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2",
+                                "bdMoopAmount": "",
+                                "bdMoopPeriodicity": "",
+                                "bdMoopDescription": ""
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "",
+                                "bdCoinsuranceMaxAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "55.00",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "6",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7b",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "7b",
+                        "benefitDetails": {
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "7b1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "12",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "20.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7c",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7d",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "",
+                                "bdCoinsuranceMaxAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "3",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "0.00",
+                                "bdCopaymentMaxAmount": "45.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7e",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7e1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7e2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7f",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "5.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "7f",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "12",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "20.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7g",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "3",
+                                "bdCopaymentMinAmount": "0.00",
+                                "bdCopaymentMaxAmount": "45.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7h",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7h1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7h2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7i",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7j",
+                        "benefitDetails": {
+                            "AdditionalTelePartBComponent": {
+                                "bdAdditionalTelePartBPickList": [
+                                    {
+                                        "categoryCode": "7a",
+                                        "categoryTypeId": 1
+                                    },
+                                    {
+                                        "categoryCode": "7e1",
+                                        "categoryTypeId": 1
+                                    }
+                                ]
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "7k",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CopayMultiServiceLocationComponent": {
+                                "bdMaximumCopayYesNo": "",
+                                "CopayMutliServiceCopay": {
+                                    "bdCopaymentAmountYesNoMinMax": "2"
+                                }
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8a1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8a2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8b",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CopayMultiServiceLocation8BComponent": {
+                                "bdMaximumCopayYesNo8B": "1",
+                                "bdCopaymentAmountYesNo8B": "1"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8b1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "60.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8b2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "20",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "8b3",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9a1",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "3",
+                                "bdCopaymentMinAmount": "25.00",
+                                "bdCopaymentMaxAmount": "350.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9a2",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopayObservationServiceComponent": {
+                                "bdcopayComponent": {
+                                    "bdCopaymentAmountYesNoMinMax": "1",
+                                    "bdCopaymentAmount": "295.00"
+                                },
+                                "bdCopayObservationServicePeriodicity": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9b",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "25.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9c",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9c1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9c2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "9d",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "OutpatientBloodServicesWaiveComponent": {
+                                "bdOutpatientBloodServiceYesNo": "1"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "10a",
+                        "benefitDetails": {
+                            "CoinAdmissionWaivedHospitalComponent": {
+                                "admissionWaivedYesNo": "2",
+                                "admittedHopsitalYesNo": ""
+                            },
+                            "CopayAdmissionWaivedHospitalComponent": {
+                                "admissionWaivedYesNo": "1",
+                                "admittedHopsitalYesNo": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "10a1",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "300.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "10a2",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "300.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "10b1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "24",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "TransportationTypeAndModeComponent": {
+                                "typeOfTransportation": "1",
+                                "numberOfDays": "",
+                                "modeOfTransportation": {
+                                    "taxi": true,
+                                    "rideshareServices": true,
+                                    "busSubway": false,
+                                    "van": true,
+                                    "medicalTransport": true,
+                                    "otherDescribe": false
+                                },
+                                "transportationOtherDescription": "",
+                                "serviceSpecificMaxOtherDescription": ""
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "20",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            },
+                            "OneToggleQuestionComponent": {
+                                "bdOneToggleQuestion": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11b",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11b1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "20",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11b2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "20",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11c",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            },
+                            "OneToggleQuestionComponent": {
+                                "bdOneToggleQuestion": "1"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11c1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "11c2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "20",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "12",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "20",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "13c",
+                        "benefitDetails": {
+                            "MealBenefitsComponent": {
+                                "bdMealBenefitsOptions": {
+                                    "surgeryOrInpatientHospitalization": true,
+                                    "forAChronicIllness": false,
+                                    "enrolleesToRemainAtHomeForAPeriodOfTime": false
+                                }
+                            },
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "14a",
+                        "benefitDetails": {
+                            "AdditionalPreventiveServicesComponent": {
+                                "preventiveCheckboxControl": true
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "14b",
+                        "benefitDetails": {
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": ""
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "14c",
+                        "benefitDetails": {
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "14c4",
+                        "benefitDetails": {
+                            "FitnessBenefitComponent": {
+                                "fitnessBenefitCheckBoxGroup": {
+                                    "physicalFitness": true,
+                                    "memoryFitness": false,
+                                    "activityTracker": false
+                                }
+                            },
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "14c7",
+                        "benefitDetails": {
+                            "RemoteAccessTechnologiesComponent": {
+                                "remoteAccessTechnologiesCheckBoxGroup": {
+                                    "webPhoneBasedTechnologies": false,
+                                    "nursingHotline": true
+                                }
+                            },
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "RemoteAccessTechnologiesCopayCoinsuranceComponent": {
+                                "nursingHotlineCoinsurance": {
+                                    "bdCoinsuranceAmountYesNoMinMax": "2",
+                                    "bdCoinsuranceMinAmount": ""
+                                },
+                                "nursingHotlineCopayment": {
+                                    "bdCopaymentAmountYesNoMinMax": "2"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "14c10",
+                        "benefitDetails": {
+                            "MaximumPlanBenefitCoverageComponent": {
+                                "bdMaxPlanBenefitCovAmtYesNo": "2",
+                                "bdMaxPlanBenefitCovAmt": "",
+                                "bdMaxPlanBenefitCovPeriodicity": "",
+                                "bdMaxPlanBenefitDescription": ""
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "14d",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "14e1",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "14e2",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "14e4",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "14e5",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "15",
+                        "benefitDetails": {
+                            "AttestComponent": {
+                                "attestCheckbox": true
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            },
+                            "StepTherapyComponent": {
+                                "stepTherapyYesNo": "1",
+                                "stepTherapyCheckboxGroup": {
+                                    "partBToPartB": true,
+                                    "partBToPartD": true,
+                                    "partDToPartB": true
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "15-1",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceMinAmount": "0",
+                                "bdCoinsuranceMaxAmount": "20",
+                                "bdMaxPerVisitAmount": "35.00"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "OneToggleQuestionComponent": {
+                                "bdOneToggleQuestion": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "15-2",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceMinAmount": "0",
+                                "bdCoinsuranceMaxAmount": "20"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "15-3",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceMinAmount": "0",
+                                "bdCoinsuranceMaxAmount": "20"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "16a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b",
+                        "benefitDetails": {
+                            "PlanBenefitCoverageComponent": {
+                                "bdMaximumPlanBenefitCoverageYesNo": "1",
+                                "bdMaximumAmount": "3000.00",
+                                "bdCoveragePeriodicity": "3"
+                            },
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "DentalCoinsuranceComponent": {
+                                "bdDentalCoinsurancePerYesNoMinMax": "2"
+                            },
+                            "DentalCopaymentComponent": {
+                                "bdDentalCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "2",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b2",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "2",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b3",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "1"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b4",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "2",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b5",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "2",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16b6",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c",
+                        "benefitDetails": {
+                            "MaxPlancoverageComprehensiveDentalComponent": {
+                                "bdMaxPlanComprehensiveDentalYesNo": "1",
+                                "bdMaxPlanComprehensiveDentalRadioOpts": "1"
+                            },
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "10",
+                                "bdCoinsuranceMaxAmount": "50"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c2",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "1"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "1",
+                                "bdCoinsuranceAmount": "50",
+                                "bdCoinsuranceMinAmount": "",
+                                "bdCoinsuranceMaxAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c3",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "2",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "10",
+                                "bdCoinsuranceMaxAmount": "50"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c4",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "6",
+                                "bdBenefitUnlimitedDescription": "Either once per arch per 5 years or once per arch per year depending on service"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "10",
+                                "bdCoinsuranceMaxAmount": "50"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c7",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "6",
+                                "bdBenefitUnlimitedDescription": "Once per arch per 5 years"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "10",
+                                "bdCoinsuranceMaxAmount": "50"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c8",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "1"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "10",
+                                "bdCoinsuranceMaxAmount": "50"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "16c10",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "1"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "3",
+                                "bdCoinsuranceAmount": "",
+                                "bdCoinsuranceMinAmount": "10",
+                                "bdCoinsuranceMaxAmount": "50"
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2",
+                                "bdCopaymentAmount": "",
+                                "bdCopaymentMinAmount": "",
+                                "bdCopaymentMaxAmount": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "17a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "30.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17a",
+                        "benefitDetails": {
+                            "PlanBenefitCoverageComponent": {
+                                "bdMaximumPlanBenefitCoverageYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17a1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "17b",
+                        "benefitDetails": {
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17b",
+                        "benefitDetails": {
+                            "MaxPlancoverageAmountPeriodicityEyewearComponent": {
+                                "bdMaxPlanAmtPeriodMaxBenfitYesNo": "1",
+                                "bdMaxPlanAmtPeriodMaxRadioOpts": "2",
+                                "bdMaxPlanAmtPeriodMaxBenfitEyeYesNo": "1",
+                                "bdMaxPlanAmtPeriodMaxBenfitEyeCombinedMaxAmount": "200.00",
+                                "bdCoveragePeriodicity": "3"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17b1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17b2",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17b3",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17b4",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "17b5",
+                        "benefitDetails": {
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 1,
+                        "categoryCode": "18a",
+                        "benefitDetails": {
+                            "MoopAmountComponent": {
+                                "bdMoopAmountYesNo": "2"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "1",
+                                "bdCopaymentAmount": "10.00"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "18a",
+                        "benefitDetails": {
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            },
+                            "PlanBenefitCoverageComponent": {
+                                "bdMaximumPlanBenefitCoverageYesNo": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "18a1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "18a2",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "2",
+                                "bdIndicateNumOfVisit": "1",
+                                "bdBenefitUnlimitedPeriodicity": "3"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "2"
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "18b",
+                        "benefitDetails": {
+                            "MaxPlancoverageHearingAidsComponent": {
+                                "bdMaxPlanHearingAidsYesNo": "1",
+                                "bdMaxPlanHearingAidsRadioOpts": "2",
+                                "bdMaxPlanHearingAidsCoverage": "1",
+                                "bdMaxPlanHearingAidsAmount": "600.00",
+                                "bdMaxPlanHearingAidsPeriodicity": "3"
+                            },
+                            "MoopCostTypeComponent": {
+                                "moopCostTypeAmtYesNo": "2"
+                            },
+                            "DeductibleAmountComponent": {
+                                "bdMedicareDeductibleYesNo": "2",
+                                "bdMedicareDeductibleAmt": ""
+                            }
+                        }
+                    },
+                    {
+                        "categoryTypeId": 2,
+                        "categoryCode": "18b1",
+                        "benefitDetails": {
+                            "BenefitUnlimitedComponent": {
+                                "bdBenefitUnlimitedYesNo": "1"
+                            },
+                            "CoinsuranceComponent": {
+                                "bdCoinsuranceAmountYesNoMinMax": "2",
+                                "bdCoinsuranceMinAmount": ""
+                            },
+                            "CopaymentComponent": {
+                                "bdCopaymentAmountYesNoMinMax": "3",
+                                "bdCopaymentMinAmount": "0.00",
+                                "bdCopaymentMaxAmount": "1725.00"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

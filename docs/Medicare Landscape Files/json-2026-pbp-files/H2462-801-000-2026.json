@@ -1,0 +1,61 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "H2462",
+            "planId": "801",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "5/29/2025 10:54:33 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/29/2025 10:50:22 PM EDT",
+                "planName": "HealthPartners Retiree Group Calendar Year (Cost)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "HEALTHPARTNERS, INC.",
+                "organizationMarketingName": "HealthPartners",
+                "geographicName": "Select Counties in Western WI",
+                "organizationType": "1876 Cost",
+                "segmentName": "Not Available",
+                "planTypeLabel": "1876 Cost",
+                "hpmsPlanType": "18",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "Yes",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": {
+                    "dsnpStateCoverMedPrem": null,
+                    "enrolleeType": "1",
+                    "hospiceCare": null,
+                    "projectedMemberMonths": "0",
+                    "cmsApprovedContArea": "2",
+                    "sameCostSharingContAreaIncl": null,
+                    "participatePlatinoProgram": null,
+                    "posBenefitType": null,
+                    "posAllPractitioners": null,
+                    "posUnitedStatesTerritories": null,
+                    "offerPosOption": null,
+                    "partDHomeInfusion": null
+                }
+            },
+            "visitorTravel": {
+                "visitorTravelDetails": null
+            },
+            "benefitDetails": {
+                "benefitDetailsInfo": []
+            }
+        }
+    ]
+}

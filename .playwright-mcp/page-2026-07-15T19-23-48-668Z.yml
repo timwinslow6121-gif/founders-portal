@@ -1,0 +1,86 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]: Founders Insurance
+      - generic [ref=e6]: Agent Portal
+    - generic [ref=e7]:
+      - generic [ref=e8]: My Book
+      - link "Dashboard" [ref=e9] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Customers" [ref=e11] [cursor=pointer]:
+        - /url: /customers
+      - link "Upcoming Terms" [ref=e13] [cursor=pointer]:
+        - /url: /terminations
+      - generic [ref=e15]: Commissions
+      - link "My Commissions" [ref=e16] [cursor=pointer]:
+        - /url: /commissions/recap
+      - link "Commission Audit" [ref=e18] [cursor=pointer]:
+        - /url: /commissions
+      - link "Payment Ledger" [ref=e20] [cursor=pointer]:
+        - /url: /commissions/ledger
+      - link "Reconciliation" [ref=e22] [cursor=pointer]:
+        - /url: /commissions/reconciliation
+      - generic [ref=e24]: Tools
+      - link "Birthday Labels" [ref=e25] [cursor=pointer]:
+        - /url: /birthday-labels
+      - link "Upload BOB Files" [ref=e27] [cursor=pointer]:
+        - /url: /upload
+      - link "Carriers & Plans" [ref=e29] [cursor=pointer]:
+        - /url: /carriers
+      - link "SMS Templates" [ref=e31] [cursor=pointer]:
+        - /url: /comms/sms-templates
+      - link "Medicare Updates" [ref=e33] [cursor=pointer]:
+        - /url: /updates
+      - link "Roadmap" [ref=e35] [cursor=pointer]:
+        - /url: /roadmap
+      - generic [ref=e37]: Alerts
+      - link "Unmatched Calls" [ref=e38] [cursor=pointer]:
+        - /url: /comms/resolution
+    - generic [ref=e40]:
+      - link "Sign Out" [ref=e43] [cursor=pointer]:
+        - /url: /auth/logout
+      - button "Toggle dark mode" [ref=e44] [cursor=pointer]
+  - main [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - heading "Medicare Updates" [level=1] [ref=e51]
+        - link "+ Post an update" [ref=e52] [cursor=pointer]:
+          - /url: /updates/new
+      - generic [ref=e53]:
+        - combobox [ref=e54]:
+          - option "All types" [selected]
+          - option "Commission change"
+          - option "Network update"
+          - option "Carrier notice"
+          - option "Training & webinar"
+          - option "Important date"
+          - option "General news"
+        - combobox [ref=e55]:
+          - option "All carriers" [selected]
+          - option "Humana"
+          - option "UHC"
+          - option "Aetna"
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - generic "Pinned" [ref=e58]: 📌
+          - generic [ref=e59]: Commission change
+          - generic [ref=e60]: Humana
+        - generic [ref=e61]: Humana Gold Plus is non-commissionable for the rest of 2026
+        - generic [ref=e62]: Effective now — Humana pulled commission on new Gold Plus enrollments through year-end. Renewals unaffected. Consider alternatives when writing new business.
+        - link "Affects Gold Plus HMO · 1803 active members →" [ref=e63] [cursor=pointer]:
+          - /url: /carriers/19
+        - generic [ref=e64]: Chris Foster · Jul 15
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: Network update
+          - generic [ref=e69]: Humana
+        - generic [ref=e70]: Humana added Tryon Medical Partners for 2026
+        - generic [ref=e71]: Tryon Medical is now in-network on Humana's 2026 MA plans — big for Charlotte-area clients who see Tryon providers.
+        - generic [ref=e72]: Chris Foster · Jul 14
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]: Training & webinar
+          - generic [ref=e77]: Aug 1, 2026
+        - generic [ref=e78]: AHIP 2027 certification opens Aug 1
+        - generic [ref=e79]: AHIP training for plan-year 2027 opens August 1. Complete early to be ready for AEP.
+        - generic [ref=e80]: Chris Foster · Jul 13

@@ -1,0 +1,106 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "S5820",
+            "planId": "034",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "7/31/2025 4:20:57 PM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/26/2025 2:40:29 PM EDT",
+                "planName": "AARP Medicare Rx Preferred from UHC (PDP)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "UNITEDHEALTHCARE INSURANCE COMPANY",
+                "organizationMarketingName": "UnitedHealthcare",
+                "geographicName": "American Samoa",
+                "organizationType": "PDP",
+                "segmentName": "Not Available",
+                "planTypeLabel": "Medicare Prescription Drug Plan",
+                "hpmsPlanType": "29",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": null
+            },
+            "rx": {
+                "section": "Rx",
+                "rxDetails": {
+                    "rxSetup": {
+                        "section": "Rx Setup",
+                        "status": "Completed",
+                        "statusCode": "C",
+                        "lastUpdatedAt": "07/31/2025 04:20:43 PM EDT",
+                        "rxSetupDetails": {
+                            "drugBenefitType": "DS",
+                            "sponsorAttest": "1",
+                            "retailPharmacyNetwork": "1",
+                            "outOfNetwork": "1",
+                            "mailOrderPharmacyNetwork": "1",
+                            "longTermCare": "1",
+                            "planPayOtc": "2"
+                        },
+                        "definedStandardLocationsAndLocationSupply": {
+                            "section": "Defined Standard - Locations and Location Supply",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "07/31/2025 04:20:43 PM EDT",
+                            "definedStandardLocationsAndLocationSupplyDetails": {
+                                "dsZeroDollarAdultVaccineAttestation": "1",
+                                "retailOneMonthDaysSupply": "30",
+                                "retailThreeMonthDaysSupply": "90",
+                                "mailOrderOneMonthDaysSupply": "30",
+                                "mailOrderThreeMonthDaysSupply": "90",
+                                "longTermCareDaysSupply": "31",
+                                "outOfNetworkOneMonthDaysSupply": "30",
+                                "allDrugsExtendedDaySupply": "2",
+                                "hasFirstFillSupplyLimit": "2"
+                            }
+                        },
+                        "dsInsulinCostShare": {
+                            "section": "DS Insulin Cost Share",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "07/31/2025 04:20:43 PM EDT",
+                            "dsInsulinCostShareDetails": {
+                                "insulinAttestation": "1",
+                                "insulinDsRetailOneMonthCopayment": "35.00",
+                                "insulinDsRetailThreeMonthCopayment": "105.00",
+                                "insulinDsRetailOneMonthCoinsurance": "25",
+                                "insulinDsRetailThreeMonthCoinsurance": "25",
+                                "insulinDsMailOrderOneMonthCopayment": "35.00",
+                                "insulinDsMailOrderThreeMonthCopayment": "105.00",
+                                "insulinDsMailOrderOneMonthCoinsurance": "25",
+                                "insulinDsMailOrderThreeMonthCoinsurance": "25",
+                                "insulinDsLongTermCareCopayment": "35.00",
+                                "insulinDsLongTermCareCoinsurance": "25",
+                                "insulinDsOutOfNetworkCopayment": "35.00",
+                                "insulinDsOutOfNetworkCoinsurance": "25"
+                            }
+                        },
+                        "rxNotes": {
+                            "section": "Rx Notes",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "07/31/2025 04:20:43 PM EDT"
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

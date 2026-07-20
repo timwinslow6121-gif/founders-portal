@@ -1,0 +1,479 @@
+{
+    "contractYear": 2026,
+    "section": "MA&RX",
+    "pbp": [
+        {
+            "contractId": "S4802",
+            "planId": "012",
+            "segmentId": 0,
+            "status": "Submitted",
+            "lastUpdatedAt": "5/27/2025 9:29:57 AM EDT",
+            "planCharacteristics": {
+                "status": "Completed",
+                "statusCode": "C",
+                "lastUpdatedAt": "5/26/2025 10:25:54 AM EDT",
+                "planName": "Wellcare Classic (PDP)",
+                "planDeleted": "0",
+                "planSegmentDeleted": "0",
+                "contractLegalName": "WELLCARE PRESCRIPTION INSURANCE, INC.",
+                "organizationMarketingName": "Wellcare",
+                "geographicName": "Louisiana",
+                "organizationType": "PDP",
+                "segmentName": "Not Available",
+                "planTypeLabel": "Medicare Prescription Drug Plan",
+                "hpmsPlanType": "29",
+                "isNetworkPlan": "Not Applicable",
+                "isEmployerOnlyPlan": "No",
+                "isOfferRx": "Yes",
+                "contractIsOfferPartD": "Yes",
+                "offerPos": "No",
+                "isVbid": "Not Available",
+                "isOutOfNetwork": "No",
+                "isPdssm": "Not Available",
+                "isSnp": "No",
+                "snpType": "Not Available",
+                "snpInstitutionalType": "Not Available",
+                "isMedicareZeroDollarCostSharing": "Not Available",
+                "chronicOrDisablingConditions": "Not Available",
+                "planCharacteristicsDetails": null
+            },
+            "rx": {
+                "section": "Rx",
+                "rxDetails": {
+                    "rxSetup": {
+                        "section": "Rx Setup",
+                        "status": "Completed",
+                        "statusCode": "C",
+                        "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                        "rxSetupDetails": {
+                            "drugBenefitType": "AE",
+                            "retailPharmacyNetwork": "2",
+                            "mailOrderPharmacyNetwork": "2",
+                            "longTermCare": "1",
+                            "outOfNetwork": "1",
+                            "tierCount": "5",
+                            "hasOptionalTier": "2",
+                            "tierModel": "5F",
+                            "formularyExceptionsTier": "4",
+                            "hasSecondLessExpensiveTier": "2",
+                            "sponsorAttest": "1",
+                            "planPayOtc": "2"
+                        },
+                        "rxCostShare": {
+                            "section": "Rx Cost Share",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                            "rxCostShareDetails": {
+                                "costSharePreIclCostSharingMethod": "3",
+                                "costShareOutOfNetworkStructure": "2",
+                                "costShareOopcExcessCostSharingMethod": "2"
+                            }
+                        },
+                        "rxTiers": {
+                            "section": "Rx Tiers",
+                            "rxTierLocations": {
+                                "section": "Rx Tier Locations",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxTierLocationsDetails": {
+                                    "hasMailOrderOneMonthSupply": "2",
+                                    "hasMailOrderTwoMonthSupply": "1",
+                                    "hasMailOrderThreeMonthSupply": "1",
+                                    "mailOrderThreeMonthTiers": "1,2,3,4",
+                                    "mailOrderTwoMonthTiers": "1,2,3,4",
+                                    "hasRetailTwoMonthSupply": "1",
+                                    "hasRetailThreeMonthSupply": "1",
+                                    "retailTwoMonthTiers": "1,2,3,4",
+                                    "retailThreeMonthTiers": "1,2,3,4",
+                                    "retailOneMonthSupply": "30",
+                                    "retailTwoMonthSupply": "60"
+                                }
+                            },
+                            "rxTier1": {
+                                "section": "Rx Tier 1",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxTier1Details": {
+                                    "retailOneMonth": "30",
+                                    "brand": "1",
+                                    "generic": "1",
+                                    "longTermCareOneMonth": "31",
+                                    "oonDaySupply": "30",
+                                    "tierIncludes": "PD",
+                                    "retailTwoMonth": "60",
+                                    "retailThreeMonth": "90",
+                                    "mailOrderTwoMonth": "60",
+                                    "mailOrderThreeMonth": "90"
+                                },
+                                "rxTier1PreIcl": {
+                                    "section": "Rx Tier 1 Initial Coverage Phase",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier1PreIclDetails": {
+                                        "preIclRetailOneMonthDaysSupply": "30",
+                                        "preIclExtDaySupply": "1",
+                                        "preIclExtLtdDaySupply": "2",
+                                        "preIclCostShareStructure": "2",
+                                        "preIclLongTermCareCopayment": "10.00",
+                                        "preIclLongTermCareDaysSupply": "31",
+                                        "preIclOutOfNetworkCopayment": "10.00",
+                                        "preIclOutOfNetworkDaysSupply": "30",
+                                        "outOfNetworkOneMonthDaysSupply": "30",
+                                        "preIclPreferredMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclPreferredMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclPreferredMailOrderTwoMonthCopayment": "0.00",
+                                        "preIclPreferredMailOrderThreeMonthCopayment": "0.00",
+                                        "preIclPreferredRetailOneMonthCopayment": "0.00",
+                                        "preIclPreferredRetailTwoMonthCopayment": "0.00",
+                                        "preIclPreferredRetailThreeMonthCopayment": "0.00",
+                                        "preIclMailOrderTwoMonthCopayment": "20.00",
+                                        "preIclMailOrderThreeMonthCopayment": "30.00",
+                                        "preIclMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclRetailOneMonthCopayment": "10.00",
+                                        "preIclRetailTwoMonthCopayment": "20.00",
+                                        "preIclRetailThreeMonthCopayment": "30.00",
+                                        "preIclRetailThreeMonthDaysSupply": "90",
+                                        "preIclLongTermCareOneMonthDailyCopayment": "0.32",
+                                        "preIclPreferredRetailOneMonthDailyCopayment": "0.00",
+                                        "preIclRetailOneMonthDailyCopayment": "0.33",
+                                        "preIclRetailTwoMonthDaysSupply": "60"
+                                    }
+                                },
+                                "rxTier1PostOop": {
+                                    "section": "Rx Tier 1 Post OOP",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier1PostOopDetails": {
+                                        "tierPostOopCopaymentAmount": "0.00",
+                                        "tierPostOopCostShareStructure": "2"
+                                    }
+                                }
+                            },
+                            "rxTier2": {
+                                "section": "Rx Tier 2",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxTier2Details": {
+                                    "retailOneMonth": "30",
+                                    "brand": "1",
+                                    "generic": "1",
+                                    "longTermCareOneMonth": "31",
+                                    "oonDaySupply": "30",
+                                    "tierIncludes": "PD",
+                                    "retailTwoMonth": "60",
+                                    "retailThreeMonth": "90",
+                                    "mailOrderTwoMonth": "60",
+                                    "mailOrderThreeMonth": "90"
+                                },
+                                "rxTier2PreIcl": {
+                                    "section": "Rx Tier 2 Initial Coverage Phase",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier2PreIclDetails": {
+                                        "preIclRetailOneMonthDaysSupply": "30",
+                                        "preIclExtDaySupply": "1",
+                                        "preIclExtLtdDaySupply": "2",
+                                        "preIclCostShareStructure": "2",
+                                        "preIclLongTermCareCopayment": "20.00",
+                                        "preIclLongTermCareDaysSupply": "31",
+                                        "preIclOutOfNetworkCopayment": "20.00",
+                                        "preIclOutOfNetworkDaysSupply": "30",
+                                        "outOfNetworkOneMonthDaysSupply": "30",
+                                        "preIclPreferredMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclPreferredMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclPreferredMailOrderTwoMonthCopayment": "20.00",
+                                        "preIclPreferredMailOrderThreeMonthCopayment": "30.00",
+                                        "preIclPreferredRetailOneMonthCopayment": "10.00",
+                                        "preIclPreferredRetailTwoMonthCopayment": "20.00",
+                                        "preIclPreferredRetailThreeMonthCopayment": "30.00",
+                                        "preIclMailOrderTwoMonthCopayment": "40.00",
+                                        "preIclMailOrderThreeMonthCopayment": "60.00",
+                                        "preIclMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclRetailOneMonthCopayment": "20.00",
+                                        "preIclRetailTwoMonthCopayment": "40.00",
+                                        "preIclRetailThreeMonthCopayment": "60.00",
+                                        "preIclRetailThreeMonthDaysSupply": "90",
+                                        "preIclLongTermCareOneMonthDailyCopayment": "0.65",
+                                        "preIclPreferredRetailOneMonthDailyCopayment": "0.33",
+                                        "preIclRetailOneMonthDailyCopayment": "0.67",
+                                        "preIclRetailTwoMonthDaysSupply": "60"
+                                    }
+                                },
+                                "rxTier2PostOop": {
+                                    "section": "Rx Tier 2 Post OOP",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier2PostOopDetails": {
+                                        "tierPostOopCopaymentAmount": "0.00",
+                                        "tierPostOopCostShareStructure": "2"
+                                    }
+                                }
+                            },
+                            "rxTier3": {
+                                "section": "Rx Tier 3",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxTier3Details": {
+                                    "retailOneMonth": "30",
+                                    "brand": "1",
+                                    "generic": "1",
+                                    "longTermCareOneMonth": "31",
+                                    "oonDaySupply": "30",
+                                    "tierIncludes": "PD",
+                                    "retailTwoMonth": "60",
+                                    "retailThreeMonth": "90",
+                                    "mailOrderTwoMonth": "60",
+                                    "mailOrderThreeMonth": "90"
+                                },
+                                "rxTier3PreIcl": {
+                                    "section": "Rx Tier 3 Initial Coverage Phase",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier3PreIclDetails": {
+                                        "preIclRetailOneMonthDaysSupply": "30",
+                                        "preIclExtDaySupply": "1",
+                                        "preIclExtLtdDaySupply": "2",
+                                        "preIclCostShareStructure": "1",
+                                        "preIclLongTermCareCoinsurance": "25",
+                                        "preIclLongTermCareDaysSupply": "31",
+                                        "preIclOutOfNetworkCoinsurance": "25",
+                                        "preIclOutOfNetworkDaysSupply": "30",
+                                        "outOfNetworkOneMonthDaysSupply": "30",
+                                        "preIclPreferredMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclPreferredMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclPreferredMailOrderTwoMonthCoinsurance": "25",
+                                        "preIclPreferredMailOrderThreeMonthCoinsurance": "25",
+                                        "preIclPreferredRetailAverageExpectedCoinsurance": "32.59",
+                                        "preIclPreferredRetailOneMonthCoinsurance": "25",
+                                        "preIclPreferredRetailTwoMonthCoinsurance": "25",
+                                        "preIclPreferredRetailThreeMonthCoinsurance": "25",
+                                        "preIclMailOrderTwoMonthCoinsurance": "25",
+                                        "preIclMailOrderThreeMonthCoinsurance": "25",
+                                        "preIclMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclRetailAverageExpectedCoinsurance": "32.59",
+                                        "preIclRetailOneMonthCoinsurance": "25",
+                                        "preIclRetailTwoMonthCoinsurance": "25",
+                                        "preIclRetailThreeMonthCoinsurance": "25",
+                                        "preIclRetailThreeMonthDaysSupply": "90",
+                                        "preIclRetailTwoMonthDaysSupply": "60"
+                                    }
+                                },
+                                "rxTier3PostOop": {
+                                    "section": "Rx Tier 3 Post OOP",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier3PostOopDetails": {
+                                        "tierPostOopCopaymentAmount": "0.00",
+                                        "tierPostOopCostShareStructure": "2"
+                                    }
+                                }
+                            },
+                            "rxTier4": {
+                                "section": "Rx Tier 4",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxTier4Details": {
+                                    "retailOneMonth": "30",
+                                    "brand": "1",
+                                    "generic": "1",
+                                    "longTermCareOneMonth": "31",
+                                    "oonDaySupply": "30",
+                                    "tierIncludes": "PD",
+                                    "retailTwoMonth": "60",
+                                    "retailThreeMonth": "90",
+                                    "mailOrderTwoMonth": "60",
+                                    "mailOrderThreeMonth": "90"
+                                },
+                                "rxTier4PreIcl": {
+                                    "section": "Rx Tier 4 Initial Coverage Phase",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier4PreIclDetails": {
+                                        "preIclRetailOneMonthDaysSupply": "30",
+                                        "preIclExtDaySupply": "1",
+                                        "preIclExtLtdDaySupply": "2",
+                                        "preIclCostShareStructure": "1",
+                                        "preIclLongTermCareCoinsurance": "29",
+                                        "preIclLongTermCareDaysSupply": "31",
+                                        "preIclOutOfNetworkCoinsurance": "29",
+                                        "preIclOutOfNetworkDaysSupply": "30",
+                                        "outOfNetworkOneMonthDaysSupply": "30",
+                                        "preIclPreferredMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclPreferredMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclPreferredMailOrderTwoMonthCoinsurance": "28",
+                                        "preIclPreferredMailOrderThreeMonthCoinsurance": "28",
+                                        "preIclPreferredRetailAverageExpectedCoinsurance": "39.43",
+                                        "preIclPreferredRetailOneMonthCoinsurance": "28",
+                                        "preIclPreferredRetailTwoMonthCoinsurance": "28",
+                                        "preIclPreferredRetailThreeMonthCoinsurance": "28",
+                                        "preIclMailOrderTwoMonthCoinsurance": "29",
+                                        "preIclMailOrderThreeMonthCoinsurance": "29",
+                                        "preIclMailOrderTwoMonthDaysSupply": "60",
+                                        "preIclMailOrderThreeMonthDaysSupply": "90",
+                                        "preIclRetailAverageExpectedCoinsurance": "40.83",
+                                        "preIclRetailOneMonthCoinsurance": "29",
+                                        "preIclRetailTwoMonthCoinsurance": "29",
+                                        "preIclRetailThreeMonthCoinsurance": "29",
+                                        "preIclRetailThreeMonthDaysSupply": "90",
+                                        "preIclRetailTwoMonthDaysSupply": "60"
+                                    }
+                                },
+                                "rxTier4PostOop": {
+                                    "section": "Rx Tier 4 Post OOP",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier4PostOopDetails": {
+                                        "tierPostOopCopaymentAmount": "0.00",
+                                        "tierPostOopCostShareStructure": "2"
+                                    }
+                                }
+                            },
+                            "rxTier5": {
+                                "section": "Rx Tier 5",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxTier5Details": {
+                                    "retailOneMonth": "30",
+                                    "brand": "1",
+                                    "generic": "1",
+                                    "longTermCareOneMonth": "31",
+                                    "oonDaySupply": "30",
+                                    "tierIncludes": "PD"
+                                },
+                                "rxTier5PreIcl": {
+                                    "section": "Rx Tier 5 Initial Coverage Phase",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier5PreIclDetails": {
+                                        "preIclRetailOneMonthDaysSupply": "30",
+                                        "preIclCostShareStructure": "1",
+                                        "preIclLongTermCareCoinsurance": "25",
+                                        "preIclLongTermCareDaysSupply": "31",
+                                        "preIclOutOfNetworkCoinsurance": "25",
+                                        "preIclOutOfNetworkDaysSupply": "30",
+                                        "outOfNetworkOneMonthDaysSupply": "30",
+                                        "preIclPreferredRetailOneMonthCoinsurance": "25",
+                                        "preIclRetailOneMonthCoinsurance": "25"
+                                    }
+                                },
+                                "rxTier5PostOop": {
+                                    "section": "Rx Tier 5 Post OOP",
+                                    "status": "Completed",
+                                    "statusCode": "C",
+                                    "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                    "rxTier5PostOopDetails": {
+                                        "tierPostOopCopaymentAmount": "0.00",
+                                        "tierPostOopCostShareStructure": "2"
+                                    }
+                                }
+                            },
+                            "rxAttestations": {
+                                "section": "Rx Attestations",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxAttestationsDetails": {
+                                    "zeroDollarAdultVaccineAttestation": "1",
+                                    "averageExpectedCostSharingAttestation": "1"
+                                }
+                            }
+                        },
+                        "rxInsulin": {
+                            "section": "Rx Insulin",
+                            "status": "Completed",
+                            "statusCode": "C",
+                            "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                            "rxInsulinDetails": {
+                                "insulinTiers": "3,4",
+                                "insulinAttestation": "1"
+                            },
+                            "rxInsulinTier3PreIcl": {
+                                "section": "Rx Insulin Tier 3 ",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxInsulinTier3PreIclDetails": {
+                                    "insulinPreIclRetailOneMonthCopayment": "35.00",
+                                    "insulinPreIclRetailOneMonthCoinsurance": "25",
+                                    "insulinPreIclRetailTwoMonthCopayment": "70.00",
+                                    "insulinPreIclRetailTwoMonthCoinsurance": "25",
+                                    "insulinPreIclRetailThreeMonthCopayment": "105.00",
+                                    "insulinPreIclRetailThreeMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredRetailOneMonthCopayment": "35.00",
+                                    "insulinPreIclPreferredRetailOneMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredRetailTwoMonthCopayment": "70.00",
+                                    "insulinPreIclPreferredRetailTwoMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredRetailThreeMonthCopayment": "105.00",
+                                    "insulinPreIclPreferredRetailThreeMonthCoinsurance": "25",
+                                    "insulinPreIclMailOrderTwoMonthCopayment": "70.00",
+                                    "insulinPreIclMailOrderTwoMonthCoinsurance": "25",
+                                    "insulinPreIclMailOrderThreeMonthCopayment": "105.00",
+                                    "insulinPreIclMailOrderThreeMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredMailOrderTwoMonthCopayment": "70.00",
+                                    "insulinPreIclPreferredMailOrderTwoMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredMailOrderThreeMonthCopayment": "105.00",
+                                    "insulinPreIclPreferredMailOrderThreeMonthCoinsurance": "25",
+                                    "insulinPreIclLongTermCareCopayment": "35.00",
+                                    "insulinPreIclLongTermCareCoinsurance": "25",
+                                    "insulinPreIclOutOfNetworkCopayment": "35.00",
+                                    "insulinPreIclOutOfNetworkCoinsurance": "25"
+                                }
+                            },
+                            "rxInsulinTier4PreIcl": {
+                                "section": "Rx Insulin Tier 4 ",
+                                "status": "Completed",
+                                "statusCode": "C",
+                                "lastUpdatedAt": "05/27/2025 09:29:38 AM EDT",
+                                "rxInsulinTier4PreIclDetails": {
+                                    "insulinPreIclRetailOneMonthCopayment": "35.00",
+                                    "insulinPreIclRetailOneMonthCoinsurance": "25",
+                                    "insulinPreIclRetailTwoMonthCopayment": "70.00",
+                                    "insulinPreIclRetailTwoMonthCoinsurance": "25",
+                                    "insulinPreIclRetailThreeMonthCopayment": "105.00",
+                                    "insulinPreIclRetailThreeMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredRetailOneMonthCopayment": "35.00",
+                                    "insulinPreIclPreferredRetailOneMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredRetailTwoMonthCopayment": "70.00",
+                                    "insulinPreIclPreferredRetailTwoMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredRetailThreeMonthCopayment": "105.00",
+                                    "insulinPreIclPreferredRetailThreeMonthCoinsurance": "25",
+                                    "insulinPreIclMailOrderTwoMonthCopayment": "70.00",
+                                    "insulinPreIclMailOrderTwoMonthCoinsurance": "25",
+                                    "insulinPreIclMailOrderThreeMonthCopayment": "105.00",
+                                    "insulinPreIclMailOrderThreeMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredMailOrderTwoMonthCopayment": "70.00",
+                                    "insulinPreIclPreferredMailOrderTwoMonthCoinsurance": "25",
+                                    "insulinPreIclPreferredMailOrderThreeMonthCopayment": "105.00",
+                                    "insulinPreIclPreferredMailOrderThreeMonthCoinsurance": "25",
+                                    "insulinPreIclLongTermCareCopayment": "35.00",
+                                    "insulinPreIclLongTermCareCoinsurance": "25",
+                                    "insulinPreIclOutOfNetworkCopayment": "35.00",
+                                    "insulinPreIclOutOfNetworkCoinsurance": "25"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

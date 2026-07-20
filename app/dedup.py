@@ -59,26 +59,64 @@ def cluster_signal(rows, agency_id):
 
 
 def count_no_mbi_clusters(agency_id):
-    """Cheap count of name-collision clusters (size > 1) for the nav badge.
-    Loads only name columns and groups in memory — NO per-row carrier-id signal
-    queries (the expensive part of find_no_mbi_clusters), so it is safe to call on
-    every page render."""
+    """Cheap count of merge-suggestion clusters for the nav badge. Loads only
+    name + dob columns and groups in memory — NO per-row carrier-id signal queries
+    (the expensive part of find_no_mbi_clusters), so it is safe to call on every
+    page render. Matches find_no_mbi_clusters' DOB-aware splitting so the badge count
+    equals the number of clusters actually shown."""
     rows = (Customer.query
             .filter(Customer.agency_id == agency_id)
-            .with_entities(Customer.full_name, Customer.first_name, Customer.last_name)
+            .with_entities(Customer.full_name, Customer.first_name,
+                           Customer.last_name, Customer.dob)
             .all())
-    counts = defaultdict(int)
-    for full, first, last in rows:
+    by_name = defaultdict(list)
+    for full, first, last, dob in rows:
         name = full or f"{first or ''} {last or ''}".strip()
         key = _norm_name(name)
         if key:
-            counts[key] += 1
-    return sum(1 for n in counts.values() if n > 1)
+            by_name[key].append(dob)
+    total = 0
+    for dobs in by_name.values():
+        if len(dobs) < 2:
+            continue
+        distinct = {d for d in dobs if d is not None}
+        if len(distinct) <= 1:
+            total += 1                       # one candidate for this name
+        else:
+            # one candidate per distinct dob that has >1 row carrying it
+            per = defaultdict(int)
+            for d in dobs:
+                if d is not None:
+                    per[d] += 1
+            total += sum(1 for n in per.values() if n > 1)
+    return total
+
+
+def _split_name_group_by_dob(group):
+    """Given same-name Customer rows, return the sub-groups that are real merge
+    candidates. DOB-aware (BOB dobs are credible → different present dobs = different
+    people, not a dup):
+      - 0 or 1 distinct non-null dob in the group → the WHOLE group is one candidate
+        (the normal case: same dob, or a null-dob stub joining the single real dob).
+      - 2+ distinct non-null dobs → each distinct dob is its OWN sub-group (only the
+        rows carrying THAT dob). A null-dob row is ambiguous here (could belong to
+        either) → it is left OUT of every sub-group, for human judgment.
+    Only sub-groups with >1 row are returned (a lone row is not a suggestion)."""
+    dobs = {c.dob for c in group if c.dob is not None}
+    if len(dobs) <= 1:
+        return [group]                       # unchanged single-candidate behavior
+    subs = defaultdict(list)
+    for c in group:
+        if c.dob is not None:                # null-dob rows dropped (ambiguous)
+            subs[c.dob].append(c)
+    return [sub for sub in subs.values() if len(sub) > 1]
 
 
 def find_no_mbi_clusters(agency_id):
-    """Cluster customers by normalized full_name; return Clusters of size > 1.
-    Includes stubs and NULL-dob rows (unlike the radar's duplicate_customers)."""
+    """Cluster customers by normalized full_name, then split each name-group by DOB
+    (see _split_name_group_by_dob); return Clusters of size > 1. Includes stubs and
+    NULL-dob rows, but same-name rows with DIFFERENT present dobs are treated as
+    DIFFERENT people and do NOT surface as a merge suggestion."""
     rows = (Customer.query
             .filter(Customer.agency_id == agency_id)
             .all())
@@ -92,10 +130,13 @@ def find_no_mbi_clusters(agency_id):
     for key, group in by_name.items():
         if len(group) < 2:
             continue
-        keeper = max(group, key=_keeper_score)
-        clusters.append(Cluster(
-            keeper_id=keeper.id,
-            member_ids=[c.id for c in group],
-            signal=cluster_signal(group, agency_id),
-        ))
+        for sub in _split_name_group_by_dob(group):
+            if len(sub) < 2:
+                continue
+            keeper = max(sub, key=_keeper_score)
+            clusters.append(Cluster(
+                keeper_id=keeper.id,
+                member_ids=[c.id for c in sub],
+                signal=cluster_signal(sub, agency_id),
+            ))
     return clusters

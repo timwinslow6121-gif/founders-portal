@@ -40,7 +40,11 @@ def test_connelly_blank_name_stubs_cluster_with_real_rows(app, db_session):
         assert conn[0].signal == "dob_match"
 
 
-def test_contradictory_dob_is_conflict(app, db_session):
+def test_contradictory_dob_does_not_cluster(app, db_session):
+    """Same name + two DIFFERENT present DOBs = two different people → NOT a merge
+    suggestion at all (DOB-aware splitting, 2026-07-18; BOB dobs are credible).
+    Previously these clustered with signal='conflict'; now they don't surface.
+    A genuine conflict (same dob, different mbi) still clusters — covered elsewhere."""
     with app.app_context():
         ag = Agency(name="T")
         db.session.add(ag)
@@ -53,8 +57,7 @@ def test_contradictory_dob_is_conflict(app, db_session):
               full_name="Jane Doe", dob=date(1962, 9, 9))
         db.session.commit()
         clusters = find_no_mbi_clusters(agency_id)
-        doe = [c for c in clusters if a.id in c.member_ids][0]
-        assert doe.signal == "conflict"
+        assert not any(a.id in c.member_ids for c in clusters)
 
 
 def test_bare_name_no_dob_no_id_is_name_only(app, db_session):
@@ -199,3 +202,80 @@ def test_merge_shared_aor_chapter_no_null_customer(app, db_session):
         assert CustomerAorHistory.query.filter(
             CustomerAorHistory.customer_id.is_(None)).count() == 0
         assert db.session.get(Customer, loser.id) is None
+
+
+def test_different_dob_same_name_does_not_cluster(app, db_session):
+    """Two same-name people with DIFFERENT present DOBs are NOT a merge suggestion
+    (George Miller: 1952-04-19/Justin vs 1921-06-28/Brian = two different people)."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        _cust(aid, first_name="George", last_name="Miller",
+              full_name="George Miller", dob=date(1952, 4, 19))
+        _cust(aid, first_name="George", last_name="Miller",
+              full_name="George Miller", dob=date(1921, 6, 28))
+        db.session.commit()
+        clusters = find_no_mbi_clusters(aid)
+        # no cluster: each distinct-dob George Miller is a lone row -> not a suggestion
+        assert clusters == []
+
+
+def test_same_dob_still_clusters(app, db_session):
+    """Same name + same DOB still surfaces as a merge candidate."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        _cust(aid, first_name="Mary", last_name="Smith",
+              full_name="Mary Smith", dob=date(1950, 1, 1))
+        _cust(aid, first_name="Mary", last_name="Smith",
+              full_name="Mary Smith", dob=date(1950, 1, 1), stub=True)
+        db.session.commit()
+        clusters = find_no_mbi_clusters(aid)
+        assert len(clusters) == 1 and len(clusters[0].member_ids) == 2
+
+
+def test_null_dob_joins_single_dob_group(app, db_session):
+    """A no-DOB stub clusters with the real record when there's ONE distinct DOB."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        _cust(aid, first_name="Joe", last_name="Brown",
+              full_name="Joe Brown", dob=date(1955, 3, 3))
+        _cust(aid, first_name="Joe", last_name="Brown",
+              full_name="Joe Brown", stub=True)  # no dob
+        db.session.commit()
+        clusters = find_no_mbi_clusters(aid)
+        assert len(clusters) == 1 and len(clusters[0].member_ids) == 2
+
+
+def test_mixed_cluster_splits_by_dob(app, db_session):
+    """3 same-name rows: two share a DOB (merge), one has a different DOB (dropped),
+    a null-DOB row with 2+ distinct DOBs present is ambiguous -> left out."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        _cust(aid, full_name="Al Green", first_name="Al", last_name="Green", dob=date(1960, 5, 5))
+        _cust(aid, full_name="Al Green", first_name="Al", last_name="Green", dob=date(1960, 5, 5), stub=True)
+        _cust(aid, full_name="Al Green", first_name="Al", last_name="Green", dob=date(1930, 8, 8))  # different person
+        _cust(aid, full_name="Al Green", first_name="Al", last_name="Green", stub=True)  # null dob, ambiguous
+        db.session.commit()
+        clusters = find_no_mbi_clusters(aid)
+        # exactly one cluster: the two 1960 rows. The 1930 lone row + the ambiguous null-dob row are NOT suggestions.
+        assert len(clusters) == 1 and len(clusters[0].member_ids) == 2
+
+
+def test_same_dob_different_mbi_still_conflict(app, db_session):
+    """A genuine conflict (same name + SAME dob + different MBIs — e.g. coexistence
+    like Jana Benson's Medigap+DVH, or a switcher) STILL clusters as 'conflict' so a
+    human reviews it. DOB-aware splitting only drops DIFFERENT-dob rows."""
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        aid = ag.id
+        a = _cust(aid, first_name="Jana", last_name="Benson", full_name="Jana Benson",
+                  dob=date(1959, 8, 24), mbi="45039665600")
+        _cust(aid, first_name="Jana", last_name="Benson", full_name="Jana Benson",
+              dob=date(1959, 8, 24), mbi="3DJ9F94VV42")
+        db.session.commit()
+        clusters = find_no_mbi_clusters(aid)
+        c = [cl for cl in clusters if a.id in cl.member_ids]
+        assert len(c) == 1 and c[0].signal == "conflict"

@@ -9,7 +9,7 @@ def show(name):
     for c in custs:
         print(f"  cust {c.id} | dob {c.dob} | mbi {c.mbi} | humana_id {c.humana_id} | "
               f"agent {c.primary_agent.name if c.primary_agent else None} | "
-              f"stub={c.stub} | phone {c.phone!r} | addr {c.address!r}")
+              f"stub={c.stub} | phone {c.phone_primary!r} | addr {c.address1!r} {c.city!r} {c.state!r} {c.zip_code!r}")
         pols = Policy.query.filter_by(customer_id=c.id).all()
         for p in pols:
             print(f"      policy {p.id} | {p.carrier} | {p.plan_name!r} | member_id {p.member_id} | "

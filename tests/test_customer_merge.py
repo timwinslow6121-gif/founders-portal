@@ -470,3 +470,98 @@ def test_merge_donates_mbi_without_transient_duplicate(db_session, app):
         survivors = Customer.query.filter(Customer.mbi == "2U13N20CV96",
                                           Customer.id != keeper.id).all()
         assert survivors == []
+
+
+# ---------------------------------------------------------------------------
+# Reissued-MBI merge override route (task 2)
+# ---------------------------------------------------------------------------
+
+def _login(client, user):
+    with client.session_transaction() as s:
+        s["_user_id"] = str(user.id); s["_fresh"] = True
+
+
+def _client_app():
+    """Build a fresh app + admin + agency and return (app, client, agency_id, admin)."""
+    from app import create_app
+    app = create_app()
+    app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
+                      RATELIMIT_ENABLED=False, SESSION_COOKIE_SECURE=False,
+                      REMEMBER_COOKIE_SECURE=False, WTF_CSRF_ENABLED=False)
+    ctx = app.app_context(); ctx.push()
+    db.create_all()
+    ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+    admin = User(email="a@b.com", name="Admin", is_admin=True, agency_id=ag.id, role="admin")
+    db.session.add(admin); db.session.flush()
+    client = app.test_client(); _login(client, admin)
+    return app, client, ag.id, admin, ctx
+
+
+def _policy(agency_id, customer_id, carrier, member_id, status="active"):
+    p = Policy(agency_id=agency_id, customer_id=customer_id, carrier=carrier,
+               member_id=member_id, status=status)
+    db.session.add(p); db.session.flush()
+    return p
+
+
+def test_reissued_merge_keeps_current_mbi_terms_stale_policy():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        keeper = _c(aid, first_name="Milton", last_name="Frazier",
+                    full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="CURR123")
+        loser = _c(aid, first_name="Milton", last_name="Frazier",
+                   full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="STALE99")
+        _policy(aid, keeper.id, "UHC", "CURR123")          # keeper's live policy
+        _policy(aid, loser.id, "UHC", "STALE99")           # stale-keyed policy → should term
+        db.session.commit()
+
+        resp = client.post("/admin/customers/merge-reissued-mbi",
+                           data={"keeper_id": keeper.id, "loser_id": loser.id},
+                           follow_redirects=False)
+        assert resp.status_code in (302, 303)
+
+        # loser gone, keeper keeps the current MBI
+        assert db.session.get(Customer, loser.id) is None
+        k = db.session.get(Customer, keeper.id)
+        assert k.mbi == "CURR123"
+
+        # stale-keyed policy termed; live policy untouched
+        pols = Policy.query.filter_by(customer_id=keeper.id).all()
+        by_mid = {p.member_id: p.status for p in pols}
+        assert by_mid["STALE99"] == "termed"
+        assert by_mid["CURR123"] == "active"
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_reissued_merge_refuses_diff_dob():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        a = _c(aid, full_name="X Y", dob=date(1950, 2, 3), mbi="AAA")
+        b = _c(aid, full_name="X Y", dob=date(1961, 9, 9), mbi="BBB")  # different DOB
+        db.session.commit()
+        resp = client.post("/admin/customers/merge-reissued-mbi",
+                           data={"keeper_id": a.id, "loser_id": b.id})
+        assert resp.status_code in (302, 303)
+        # nothing merged — both records still exist
+        assert db.session.get(Customer, a.id) is not None
+        assert db.session.get(Customer, b.id) is not None
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_reissued_merge_idempotent_when_stale_already_termed():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        keeper = _c(aid, full_name="Z Z", dob=date(1950, 2, 3), mbi="CURR")
+        loser = _c(aid, full_name="Z Z", dob=date(1950, 2, 3), mbi="STALE")
+        _policy(aid, loser.id, "UHC", "STALE", status="termed")  # already termed
+        db.session.commit()
+        resp = client.post("/admin/customers/merge-reissued-mbi",
+                           data={"keeper_id": keeper.id, "loser_id": loser.id})
+        assert resp.status_code in (302, 303)
+        assert db.session.get(Customer, loser.id) is None
+        p = Policy.query.filter_by(customer_id=keeper.id, member_id="STALE").first()
+        assert p.status == "termed"
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()

@@ -860,6 +860,71 @@ def customer_merge():
     return redirect(url_for("customers.customer_profile", customer_id=primary_id))
 
 
+@customers_bp.route("/admin/customers/merge-reissued-mbi", methods=["POST"])
+@login_required
+@_admin_required
+def customer_merge_reissued_mbi():
+    """Reconcile two records that are the SAME person under a CMS-reissued MBI.
+    Gate: exactly 2 records, same non-null DOB, differing non-null MBIs (re-validated
+    server-side). Keeps the keeper's (current) MBI, nulls the loser's stale MBI, merges
+    via the engine, then terms the policy keyed to the stale MBI. Admin-only."""
+    from app.dedup import is_reissued_mbi_candidate
+    agency_id = current_user.agency_id
+    keeper_id = request.form.get("keeper_id", type=int)
+    loser_id = request.form.get("loser_id", type=int)
+    if not keeper_id or not loser_id or keeper_id == loser_id:
+        flash("Invalid reissued-MBI merge request.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
+
+    keeper = Customer.query.filter_by(id=keeper_id, agency_id=agency_id).first_or_404()
+    loser = Customer.query.filter_by(id=loser_id, agency_id=agency_id).first_or_404()
+
+    # Re-validate the gate server-side — never trust the form.
+    if not is_reissued_mbi_candidate([keeper, loser]):
+        flash("These records are not a reissued-MBI pair (need same DOB, different MBI).",
+              "error")
+        return redirect(url_for("customers.customer_duplicates"))
+
+    stale_mbi = loser.mbi
+
+    # 1) Release the stale MBI so the merge engine's one-MBI guard passes.
+    loser.mbi = None
+    db.session.flush()
+
+    # 2) Merge the loser into the keeper (engine unchanged; moves policies/payments/AOR).
+    res = merge_customers(keeper.id, [loser.id], agency_id, current_user)
+    if not res["ok"]:
+        db.session.rollback()
+        flash(f"Merge blocked: {res['error']}.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
+
+    # 3) Term the (now moved) policy keyed to the stale MBI. Idempotent.
+    termed_policy_id = None
+    stale_policy = (Policy.query
+                    .filter_by(agency_id=agency_id, customer_id=keeper.id,
+                               member_id=stale_mbi)
+                    .first())
+    if stale_policy is not None and stale_policy.status != "termed":
+        stale_policy.status = "termed"
+        termed_policy_id = stale_policy.id
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"reissued-MBI merge commit failed: {e}")
+        flash("Merge could not be completed (database conflict). No changes were made.",
+              "error")
+        return redirect(url_for("customers.customer_duplicates"))
+
+    log_event("customer_merge_reissued_mbi", category="admin",
+              detail=(f"keeper={keeper.id} loser={loser_id} stale_mbi={stale_mbi} "
+                      f"termed_policy={termed_policy_id}"),
+              customer_id=keeper.id)
+    flash(f"Reconciled reissued-MBI duplicate into {keeper.display_name}.", "success")
+    return redirect(url_for("customers.customer_profile", customer_id=keeper.id))
+
+
 # ---------------------------------------------------------------------------
 # No-MBI merge engine (Item 2 — collapses dup clusters with or without MBI)
 # ---------------------------------------------------------------------------

@@ -550,6 +550,51 @@ def test_reissued_merge_refuses_diff_dob():
         db.session.remove(); db.drop_all(); ctx.pop()
 
 
+def test_reissued_merge_preserves_money():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        keeper = _c(aid, full_name="Money Man", dob=date(1950, 2, 3), mbi="CURR")
+        loser = _c(aid, full_name="Money Man", dob=date(1950, 2, 3), mbi="STALE")
+        kp = _policy(aid, keeper.id, "UHC", "CURR")
+        lp = _policy(aid, loser.id, "UHC", "STALE")
+        stmt = _stmt(aid)
+        db.session.add(PolicyPayment(agency_id=aid, statement_id=stmt.id, policy_id=kp.id,
+                                     carrier="UHC", period_label="May 2026",
+                                     member_name="Money Man", commission_action="renewal",
+                                     paid_amount=100.00))
+        db.session.add(PolicyPayment(agency_id=aid, statement_id=stmt.id, policy_id=lp.id,
+                                     carrier="UHC", period_label="May 2026",
+                                     member_name="Money Man", commission_action="renewal",
+                                     paid_amount=55.00))
+        db.session.commit()
+        before = db.session.query(db.func.coalesce(db.func.sum(PolicyPayment.paid_amount), 0)).scalar()
+
+        resp = client.post("/admin/customers/merge-reissued-mbi",
+                           data={"keeper_id": keeper.id, "loser_id": loser.id})
+        assert resp.status_code in (302, 303)
+        after = db.session.query(db.func.coalesce(db.func.sum(PolicyPayment.paid_amount), 0)).scalar()
+        assert float(after) == float(before)          # no money moved or lost
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_reissued_merge_refuses_same_mbi_tamper():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        # Same DOB, SAME MBI => not a reissued candidate; a forced POST must be refused.
+        a = _c(aid, full_name="Tam Per", dob=date(1950, 2, 3), mbi="SAME")
+        b = _c(aid, full_name="Tam Per", dob=date(1950, 2, 3), mbi="SAME")
+        db.session.commit()
+        resp = client.post("/admin/customers/merge-reissued-mbi",
+                           data={"keeper_id": a.id, "loser_id": b.id})
+        assert resp.status_code in (302, 303)
+        # nothing merged — both records still exist
+        assert db.session.get(Customer, a.id) is not None
+        assert db.session.get(Customer, b.id) is not None
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
 def test_reissued_merge_idempotent_when_stale_already_termed():
     app, client, aid, admin, ctx = _client_app()
     try:

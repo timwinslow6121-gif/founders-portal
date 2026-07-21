@@ -892,38 +892,34 @@ def customer_merge_reissued_mbi():
 
     stale_mbi = loser.mbi
 
-    # 1) Release the stale MBI so the merge engine's one-MBI guard passes.
-    loser.mbi = None
-    db.session.flush()
-
-    # 2) Merge the loser into the keeper (engine unchanged; moves policies/payments/AOR).
-    res = merge_customers(keeper.id, [loser.id], agency_id, current_user)
-    if not res["ok"]:
-        db.session.rollback()
-        flash(f"Merge blocked: {res['error']}.", "error")
-        return redirect(url_for("customers.customer_duplicates"))
-
-    # 3) Term the (now moved) policy keyed to the stale MBI. Idempotent.
+    # Term the loser's stale-MBI policy and null the stale MBI BEFORE the merge, so
+    # both changes are part of the single unit the engine commits (merge_customers
+    # commits internally via log_event). Doing the term AFTER the merge would split
+    # it into a second commit whose failure path would falsely report "no changes"
+    # while the merge is already committed. Idempotent: skip if already termed.
     termed_policy_id = None
     stale_policy = (Policy.query
-                    .filter_by(agency_id=agency_id, customer_id=keeper.id,
+                    .filter_by(agency_id=agency_id, customer_id=loser.id,
                                member_id=stale_mbi)
                     .first())
     if stale_policy is not None and stale_policy.status != "termed":
         stale_policy.status = "termed"
         termed_policy_id = stale_policy.id
 
-    try:
-        db.session.commit()
-    except Exception as e:
+    # Release the stale MBI so the merge engine's one-MBI guard passes.
+    loser.mbi = None
+    db.session.flush()
+
+    # Merge the loser into the keeper (engine unchanged; moves policies/payments/AOR
+    # — including the just-termed stale policy — onto the keeper, then commits).
+    res = merge_customers(keeper.id, [loser.id], agency_id, current_user)
+    if not res["ok"]:
         db.session.rollback()
-        current_app.logger.error(f"reissued-MBI merge commit failed: {e}")
-        flash("Merge could not be completed (database conflict). No changes were made.",
-              "error")
+        flash(f"Merge blocked: {res['error']}.", "error")
         return redirect(url_for("customers.customer_duplicates"))
 
     log_event("customer_merge_reissued_mbi", category="admin",
-              detail=(f"keeper={keeper.id} loser={loser_id} stale_mbi={stale_mbi} "
+              detail=(f"keeper={keeper.id} loser={loser.id} stale_mbi={stale_mbi} "
                       f"termed_policy={termed_policy_id}"),
               customer_id=keeper.id)
     flash(f"Reconciled reissued-MBI duplicate into {keeper.display_name}.", "success")

@@ -39,6 +39,23 @@ def _shared_carrier_ids(member_ids, agency_id):
     return ids
 
 
+def is_reissued_mbi_candidate(rows):
+    """True only for the exact CMS-reissued-MBI shape: exactly two records,
+    both with a non-null DOB that is EQUAL, and both with a non-null MBI that
+    DIFFERS. Everything else (different DOB, any null DOB/MBI, >2 rows, same
+    MBI) is False — those stay hard-blocked. This is the gate for the
+    reissued-MBI merge override; it structurally excludes different-person and
+    coexistence clusters."""
+    if len(rows) != 2:
+        return False
+    a, b = rows
+    if a.dob is None or b.dob is None or a.dob != b.dob:
+        return False
+    if not a.mbi or not b.mbi or a.mbi == b.mbi:
+        return False
+    return True
+
+
 def cluster_signal(rows, agency_id):
     """Return the merge signal for a set of same-name Customer rows."""
     dobs = {r.dob for r in rows if r.dob is not None}

@@ -3,7 +3,7 @@ from datetime import date
 from app.extensions import db
 from app.models import Customer, Agency, Policy, CommissionLineItem, CommissionStatement
 from app.models import CustomerAorHistory, User
-from app.dedup import find_no_mbi_clusters, cluster_signal
+from app.dedup import find_no_mbi_clusters, cluster_signal, is_reissued_mbi_candidate
 from app.customers import merge_customers
 
 
@@ -279,3 +279,54 @@ def test_same_dob_different_mbi_still_conflict(app, db_session):
         clusters = find_no_mbi_clusters(aid)
         c = [cl for cl in clusters if a.id in cl.member_ids]
         assert len(c) == 1 and c[0].signal == "conflict"
+
+
+def test_reissued_candidate_true_same_dob_diff_mbi(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        a = _cust(ag.id, first_name="Milton", last_name="Frazier",
+                  full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="8U39K22PT26")
+        b = _cust(ag.id, first_name="Milton", last_name="Frazier",
+                  full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="6RQ6RJ6RV66")
+        assert is_reissued_mbi_candidate([a, b]) is True
+
+
+def test_reissued_candidate_false_diff_dob(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        a = _cust(ag.id, dob=date(1950, 2, 3), mbi="8U39K22PT26")
+        b = _cust(ag.id, dob=date(1961, 9, 9), mbi="6RQ6RJ6RV66")
+        assert is_reissued_mbi_candidate([a, b]) is False
+
+
+def test_reissued_candidate_false_null_dob(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        a = _cust(ag.id, dob=None, mbi="8U39K22PT26")
+        b = _cust(ag.id, dob=date(1950, 2, 3), mbi="6RQ6RJ6RV66")
+        assert is_reissued_mbi_candidate([a, b]) is False
+
+
+def test_reissued_candidate_false_null_mbi(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        a = _cust(ag.id, dob=date(1950, 2, 3), mbi="8U39K22PT26")
+        b = _cust(ag.id, dob=date(1950, 2, 3), mbi=None)
+        assert is_reissued_mbi_candidate([a, b]) is False
+
+
+def test_reissued_candidate_false_same_mbi(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        a = _cust(ag.id, dob=date(1950, 2, 3), mbi="8U39K22PT26")
+        b = _cust(ag.id, dob=date(1950, 2, 3), mbi="8U39K22PT26")
+        assert is_reissued_mbi_candidate([a, b]) is False
+
+
+def test_reissued_candidate_false_three_records(app, db_session):
+    with app.app_context():
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        a = _cust(ag.id, dob=date(1950, 2, 3), mbi="AAA")
+        b = _cust(ag.id, dob=date(1950, 2, 3), mbi="BBB")
+        c = _cust(ag.id, dob=date(1950, 2, 3), mbi="CCC")
+        assert is_reissued_mbi_candidate([a, b, c]) is False

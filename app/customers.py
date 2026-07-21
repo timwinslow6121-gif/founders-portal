@@ -813,7 +813,7 @@ def customer_duplicates():
             label = next((d.mbi for d in dupes if d.mbi), None) or dupes[0].display_name
             groups.append((label, dupes))
 
-    from app.dedup import find_no_mbi_clusters
+    from app.dedup import find_no_mbi_clusters, is_reissued_mbi_candidate
     raw_clusters = find_no_mbi_clusters(current_user.agency_id)
     no_mbi_clusters = []
     for cl in raw_clusters:
@@ -824,7 +824,12 @@ def customer_duplicates():
         if not rows:
             continue
         keeper = next((r for r in rows if r.id == cl.keeper_id), rows[0])
-        no_mbi_clusters.append({"signal": cl.signal, "keeper": keeper, "rows": [_cluster_row_context(r, current_user.agency_id) for r in rows]})
+        no_mbi_clusters.append({
+            "signal": cl.signal,
+            "keeper": keeper,
+            "reissued_candidate": is_reissued_mbi_candidate(rows),
+            "rows": [_cluster_row_context(r, current_user.agency_id) for r in rows],
+        })
 
     return render_template("customer_duplicates.html", groups=groups,
                            no_mbi_clusters=no_mbi_clusters)

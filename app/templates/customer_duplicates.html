@@ -73,7 +73,41 @@
     <span style="color: var(--slate); font-size: 13px;">{{ cl.rows | length }} records</span>
   </div>
 
-  {% if cl.signal == 'conflict' %}
+  {% if cl.signal == 'conflict' and cl.reissued_candidate %}
+    <div style="border: 1px solid var(--gold); border-radius: 10px; padding: 14px 16px; margin: 0 0 14px;">
+      <p style="color: var(--ivory); font-weight: 600; margin: 0 0 4px;">Reissued MBI? Reconcile these two records</p>
+      <p style="color: var(--slate); font-size: 12px; margin: 0 0 10px;">
+        Same DOB, different MBI — the mark of a CMS-reissued MBI on one person. Pick the CURRENT MBI
+        (the record with the live policy), confirm it's the same person, then merge. The stale MBI's
+        policy is termed automatically.
+      </p>
+      <form method="post" action="{{ url_for('customers.customer_merge_reissued_mbi') }}">
+        {% set r0 = cl.rows[0] %}
+        {% set r1 = cl.rows[1] %}
+        {% for row in cl.rows %}
+          {% set other = r1 if row.customer.id == r0.customer.id else r0 %}
+          <label style="display:flex; align-items:center; gap:8px; color: var(--ivory); font-size: 13px; padding: 4px 0; cursor:pointer;">
+            <input type="radio" name="keeper_id" value="{{ row.customer.id }}"
+                   data-loser="{{ other.customer.id }}" required
+                   onclick="document.getElementById('rmbi-loser-{{ cl.keeper.id }}').value = this.dataset.loser;">
+            Keep <strong>MBI {{ row.mbi }}</strong> as current
+            <span style="color: var(--slate); font-size: 12px;">
+              — {{ row.customer.display_name }} · DOB {{ row.dob or '—' }}
+              · {{ row.policy_count }} {{ 'policy' if row.policy_count == 1 else 'policies' }}{% if row.carriers %} ({{ row.carriers | join(', ') }}){% endif %}
+            </span>
+          </label>
+        {% endfor %}
+        <input type="hidden" name="loser_id" id="rmbi-loser-{{ cl.keeper.id }}" value="">
+        <label style="display:flex; align-items:center; gap:8px; color: var(--ivory); font-size: 13px; margin: 8px 0 10px; cursor:pointer;">
+          <input type="checkbox" required>
+          I confirm this is the same person and CMS reissued their MBI
+        </label>
+        <button type="submit" class="btn-primary" style="font-size: 13px; padding: 7px 18px;">
+          Merge (reissued MBI)
+        </button>
+      </form>
+    </div>
+  {% elif cl.signal == 'conflict' %}
     <p style="color: #c0392b; font-size: 13px; margin: 0 0 12px;">
       Different DOB or MBI values in this group — review manually; merge blocked.
     </p>

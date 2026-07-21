@@ -55,3 +55,20 @@ def test_duplicates_page_renders_when_empty(ctx):
     client = app.test_client(); _login(client, admin)
     resp = client.get("/admin/customers/duplicates")
     assert resp.status_code == 200
+
+
+def test_reissued_conflict_cluster_shows_override(ctx):
+    from datetime import date
+    app, agency_id, admin = ctx
+    # Same name + same DOB + different MBI => a `conflict` cluster that IS a
+    # reissued-MBI candidate → the override panel must render.
+    db.session.add(Customer(agency_id=agency_id, first_name="Milton", last_name="Frazier",
+                            full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="CURR123"))
+    db.session.add(Customer(agency_id=agency_id, first_name="Milton", last_name="Frazier",
+                            full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="STALE99"))
+    db.session.commit()
+    client = app.test_client(); _login(client, admin)
+    resp = client.get("/admin/customers/duplicates")
+    assert resp.status_code == 200
+    assert b"merge-reissued-mbi" in resp.data       # the override form action is present
+    assert b"Reissued MBI" in resp.data

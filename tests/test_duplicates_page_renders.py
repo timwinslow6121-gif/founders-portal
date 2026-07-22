@@ -57,11 +57,12 @@ def test_duplicates_page_renders_when_empty(ctx):
     assert resp.status_code == 200
 
 
-def test_reissued_conflict_cluster_shows_override(ctx):
+def test_reissued_override_panel_hidden_while_disabled(ctx):
     from datetime import date
     app, agency_id, admin = ctx
-    # Same name + same DOB + different MBI => a `conflict` cluster that IS a
-    # reissued-MBI candidate → the override panel must render.
+    # Same name + same DOB + different MBI would be a reissued-MBI candidate, BUT the
+    # override is DISABLED (REISSUED_MBI_MERGE_ENABLED=False) pending the corrected
+    # merge → the panel must NOT render. See …/2026-07-21-customer-plan-domain-model.md §6.1.
     db.session.add(Customer(agency_id=agency_id, first_name="Milton", last_name="Frazier",
                             full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="CURR123"))
     db.session.add(Customer(agency_id=agency_id, first_name="Milton", last_name="Frazier",
@@ -70,5 +71,5 @@ def test_reissued_conflict_cluster_shows_override(ctx):
     client = app.test_client(); _login(client, admin)
     resp = client.get("/admin/customers/duplicates")
     assert resp.status_code == 200
-    assert b"merge-reissued-mbi" in resp.data       # the override form action is present
-    assert b"Reissued MBI" in resp.data
+    assert b"merge-reissued-mbi" not in resp.data   # override form action absent while disabled
+    assert b"Reissued MBI" not in resp.data

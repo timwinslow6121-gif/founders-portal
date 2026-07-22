@@ -504,15 +504,19 @@ def _policy(agency_id, customer_id, carrier, member_id, status="active"):
     return p
 
 
-def test_reissued_merge_keeps_current_mbi_terms_stale_policy():
+def test_reissued_merge_disabled_makes_no_changes():
+    # The reissued-MBI override is DISABLED (REISSUED_MBI_MERGE_ENABLED=False) pending
+    # the lane-aware corrected merge — its "term the loser's stale policy" logic is
+    # wrong for a coexistence pair (would term an active DVH/Medigap). The route must
+    # refuse and change NOTHING. See docs/…/2026-07-21-customer-plan-domain-model.md §6.1.
     app, client, aid, admin, ctx = _client_app()
     try:
         keeper = _c(aid, first_name="Milton", last_name="Frazier",
                     full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="CURR123")
         loser = _c(aid, first_name="Milton", last_name="Frazier",
                    full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="STALE99")
-        _policy(aid, keeper.id, "UHC", "CURR123")          # keeper's live policy
-        _policy(aid, loser.id, "UHC", "STALE99")           # stale-keyed policy → should term
+        _policy(aid, keeper.id, "UHC", "CURR123")
+        _policy(aid, loser.id, "UHC", "STALE99")
         db.session.commit()
 
         resp = client.post("/admin/customers/merge-reissued-mbi",
@@ -520,16 +524,13 @@ def test_reissued_merge_keeps_current_mbi_terms_stale_policy():
                            follow_redirects=False)
         assert resp.status_code in (302, 303)
 
-        # loser gone, keeper keeps the current MBI
-        assert db.session.get(Customer, loser.id) is None
-        k = db.session.get(Customer, keeper.id)
-        assert k.mbi == "CURR123"
-
-        # stale-keyed policy termed; live policy untouched
-        pols = Policy.query.filter_by(customer_id=keeper.id).all()
-        by_mid = {p.member_id: p.status for p in pols}
-        assert by_mid["STALE99"] == "termed"
-        assert by_mid["CURR123"] == "active"
+        # Guard blocked it: BOTH records survive, MBIs unchanged, no policy termed.
+        assert db.session.get(Customer, keeper.id) is not None
+        assert db.session.get(Customer, loser.id) is not None
+        assert db.session.get(Customer, loser.id).mbi == "STALE99"
+        statuses = {p.member_id: p.status for p in Policy.query.all()}
+        assert statuses["STALE99"] == "active"
+        assert statuses["CURR123"] == "active"
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()
 
@@ -595,18 +596,20 @@ def test_reissued_merge_refuses_same_mbi_tamper():
         db.session.remove(); db.drop_all(); ctx.pop()
 
 
-def test_reissued_merge_idempotent_when_stale_already_termed():
+def test_reissued_merge_disabled_leaves_both_records():
+    # A second disabled-state guard: even the previously-"idempotent" shape (loser's
+    # policy already termed) must not merge while the override is disabled — both
+    # customer records survive untouched.
     app, client, aid, admin, ctx = _client_app()
     try:
         keeper = _c(aid, full_name="Z Z", dob=date(1950, 2, 3), mbi="CURR")
         loser = _c(aid, full_name="Z Z", dob=date(1950, 2, 3), mbi="STALE")
-        _policy(aid, loser.id, "UHC", "STALE", status="termed")  # already termed
+        _policy(aid, loser.id, "UHC", "STALE", status="termed")
         db.session.commit()
         resp = client.post("/admin/customers/merge-reissued-mbi",
                            data={"keeper_id": keeper.id, "loser_id": loser.id})
         assert resp.status_code in (302, 303)
-        assert db.session.get(Customer, loser.id) is None
-        p = Policy.query.filter_by(customer_id=keeper.id, member_id="STALE").first()
-        assert p.status == "termed"
+        assert db.session.get(Customer, keeper.id) is not None
+        assert db.session.get(Customer, loser.id) is not None   # NOT merged away
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()

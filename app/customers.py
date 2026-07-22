@@ -827,7 +827,8 @@ def customer_duplicates():
         no_mbi_clusters.append({
             "signal": cl.signal,
             "keeper": keeper,
-            "reissued_candidate": is_reissued_mbi_candidate(rows),
+            "reissued_candidate": (REISSUED_MBI_MERGE_ENABLED
+                                   and is_reissued_mbi_candidate(rows)),
             "rows": [_cluster_row_context(r, current_user.agency_id) for r in rows],
         })
 
@@ -865,6 +866,15 @@ def customer_merge():
     return redirect(url_for("customers.customer_profile", customer_id=primary_id))
 
 
+# KILL SWITCH — the reissued-MBI override is DISABLED pending the corrected
+# merge (see docs/superpowers/specs/2026-07-21-customer-plan-domain-model.md §6.1).
+# The shipped logic terms "the loser's stale-MBI policy", which is WRONG for a
+# coexistence pair (it would term an active DVH/Medigap — e.g. Jana Benson). Until
+# the lane-aware corrected merge ships, the route refuses and the UI panel is hidden.
+# Flip to True ONLY when the corrected merge replaces the current body.
+REISSUED_MBI_MERGE_ENABLED = False
+
+
 @customers_bp.route("/admin/customers/merge-reissued-mbi", methods=["POST"])
 @login_required
 @_admin_required
@@ -872,7 +882,14 @@ def customer_merge_reissued_mbi():
     """Reconcile two records that are the SAME person under a CMS-reissued MBI.
     Gate: exactly 2 records, same non-null DOB, differing non-null MBIs (re-validated
     server-side). Keeps the keeper's (current) MBI, nulls the loser's stale MBI, merges
-    via the engine, then terms the policy keyed to the stale MBI. Admin-only."""
+    via the engine, then terms the policy keyed to the stale MBI. Admin-only.
+
+    DISABLED via REISSUED_MBI_MERGE_ENABLED pending the lane-aware corrected merge."""
+    if not REISSUED_MBI_MERGE_ENABLED:
+        flash("The reissued-MBI merge is temporarily disabled pending a redesign "
+              "(it does not yet handle coexisting products like DVH/Medigap correctly). "
+              "No changes were made.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
     from app.dedup import is_reissued_mbi_candidate
     agency_id = current_user.agency_id
     keeper_id = request.form.get("keeper_id", type=int)

@@ -926,14 +926,20 @@ def _detect_carrier(filepath: str, filename: str) -> str:
             headers = list(_tables[0].columns) if _tables else []
         else:
             wb = openpyxl.load_workbook(filepath, data_only=True, read_only=True)
-            ws = wb.active
+            # Scan ALL sheets, not just wb.active: some carrier BOBs put a pivot/
+            # summary sheet FIRST and the real data (with the fingerprint headers) on
+            # a later named sheet (e.g. Devoted's "application_status_report_2026_"
+            # behind a "Sheet1" pivot). Collect the first ">=3 named cells" header row
+            # from EACH sheet and combine them — fingerprints are specific multi-column
+            # matches, so a summary sheet's stray labels never false-match a carrier.
             headers = []
-            for row in ws.iter_rows(min_row=1, max_row=15, values_only=True):
-                candidate = [str(c or "").strip() for c in row]
-                named = [c for c in candidate if c]
-                if len(named) >= 3:
-                    headers = candidate
-                    break
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(min_row=1, max_row=15, values_only=True):
+                    candidate = [str(c or "").strip() for c in row]
+                    named = [c for c in candidate if c]
+                    if len(named) >= 3:
+                        headers.extend(candidate)
+                        break
             wb.close()
         header_set = set(h.lower() for h in headers)
         header_str = " ".join(str(h) for h in headers).lower()

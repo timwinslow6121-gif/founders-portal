@@ -44,6 +44,14 @@ def parse(filepath: str) -> list[dict]:
             raise ValueError(f"Could not read Devoted file: {e}")
         xdf.columns = xdf.columns.str.strip()
         if any(str(c).strip().lower().startswith(_APP_PREFIX) for c in xdf.columns):
+            # Two Application-Status variants: the RICH full BOB has an Mbi column
+            # (real CMS MBIs + plan ID/type/address); the older lossy one does not.
+            has_mbi_col = any(
+                str(c).strip().lower() == "application status report mbi"
+                for c in xdf.columns
+            )
+            if has_mbi_col:
+                return _parse_application_status_rich(xdf)
             return _parse_application_status(xdf)
         # An XLSX that isn't the Application-Status shape: fall through to the
         # snake_case path below (some exports are just CSV-content saved as XLSX).
@@ -131,6 +139,68 @@ def _parse_application_status(df):
             "phone": "",
             "county": "",
             "agent_id": _str(row, col("Agent Npn")),
+            "status": "active",
+        })
+    return records
+
+
+def _yesno(row, col_short) -> bool:
+    """True iff the 'Yes / No' column reads 'Yes' (case-insensitive)."""
+    return _str(row, f"Application Status Report {col_short}").strip().lower() == "yes"
+
+
+def _parse_application_status_rich(df):
+    """The FULL Devoted BOB ('Application Status Report' with an Mbi column):
+    real CMS MBI + plan ID/type + address + writing-agent name + application date
+    + competing-app flags. Keyed by the real MBI (no synthetic id). Enrolled OR
+    Approved => active; any other status skipped. Captures is_winning_app +
+    application_date for the same-MBI dedup tie-break (app/upload.py)."""
+    def col(short):
+        return f"Application Status Report {short}"
+
+    records = []
+    for _, row in df.iterrows():
+        status_raw = _str(row, col("Current Status")).strip().lower()
+        if status_raw not in ("enrolled", "approved"):
+            continue                                # active book only
+
+        mbi = _str(row, col("Mbi")).upper()
+        if not mbi:
+            continue                                # rich path is MBI-keyed
+
+        first = _str(row, col("First Name")).title()
+        last = _str(row, col("Last Name")).title()
+        full = _str(row, col("Full Name"))
+        if not first and not last:
+            first, last = _split_full_name(full)
+            first, last = first.title(), last.title()
+
+        records.append({
+            "carrier": "Devoted",
+            "member_id": mbi,                       # MBI is the key
+            "mbi": mbi,
+            "first_name": first,
+            "last_name": last,
+            "full_name": full or f"{first} {last}".strip(),
+            "dob": _parse_date(row, col("Birth Date")),
+            "phone": _str(row, col("Phone Number")),
+            "address1": _str(row, col("Address")),
+            "city": _str(row, col("City")),
+            "state": _str(row, col("State")),
+            "zip_code": _str(row, col("Zip Code")),
+            "county": _str(row, col("County")),
+            "effective_date": _parse_date(row, col("Start Date")),
+            "term_date": (_parse_date(row, col("Plan End Date"))
+                          or _parse_date(row, col("Disenrollment Date"))),
+            "plan_name": _str(row, col("Plan Name")),
+            "plan_type": _str(row, col("Plan Type")),
+            "agent_name": _str(row, col("Agent Name")),
+            "agent_id": _str(row, col("Agent Npn")),
+            "application_date": _parse_date(row, col("Application Date")),
+            "is_winning_app": _yesno(row, "Is Winning App (Yes / No)"),
+            "commission_type": ("initial"
+                                if _yesno(row, "Is New to Medicare Advantage (Yes / No)")
+                                else "renewal"),
             "status": "active",
         })
     return records

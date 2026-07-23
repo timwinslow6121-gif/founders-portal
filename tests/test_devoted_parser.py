@@ -257,6 +257,26 @@ def test_dedupe_flags_ambiguous_winning_pair():
     assert any(a["member_id"] == "9ZZ9ZZ9ZZ99" for a in AMBIGUOUS_WINNING_PAIRS)
 
 
+def test_rich_data_on_non_first_sheet_is_found(tmp_path):
+    """The REAL full Devoted BOB has a pivot-table 'Sheet1' in front of the actual
+    Application-Status data sheet. parse() must scan all sheets and use the one
+    carrying the Application-Status prefix, not blindly read the first sheet."""
+    p = tmp_path / "Devoted Book of business.xlsx"
+    wb = openpyxl.Workbook()
+    junk = wb.active
+    junk.title = "Sheet1"
+    junk.append(["Count", "of", "stuff"])      # pivot-table-ish junk, no App-Status prefix
+    junk.append(["x", "y", "z"])
+    data = wb.create_sheet("application_status_report_2026_")
+    data.append(RICH_COLS)
+    data.append(_rich_row(mbi="2T74G35WQ90"))
+    wb.save(p)
+    recs = parse(str(p))
+    assert len(recs) == 1
+    assert recs[0]["mbi"] == "2T74G35WQ90"       # rich path found the 2nd sheet
+    assert not recs[0]["member_id"].startswith("DVND-")
+
+
 def test_dedupe_resolvable_pair_not_flagged():
     AMBIGUOUS_WINNING_PAIRS.clear()
     recs = [

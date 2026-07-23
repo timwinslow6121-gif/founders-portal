@@ -39,9 +39,19 @@ def parse(filepath: str) -> list[dict]:
     ext = os.path.splitext(filepath)[1].lower()
     if ext in (".xlsx", ".xls"):
         try:
-            xdf = pd.read_excel(filepath, dtype=str)
+            sheets = pd.read_excel(filepath, dtype=str, sheet_name=None)  # dict: name -> df
         except Exception as e:
             raise ValueError(f"Could not read Devoted file: {e}")
+        # Pick the sheet whose headers carry the Application-Status prefix (the real
+        # BOB has a pivot-table 'Sheet1' in front of the data sheet); else first sheet.
+        xdf = None
+        for _name, _df in sheets.items():
+            cols = [str(c).strip().lower() for c in _df.columns]
+            if any(c.startswith(_APP_PREFIX) for c in cols):
+                xdf = _df
+                break
+        if xdf is None:
+            xdf = next(iter(sheets.values()))
         xdf.columns = xdf.columns.str.strip()
         if any(str(c).strip().lower().startswith(_APP_PREFIX) for c in xdf.columns):
             # Two Application-Status variants: the RICH full BOB has an Mbi column

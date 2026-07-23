@@ -3,6 +3,8 @@ format (single Full Name, Birth Date, Current Status, no member_id) AND the olde
 snake_case CSV with member_id."""
 import openpyxl
 from app.parsers.devoted import parse
+from app.upload import _rec_is_more_current
+from datetime import date
 
 APP_COLS = [
     "Application Status Report Agent Name",
@@ -203,3 +205,35 @@ def test_old_lossy_application_status_still_parses(tmp_path):
     assert len(recs) == 1
     assert recs[0]["member_id"].startswith("DVND-")   # synth path unchanged
     assert recs[0]["mbi"] == ""
+
+
+def test_dedup_winning_app_beats_losing_on_date_tie():
+    # Same term (None) + same eff date => winning-app decides.
+    winner = {"term_date": None, "effective_date": date(2026, 1, 1),
+              "is_winning_app": True, "application_date": date(2025, 11, 13)}
+    loser = {"term_date": None, "effective_date": date(2026, 1, 1),
+             "is_winning_app": False, "application_date": date(2025, 11, 18)}
+    # winner should replace loser even though loser has a LATER app date
+    assert _rec_is_more_current(winner, loser) is True
+    # and the loser should NOT replace the winner
+    assert _rec_is_more_current(loser, winner) is False
+
+
+def test_dedup_later_appdate_wins_when_flag_ties():
+    # Both same winning flag + same eff/term => later application_date wins.
+    later = {"term_date": None, "effective_date": date(2026, 1, 1),
+             "is_winning_app": True, "application_date": date(2025, 12, 5)}
+    earlier = {"term_date": None, "effective_date": date(2026, 1, 1),
+               "is_winning_app": True, "application_date": date(2025, 11, 21)}
+    assert _rec_is_more_current(later, earlier) is True
+    assert _rec_is_more_current(earlier, later) is False
+
+
+def test_dedup_ignores_new_fields_for_other_carriers():
+    # Records without is_winning_app/application_date behave exactly as before:
+    # a later effective date still wins; a full tie still returns True (last-in-file).
+    a = {"term_date": None, "effective_date": date(2026, 2, 1)}
+    b = {"term_date": None, "effective_date": date(2026, 1, 1)}
+    assert _rec_is_more_current(a, b) is True
+    tie = {"term_date": None, "effective_date": date(2026, 1, 1)}
+    assert _rec_is_more_current(dict(tie), dict(tie)) is True

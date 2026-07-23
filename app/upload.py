@@ -98,6 +98,19 @@ def _rec_is_more_current(new, kept):
     ke = kept.get("effective_date") or _MIN
     if ne != ke:
         return ne > ke
+    # term + effective tie -> prefer the WINNING application (Devoted competing
+    # apps share an effective date, so this is the only signal that resolves them).
+    # is_winning_app True beats False; then a later application_date wins. Records
+    # from carriers that don't set these keys skip straight to last-in-file parity.
+    nw = new.get("is_winning_app")
+    kw = kept.get("is_winning_app")
+    if nw is not None or kw is not None:
+        if bool(nw) != bool(kw):
+            return bool(nw)                 # winner replaces loser; loser never replaces winner
+        na = new.get("application_date")
+        ka = kept.get("application_date")
+        if na and ka and na != ka:
+            return na > ka                  # later-submitted application wins
     return True   # full tie -> last-in-file wins (UHC parity)
 
 

@@ -23,6 +23,11 @@ from app.attribution import resolve_writing_agent
 
 upload_bp = Blueprint("upload", __name__)
 
+# Diagnostic: same-MBI active pairs the winning-app tie-break could NOT resolve
+# (same flag AND same application_date). Populated by _dedupe_bob_records; read by
+# the reconcile report. Cleared at the start of each _dedupe_bob_records call.
+AMBIGUOUS_WINNING_PAIRS = []
+
 
 def _fill_if_blank(obj, attr, value):
     """BOB freshness rule: write a captured value ONLY when the current one is blank.
@@ -154,6 +159,21 @@ def _route_termed_rec(rec, agency_id):
     return "updated"
 
 
+def _winning_pair_is_ambiguous(a, b):
+    """True iff two same-key active recs tie on term + effective date AND both carry
+    a winning-app signal that cannot resolve them (same is_winning_app AND same
+    application_date). Only meaningful when both carry is_winning_app."""
+    if a.get("is_winning_app") is None or b.get("is_winning_app") is None:
+        return False
+    if (a.get("term_date") or _date.max) != (b.get("term_date") or _date.max):
+        return False
+    if (a.get("effective_date") or _date.min) != (b.get("effective_date") or _date.min):
+        return False
+    if bool(a.get("is_winning_app")) != bool(b.get("is_winning_app")):
+        return False
+    return a.get("application_date") == b.get("application_date")
+
+
 def _dedupe_bob_records(records):
     """Collapse repeated (carrier, member_id) BOB rows so a member listed multiple
     times can't collide on the uq_carrier_member unique constraint mid-upload.
@@ -170,6 +190,7 @@ def _dedupe_bob_records(records):
     constraint). This is the fix for the active-enrollment-overwritten-by-old-termed-row
     bug (Robbie Belk): the latest active enrollment becomes the policy and every earlier
     enrollment's termed row becomes a closed plan-history chapter."""
+    AMBIGUOUS_WINNING_PAIRS.clear()
     seen = {}          # (carrier, member_id) -> index in `out` of the kept ACTIVE rec
     out = []
     for rec in records:
@@ -180,7 +201,13 @@ def _dedupe_bob_records(records):
         key = (rec.get("carrier"), mid)
         if key in seen:
             kept_idx = seen[key]
-            if _rec_is_more_current(rec, out[kept_idx]):
+            other = out[kept_idx]
+            if _winning_pair_is_ambiguous(rec, other):
+                AMBIGUOUS_WINNING_PAIRS.append({
+                    "carrier": rec.get("carrier"), "member_id": mid,
+                    "full_name": rec.get("full_name") or other.get("full_name"),
+                })
+            if _rec_is_more_current(rec, other):
                 out[kept_idx] = rec        # chronologically newer active rec wins its slot
         else:
             seen[key] = len(out)

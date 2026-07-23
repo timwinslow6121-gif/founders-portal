@@ -3,8 +3,9 @@ format (single Full Name, Birth Date, Current Status, no member_id) AND the olde
 snake_case CSV with member_id."""
 import openpyxl
 from app.parsers.devoted import parse
-from app.upload import _rec_is_more_current
+from app.upload import _rec_is_more_current, _dedupe_bob_records, AMBIGUOUS_WINNING_PAIRS
 from datetime import date
+from datetime import date as _d
 
 APP_COLS = [
     "Application Status Report Agent Name",
@@ -237,3 +238,34 @@ def test_dedup_ignores_new_fields_for_other_carriers():
     assert _rec_is_more_current(a, b) is True
     tie = {"term_date": None, "effective_date": date(2026, 1, 1)}
     assert _rec_is_more_current(dict(tie), dict(tie)) is True
+
+
+def test_dedupe_flags_ambiguous_winning_pair():
+    # Two active rows, same MBI, same term/eff, SAME winning flag AND SAME app date
+    # => unresolvable => flagged for review (but still deduped to one, not dropped).
+    recs = [
+        {"carrier": "Devoted", "member_id": "9ZZ9ZZ9ZZ99", "full_name": "Ambi Guous",
+         "status": "active", "term_date": None, "effective_date": _d(2026, 1, 1),
+         "is_winning_app": True, "application_date": _d(2025, 12, 1)},
+        {"carrier": "Devoted", "member_id": "9ZZ9ZZ9ZZ99", "full_name": "Ambi Guous",
+         "status": "active", "term_date": None, "effective_date": _d(2026, 1, 1),
+         "is_winning_app": True, "application_date": _d(2025, 12, 1)},
+    ]
+    out = _dedupe_bob_records(recs)
+    active = [r for r in out if r.get("status") == "active"]
+    assert len(active) == 1                          # collapsed, nothing dropped
+    assert any(a["member_id"] == "9ZZ9ZZ9ZZ99" for a in AMBIGUOUS_WINNING_PAIRS)
+
+
+def test_dedupe_resolvable_pair_not_flagged():
+    AMBIGUOUS_WINNING_PAIRS.clear()
+    recs = [
+        {"carrier": "Devoted", "member_id": "8YY8YY8YY88", "full_name": "Clear Winner",
+         "status": "active", "term_date": None, "effective_date": _d(2026, 1, 1),
+         "is_winning_app": True, "application_date": _d(2025, 12, 5)},
+        {"carrier": "Devoted", "member_id": "8YY8YY8YY88", "full_name": "Clear Winner",
+         "status": "active", "term_date": None, "effective_date": _d(2026, 1, 1),
+         "is_winning_app": False, "application_date": _d(2025, 11, 1)},
+    ]
+    _dedupe_bob_records(recs)
+    assert not any(a["member_id"] == "8YY8YY8YY88" for a in AMBIGUOUS_WINNING_PAIRS)

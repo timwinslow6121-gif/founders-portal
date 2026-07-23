@@ -203,6 +203,7 @@ def _parse_application_status_rich(df):
             "term_date": (_parse_date(row, col("Plan End Date"))
                           or _parse_date(row, col("Disenrollment Date"))),
             "plan_name": _str(row, col("Plan Name")),
+            "contract_code": _str(row, col("Plan ID")).upper(),   # CMS H-code, e.g. H5299-013
             "plan_type": _str(row, col("Plan Type")),
             "agent_name": _str(row, col("Agent Name")),
             "agent_id": _str(row, col("Agent Npn")),

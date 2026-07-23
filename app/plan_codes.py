@@ -31,6 +31,10 @@ def extract_contract_code(carrier: str, rec: dict) -> Optional[str]:
         pbp = (rec.get("pbp_code") or "").strip()
         if contract and pbp:
             return f"{contract}-{pbp.zfill(3)}"
+    if c == "devoted":
+        code = (rec.get("contract_code") or "").strip().upper()
+        if code:
+            return code
     name = (rec.get("plan_name") or "").upper()
     m = _CODE_RE.search(name)
     if not m:

@@ -194,6 +194,12 @@ def test_rich_lone_non_winning_still_active(tmp_path):
     assert recs[0]["status"] == "active"
 
 
+def test_rich_captures_contract_code(tmp_path):
+    p = _rich_xlsx(tmp_path, [_rich_row(plan_id="H5299-013", mbi="2T74G35WQ90")])
+    r = parse(p)[0]
+    assert r["contract_code"] == "H5299-013"
+
+
 def test_old_lossy_application_status_still_parses(tmp_path):
     # Regression: the OLD lossy file (APP_COLS, NO Mbi column) still uses the
     # synth-id path and must keep working.

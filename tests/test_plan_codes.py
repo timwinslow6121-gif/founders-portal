@@ -33,6 +33,12 @@ def test_extract_returns_none_when_no_code():
     from app.plan_codes import extract_contract_code
     assert extract_contract_code("UHC", {"plan_name": "AARP Medicare Advantage NC-0015"}) is None
 
+def test_extract_contract_code_devoted_uses_contract_code():
+    from app.plan_codes import extract_contract_code
+    assert extract_contract_code("Devoted", {"contract_code": "H5299-013", "plan_name": "DEVOTED DUAL FULL 013 NC"}) == "H5299-013"
+    # no contract_code + Devoted name has no H-code => None (unchanged fallback)
+    assert extract_contract_code("Devoted", {"plan_name": "DEVOTED DUAL FULL 013 NC"}) is None
+
 def test_classify_uses_name_when_plan_type_is_messy():
     from app.plan_codes import classify_plan
     assert classify_plan("", "AARP MEDICARE SUPPLEMENT PLAN G") == "medigap"

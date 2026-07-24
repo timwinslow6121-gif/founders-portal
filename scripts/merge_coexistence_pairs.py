@@ -34,10 +34,14 @@ def is_valid_mbi(v):
     return bool(v) and bool(_MBI_RE.match(str(v).strip().upper()))
 
 
-# (keeper_id, loser_id) — keeper has the real MBI + full data.
+# (keeper_id, loser_id) — keeper has the real MBI + full data (or the DOB when no MBI).
+# require_mbi=False for pairs where neither side has an MBI but the SAME AGENT is AOR
+# on both (Tim-confirmed same person) + the DOB'd record is the keeper.
 PAIRS = [
-    (14561, 1610),   # Blanche Schwarz: Devoted MAPD keeper <- BCBS dental
-    (6247, 6245),    # Jana Benson: UHC Medigap keeper <- UHC DVH (null 45039665600 first)
+    (14561, 1610, True),    # Blanche Schwarz: Devoted MAPD keeper <- BCBS dental
+    (6247, 6245, True),     # Jana Benson: UHC Medigap keeper <- UHC DVH (null 45039665600 first)
+    (6680, 2365, False),    # Marshall Collins: Humana PDP keeper (dob) <- BCBS MedSupp stub;
+                            # same AGENT (Chris Foster) AOR on both = confirmed same person; Medigap+PDP coexist
 ]
 
 
@@ -46,19 +50,28 @@ def main(apply):
     with app.app_context():
         print("%s — merge 2 coexistence pairs (keep BOTH policies)\n" % ("APPLY" if apply else "DRY-RUN"))
         merged = 0
-        for keeper_id, loser_id in PAIRS:
+        for keeper_id, loser_id, require_mbi in PAIRS:
             k = db.session.get(Customer, keeper_id)
             l = db.session.get(Customer, loser_id)
             if not k or not l:
                 print("  ! keeper %s / loser %s missing — SKIP" % (keeper_id, loser_id)); continue
-            # SAFETY: same person = same name + same dob (both present)
+            # SAFETY: same person = same name.
             if (k.full_name or "").lower() != (l.full_name or "").lower():
                 print("  ! %s: name mismatch %r/%r — SKIP" % (keeper_id, k.full_name, l.full_name)); continue
-            if not k.dob or not l.dob or k.dob != l.dob:
-                print("  ! %s: dob not equal/both-present (%s/%s) — SKIP (need DOB-confirmed)"
-                      % (keeper_id, k.dob, l.dob)); continue
-            if not is_valid_mbi(k.mbi):
-                print("  ! keeper %s has no valid-format MBI (%r) — SKIP" % (keeper_id, k.mbi)); continue
+            if require_mbi:
+                # DOB+MBI-confirmed pair: both DOBs present + equal, keeper has a valid MBI.
+                if not k.dob or not l.dob or k.dob != l.dob:
+                    print("  ! %s: dob not equal/both-present (%s/%s) — SKIP" % (keeper_id, k.dob, l.dob)); continue
+                if not is_valid_mbi(k.mbi):
+                    print("  ! keeper %s has no valid-format MBI (%r) — SKIP" % (keeper_id, k.mbi)); continue
+            else:
+                # No-MBI pair (Collins): confirmed same person by SAME AGENT AOR on both
+                # (Tim). Require the keeper to have a DOB + both to share primary_agent_id.
+                if not k.dob:
+                    print("  ! keeper %s has no dob — SKIP" % keeper_id); continue
+                if not k.primary_agent_id or k.primary_agent_id != l.primary_agent_id:
+                    print("  ! %s: agents differ (%s/%s) — SKIP (need same-agent confirmation)"
+                          % (keeper_id, k.primary_agent_id, l.primary_agent_id)); continue
             # If loser carries a non-MBI value in mbi (a policy number), null it first.
             if l.mbi and not is_valid_mbi(l.mbi):
                 print("  %s (%s): loser mbi %r is NOT a valid MBI (policy number) -> NULL it"

@@ -60,11 +60,21 @@ def main(apply):
             close = dp.effective_date - timedelta(days=1)
             print("  term UHC pol %s %-18s eff=%s  -> termed @ %s (switched to Devoted eff %s)"
                   % (up.id, c.full_name, up.effective_date, close, dp.effective_date))
+            # Close the OPEN UHC AOR chapter at the term date too — terming the
+            # policy without this leaves a stale open interval so the timeline shows
+            # UHC as still-current alongside the active Devoted (Tim caught this).
+            from app.models import CustomerAorHistory
+            open_iv = CustomerAorHistory.query.filter_by(
+                customer_id=cid, carrier="UHC", end_date=None).first()
+            aor_note = " + close AOR" if open_iv else " (no open AOR)"
+            print("     %s" % aor_note.strip())
             if apply:
                 up.status = "termed"
                 up.term_date = close
                 up.term_reason = "Switched to Devoted"   # <=32 chars (term_reason col)
                 up.new_carrier = "Devoted"
+                if open_iv:
+                    open_iv.end_date = close
                 termed += 1
         if apply:
             db.session.commit()

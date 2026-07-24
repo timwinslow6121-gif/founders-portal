@@ -32,6 +32,7 @@ _PLANS = [
     ("UHC",         "H2001-030", "MA",  "UHC Dual Complete WV-S001 (PPO D-SNP)"),               # Susan Barr (WV)
     ("Aetna",       "H3931-101", "MA",  "Aetna Medicare Signature (HMO-POS)"),                  # Sheila Lawrence (VA)
     ("Healthspring","S5617-359", "PDP", "HealthSpring Extra Rx (PDP)"),                          # Patels x3 (SC)
+    ("Devoted",     "H7028-002", "MAPD","Devoted CHOICE GIVEBACK South Carolina (PPO)"),         # Tracy Hayden (SC)
 ]
 
 

@@ -504,11 +504,11 @@ def _policy(agency_id, customer_id, carrier, member_id, status="active"):
     return p
 
 
-def test_reissued_merge_disabled_makes_no_changes():
-    # The reissued-MBI override is DISABLED (REISSUED_MBI_MERGE_ENABLED=False) pending
-    # the lane-aware corrected merge — its "term the loser's stale policy" logic is
-    # wrong for a coexistence pair (would term an active DVH/Medigap). The route must
-    # refuse and change NOTHING. See docs/…/2026-07-21-customer-plan-domain-model.md §6.1.
+def test_reissued_merge_route_merges_same_carrier_pair():
+    # The route is now ENABLED and delegates to the lane-aware merge engine. Two
+    # same-DOB, same-carrier active policies (both UHC, no plan_type/contract_code
+    # to distinguish a "current" one) merge into the keeper; the loser record goes
+    # away. See docs/superpowers/specs/2026-07-24-corrected-lane-aware-merge-design.md.
     app, client, aid, admin, ctx = _client_app()
     try:
         keeper = _c(aid, first_name="Milton", last_name="Frazier",
@@ -524,13 +524,9 @@ def test_reissued_merge_disabled_makes_no_changes():
                            follow_redirects=False)
         assert resp.status_code in (302, 303)
 
-        # Guard blocked it: BOTH records survive, MBIs unchanged, no policy termed.
+        # Merged: the loser record is gone; the keeper survives.
         assert db.session.get(Customer, keeper.id) is not None
-        assert db.session.get(Customer, loser.id) is not None
-        assert db.session.get(Customer, loser.id).mbi == "STALE99"
-        statuses = {p.member_id: p.status for p in Policy.query.all()}
-        assert statuses["STALE99"] == "active"
-        assert statuses["CURR123"] == "active"
+        assert db.session.get(Customer, loser.id) is None
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()
 
@@ -579,27 +575,26 @@ def test_reissued_merge_preserves_money():
         db.session.remove(); db.drop_all(); ctx.pop()
 
 
-def test_reissued_merge_refuses_same_mbi_tamper():
+def test_reissued_merge_allows_same_mbi_pair():
+    # Same DOB, SAME MBI is now a valid lane-merge candidate (the broadened gate
+    # only refuses different DOB) — the pair merges.
     app, client, aid, admin, ctx = _client_app()
     try:
-        # Same DOB, SAME MBI => not a reissued candidate; a forced POST must be refused.
         a = _c(aid, full_name="Tam Per", dob=date(1950, 2, 3), mbi="SAME")
         b = _c(aid, full_name="Tam Per", dob=date(1950, 2, 3), mbi="SAME")
         db.session.commit()
         resp = client.post("/admin/customers/merge-reissued-mbi",
                            data={"keeper_id": a.id, "loser_id": b.id})
         assert resp.status_code in (302, 303)
-        # nothing merged — both records still exist
         assert db.session.get(Customer, a.id) is not None
-        assert db.session.get(Customer, b.id) is not None
+        assert db.session.get(Customer, b.id) is None   # merged away
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()
 
 
-def test_reissued_merge_disabled_leaves_both_records():
-    # A second disabled-state guard: even the previously-"idempotent" shape (loser's
-    # policy already termed) must not merge while the override is disabled — both
-    # customer records survive untouched.
+def test_reissued_merge_handles_already_termed_loser_policy():
+    # The loser's policy already being termed is a normal, idempotent-friendly
+    # shape — the merge still succeeds and the loser record is absorbed.
     app, client, aid, admin, ctx = _client_app()
     try:
         keeper = _c(aid, full_name="Z Z", dob=date(1950, 2, 3), mbi="CURR")
@@ -610,7 +605,7 @@ def test_reissued_merge_disabled_leaves_both_records():
                            data={"keeper_id": keeper.id, "loser_id": loser.id})
         assert resp.status_code in (302, 303)
         assert db.session.get(Customer, keeper.id) is not None
-        assert db.session.get(Customer, loser.id) is not None   # NOT merged away
+        assert db.session.get(Customer, loser.id) is None   # merged away
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()
 
@@ -758,5 +753,28 @@ def test_lane_merge_uses_linked_plan_type():
         # from the linked Plan rows.
         assert by_carrier["Aetna"] == "termed"
         assert by_carrier["UHC"] == "active"
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+# ---------------------------------------------------------------------------
+# Re-enabled route calling the lane-aware merge (task 4)
+# ---------------------------------------------------------------------------
+
+def test_route_lane_merge_overcash():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        keeper = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="1X88VQ0CP30")
+        loser = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="2WA7KC0TM50")
+        _pol(aid, keeper.id, "UHC", "1X88VQ0CP30", "mapd", "H5253-117", _date(2026, 1, 1))
+        _pol(aid, loser.id, "Aetna", "2WA7KC0TM50", "pdp", "S5601-017", _date(2024, 1, 1))
+        db.session.commit()
+        resp = client.post("/admin/customers/merge-reissued-mbi",
+                           data={"keeper_id": keeper.id, "loser_id": loser.id})
+        assert resp.status_code in (302, 303)
+        assert db.session.get(Customer, loser.id) is None          # merged
+        k = db.session.get(Customer, keeper.id)
+        assert k.mbi == "1X88VQ0CP30"
+        assert {p.status for p in Policy.query.filter_by(customer_id=keeper.id, carrier="Aetna")} == {"termed"}
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()

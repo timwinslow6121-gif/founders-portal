@@ -75,6 +75,18 @@ def is_reissued_mbi_candidate(rows):
     return True
 
 
+def is_lane_merge_candidate(rows):
+    """Offer the lane-aware merge on a same-DOB pair (2 records, both with a DOB,
+    same DOB). Covers reissue, switcher, AND coexistence uniformly. Different DOB =
+    different person = not a candidate."""
+    if len(rows) != 2:
+        return False
+    a, b = rows
+    if a.dob is None or b.dob is None:
+        return False
+    return a.dob == b.dob
+
+
 def count_no_mbi_clusters(agency_id):
     """Cheap count of merge-suggestion clusters for the nav badge. Loads only
     name + dob columns and groups in memory — NO per-row carrier-id signal queries

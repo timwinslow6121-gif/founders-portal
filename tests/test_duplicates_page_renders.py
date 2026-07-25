@@ -57,12 +57,13 @@ def test_duplicates_page_renders_when_empty(ctx):
     assert resp.status_code == 200
 
 
-def test_reissued_override_panel_hidden_while_disabled(ctx):
+def test_lane_merge_panel_shown_for_conflict(ctx):
     from datetime import date
     app, agency_id, admin = ctx
-    # Same name + same DOB + different MBI would be a reissued-MBI candidate, BUT the
-    # override is DISABLED (REISSUED_MBI_MERGE_ENABLED=False) pending the corrected
-    # merge → the panel must NOT render. See …/2026-07-21-customer-plan-domain-model.md §6.1.
+    # Same name + same DOB + different MBI is a same-DOB conflict cluster — the
+    # lane-aware merge panel is now offered (REISSUED_MBI_MERGE_ENABLED=True,
+    # gate broadened to is_lane_merge_candidate). See
+    # docs/superpowers/specs/2026-07-24-corrected-lane-aware-merge-design.md.
     db.session.add(Customer(agency_id=agency_id, first_name="Milton", last_name="Frazier",
                             full_name="Milton Frazier", dob=date(1950, 2, 3), mbi="CURR123"))
     db.session.add(Customer(agency_id=agency_id, first_name="Milton", last_name="Frazier",
@@ -71,5 +72,4 @@ def test_reissued_override_panel_hidden_while_disabled(ctx):
     client = app.test_client(); _login(client, admin)
     resp = client.get("/admin/customers/duplicates")
     assert resp.status_code == 200
-    assert b"merge-reissued-mbi" not in resp.data   # override form action absent while disabled
-    assert b"Reissued MBI" not in resp.data
+    assert b"merge-reissued-mbi" in resp.data   # override form action present now enabled

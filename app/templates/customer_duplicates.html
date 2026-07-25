@@ -75,11 +75,11 @@
 
   {% if cl.signal == 'conflict' and cl.reissued_candidate %}
     <div style="border: 1px solid var(--gold); border-radius: 10px; padding: 14px 16px; margin: 0 0 14px;">
-      <p style="color: var(--ivory); font-weight: 600; margin: 0 0 4px;">Reissued MBI? Reconcile these two records</p>
+      <p style="color: var(--ivory); font-weight: 600; margin: 0 0 4px;">Same person? Reconcile these records</p>
       <p style="color: var(--slate); font-size: 12px; margin: 0 0 10px;">
-        Same DOB, different MBI — the mark of a CMS-reissued MBI on one person. Pick the CURRENT MBI
-        (the record with the live policy), confirm it's the same person, then merge. The stale MBI's
-        policy is termed automatically.
+        Same DOB — could be a reissued MBI, a carrier switch, or coexisting products (e.g. Medigap +
+        DVH). Pick a keeper, confirm it's the same person, then merge. The engine keeps the current
+        MBI, terms only a superseded primary-medical plan, and leaves coexisting products active.
       </p>
       <form method="post" action="{{ url_for('customers.customer_merge_reissued_mbi') }}">
         {% set r0 = cl.rows[0] %}

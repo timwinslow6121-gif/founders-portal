@@ -814,7 +814,7 @@ def customer_duplicates():
             label = next((d.mbi for d in dupes if d.mbi), None) or dupes[0].display_name
             groups.append((label, dupes))
 
-    from app.dedup import find_no_mbi_clusters, is_reissued_mbi_candidate
+    from app.dedup import find_no_mbi_clusters, is_lane_merge_candidate
     raw_clusters = find_no_mbi_clusters(current_user.agency_id)
     no_mbi_clusters = []
     for cl in raw_clusters:
@@ -829,7 +829,7 @@ def customer_duplicates():
             "signal": cl.signal,
             "keeper": keeper,
             "reissued_candidate": (REISSUED_MBI_MERGE_ENABLED
-                                   and is_reissued_mbi_candidate(rows)),
+                                   and is_lane_merge_candidate(rows)),
             "rows": [_cluster_row_context(r, current_user.agency_id) for r in rows],
         })
 
@@ -867,31 +867,29 @@ def customer_merge():
     return redirect(url_for("customers.customer_profile", customer_id=primary_id))
 
 
-# KILL SWITCH — the reissued-MBI override is DISABLED pending the corrected
-# merge (see docs/superpowers/specs/2026-07-21-customer-plan-domain-model.md §6.1).
-# The shipped logic terms "the loser's stale-MBI policy", which is WRONG for a
-# coexistence pair (it would term an active DVH/Medigap — e.g. Jana Benson). Until
-# the lane-aware corrected merge ships, the route refuses and the UI panel is hidden.
-# Flip to True ONLY when the corrected merge replaces the current body.
-REISSUED_MBI_MERGE_ENABLED = False
+# The reissued-MBI/lane-aware merge override is now ENABLED — it calls the
+# corrected lane-aware merge (merge_customers_lane_aware, below), which resolves
+# the current primary-medical plan + MBI and preserves coexisting products
+# (Medigap/ancillary) instead of blindly terming the loser's stale-MBI policy.
+# See docs/superpowers/specs/2026-07-24-corrected-lane-aware-merge-design.md.
+REISSUED_MBI_MERGE_ENABLED = True
 
 
 @customers_bp.route("/admin/customers/merge-reissued-mbi", methods=["POST"])
 @login_required
 @_admin_required
 def customer_merge_reissued_mbi():
-    """Reconcile two records that are the SAME person under a CMS-reissued MBI.
-    Gate: exactly 2 records, same non-null DOB, differing non-null MBIs (re-validated
-    server-side). Keeps the keeper's (current) MBI, nulls the loser's stale MBI, merges
-    via the engine, then terms the policy keyed to the stale MBI. Admin-only.
-
-    DISABLED via REISSUED_MBI_MERGE_ENABLED pending the lane-aware corrected merge."""
+    """Reconcile two records that are the SAME person (reissued MBI, carrier
+    switcher, or coexisting-product duplicate). Gate: same non-null DOB
+    (re-validated server-side; different DOB = different person, refused).
+    Delegates to the lane-aware merge engine, which resolves the current
+    primary-medical plan + MBI, terms only a superseded primary-medical policy,
+    and keeps coexisting products (Medigap/ancillary) active. Admin-only."""
     if not REISSUED_MBI_MERGE_ENABLED:
         flash("The reissued-MBI merge is temporarily disabled pending a redesign "
               "(it does not yet handle coexisting products like DVH/Medigap correctly). "
               "No changes were made.", "error")
         return redirect(url_for("customers.customer_duplicates"))
-    from app.dedup import is_reissued_mbi_candidate
     agency_id = current_user.agency_id
     keeper_id = request.form.get("keeper_id", type=int)
     loser_id = request.form.get("loser_id", type=int)
@@ -902,45 +900,24 @@ def customer_merge_reissued_mbi():
     keeper = Customer.query.filter_by(id=keeper_id, agency_id=agency_id).first_or_404()
     loser = Customer.query.filter_by(id=loser_id, agency_id=agency_id).first_or_404()
 
-    # Re-validate the gate server-side — never trust the form.
-    if not is_reissued_mbi_candidate([keeper, loser]):
-        flash("These records are not a reissued-MBI pair (need same DOB, different MBI).",
-              "error")
+    # Re-validate the gate server-side — never trust the form. Only different
+    # DOB is refused; same-MBI, diff-MBI, and coexistence pairs are all valid.
+    if keeper.dob and loser.dob and keeper.dob != loser.dob:
+        flash("These records have different DOBs — not the same person.", "error")
         return redirect(url_for("customers.customer_duplicates"))
 
-    stale_mbi = loser.mbi
-
-    # Term the loser's stale-MBI policy and null the stale MBI BEFORE the merge, so
-    # both changes are part of the single unit the engine commits (merge_customers
-    # commits internally via log_event). Doing the term AFTER the merge would split
-    # it into a second commit whose failure path would falsely report "no changes"
-    # while the merge is already committed. Idempotent: skip if already termed.
-    termed_policy_id = None
-    stale_policy = (Policy.query
-                    .filter_by(agency_id=agency_id, customer_id=loser.id,
-                               member_id=stale_mbi)
-                    .first())
-    if stale_policy is not None and stale_policy.status != "termed":
-        stale_policy.status = "termed"
-        termed_policy_id = stale_policy.id
-
-    # Release the stale MBI so the merge engine's one-MBI guard passes.
-    loser.mbi = None
-    db.session.flush()
-
-    # Merge the loser into the keeper (engine unchanged; moves policies/payments/AOR
-    # — including the just-termed stale policy — onto the keeper, then commits).
-    res = merge_customers(keeper.id, [loser.id], agency_id, current_user)
+    res = merge_customers_lane_aware(keeper.id, [loser.id], agency_id, current_user)
     if not res["ok"]:
         db.session.rollback()
         flash(f"Merge blocked: {res['error']}.", "error")
         return redirect(url_for("customers.customer_duplicates"))
-
-    log_event("customer_merge_reissued_mbi", category="admin",
-              detail=(f"keeper={keeper.id} loser={loser.id} stale_mbi={stale_mbi} "
-                      f"termed_policy={termed_policy_id}"),
-              customer_id=keeper.id)
-    flash(f"Reconciled reissued-MBI duplicate into {keeper.display_name}.", "success")
+    if res["needs_review"]:
+        flash(f"Merged {keeper.display_name}. Two primary-medical plans couldn't be "
+              "auto-resolved — review which is current on the profile.", "info")
+    else:
+        n = len(res["superseded_policy_ids"])
+        flash(f"Merged into {keeper.display_name}." + (f" Superseded {n} plan(s)." if n else ""),
+              "success")
     return redirect(url_for("customers.customer_profile", customer_id=keeper.id))
 
 

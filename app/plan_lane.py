@@ -33,3 +33,47 @@ def plan_lane(plan_type):
         return "primary_medical"
     cat = coverage_category(plan_type)
     return _LANE_OF_CATEGORY.get(cat, "other")
+
+
+def _default_type_of(p):
+    return getattr(p, "plan_type", None)
+
+
+def _default_code_of(p):
+    return getattr(p, "contract_code", None)
+
+
+def resolve_primary_medical(policies, plan_type_of=None, code_of=None):
+    """Decide which primary-medical plan is current and which older ones to term.
+
+    Auto-supersede ONLY when unambiguous: two+ active primary-medical policies
+    with KNOWN DIFFERENT contract codes AND exactly one strictly-newer effective
+    date. Otherwise term nothing and flag needs_review. Medigap/ancillary/other
+    are never in scope. Callers may pass plan_type_of/code_of accessors to supply
+    the EFFECTIVE type/code (e.g. falling back to the linked Plan when blank)."""
+    type_of = plan_type_of or _default_type_of
+    code_of = code_of or _default_code_of
+
+    pm = [p for p in policies
+          if getattr(p, "status", "active") == "active"
+          and plan_lane(type_of(p)) == "primary_medical"]
+
+    if len(pm) <= 1:
+        return {"current": pm[0] if pm else None, "supersede": [], "needs_review": False}
+
+    # 2+ primary-medical. Unambiguous only when all codes known + all distinct +
+    # a single strict-newest effective date.
+    codes = [(code_of(p) or "").strip().upper() for p in pm]
+    effs = [getattr(p, "effective_date", None) for p in pm]
+    if any(not c for c in codes) or len(set(codes)) != len(codes) or any(e is None for e in effs):
+        return {"current": None, "supersede": [], "needs_review": True}
+
+    newest = max(effs)
+    newest_holders = [p for p, e in zip(pm, effs) if e == newest]
+    if len(newest_holders) != 1:                    # eff tie -> ambiguous
+        return {"current": None, "supersede": [], "needs_review": True}
+
+    current = newest_holders[0]
+    return {"current": current,
+            "supersede": [p for p in pm if p is not current],
+            "needs_review": False}

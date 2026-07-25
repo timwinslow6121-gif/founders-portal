@@ -13,7 +13,7 @@ from datetime import date
 from app.extensions import db
 from app.models import (
     Agency, User, Customer, Policy, PolicyPayment, CommissionStatement,
-    CustomerNote, CustomerContact, CustomerAorHistory, CommissionLineItem,
+    CustomerNote, CustomerContact, CustomerAorHistory, CommissionLineItem, Plan,
 )
 from app.customers import merge_customers
 
@@ -685,5 +685,78 @@ def test_lane_merge_refuses_different_dob():
         assert res["ok"] is False
         assert db.session.get(Customer, a.id) is not None
         assert db.session.get(Customer, b.id) is not None
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_lane_merge_closes_superseded_aor():
+    # Task-3 review gap A: terming the superseded policy must also CLOSE its
+    # open CustomerAorHistory chapter (Tim's real bug — terming a policy while
+    # leaving its AOR open makes the timeline show it as still-current).
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        keeper = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="1X88VQ0CP30")
+        loser = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="2WA7KC0TM50")
+        _pol(aid, keeper.id, "UHC", "1X88VQ0CP30", "mapd", "H5253-117", _date(2026, 1, 1))
+        _pol(aid, loser.id, "Aetna", "2WA7KC0TM50", "pdp", "S5601-017", _date(2024, 1, 1))
+        db.session.add(CustomerAorHistory(
+            agency_id=aid, customer_id=loser.id, agent_id=admin.id,
+            carrier="Aetna", effective_date=_date(2024, 1, 1), end_date=None,
+        ))
+        db.session.commit()
+
+        res = merge_customers_lane_aware(keeper.id, [loser.id], aid, admin)
+        assert res["ok"] is True
+
+        by_carrier = {p.carrier: p.status for p in Policy.query.filter_by(customer_id=keeper.id)}
+        assert by_carrier["Aetna"] == "termed"
+
+        aetna_aor = CustomerAorHistory.query.filter_by(
+            customer_id=keeper.id, carrier="Aetna").first()
+        assert aetna_aor is not None
+        assert aetna_aor.end_date is not None
+        assert aetna_aor.end_date == _date(2025, 12, 31)
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_lane_merge_uses_linked_plan_type():
+    # Task-3 review gap B: resolve_primary_medical must read the EFFECTIVE
+    # plan_type/contract_code, falling back to the linked Plan when the
+    # Policy's own field is blank (Overcash's real Aetna policy has
+    # plan_type='' but its linked Plan is pdp/S5601-017).
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        uhc_plan = Plan(agency_id=aid, carrier="UHC", plan_name="UHC MAPD",
+                        year=2026, plan_type="mapd", cms_plan_id="H5253-117")
+        aetna_plan = Plan(agency_id=aid, carrier="Aetna", plan_name="Aetna PDP",
+                          year=2026, plan_type="pdp", cms_plan_id="S5601-017")
+        db.session.add_all([uhc_plan, aetna_plan])
+        db.session.flush()
+
+        keeper = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="1X88VQ0CP30")
+        loser = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="2WA7KC0TM50")
+
+        kp = Policy(agency_id=aid, customer_id=keeper.id, carrier="UHC",
+                    member_id="1X88VQ0CP30", plan_type="", contract_code=None,
+                    plan_id=uhc_plan.id, effective_date=_date(2026, 1, 1), status="active")
+        lp = Policy(agency_id=aid, customer_id=loser.id, carrier="Aetna",
+                    member_id="2WA7KC0TM50", plan_type="", contract_code=None,
+                    plan_id=aetna_plan.id, effective_date=_date(2024, 1, 1), status="active")
+        db.session.add_all([kp, lp])
+        db.session.flush()
+        db.session.commit()
+
+        res = merge_customers_lane_aware(keeper.id, [loser.id], aid, admin)
+        assert res["ok"] is True
+        assert res["needs_review"] is False
+
+        by_carrier = {p.carrier: p.status for p in Policy.query.filter_by(customer_id=keeper.id)}
+        # If the fallback to the linked Plan weren't happening, both blank-type
+        # policies would classify as lane 'other' -> no supersession -> Aetna
+        # would remain active. Termed proves the fallback derived pdp/mapd
+        # from the linked Plan rows.
+        assert by_carrier["Aetna"] == "termed"
+        assert by_carrier["UHC"] == "active"
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()

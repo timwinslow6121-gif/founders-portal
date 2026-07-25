@@ -906,7 +906,13 @@ def customer_merge_reissued_mbi():
         flash("These records have different DOBs — not the same person.", "error")
         return redirect(url_for("customers.customer_duplicates"))
 
-    res = merge_customers_lane_aware(keeper.id, [loser.id], agency_id, current_user)
+    try:
+        res = merge_customers_lane_aware(keeper.id, [loser.id], agency_id, current_user)
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"lane-aware merge route failed: {e}")
+        flash("Merge could not be completed (database conflict). No changes were made.", "error")
+        return redirect(url_for("customers.customer_duplicates"))
     if not res["ok"]:
         db.session.rollback()
         flash(f"Merge blocked: {res['error']}.", "error")
@@ -1007,13 +1013,16 @@ def merge_customers_lane_aware(keeper_id, loser_ids, agency_id, actor):
                     "primary-medical plan first", "merged": 0, "current_mbi": None,
                     "superseded_policy_ids": [], "needs_review": True}
 
-    # Null any customer MBI that differs from the current one (so the engine guard
-    # passes with a single MBI). A non-MBI value (policy number) is nulled too.
+    # Assign the current MBI to the keeper without ever having two rows hold it at
+    # once (ix_customers_mbi is a partial unique index — Postgres raises on a
+    # transient duplicate even mid-transaction). Donor-clear-first: null the MBI on
+    # EVERY record (keeper + losers) and flush, THEN set it on the keeper. Also nulls
+    # any other differing MBI / non-MBI policy number.
     for c in everyone:
-        cm = (c.mbi or "").strip().upper()
-        if cm and cm != current_mbi:
+        if c.mbi:
             c.mbi = None
-    if keeper.mbi is None and current_mbi:
+    db.session.flush()                       # release all MBIs before re-assigning
+    if current_mbi:
         keeper.mbi = current_mbi
 
     # Term the superseded primary-medical policies + close their AOR chapter BEFORE

@@ -778,3 +778,31 @@ def test_route_lane_merge_overcash():
         assert {p.status for p in Policy.query.filter_by(customer_id=keeper.id, carrier="Aetna")} == {"termed"}
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()
+
+
+# ---------------------------------------------------------------------------
+# Review fix: donor-clear-first MBI assignment (Postgres ix_customers_mbi
+# UniqueViolation guard)
+# ---------------------------------------------------------------------------
+
+def test_lane_merge_keeper_is_older_record():
+    # Admin picks the OLDER Aetna record as keeper; the CURRENT plan (UHC MAPD) +
+    # its MBI are on the loser. Must not raise (Postgres ix_customers_mbi) and must
+    # keep the current UHC MBI + term the Aetna PDP.
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        keeper = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="2WA7KC0TM50")  # Aetna (older)
+        loser = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="1X88VQ0CP30")   # UHC (current)
+        _pol(aid, keeper.id, "Aetna", "2WA7KC0TM50", "pdp", "S5601-017", _date(2024, 1, 1))
+        _pol(aid, loser.id, "UHC", "1X88VQ0CP30", "mapd", "H5253-117", _date(2026, 1, 1))
+        db.session.commit()
+        res = merge_customers_lane_aware(keeper.id, [loser.id], aid, admin)
+        assert res["ok"] is True
+        assert db.session.get(Customer, loser.id) is None
+        k = db.session.get(Customer, keeper.id)
+        assert k.mbi == "1X88VQ0CP30"                       # current MBI kept
+        by_carrier = {p.carrier: p.status for p in Policy.query.filter_by(customer_id=keeper.id)}
+        assert by_carrier["UHC"] == "active"
+        assert by_carrier["Aetna"] == "termed"
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()

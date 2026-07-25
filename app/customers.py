@@ -9,6 +9,7 @@ import csv
 import io
 import json
 from datetime import datetime, date
+from datetime import timedelta as _timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort, Response, current_app
 from flask_login import login_required, current_user
@@ -941,6 +942,135 @@ def customer_merge_reissued_mbi():
               customer_id=keeper.id)
     flash(f"Reconciled reissued-MBI duplicate into {keeper.display_name}.", "success")
     return redirect(url_for("customers.customer_profile", customer_id=keeper.id))
+
+
+# ---------------------------------------------------------------------------
+# Lane-aware corrected merge (spec 2026-07-24-corrected-lane-aware-merge-design.md)
+# ---------------------------------------------------------------------------
+
+import re as _re
+_MBI_L = "ACDEFGHJKMNPQRTUVWXY"
+_MBI_RE = _re.compile(
+    r"^[1-9][%(L)s][0-9%(L)s][0-9][%(L)s][0-9%(L)s][0-9][%(L)s][%(L)s][0-9][0-9]$"
+    % {"L": _MBI_L})
+
+
+def _is_valid_mbi(v):
+    return bool(v) and bool(_MBI_RE.match(str(v).strip().upper()))
+
+
+def _eff_type_of(p):
+    """Policy plan_type, falling back to the linked Plan's plan_type when blank."""
+    t = (p.plan_type or "").strip()
+    if t:
+        return t
+    if p.plan_id:
+        from app.models import Plan
+        pl = db.session.get(Plan, p.plan_id)
+        if pl and pl.plan_type:
+            return pl.plan_type
+    return ""
+
+
+def _eff_code_of(p):
+    """Policy contract_code, falling back to the linked Plan's cms_plan_id."""
+    c = (p.contract_code or "").strip()
+    if c:
+        return c
+    if p.plan_id:
+        from app.models import Plan
+        pl = db.session.get(Plan, p.plan_id)
+        if pl and pl.cms_plan_id:
+            return pl.cms_plan_id
+    return ""
+
+
+def merge_customers_lane_aware(keeper_id, loser_ids, agency_id, actor):
+    """Lane-aware corrected merge (spec 2026-07-24-corrected-lane-aware-merge).
+    Consolidates same-person duplicates: resolves the current MBI + primary-medical
+    supersession BEFORE calling the untouched merge_customers engine, then terms the
+    superseded primary-medical policy (and closes its AOR chapter) after. Keeps all
+    coexisting products (Medigap/ancillary) active. Same-DOB required."""
+    from app.plan_lane import resolve_primary_medical
+    from app.upload import _close_open_aor_on_term
+
+    keeper = Customer.query.filter_by(id=keeper_id, agency_id=agency_id).first()
+    losers = (Customer.query.filter(Customer.agency_id == agency_id,
+                                    Customer.id.in_(loser_ids),
+                                    Customer.id != keeper_id).all())
+    if not keeper or not losers:
+        return {"ok": False, "error": "keeper/losers not found", "merged": 0,
+                "current_mbi": None, "superseded_policy_ids": [], "needs_review": False}
+
+    everyone = [keeper] + losers
+    dobs = {c.dob for c in everyone if c.dob is not None}
+    if len(dobs) > 1:
+        return {"ok": False, "error": "different DOB — not the same person", "merged": 0,
+                "current_mbi": None, "superseded_policy_ids": [], "needs_review": False}
+
+    ids = [c.id for c in everyone]
+    policies = Policy.query.filter(Policy.agency_id == agency_id,
+                                   Policy.customer_id.in_(ids),
+                                   Policy.status == "active").all()
+    r = resolve_primary_medical(policies, plan_type_of=_eff_type_of, code_of=_eff_code_of)
+
+    # Current MBI = current primary-medical plan's MBI if valid; else the single
+    # valid MBI present across the records.
+    current = r["current"]
+    current_mbi = None
+    if current and _is_valid_mbi(current.member_id):
+        current_mbi = current.member_id.strip().upper()
+    else:
+        valid = {c.mbi.strip().upper() for c in everyone if _is_valid_mbi(c.mbi)}
+        if len(valid) == 1:
+            current_mbi = next(iter(valid))
+        elif len(valid) > 1:
+            # two real MBIs + no unambiguous current plan -> refuse (don't guess)
+            return {"ok": False, "error": "can't determine current MBI — resolve the "
+                    "primary-medical plan first", "merged": 0, "current_mbi": None,
+                    "superseded_policy_ids": [], "needs_review": True}
+
+    # Null any customer MBI that differs from the current one (so the engine guard
+    # passes with a single MBI). A non-MBI value (policy number) is nulled too.
+    for c in everyone:
+        cm = (c.mbi or "").strip().upper()
+        if cm and cm != current_mbi:
+            c.mbi = None
+    if keeper.mbi is None and current_mbi:
+        keeper.mbi = current_mbi
+
+    # Term the superseded primary-medical policies + close their AOR chapter BEFORE
+    # the merge, so it rides the engine's single commit (merge_customers commits
+    # internally via log_event; doing the term AFTER would be a second commit whose
+    # failure path could falsely report "no changes" while the merge is committed —
+    # the exact atomic-ordering bug the shipped override's opus review caught). The
+    # AOR chapter is closed on whichever customer currently owns it (the policy may
+    # still be on a loser at this point); the merge then re-homes it onto the keeper.
+    superseded_ids = []
+    if not r["needs_review"] and current is not None:
+        term_date = (current.effective_date - _timedelta(days=1)) if current.effective_date else None
+        for sp in r["supersede"]:
+            p = db.session.get(Policy, sp.id)
+            if p and p.status == "active":
+                owner = db.session.get(Customer, p.customer_id)
+                p.status = "termed"
+                p.term_date = term_date
+                p.term_reason = "Superseded (merge)"
+                if owner:
+                    _close_open_aor_on_term(owner, p.carrier, term_date)
+                superseded_ids.append(p.id)
+    db.session.flush()
+
+    res = merge_customers(keeper_id, loser_ids, agency_id, actor)
+    if not res["ok"]:
+        db.session.rollback()
+        return {"ok": False, "error": res["error"], "merged": 0,
+                "current_mbi": None, "superseded_policy_ids": [], "needs_review": False}
+
+    # merge_customers committed internally. No second commit needed.
+    return {"ok": True, "merged": res.get("merged", 0), "current_mbi": current_mbi,
+            "superseded_policy_ids": superseded_ids, "needs_review": r["needs_review"],
+            "error": None}
 
 
 # ---------------------------------------------------------------------------

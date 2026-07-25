@@ -613,3 +613,77 @@ def test_reissued_merge_disabled_leaves_both_records():
         assert db.session.get(Customer, loser.id) is not None   # NOT merged away
     finally:
         db.session.remove(); db.drop_all(); ctx.pop()
+
+
+# ---------------------------------------------------------------------------
+# Lane-aware corrected merge (task 3)
+# ---------------------------------------------------------------------------
+
+from datetime import date as _date
+from app.customers import merge_customers_lane_aware
+
+
+def _pol(aid, cid, carrier, member_id, plan_type="", contract_code=None,
+         eff=None, status="active"):
+    p = Policy(agency_id=aid, customer_id=cid, carrier=carrier, member_id=member_id,
+               plan_type=plan_type, contract_code=contract_code,
+               effective_date=eff, status=status)
+    db.session.add(p); db.session.flush()
+    return p
+
+
+def test_lane_merge_overcash_supersedes_pdp():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        # keeper = UHC MAPD (current, newer), loser = Aetna PDP (older, stale MBI)
+        keeper = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="1X88VQ0CP30")
+        loser = _c(aid, full_name="Barbara Overcash", dob=_date(1940, 10, 24), mbi="2WA7KC0TM50")
+        _pol(aid, keeper.id, "UHC", "1X88VQ0CP30", "mapd", "H5253-117", _date(2026, 1, 1))
+        _pol(aid, loser.id, "Aetna", "2WA7KC0TM50", "pdp", "S5601-017", _date(2024, 1, 1))
+        db.session.commit()
+
+        res = merge_customers_lane_aware(keeper.id, [loser.id], aid, admin)
+        assert res["ok"] is True
+        assert res["needs_review"] is False
+        assert db.session.get(Customer, loser.id) is None
+        k = db.session.get(Customer, keeper.id)
+        assert k.mbi == "1X88VQ0CP30"                       # current MBI kept
+        by_carrier = {p.carrier: p.status for p in Policy.query.filter_by(customer_id=keeper.id)}
+        assert by_carrier["UHC"] == "active"                # current stays
+        assert by_carrier["Aetna"] == "termed"              # superseded PDP termed
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_lane_merge_coexistence_keeps_both():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        # Benson-shape: keeper = UHC Medigap (real MBI), loser = UHC DVH (policy-number in mbi)
+        keeper = _c(aid, full_name="Jana Benson", dob=_date(1959, 8, 24), mbi="3DJ9F94VV42")
+        loser = _c(aid, full_name="Jana Benson", dob=_date(1959, 8, 24), mbi="45039665600")
+        _pol(aid, keeper.id, "UHC", "3DJ9F94VV42", "ms", None, _date(2025, 9, 1))
+        _pol(aid, loser.id, "UHC", "45039665600", "dvh", None, _date(2025, 9, 1))
+        db.session.commit()
+
+        res = merge_customers_lane_aware(keeper.id, [loser.id], aid, admin)
+        assert res["ok"] is True
+        k = db.session.get(Customer, keeper.id)
+        assert k.mbi == "3DJ9F94VV42"                       # real Medigap MBI, NOT the policy number
+        statuses = [p.status for p in Policy.query.filter_by(customer_id=keeper.id)]
+        assert statuses == ["active", "active"]             # BOTH kept active
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()
+
+
+def test_lane_merge_refuses_different_dob():
+    app, client, aid, admin, ctx = _client_app()
+    try:
+        a = _c(aid, full_name="X Y", dob=_date(1950, 1, 1), mbi="1X88VQ0CP30")
+        b = _c(aid, full_name="X Y", dob=_date(1961, 1, 1), mbi="2WA7KC0TM50")
+        db.session.commit()
+        res = merge_customers_lane_aware(a.id, [b.id], aid, admin)
+        assert res["ok"] is False
+        assert db.session.get(Customer, a.id) is not None
+        assert db.session.get(Customer, b.id) is not None
+    finally:
+        db.session.remove(); db.drop_all(); ctx.pop()

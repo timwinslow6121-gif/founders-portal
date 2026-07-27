@@ -147,3 +147,31 @@ def test_quick_info_falls_back_to_default_split(ctx, monkeypatch):
     captured = _capture_context(app, uid, pid, monkeypatch)
     assert captured["quick_info"]["split_rate"] == 0.55
     assert round(captured["quick_info"]["agent_take_initial"], 2) == 55.0
+
+
+def test_template_renders_toggle_and_kpi_and_views(ctx, monkeypatch):
+    app, agency_id, uid, pid = ctx
+    with app.app_context():
+        p = db.session.get(Plan, pid)
+        p.annual_oopm = 4500.0
+        # seed a details_json OTC value so the gradient card appears
+        import json
+        p.details_json = json.dumps({"otc_allowance": "$45/quarter"})
+        db.session.commit()
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        # See _capture_context's comment above: test_request_context() reuses the
+        # already-active app context from the `ctx` fixture, so the session's
+        # identity map can hold a stale Plan cached before this test's own writes
+        # above (a separate nested app_context()). Expire so the route re-queries.
+        db.session.expire_all()
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert 'data-plan-view' in html            # the toggle
+    assert 'consumer-view' in html
+    assert 'pro-view' in html
+    assert 'fp-plan-view' in html              # localStorage key referenced in JS
+    assert 'Top extra benefits' in html or 'OTC' in html  # gradient card content

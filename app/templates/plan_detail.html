@@ -53,6 +53,39 @@
 .bb-matrix th:first-child { text-align:left; }
 .bb-matrix td { padding:3px 6px; border-top:1px solid var(--border); color:var(--ivory); }
 .bb-matrix td:not(:first-child) { text-align:right; font-variant-numeric:tabular-nums; }
+
+/* --- Plan-summary v2 slice 1 re-skin --- */
+.plan-view-toggle { display:inline-flex; gap:2px; background:var(--surface-low);
+  border:1px solid var(--border); border-radius:var(--radius-pill); padding:3px; }
+.plan-view-toggle button { border:none; background:transparent; cursor:pointer;
+  font-size:12px; font-weight:600; color:var(--slate); padding:5px 14px;
+  border-radius:var(--radius-pill); transition:all .15s; }
+.plan-view-toggle button.active { background:var(--surface); color:var(--gold);
+  box-shadow:var(--shadow-sm); }
+
+.kpi-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:16px; margin-bottom:20px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px 22px; display:flex; flex-direction:column;
+  gap:6px; min-height:120px; }
+.kpi-label { font-size:11px; font-weight:700; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--slate); }
+.kpi-value { font-family:var(--font-serif); font-size:1.8rem; font-weight:300;
+  color:var(--ivory); line-height:1.1; }
+.kpi-note { font-size:11px; color:var(--slate); margin-top:auto;
+  background:var(--surface-low); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:6px 8px; }
+.kpi-card.gradient { background:linear-gradient(135deg, var(--gold), var(--green));
+  border:none; color:#fff; }
+.kpi-card.gradient .kpi-label { color:rgba(255,255,255,.85); }
+.kpi-card.gradient ul { list-style:none; margin:6px 0 0; padding:0;
+  display:flex; flex-direction:column; gap:8px; }
+.kpi-card.gradient li { font-size:13px; font-weight:500; color:#fff;
+  display:flex; align-items:center; gap:8px; }
+.kpi-card.gradient li::before { content:""; width:8px; height:8px; border-radius:2px;
+  background:rgba(255,255,255,.45); flex:none; }
+
+@media (max-width: 640px) { .kpi-row { grid-template-columns:1fr; } }
 {% endblock %}
 {% block content %}
 
@@ -115,6 +148,27 @@
   {% endif %}
 {% endmacro %}
 
+{# render_sections — the benefit-section cards, shared by BOTH the Consumer and
+   Pro view wrappers so the loop is defined exactly once (both views are still
+   fully server-rendered, per the toggle spec — this just keeps it DRY). #}
+{% macro render_sections(sections, details, medigap_rows, oop_cap, plan) %}
+  {% for group in sections %}
+  <div class="detail-card" style="margin-bottom:16px">
+    <h3>{{ group.title }}</h3>
+    {% for label, key in group.rows %}
+      {{ benefit_row(label, key, details) }}
+    {% endfor %}
+    {% if 'otc' in group.blocks %}{{ otc_block(details) }}{% endif %}
+    {% if 'dental' in group.blocks %}{{ dental_block(details) }}{% endif %}
+    {% if 'medigap_grid' in group.blocks %}{{ medigap_block(medigap_rows) }}{% endif %}
+    {% if 'hi_riders' in group.blocks %}{{ hi_riders_block(details) }}{% endif %}
+    {% if group.title in ('Drugs',) and oop_cap %}
+      <div class="kv-row"><span class="kv-label">Annual OOP cap ({{ plan.year }})</span><span class="kv-value">{{ oop_cap }}</span></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endmacro %}
+
 <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
   <div>
     <div style="margin-bottom:6px">
@@ -138,6 +192,10 @@
     </p>
   </div>
   <div style="display:flex;gap:8px;align-items:center">
+    <div class="plan-view-toggle" data-plan-view>
+      <button type="button" data-view="consumer" class="active">Consumer</button>
+      <button type="button" data-view="pro">Pro</button>
+    </div>
     {% if plan.sob_url %}
       <a href="{{ plan.sob_url }}" target="_blank" rel="noopener"
          class="btn-primary"
@@ -176,41 +234,46 @@
 </div>
 {% endif %}
 
-{# Top stats row #}
-{# One headline stat only — member count. No KPI cards (commission lives in the
-   collapsed admin footer). Spec: "No KPI cards. The only headline number is # of members." #}
+{# Type-adaptive KPI cards — no N/A card ever (route omits empties) #}
+{% if kpis %}
+<div class="kpi-row">
+  {% for k in kpis %}
+    {% if k.kind == 'gradient' %}
+    <div class="kpi-card gradient">
+      <span class="kpi-label">{{ k.label }}</span>
+      <ul>{% for item in k['items'] %}<li>{{ item }}</li>{% endfor %}</ul>
+    </div>
+    {% else %}
+    <div class="kpi-card">
+      <span class="kpi-label">{{ k.label }}</span>
+      <span class="kpi-value">{{ k.value }}</span>
+      {% if k.note %}<div class="kpi-note">{{ k.note }}</div>{% endif %}
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{# Member count — the sole headline stat, kept from the prior design #}
 <div class="detail-card" style="margin-bottom:16px;display:flex;align-items:baseline;gap:14px">
   <span class="member-count" style="margin:0">{{ member_count }}</span>
   <span class="member-sub">active member{{ 's' if member_count != 1 }} on this plan
     {%- if members_truncated %} · showing first {{ row_cap }}{% endif %}</span>
   {% if customers_on_plan %}
-  <a href="#members"
-     style="margin-left:auto;font-size:12px;color:var(--gold);text-decoration:none">View members ↓</a>
+  <a href="#members" style="margin-left:auto;font-size:12px;color:var(--gold);text-decoration:none">View members ↓</a>
   {% endif %}
 </div>
 
-{# Age-rated note for Medigap/DVH #}
-{% if category in ('medigap', 'dvh') %}
-  <div class="detail-card" style="margin-bottom:16px">
-    <div class="kv-row"><span class="kv-label">Monthly premium</span><span class="kv-value">Age-rated (per quote)</span></div>
-  </div>
-{% endif %}
-
-{% for group in sections %}
-<div class="detail-card" style="margin-bottom:16px">
-  <h3>{{ group.title }}</h3>
-  {% for label, key in group.rows %}
-    {{ benefit_row(label, key, details) }}
-  {% endfor %}
-  {% if 'otc' in group.blocks %}{{ otc_block(details) }}{% endif %}
-  {% if 'dental' in group.blocks %}{{ dental_block(details) }}{% endif %}
-  {% if 'medigap_grid' in group.blocks %}{{ medigap_block(medigap_rows) }}{% endif %}
-  {% if 'hi_riders' in group.blocks %}{{ hi_riders_block(details) }}{% endif %}
-  {% if group.title in ('Drugs',) and oop_cap %}
-    <div class="kv-row"><span class="kv-label">Annual OOP cap ({{ plan.year }})</span><span class="kv-value">{{ oop_cap }}</span></div>
-  {% endif %}
+{# Consumer view = the customer-safe benefit sections #}
+<div class="consumer-view">
+  {{ render_sections(sections, details, medigap_rows, oop_cap, plan) }}
 </div>
-{% endfor %}
+
+{# Pro view = same sections + (Task 4) the Agent Quick-Info panel. Hidden by default. #}
+<div class="pro-view" hidden>
+  {# Agent Quick-Info panel is injected here in Task 4 #}
+  {{ render_sections(sections, details, medigap_rows, oop_cap, plan) }}
+</div>
 
 {% if current_user.is_admin %}
 <details class="detail-card" style="margin-bottom:16px">
@@ -257,5 +320,33 @@
   </table>
 </div>
 {% endif %}
+
+<script>
+(function () {
+  var KEY = 'fp-plan-view';
+  var consumer = document.querySelector('.consumer-view');
+  var pro = document.querySelector('.pro-view');
+  var toggle = document.querySelector('[data-plan-view]');
+  if (!consumer || !pro || !toggle) return;
+  function apply(view) {
+    var isPro = view === 'pro';
+    consumer.hidden = isPro;
+    pro.hidden = !isPro;
+    toggle.querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.view === view);
+    });
+  }
+  toggle.querySelectorAll('button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var v = b.dataset.view;
+      try { localStorage.setItem(KEY, v); } catch (e) {}
+      apply(v);
+    });
+  });
+  var saved = 'consumer';
+  try { saved = localStorage.getItem(KEY) || 'consumer'; } catch (e) {}
+  apply(saved);
+})();
+</script>
 
 {% endblock %}

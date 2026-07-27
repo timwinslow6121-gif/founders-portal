@@ -90,6 +90,87 @@ _HI_BASE = [
 ]
 
 
+# Single labeled constant — the standard Medicare Part B premium for the year.
+# NOT stored per-plan, NOT invented. Update yearly.
+PART_B_PREMIUM_2026 = 185.00
+
+
+def top_extra_benefits(details):
+    """The OTC / Dental / Eyewear lines for the Part C gradient card.
+    Each line is omitted when its source value is empty — no fabricated rows."""
+    out = []
+    otc = details.get("otc_allowance")
+    if otc:
+        out.append(f"{otc} OTC credit")
+    dental = details.get("dental_allowance")
+    if dental:
+        out.append(f"{dental} Dental allowance")
+    vision = details.get("vision_allowance")
+    if vision:
+        out.append(f"{vision} Eyewear allowance")
+    return out
+
+
+def _card(label, value, kind="plain", note=None, items=None):
+    return {"label": label, "value": value, "kind": kind, "note": note,
+            "items": items}
+
+
+def kpis_for(plan, details):
+    """Ordered headline KPI cards for this plan's type. A card whose value is
+    missing is OMITTED (never rendered as N/A). See spec Section 2."""
+    cat = coverage_category(plan.plan_type)
+    kpis = []
+
+    if cat == "part_c":
+        premium = details.get("monthly_premium")
+        if premium:
+            note = f"+ ${PART_B_PREMIUM_2026:,.2f}/mo Part B ({plan.year})"
+            kpis.append(_card("Monthly premium", premium, kind="premium", note=note))
+        moop = details.get("annual_oopm")
+        if moop:
+            kpis.append(_card("Annual out-of-pocket max", moop))
+        extras = top_extra_benefits(details)
+        if extras:
+            kpis.append(_card("Top extra benefits", "", kind="gradient", items=extras))
+        return kpis
+
+    if cat == "pdp":
+        premium = details.get("monthly_premium")
+        if premium:
+            kpis.append(_card("Monthly premium", premium))
+        ded = details.get("drug_deductible")
+        if ded:
+            kpis.append(_card("Annual Rx deductible", ded))
+        return kpis
+
+    if cat == "medigap":
+        # Medigap is age-rated — there is no single stored premium.
+        kpis.append(_card("Monthly premium", "Age-rated",
+                          note="See quote — premium depends on age"))
+        return kpis
+
+    if cat == "dvh":
+        amax = details.get("annual_max")
+        if amax:
+            kpis.append(_card("Annual benefit max", amax))
+        ded = details.get("dvh_deductible")
+        if ded:
+            kpis.append(_card("Deductible", ded))
+        return kpis
+
+    if cat == "hospital_indemnity":
+        base = details.get("hi_hospital_confinement")
+        if base:
+            kpis.append(_card("Hospital confinement (daily)", base))
+        days = details.get("hi_max_days")
+        if days:
+            kpis.append(_card("Max benefit period", f"{days} days"))
+        return kpis
+
+    return kpis
+
+
 def sections_for(plan):
     cat = coverage_category(plan.plan_type)
     if cat == "part_c":

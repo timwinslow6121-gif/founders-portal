@@ -317,7 +317,7 @@ def plan_detail(plan_id):
     details = _parse_details(plan.details_json)
 
     from app.plan_sections import (sections_for, coverage_category,
-                                   oop_cap_for_year, medigap_coverage)
+                                   oop_cap_for_year, medigap_coverage, kpis_for)
 
     # Surface real Plan columns under the keys the section config expects, WITHOUT
     # clobbering anything already set in details_json (details_json wins if present).
@@ -340,6 +340,33 @@ def plan_detail(plan_id):
     oop_cap = oop_cap_for_year(plan.year)
     medigap_rows = medigap_coverage(getattr(plan, "plan_letter", None))
 
+    kpis = kpis_for(plan, details)
+
+    # Agent Quick-Info (Pro view) — commission at the VIEWING agent's OWN split.
+    # Every portal user is an authenticated agent/admin, so is_agent_context is True;
+    # the flag exists so the template can DOM-gate commission out of the Consumer view.
+    is_agent_context = current_user.is_authenticated
+    quick_info = None
+    if is_agent_context:
+        from app.models import AgentCarrierContract
+        contract = (AgentCarrierContract.query
+                    .filter_by(agent_id=current_user.id, carrier=plan.carrier,
+                               agency_id=current_user.agency_id)
+                    .first())
+        split = contract.split_rate if contract else 0.55
+        ci, cr = plan.comm_initial, plan.comm_renewal
+        take_i = (ci * split) if ci is not None else None
+        take_r = (cr * split) if cr is not None else None
+        projected = (take_r * 12) if (take_r is not None
+                                      and plan.comm_type == "pmpm") else None
+        quick_info = {
+            "split_rate": split,
+            "split_pct": f"{split * 100:.1f}%".rstrip("0").rstrip("."),
+            "comm_initial": ci, "comm_renewal": cr, "hra_bonus": plan.hra_bonus,
+            "agent_take_initial": take_i, "agent_take_renewal": take_r,
+            "projected_annual": projected,
+        }
+
     return render_template("plan_detail.html",
         plan=plan,
         predecessors=predecessors,
@@ -352,6 +379,7 @@ def plan_detail(plan_id):
         details=details,
         sections=sections, category=category, oop_cap=oop_cap,
         medigap_rows=medigap_rows,
+        kpis=kpis, is_agent_context=is_agent_context, quick_info=quick_info,
     )
 
 

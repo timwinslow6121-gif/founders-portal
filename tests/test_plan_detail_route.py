@@ -175,3 +175,51 @@ def test_template_renders_toggle_and_kpi_and_views(ctx, monkeypatch):
     assert 'pro-view' in html
     assert 'fp-plan-view' in html              # localStorage key referenced in JS
     assert 'Top extra benefits' in html or 'OTC' in html  # gradient card content
+
+
+def test_quick_info_panel_renders_agents_own_numbers(ctx, monkeypatch):
+    app, agency_id, uid, pid = ctx
+    with app.app_context():
+        db.session.add(AgentCarrierContract(
+            agency_id=agency_id, agent_id=uid, carrier="Humana",
+            split_rate=0.525, is_active=True))
+        p = db.session.get(Plan, pid)
+        p.comm_type = "pmpm"; p.comm_initial = 100.0; p.comm_renewal = 50.0
+        db.session.commit()
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        # See _capture_context's comment above: the nested app_context() used to
+        # seed the contract/plan above tears down and clears the scoped session's
+        # identity map on exit, so the route's query would otherwise return a
+        # stale cached Plan (comm_initial=None). Expire so it re-queries fresh.
+        db.session.expire_all()
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert 'quick-info' in html
+    assert '52.5%' in html            # the viewing agent's own split
+    assert '$52.50' in html           # agent take on initial (100 * 0.525)
+
+
+def test_quick_info_panel_absent_without_agent_context(ctx, monkeypatch):
+    """When is_agent_context is False, the commission panel must NOT be in the DOM."""
+    app, agency_id, uid, pid = ctx
+    from app import carriers
+    real = carriers.render_template
+
+    def fake(template_name, **context):
+        context = dict(context)
+        context["is_agent_context"] = False
+        context["quick_info"] = None
+        return real(template_name, **context)
+
+    monkeypatch.setattr(carriers, "render_template", fake)
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert 'quick-info' not in html   # role-gated out of the DOM entirely

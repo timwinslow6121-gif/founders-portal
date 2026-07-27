@@ -86,6 +86,18 @@
   background:rgba(255,255,255,.45); flex:none; }
 
 @media (max-width: 640px) { .kpi-row { grid-template-columns:1fr; } }
+
+{% if is_agent_context and quick_info %}
+.quick-info { background:var(--surface); border:1px solid var(--gold);
+  border-radius:var(--radius); padding:20px 24px; margin-bottom:16px; }
+.quick-info h3 { font-size:11px; font-weight:700; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--gold); margin:0 0 14px; }
+.qi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
+  gap:14px; }
+.qi-cell .qi-num { font-family:var(--font-serif); font-size:1.4rem; font-weight:300;
+  color:var(--ivory); line-height:1; }
+.qi-cell .qi-lbl { font-size:11px; color:var(--slate); margin-top:4px; }
+{% endif %}
 {% endblock %}
 {% block content %}
 
@@ -271,7 +283,41 @@
 
 {# Pro view = same sections + (Task 4) the Agent Quick-Info panel. Hidden by default. #}
 <div class="pro-view" hidden>
-  {# Agent Quick-Info panel is injected here in Task 4 #}
+  {% if is_agent_context and quick_info %}
+  <div class="quick-info">
+    <h3>Agent quick-info — your commission</h3>
+    <div class="qi-grid">
+      <div class="qi-cell">
+        <div class="qi-num">{{ quick_info.split_pct }}</div>
+        <div class="qi-lbl">Your agency split</div>
+      </div>
+      {% if quick_info.comm_initial is not none %}
+      <div class="qi-cell">
+        <div class="qi-num">${{ "%.2f"|format(quick_info.agent_take_initial) }}</div>
+        <div class="qi-lbl">Your take — new (of ${{ "%.2f"|format(quick_info.comm_initial) }})</div>
+      </div>
+      {% endif %}
+      {% if quick_info.comm_renewal is not none %}
+      <div class="qi-cell">
+        <div class="qi-num">${{ "%.2f"|format(quick_info.agent_take_renewal) }}</div>
+        <div class="qi-lbl">Your take — renewal (of ${{ "%.2f"|format(quick_info.comm_renewal) }})</div>
+      </div>
+      {% endif %}
+      {% if quick_info.projected_annual is not none %}
+      <div class="qi-cell">
+        <div class="qi-num">${{ "%.2f"|format(quick_info.projected_annual) }}</div>
+        <div class="qi-lbl">Projected annual (renewal × 12)</div>
+      </div>
+      {% endif %}
+      {% if quick_info.hra_bonus is not none %}
+      <div class="qi-cell">
+        <div class="qi-num">${{ "%.2f"|format(quick_info.hra_bonus) }}</div>
+        <div class="qi-lbl">HRA bonus</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
   {{ render_sections(sections, details, medigap_rows, oop_cap, plan) }}
 </div>
 
@@ -279,9 +325,6 @@
 <details class="detail-card" style="margin-bottom:16px">
   <summary style="cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--slate)">Admin &amp; commission details</summary>
   <div style="margin-top:12px">
-    <div class="kv-row"><span class="kv-label">Commission type</span><span class="kv-value">{{ {"pmpm":"Per Member Per Month","percent_premium":"% of Premium","flat_annual":"Flat Annual"}.get(plan.comm_type, plan.comm_type) }}</span></div>
-    <div class="kv-row"><span class="kv-label">Initial</span><span class="kv-value">{% if plan.comm_initial %}${{ "%.2f"|format(plan.comm_initial) }}{% else %}—{% endif %}</span></div>
-    <div class="kv-row"><span class="kv-label">Renewal</span><span class="kv-value">{% if plan.comm_renewal %}${{ "%.2f"|format(plan.comm_renewal) }}{% else %}—{% endif %}</span></div>
     {% if plan.external_id %}<div class="kv-row"><span class="kv-label">External ID</span><span class="kv-value" style="font-family:monospace;font-size:11px">{{ plan.external_id }}</span></div>{% endif %}
     {% if plan.plan_name_aliases %}<div class="kv-row"><span class="kv-label">BOB aliases</span><span class="kv-value" style="font-size:11px">{{ plan.plan_name_aliases }}</span></div>{% endif %}
     <div class="kv-row"><span class="kv-label">Service area</span><span class="kv-value">{{ plan.service_area or '—' }}</span></div>

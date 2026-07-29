@@ -58,6 +58,11 @@ def quo_webhook():
     """
     payload = verify_quo_webhook(request)  # abort(403) on bad sig
 
+    # TEMP diagnostic (beta 2026-07-29): log the full verified payload so we can
+    # confirm the live Quo field shapes (phone / id / participants) against the
+    # handler's expectations. Remove once field mappings are confirmed.
+    current_app.logger.info("quo_webhook RAW payload: %s", payload)
+
     try:
         event_type = payload.get("type", "")
         call_obj = payload.get("data", {}).get("object", {})

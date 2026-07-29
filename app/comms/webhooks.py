@@ -58,10 +58,17 @@ def quo_webhook():
     """
     payload = verify_quo_webhook(request)  # abort(403) on bad sig
 
-    # TEMP diagnostic (beta 2026-07-29): log the full verified payload so we can
-    # confirm the live Quo field shapes (phone / id / participants) against the
-    # handler's expectations. Remove once field mappings are confirmed.
-    current_app.logger.info("quo_webhook RAW payload: %s", payload)
+    # TEMP diagnostic (beta 2026-07-29): capture the full verified payload so we
+    # can confirm the live Quo field shapes (phone / id / participants) against the
+    # handler's expectations. Uses warning-level (prod logger default is WARNING)
+    # AND appends to a temp file so nothing is missed. Remove once mappings confirmed.
+    current_app.logger.warning("quo_webhook RAW payload: %s", payload)
+    try:
+        import json as _json
+        with open("/tmp/quo_payloads.log", "a") as _f:
+            _f.write(_json.dumps(payload) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
 
     try:
         event_type = payload.get("type", "")

@@ -437,6 +437,28 @@ class Plan(db.Model):
                 "discontinued": "Discontinued"}.get(self.status, self.status.title())
 
 
+class PlanServiceArea(db.Model):
+    """One row per (plan, state, county) the plan is offered in — loaded from the
+    CMS Landscape by scripts/seed_plan_service_areas.py. Drives the plan-detail
+    service-area bar. Part C / PDP plans (with a CMS ID) get rows; Medigap/DVH/HI
+    have no CMS ID and no rows (bar falls back to a state line)."""
+    __tablename__ = "plan_service_areas"
+
+    id        = db.Column(db.Integer, primary_key=True)
+    plan_id   = db.Column(db.Integer, db.ForeignKey("plans.id", ondelete="CASCADE"),
+                          nullable=False, index=True)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    state     = db.Column(db.String(32), nullable=False)
+    county    = db.Column(db.String(128), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("plan_id", "state", "county", name="uq_plan_service_area"),
+    )
+
+    def __repr__(self):
+        return f"<PlanServiceArea plan={self.plan_id} {self.state}/{self.county}>"
+
+
 class Customer(db.Model):
     """
     Master customer record, keyed on MBI (Medicare Beneficiary Identifier).

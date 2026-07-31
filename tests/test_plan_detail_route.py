@@ -266,3 +266,37 @@ def test_service_area_state_mode_when_no_rows(ctx, monkeypatch):
     sa = captured["service_area"]
     assert sa["mode"] == "state"
     assert sa["label"] == "Available statewide in NC"   # plan.service_area is None
+
+
+def test_template_renders_service_area_bar(ctx):
+    app, agency_id, uid, pid = ctx
+    with app.app_context():
+        for c in ("Mecklenburg", "Cabarrus"):
+            db.session.add(PlanServiceArea(plan_id=pid, agency_id=agency_id,
+                                           state="NC", county=c))
+        db.session.commit()
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert "service-area-bar" in html
+    assert "2 counties" in html                 # count line
+    assert "data-service-area-toggle" in html   # View all control
+    assert "Mecklenburg" in html                # county in the (collapsed) list
+
+
+def test_template_service_area_state_line(ctx):
+    app, agency_id, uid, pid = ctx
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert "service-area-bar" in html
+    assert "Available statewide in NC" in html
+    assert "data-service-area-toggle" not in html   # no toggle without counties

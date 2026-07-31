@@ -87,6 +87,17 @@
 
 @media (max-width: 640px) { .kpi-row { grid-template-columns:1fr; } }
 
+.service-area-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  background:var(--surface-low); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:8px 14px; margin-bottom:16px;
+  font-size:13px; color:var(--ivory); }
+.service-area-bar .sa-pin { color:var(--gold); }
+.service-area-bar .sa-muted { color:var(--slate); }
+.service-area-bar button.sa-toggle { border:none; background:transparent; cursor:pointer;
+  color:var(--gold); font-size:12px; font-weight:600; padding:0; text-decoration:underline; }
+.sa-counties { width:100%; margin-top:6px; font-size:12px; color:var(--slate);
+  line-height:1.7; }
+
 {% if is_agent_context and quick_info %}
 .quick-info { background:var(--surface); border:1px solid var(--gold);
   border-radius:var(--radius); padding:20px 24px; margin-bottom:16px; }
@@ -219,6 +230,20 @@
     <a href="{{ url_for('carriers.plan_edit', plan_id=plan.id) }}" class="btn-secondary">Edit plan</a>
     {% endif %}
   </div>
+</div>
+
+{# Service-area bar — geography only (customer-safe); shared across both views #}
+<div class="service-area-bar">
+  <span class="sa-pin">📍</span>
+  {% if service_area.mode == 'counties' %}
+    <span>Available in <strong>{{ service_area.state }}</strong>
+      <span class="sa-muted">· {{ service_area.count }} count{{ 'y' if service_area.count == 1 else 'ies' }}</span>
+    </span>
+    <button type="button" class="sa-toggle" data-service-area-toggle>View all</button>
+    <div class="sa-counties" hidden>{{ service_area.counties | join(', ') }}</div>
+  {% else %}
+    <span>{{ service_area.label }}</span>
+  {% endif %}
 </div>
 
 {# Plan chain — predecessors → this plan → successor #}
@@ -391,5 +416,20 @@
   apply(saved);
 })();
 </script>
+
+{% if service_area.mode == 'counties' %}
+<script>
+(function () {
+  var btn = document.querySelector('[data-service-area-toggle]');
+  var list = document.querySelector('.sa-counties');
+  if (!btn || !list) return;
+  btn.addEventListener('click', function () {
+    var show = list.hidden;
+    list.hidden = !show;
+    btn.textContent = show ? 'Hide' : 'View all';
+  });
+})();
+</script>
+{% endif %}
 
 {% endblock %}

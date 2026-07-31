@@ -68,6 +68,26 @@ def _parse_details(details_json_str):
         return {}
 
 
+def service_area_for(plan, agency_id):
+    """Build the service-area bar payload for a plan. Counties from plan_service_areas
+    (agency-scoped) when present, else a state-line fallback. Never fabricates a count."""
+    from app.models import PlanServiceArea
+    rows = (PlanServiceArea.query
+            .filter_by(plan_id=plan.id, agency_id=agency_id)
+            .all())
+    if rows:
+        # Group by state; pick the state with the most counties as the primary line.
+        by_state = {}
+        for r in rows:
+            by_state.setdefault(r.state, []).append(r.county)
+        state = max(by_state, key=lambda s: len(by_state[s]))
+        counties = sorted(by_state[state])
+        return {"mode": "counties", "state": state,
+                "count": len(counties), "counties": counties}
+    return {"mode": "state",
+            "label": plan.service_area or "Available statewide in NC"}
+
+
 # Benefit field keys serialized into Plan.details_json via the admin form.
 # MUST stay in sync with the form input `name=...` attributes in plan_form.html.
 BENEFIT_KEYS = [
@@ -367,6 +387,8 @@ def plan_detail(plan_id):
             "projected_annual": projected,
         }
 
+    service_area = service_area_for(plan, current_user.agency_id)
+
     return render_template("plan_detail.html",
         plan=plan,
         predecessors=predecessors,
@@ -380,6 +402,7 @@ def plan_detail(plan_id):
         sections=sections, category=category, oop_cap=oop_cap,
         medigap_rows=medigap_rows,
         kpis=kpis, is_agent_context=is_agent_context, quick_info=quick_info,
+        service_area=service_area,
     )
 
 

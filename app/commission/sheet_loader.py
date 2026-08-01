@@ -2,29 +2,50 @@
 app/commission/sheet_loader.py
 
 Loads a commission file into {sheet_name: list[list[cell]]} regardless of the
-three real formats AJ's carriers ship:
+formats AJ's carriers ship:
   - true XLSX (most carriers)
   - .xls extension that is actually XLSX (PK/zip bytes) — Devoted per-agent
   - SpreadsheetML 2003 XML with a broken `<xml version>` first line — Humana
+  - plain CSV (Aetna switched XLSX → CSV between 2026-05 and 2026-07)
+
+ROUTING IS BY CONTENT, NEVER BY EXTENSION. Carrier portals relabel their
+exports without changing the data — the same Aetna report arrived as .xlsx in
+2026-05 and .csv in 2026-07, and Devoted ships real XLSX named .xls every
+month. Sniffing magic bytes is the only thing that survives that churn.
 
 See docs/superpowers/specs/2026-06-03-commission-customer-sync-design.md
 "Per-carrier reference".
 """
+import csv
+import io
 import re
 import xml.etree.ElementTree as ET
 
 import openpyxl
 
 
+def _sniff(path, n=8):
+    """Return the first n bytes of the file (used for magic-byte routing)."""
+    with open(path, "rb") as fh:
+        return fh.read(n)
+
+
 def _looks_like_zip(path):
     """Return True if the file starts with the PK header (ZIP/XLSX magic bytes)."""
-    with open(path, "rb") as fh:
-        return fh.read(2) == b"PK"
+    return _sniff(path, 2) == b"PK"
 
 
 def _load_xlsx(path):
-    """Load an XLSX file via openpyxl into {sheet_name: list[list[cell]]}."""
-    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    """Load an XLSX file into {sheet_name: list[list[cell]]}.
+
+    Opened as a file HANDLE rather than a path on purpose: openpyxl rejects a
+    path ending in .xls on the filename alone, even when the bytes are a valid
+    XLSX. Handing it a stream bypasses that check, which is what lets Devoted's
+    mislabeled per-agent export load without being renamed first.
+    """
+    with open(path, "rb") as fh:
+        data = io.BytesIO(fh.read())
+    wb = openpyxl.load_workbook(data, read_only=True, data_only=True)
     out = {}
     for ws in wb.worksheets:
         rows = []
@@ -68,9 +89,111 @@ def _load_spreadsheetml(path):
     return out
 
 
+def _load_csv(path):
+    """Load a delimited text file into {sheet_name: list[list[cell]]}.
+
+    Read with utf-8-sig so a Microsoft UTF-8 BOM is stripped. Aetna's export
+    carries one; left in place it fuses onto the first header ('﻿Payment
+    Date'), and since carriers are identified by header text that alone is
+    enough to make detection fail.
+
+    csv.Sniffer picks the delimiter so a tab- or semicolon-separated export
+    still lands in the right columns. Every cell stays a string — parsing of
+    dates and money belongs to the per-carrier normalizers, not here.
+    """
+    with open(path, encoding="utf-8-sig", errors="replace", newline="") as fh:
+        sample = fh.read(64 * 1024)
+        fh.seek(0)
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        except csv.Error:
+            dialect = csv.excel  # single-column or ambiguous → comma default
+        rows = [list(r) for r in csv.reader(fh, dialect)]
+
+    # Drop trailing blank lines; keep interior blanks (carriers use them as
+    # section separators and normalizers rely on the row positions).
+    while rows and not any(str(c).strip() for c in rows[-1]):
+        rows.pop()
+
+    return {"Sheet1": rows}
+
+
+#: Magic-byte signatures that are definitively NOT spreadsheets or text. These
+#: must be rejected before the text fallback — several (notably %PDF) contain
+#: no null bytes early on and would otherwise look like parseable text.
+_BINARY_SIGNATURES = (
+    b"%PDF",              # PDF — carrier statements arrive as PDFs alongside data
+    b"\xd0\xcf\x11\xe0",  # OLE2 — genuine legacy binary .xls (needs xlrd, unsupported)
+    b"\x89PNG",           # PNG
+    b"\xff\xd8\xff",      # JPEG
+    b"GIF8",              # GIF
+    b"Rar!",              # RAR
+    b"\x1f\x8b",          # gzip
+)
+
+
+def _KNOWN_BINARY(head):
+    """True if the leading bytes match a known non-spreadsheet binary format."""
+    return any(head.startswith(sig) for sig in _BINARY_SIGNATURES)
+
+
+def _describe_bytes(head):
+    """Best-effort name for an unsupported file, for the error message."""
+    if head.startswith(b"%PDF"):
+        return "a PDF"
+    if head.startswith(b"\xd0\xcf\x11\xe0"):
+        # OLE2 compound document = genuine legacy .xls (pre-2007 binary)
+        return "a legacy binary .xls (Excel 97-2003)"
+    if head.startswith(b"\x89PNG") or head.startswith(b"\xff\xd8\xff"):
+        return "an image"
+    return "an unrecognized binary format"
+
+
+def _looks_like_text(head):
+    """True if the leading bytes look like decodable text rather than binary."""
+    if b"\x00" in head:
+        return False
+    try:
+        head.decode("utf-8")
+        return True
+    except UnicodeDecodeError:
+        return True  # could be latin-1 CSV; _load_csv replaces bad bytes
+
+
 def load_sheets(path):
-    """Return {sheet_name: list[list[cell]]} for any supported commission file."""
-    if path.lower().endswith(".xlsx") or _looks_like_zip(path):
+    """Return {sheet_name: list[list[cell]]} for any supported commission file.
+
+    Routes on CONTENT, not extension — see the module docstring. Order matters:
+    zip is checked first (XLSX is a zip), then markup, then text/CSV.
+    """
+    head = _sniff(path, 8)
+
+    # 1. ZIP magic → XLSX, whatever the file is named (.xls, .xlsx, no extension)
+    if head[:2] == b"PK":
         return _load_xlsx(path)
-    # .xls that is not a zip → SpreadsheetML XML (Humana)
-    return _load_spreadsheetml(path)
+
+    # 2. Markup → SpreadsheetML 2003 / HTML-disguised-as-xls (Humana)
+    stripped = head.lstrip()
+    if stripped.startswith(b"<"):
+        return _load_spreadsheetml(path)
+
+    # 3. Known binary signatures → reject before the text fallback. A PDF's
+    #    header has no null bytes in its first cells, so it would otherwise be
+    #    mistaken for text and parsed as a one-column CSV of garbage.
+    if _KNOWN_BINARY(head):
+        raise ValueError(
+            f"Unsupported commission file format: this looks like "
+            f"{_describe_bytes(head)}, not a spreadsheet or CSV. "
+            f"Nothing was imported."
+        )
+
+    # 4. Anything else that decodes as text → delimited (Aetna CSV)
+    if _looks_like_text(head):
+        return _load_csv(path)
+
+    # 4. Genuinely unsupported → fail loudly, naming what was found, so the
+    #    upload UI can tell AJ what is wrong instead of "File is not a zip file".
+    raise ValueError(
+        f"Unsupported commission file format: this looks like "
+        f"{_describe_bytes(head)}, not a spreadsheet or CSV. Nothing was imported."
+    )

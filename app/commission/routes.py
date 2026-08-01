@@ -67,10 +67,14 @@ def _statement_date_from_sheets(carrier, sheets):
 
 
 def load_sheets_from_bytes(file_bytes, filename):
-    """Write bytes to a temp path and load via sheet_loader (handles xlsx/xls/SpreadsheetML)."""
+    """Write bytes to a temp path and load via sheet_loader.
+
+    The temp suffix is deliberately meaningless: load_sheets() routes on the
+    file's magic bytes, not its name, so xlsx / mislabeled-xls / SpreadsheetML
+    / CSV all resolve correctly regardless of what the upload was called.
+    """
     import tempfile, os as _os
-    suffix = ".xlsx" if (filename or "").lower().endswith("xlsx") else ".xls"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tf:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".upload") as tf:
         tf.write(file_bytes)
         tmp = tf.name
     try:

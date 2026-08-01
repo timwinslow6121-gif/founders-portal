@@ -30,11 +30,6 @@ def _sniff(path, n=8):
         return fh.read(n)
 
 
-def _looks_like_zip(path):
-    """Return True if the file starts with the PK header (ZIP/XLSX magic bytes)."""
-    return _sniff(path, 2) == b"PK"
-
-
 def _load_xlsx(path):
     """Load an XLSX file into {sheet_name: list[list[cell]]}.
 
@@ -115,6 +110,13 @@ def _load_csv(path):
     while rows and not any(str(c).strip() for c in rows[-1]):
         rows.pop()
 
+    # Pad every row to the widest row, matching _load_xlsx which yields
+    # rectangular sheets. Normalizers read by fixed column index, so a short
+    # trailing row must not IndexError on a carrier whose guard is missing.
+    if rows:
+        width = max(len(r) for r in rows)
+        rows = [r + [""] * (width - len(r)) for r in rows]
+
     return {"Sheet1": rows}
 
 
@@ -149,15 +151,23 @@ def _describe_bytes(head):
     return "an unrecognized binary format"
 
 
-def _looks_like_text(head):
-    """True if the leading bytes look like decodable text rather than binary."""
-    if b"\x00" in head:
+def _looks_like_text(sample):
+    """True if the sample looks like decodable text rather than binary.
+
+    Judged on the ratio of printable bytes, not on decodability: a latin-1 CSV
+    fails utf-8 decoding but is still text, while a compressed archive often
+    decodes without raising. Anything unrecognized must fail loudly rather than
+    be parsed into a one-row grid of garbage — this feeds a money path.
+    """
+    if not sample:
         return False
-    try:
-        head.decode("utf-8")
-        return True
-    except UnicodeDecodeError:
-        return True  # could be latin-1 CSV; _load_csv replaces bad bytes
+    if b"\x00" in sample:
+        return False
+    printable = sum(
+        1 for b in sample
+        if b in (9, 10, 13) or 32 <= b < 127 or b >= 128
+    )
+    return printable / len(sample) > 0.9
 
 
 def load_sheets(path):
@@ -166,33 +176,28 @@ def load_sheets(path):
     Routes on CONTENT, not extension — see the module docstring. Order matters:
     zip is checked first (XLSX is a zip), then markup, then text/CSV.
     """
-    head = _sniff(path, 8)
+    # Sniff a generous window, not just the magic bytes: the markup test below
+    # has to survive leading whitespace or a BOM from a carrier that starts
+    # pretty-printing its XML, and the text test needs enough bytes to judge.
+    head = _sniff(path, 4096)
 
     # 1. ZIP magic → XLSX, whatever the file is named (.xls, .xlsx, no extension)
     if head[:2] == b"PK":
         return _load_xlsx(path)
 
-    # 2. Markup → SpreadsheetML 2003 / HTML-disguised-as-xls (Humana)
-    stripped = head.lstrip()
-    if stripped.startswith(b"<"):
+    # 2. Markup → SpreadsheetML 2003 / HTML-disguised-as-xls (Humana).
+    #    Tolerates a UTF-8 BOM and arbitrary leading whitespace.
+    if head.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<"):
         return _load_spreadsheetml(path)
 
-    # 3. Known binary signatures → reject before the text fallback. A PDF's
-    #    header has no null bytes in its first cells, so it would otherwise be
-    #    mistaken for text and parsed as a one-column CSV of garbage.
-    if _KNOWN_BINARY(head):
-        raise ValueError(
-            f"Unsupported commission file format: this looks like "
-            f"{_describe_bytes(head)}, not a spreadsheet or CSV. "
-            f"Nothing was imported."
-        )
-
-    # 4. Anything else that decodes as text → delimited (Aetna CSV)
-    if _looks_like_text(head):
+    # 3. Text → delimited (Aetna CSV). Checked AFTER markup so an XML file is
+    #    never parsed as a one-column CSV, and it is the only branch that
+    #    accepts an unrecognized file — so it must be conservative.
+    if not _KNOWN_BINARY(head) and _looks_like_text(head):
         return _load_csv(path)
 
-    # 4. Genuinely unsupported → fail loudly, naming what was found, so the
-    #    upload UI can tell AJ what is wrong instead of "File is not a zip file".
+    # 4. Anything else → fail loudly, naming what was found, so the upload UI
+    #    can tell AJ what is wrong instead of "File is not a zip file".
     raise ValueError(
         f"Unsupported commission file format: this looks like "
         f"{_describe_bytes(head)}, not a spreadsheet or CSV. Nothing was imported."

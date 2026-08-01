@@ -146,3 +146,93 @@ def test_unsupported_binary_raises_clear_error():
         load_sheets(path)
     msg = str(exc.value).lower()
     assert "pdf" in msg or "unsupported" in msg
+
+
+# --- Route-level: the loader fix must actually reach the upload path --------
+#
+# The loader tests above pass against load_sheets() in isolation. That is not
+# enough: _process_one_file() previously gated the normalized pipeline on
+# `not filename.endswith(".csv")`, so a correct loader was never consulted for
+# Aetna's CSV and the file imported via the legacy path with NO ledger rows.
+# These tests pin the route behavior so that gap cannot reopen.
+
+REAL_JULY = os.path.join(
+    os.path.dirname(__file__), "..", "docs", "Commission DL", "_organized",
+    "2026-07_cycle", "Founders_Commission_July_2026",
+)
+AETNA_CSV_FILE = os.path.join(REAL_JULY, "Founders Insurance Agency, LLC_med_comm_202607.csv")
+
+
+@pytest.fixture
+def app_ctx():
+    from app import create_app
+    from app.extensions import db
+    from app.models import Agency
+    app = create_app()
+    app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
+                      RATELIMIT_ENABLED=False)
+    with app.app_context():
+        db.create_all()
+        ag = Agency(name="T")
+        db.session.add(ag)
+        db.session.flush()
+        yield app, ag.id
+        db.session.remove()
+        db.drop_all()
+
+
+def test_csv_upload_reaches_normalized_pipeline(app_ctx):
+    """A .csv upload must reach _ingest_normalized_upload — the ledger path.
+
+    _process_one_file() used to skip the content probe for any .csv, so Aetna
+    imported via the legacy path and wrote NO CommissionLineItem rows. Asserting
+    the ingest function is actually CALLED is what pins that gate open; checking
+    only that the carrier is detectable would pass either way.
+    """
+    from unittest.mock import patch
+    from app.commission.routes import _process_one_file
+    app, agency_id = app_ctx
+    body = AETNA_CSV.encode("utf-8")
+
+    sentinel = {"filename": "x", "ok": True, "error": None, "fix": None}
+    with app.test_request_context():
+        with patch("app.commission.routes._ingest_normalized_upload",
+                   return_value=sentinel) as ingest:
+            _process_one_file(
+                file_bytes=body, filename="aetna_export.csv",
+                statement_month="2026-07", agency_id=agency_id,
+                actor=None, replace=False,
+            )
+    assert ingest.called, (
+        "a .csv must reach the normalized ingest; if this fails the CSV is "
+        "falling through to the legacy path and writing no ledger rows"
+    )
+    assert ingest.call_args[0][0] == "Aetna"
+
+
+@pytest.mark.skipif(not os.path.exists(AETNA_CSV_FILE),
+                    reason="real 2026-07 Aetna CSV not present")
+def test_real_aetna_csv_detects_through_upload_path(app_ctx):
+    """The actual file that failed in production, through the byte path."""
+    from app.commission.routes import load_sheets_from_bytes, _detect_carrier_from_sheets
+    with open(AETNA_CSV_FILE, "rb") as fh:
+        body = fh.read()
+    sheets = load_sheets_from_bytes(body, os.path.basename(AETNA_CSV_FILE))
+    assert _detect_carrier_from_sheets(sheets) == "Aetna"
+
+
+def test_unsupported_file_error_surfaces_to_uploader(app_ctx):
+    """A PDF must return the loader's descriptive message, NOT the legacy
+    path's 'Could not read file: File is not a zip file'."""
+    from app.commission.routes import _process_one_file
+    app, agency_id = app_ctx
+    pdf = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\ntrailing junk"
+    with app.test_request_context():
+        res = _process_one_file(
+            file_bytes=pdf, filename="statement.pdf", statement_month="2026-07",
+            agency_id=agency_id, actor=None, replace=False,
+        )
+    assert res["ok"] is False
+    msg = res["error"].lower()
+    assert "pdf" in msg, f"expected the PDF to be named, got: {res['error']}"
+    assert "not a zip file" not in msg, "legacy error must not leak to the UI"

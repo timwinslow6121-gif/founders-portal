@@ -67,10 +67,14 @@ def _statement_date_from_sheets(carrier, sheets):
 
 
 def load_sheets_from_bytes(file_bytes, filename):
-    """Write bytes to a temp path and load via sheet_loader (handles xlsx/xls/SpreadsheetML)."""
+    """Write bytes to a temp path and load via sheet_loader.
+
+    The temp suffix is deliberately meaningless: load_sheets() routes on the
+    file's magic bytes, not its name, so xlsx / mislabeled-xls / SpreadsheetML
+    / CSV all resolve correctly regardless of what the upload was called.
+    """
     import tempfile, os as _os
-    suffix = ".xlsx" if (filename or "").lower().endswith("xlsx") else ".xls"
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tf:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".upload") as tf:
         tf.write(file_bytes)
         tmp = tf.name
     try:
@@ -1125,20 +1129,31 @@ def _process_one_file(filename, file_bytes, statement_month, agency_id, actor,
         # ── New normalize→resolve→pay pipeline for the 5 clean-split carriers ──
         # These carriers (Healthspring, Devoted, BCBS, Aetna, Humana) ship multi-
         # sheet / SpreadsheetML files that the legacy single-active-sheet path can't
-        # read. Detect via sheet_loader (handles xlsx/xls/SpreadsheetML), and if the
-        # carrier is in NORMALIZERS, run the ingest pipeline. UHC (and anything not
-        # in NORMALIZERS) falls through to the unchanged legacy path below.
-        if not filename_lower.endswith(".csv"):
-            try:
-                _sheets_probe = load_sheets_from_bytes(file_bytes, filename)
-            except Exception:
-                _sheets_probe = None
-            if _sheets_probe:
-                probe_carrier = _detect_carrier_from_sheets(_sheets_probe)
-                if probe_carrier in NORMALIZERS:
-                    return _ingest_normalized_upload(
-                        probe_carrier, _sheets_probe, file_bytes, filename,
-                        statement_month, agency_id, actor, replace=replace)
+        # read. Detect via sheet_loader (routes on CONTENT, so xlsx / mislabeled
+        # .xls / SpreadsheetML / CSV all resolve), and if the carrier is in
+        # NORMALIZERS, run the ingest pipeline. UHC (and anything not in
+        # NORMALIZERS) falls through to the unchanged legacy path below.
+        #
+        # The probe runs on EVERY file regardless of extension. It used to skip
+        # .csv because the loader had no CSV reader; it does now, and Aetna
+        # switched XLSX→CSV in 2026-07. Skipping CSV here sent Aetna down the
+        # legacy path, which writes NO CommissionLineItem ledger rows and does no
+        # customer sync — a silent divergence from every other carrier.
+        try:
+            _sheets_probe = load_sheets_from_bytes(file_bytes, filename)
+        except ValueError as e:
+            # Unsupported-format rejection from the loader carries a message
+            # written for AJ (e.g. "this looks like a PDF"). Surface it instead
+            # of falling through to the legacy path's "File is not a zip file".
+            return {"filename": filename, "ok": False, "error": str(e), "fix": None}
+        except Exception:
+            _sheets_probe = None
+        if _sheets_probe:
+            probe_carrier = _detect_carrier_from_sheets(_sheets_probe)
+            if probe_carrier in NORMALIZERS:
+                return _ingest_normalized_upload(
+                    probe_carrier, _sheets_probe, file_bytes, filename,
+                    statement_month, agency_id, actor, replace=replace)
 
         # ── Legacy single-active-sheet pipeline (UHC + CSV) ──
         try:

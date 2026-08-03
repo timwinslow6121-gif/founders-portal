@@ -1625,6 +1625,13 @@ def commission_line_edit(line_id):
     # silent: never fabricate a rate to judge a save by.
     from app.commission.recap import contract_rate_for
     contract_rate = contract_rate_for(agent.id, li.carrier, current_user.agency_id)
+    # This guard judges against `combined` (the STORED line + its ::ovr sibling),
+    # while the client-side previews judge against what AJ typed (agent+override).
+    # Those are two different quantities that happen to be equal on every save that
+    # can succeed, because edit_line_split (ledger.py, the `must equal the line
+    # total` ValueError) refuses any save where agent+override != original_combined.
+    # That equality is the non-local invariant keeping the warning and the guard in
+    # step — if it is ever relaxed, this computation must be revisited too.
     ovr_sibling = CommissionLineItem.query.filter_by(
         statement_id=li.statement_id, agency_id=current_user.agency_id,
         source_ref=f"{li.source_ref}::ovr").first()

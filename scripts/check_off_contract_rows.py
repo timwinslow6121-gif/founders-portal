@@ -21,7 +21,10 @@ from app.commission.ledger import split_breakdown
 def main():
     app = create_app()
     with app.app_context():
-        users = {u.id: u.name for u in User.query.all()}
+        # User.name is nullable; fall back so a NULL name cannot TypeError on the
+        # `nm[:20]` slice partway through the report.
+        users = {u.id: (u.name or u.email or "(agent %s)" % u.id)
+                 for u in User.query.all()}
         cache = {}
         groups = defaultdict(lambda: {"n": 0, "delta": 0.0})
         for li in CommissionLineItem.query.filter(

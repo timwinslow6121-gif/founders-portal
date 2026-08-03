@@ -69,6 +69,76 @@ def test_contract_rate_for_uses_cache(app_ctx):
     assert contract_rate_for(u.id, "UHC", agency_id, cache) == 0.99
 
 
+def test_fidelity_row_exposes_contract_rate_and_off_contract_flag(app_ctx):
+    """The Fidelity table builds its edit form in JS from this row dict, so the
+    rate must travel in JSON -- rendering it per row would re-inflate the ~4k-row
+    DOM that merge 50a7f4a shrank."""
+    from app.extensions import db
+    from app.models import (User, AgentCarrierContract, Agency,
+                            CommissionStatement, CommissionLineItem)
+    from app.commission.recap import fidelity_row
+    from datetime import date
+    app, agency_id = app_ctx
+
+    mike = User(email="m@x.com", name="Mike Lauzurique",
+                agency_id=agency_id, role="agent")
+    db.session.add(mike); db.session.flush()
+    db.session.add(AgentCarrierContract(agent_id=mike.id, carrier="UHC",
+                                        agency_id=agency_id, is_active=True,
+                                        split_rate=0.525))
+    stmt = CommissionStatement(agency_id=agency_id, carrier="UHC",
+                               period_label="July 2026", filename="u.xlsx",
+                               statement_date=date(2026, 7, 1))
+    db.session.add(stmt); db.session.flush()
+
+    on = CommissionLineItem(agency_id=agency_id, statement_id=stmt.id,
+                            carrier="UHC", source_ref="uhc::0::1",
+                            agent_id=mike.id, raw_amount=4.59, split_rate=0.525,
+                            classification="agent_commission",
+                            member_name="ON, CONTRACT")
+    off = CommissionLineItem(agency_id=agency_id, statement_id=stmt.id,
+                             carrier="UHC", source_ref="uhc::0::2",
+                             agent_id=mike.id, raw_amount=4.59, split_rate=1.0,
+                             classification="agent_commission",
+                             member_name="OFF, CONTRACT")
+    db.session.add_all([on, off]); db.session.flush()
+
+    r_on = fidelity_row(on)
+    assert r_on["contract_rate"] == 0.525
+    assert r_on["off_contract"] is False
+
+    r_off = fidelity_row(off)
+    assert r_off["contract_rate"] == 0.525
+    assert r_off["off_contract"] is True, "stored 1.0 vs contract 0.525"
+
+
+def test_fidelity_row_no_contract_is_not_off_contract(app_ctx):
+    """No contract on file means we cannot judge the rate -- report None and do
+    NOT flag the row, or every unattributed line screams false alarm."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from app.commission.recap import fidelity_row
+    from datetime import date
+    app, agency_id = app_ctx
+
+    u = User(email="n@x.com", name="No Contract", agency_id=agency_id, role="agent")
+    db.session.add(u); db.session.flush()
+    stmt = CommissionStatement(agency_id=agency_id, carrier="UHC",
+                               period_label="July 2026", filename="u.xlsx",
+                               statement_date=date(2026, 7, 1))
+    db.session.add(stmt); db.session.flush()
+    li = CommissionLineItem(agency_id=agency_id, statement_id=stmt.id,
+                            carrier="UHC", source_ref="uhc::0::3",
+                            agent_id=u.id, raw_amount=10.0, split_rate=1.0,
+                            classification="agent_commission",
+                            member_name="NO, CONTRACT")
+    db.session.add(li); db.session.flush()
+
+    r = fidelity_row(li)
+    assert r["contract_rate"] is None
+    assert r["off_contract"] is False
+
+
 def test_is_new_enrollment_per_carrier():
     from app.commission.recap import is_new_enrollment as nu
 

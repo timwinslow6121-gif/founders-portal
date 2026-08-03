@@ -499,7 +499,7 @@ def contract_rate_for(agent_id, carrier, agency_id, cache=None):
     return rate
 
 
-def fidelity_row(li, agent_names=None):
+def fidelity_row(li, agent_names=None, rate_cache=None):
     """Build ONE Fidelity-view row dict for a CommissionLineItem. The single source
     of the per-row display shape — used by fidelity_view (the table) AND the AJAX
     edit endpoint (so an edited row repaints from the exact same logic; no math
@@ -522,6 +522,14 @@ def fidelity_row(li, agent_names=None):
         agent_name = u.display_name if u else "— unassigned —"
     else:
         agent_name = "— unassigned —"
+    # The agent's contracted rate for this carrier, so the edit form can show it
+    # and flag a stored rate that contradicts it. None = no contract on file;
+    # a row is never flagged off-contract on a rate we cannot verify.
+    contract_rate = contract_rate_for(li.agent_id, li.carrier, li.agency_id,
+                                      rate_cache)
+    off_contract = (contract_rate is not None
+                    and li.split_rate is not None
+                    and abs((li.split_rate or 0.0) - contract_rate) > 0.0005)
     return {
         "id": li.id,
         "member_name": li.member_name or "(non-customer)",
@@ -533,6 +541,8 @@ def fidelity_row(li, agent_names=None):
         "agent_id": li.agent_id,
         "agent_name": agent_name,
         "split_rate": li.split_rate,
+        "contract_rate": contract_rate,
+        "off_contract": off_contract,
         "calc_label": calc_label, "calc_rule": calc_rule,
         "is_chargeback": (li.classification == "chargeback" or raw < 0),
     }
@@ -557,8 +567,9 @@ def fidelity_view(statement_id, agency_id):
                    User.query.filter(User.id.in_(agent_ids)).all()} if agent_ids else {}
     rows = []
     raw_total = agent_total = founders_total = 0.0
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     for li in items:
-        row = fidelity_row(li, agent_names)
+        row = fidelity_row(li, agent_names, rate_cache)
         rows.append(row)
         raw_total += row["raw"]
         agent_total += row["agent"]

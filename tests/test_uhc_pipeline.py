@@ -842,3 +842,131 @@ def test_line_edit_ajax_returns_json_row_and_totals(db_session, app, client, age
                               "override_amount": "0.00"},
                         follow_redirects=False)
     assert plain.status_code in (302, 303)
+
+
+def _partd_sheets(rows_spec, agent="WINSLOW, TIMOTHY"):
+    """Build a minimal UHC sheet from (plan, action, amount, member) tuples."""
+    header = [""] * 24
+    header[4] = "Writing Agent ID"; header[7] = "Member Name"; header[12] = "Plan Type"
+    header[19] = "Commission Action"; header[23] = "Commission"
+    out = [header]
+    for plan, action, amt, member in rows_spec:
+        r = [""] * 24
+        r[5] = agent; r[7] = member; r[12] = plan; r[19] = action; r[23] = amt
+        out.append(r)
+    return {"Commission Transactions": out}
+
+
+def test_uhc_partd_lumped_485_decomposes_to_459_plus_026():
+    """UHC lumps a Part D renewal into ONE row: $4.85 = $4.59 agent commission
+    + $0.26 Founders override. The $4.59 splits at the agent's contract rate;
+    the $0.26 is 100% Founders. Grounding: GRIFFIN/BURR/LEISENRING (Mike) and
+    SEID (Rebekah) -- AJ split these by hand every month before this landed."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                       FOUNDERS_OVERRIDE, split_breakdown)
+    sheets = _partd_sheets([("PARTD", "Renewal", 4.85, "SEID, ROBERT J.")])
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    assert len(items) == 2, "a lumped row must yield commission + override"
+    comm = next(i for i in items if i.classification == AGENT_COMMISSION)
+    ovr = next(i for i in items if i.classification == FOUNDERS_OVERRIDE)
+
+    assert round(comm.raw_amount, 2) == 4.59
+    assert comm.split_rate == 0.55
+    agent, founders = split_breakdown(comm)
+    assert round(agent, 2) == 2.52
+    assert round(founders, 2) == 2.07
+
+    assert round(ovr.raw_amount, 2) == 0.26
+    assert ovr.split_rate is None          # 100% Founders
+
+    # value-preserving: the two halves sum back to the lumped amount
+    assert round(comm.raw_amount + ovr.raw_amount, 2) == 4.85
+
+
+def test_uhc_partd_lumped_443_decomposes_to_417_plus_026():
+    """UHC pays TWO Part D base rates. $4.43 = $4.17 + $0.26, same structure."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                       FOUNDERS_OVERRIDE)
+    sheets = _partd_sheets([("PARTD", "Renewal", 4.43, "NESTVED, JOANNE M.")])
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.525,
+                                  writing_id_to_name={})
+    assert len(items) == 2
+    comm = next(i for i in items if i.classification == AGENT_COMMISSION)
+    ovr = next(i for i in items if i.classification == FOUNDERS_OVERRIDE)
+    assert round(comm.raw_amount, 2) == 4.17
+    assert comm.split_rate == 0.525
+    assert round(ovr.raw_amount, 2) == 0.26
+    assert ovr.split_rate is None
+    assert round(comm.raw_amount + ovr.raw_amount, 2) == 4.43
+
+
+def test_uhc_partd_lumped_chargebacks_mirror_the_split():
+    """A -$4.85 chargeback decomposes the same way, sign-preserved: the agent
+    gives back their share of -$4.59 and Founders absorbs -$0.26."""
+    from app.commission.ledger import (extract_lineitems_uhc, CHARGEBACK,
+                                       FOUNDERS_OVERRIDE)
+    sheets = _partd_sheets([("PARTD", "Renewal Chargeback", -4.85, "SEID, ROBERT J.")])
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    assert len(items) == 2
+    cb = next(i for i in items if i.classification == CHARGEBACK)
+    ovr = next(i for i in items if i.classification == FOUNDERS_OVERRIDE)
+    assert round(cb.raw_amount, 2) == -4.59
+    assert cb.split_rate == 0.55
+    assert round(ovr.raw_amount, 2) == -0.26
+    assert round(cb.raw_amount + ovr.raw_amount, 2) == -4.85
+
+
+def test_uhc_partd_bare_417_splits_and_creates_no_override():
+    """A BARE $4.17 is the agent's commission only -- its $0.26 override arrives
+    as its own row in the file, so the extractor must NOT synthesize one."""
+    from app.commission.ledger import extract_lineitems_uhc, AGENT_COMMISSION
+    sheets = _partd_sheets([("PARTD", "Renewal", 4.17, "KINCAID, SYLVIA W.")])
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    assert len(items) == 1
+    assert items[0].classification == AGENT_COMMISSION
+    assert round(items[0].raw_amount, 2) == 4.17
+    assert items[0].split_rate == 0.55
+
+
+def test_uhc_partd_unrecognized_amount_quarantines_not_silently_paid():
+    """THE REGRESSION GUARD for this whole class of bug. An unrecognized PARTD
+    amount must go to NEEDS_MANUAL_REVIEW, never fall through to a plain
+    renewal. The old `any other amount = a plain renewal` fallback produced a
+    plausible, balanced row -- which is why the $4.85 lump went unnoticed from
+    May to August 2026."""
+    from app.commission.ledger import extract_lineitems_uhc, NEEDS_MANUAL_REVIEW
+    sheets = _partd_sheets([
+        ("PARTD", "Renewal", 3.11, "UNKNOWN, SHAPE"),
+        ("PARTD", "Renewal", 7.42, "ANOTHER, SHAPE"),
+    ])
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by_member = {i.member_name: i for i in items}
+    assert by_member["UNKNOWN, SHAPE"].classification == NEEDS_MANUAL_REVIEW
+    assert by_member["ANOTHER, SHAPE"].classification == NEEDS_MANUAL_REVIEW
+
+
+def test_uhc_ma_family_lumps_unchanged_by_partd_handling():
+    """Regression guard: the MA-family combined amounts and the MA $4.59
+    override must not be captured by the new PARTD branches."""
+    from app.commission.ledger import (extract_lineitems_uhc, AGENT_COMMISSION,
+                                       FOUNDERS_OVERRIDE)
+    sheets = _partd_sheets([
+        ("MAPD", "Renewal", 33.51, "COMBINED, HMO"),
+        ("DSNP", "Renewal", 4.59, "OVERRIDE, MA"),
+        ("MAPD", "Renewal", 28.92, "PLAIN, RENEWAL"),
+    ])
+    items = extract_lineitems_uhc(sheets, split_lookup=lambda raw: 0.55,
+                                  writing_id_to_name={})
+    by_member = {}
+    for i in items:
+        by_member.setdefault(i.member_name, []).append(i)
+    combined = by_member["COMBINED, HMO"]
+    assert len(combined) == 2                      # 28.92 + 4.59
+    assert round(sum(i.raw_amount for i in combined), 2) == 33.51
+    assert by_member["OVERRIDE, MA"][0].classification == FOUNDERS_OVERRIDE
+    assert by_member["PLAIN, RENEWAL"][0].classification == AGENT_COMMISSION
+    assert by_member["PLAIN, RENEWAL"][0].split_rate == 0.55

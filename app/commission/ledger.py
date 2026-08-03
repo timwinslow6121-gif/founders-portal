@@ -609,6 +609,17 @@ _UHC_OVERRIDE = 4.59    # ~$55/yr ÷ 12 — the Founders override (no split), al
 _UHC_NEW_OVERRIDE = 125.0   # flat 'New' Founders override fee (100% Founders, no split)
 _UHC_PARTD_OVERRIDE = 0.26  # fixed monthly Founders override on a Part D plan renewal
                             # (no split — 100% Founders), per Tim. NOT dust.
+# UHC pays TWO Part D base commissions, and each arrives EITHER bare (with the
+# $0.26 override as its own row) OR LUMPED with it in a single row:
+#     4.59 bare  |  4.85 lumped (= 4.59 + 0.26)
+#     4.17 bare  |  4.43 lumped (= 4.17 + 0.26)
+# Evidence is pair-presence, not arithmetic: counted per member across every raw
+# UHC file, a bare amount has a separate $0.26 row 100% of the time (4/4 and
+# 37/37) while a lumped amount never does (0/1, 0/4). Deriving the lump from the
+# base keeps the two in sync — a future rate is ONE entry here, not two.
+_UHC_PARTD_COMMISSIONS = (4.59, 4.17)
+_UHC_PARTD_LUMPS = tuple((c, round(c + _UHC_PARTD_OVERRIDE, 2))
+                         for c in _UHC_PARTD_COMMISSIONS)   # ((4.59,4.85),(4.17,4.43))
 # New-to-Medicare (Comp Type R) proration: the agent commission is the standard
 # renewal PMPM × months remaining in the calendar year (13 − effective_month), and
 # the Founders override is whatever's left (the flat $125 new-plan override). Proven
@@ -855,20 +866,47 @@ def extract_lineitems_uhc(sheets, split_lookup, writing_id_to_name=None,
             out.append(draft(signed, FOUNDERS_OVERRIDE, None, sref, ptype="partd override"))
             continue
 
-        # ── Any OTHER sub-threshold PARTD renewal (not 0.26, not 4.59): still
-        #    quarantine — unexpected, route to AJ.
-        if is_renewal and plan == "PARTD" and abs(amount) < 1.00 \
-                and not _near(amount, _UHC_OVERRIDE):
-            out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref, ptype="partd dust"))
-            continue
+        # ── LUMPED PARTD renewal: UHC bundles the agent commission and the $0.26
+        #    Founders override into ONE row (4.85 = 4.59+0.26, 4.43 = 4.17+0.26).
+        #    Decompose into the two real rows — the commission SPLITS at the
+        #    agent's rate, the override is 100% Founders. Sign-preserving, so a
+        #    chargeback mirrors it. Before this existed the lump fell through to
+        #    the plain-renewal fallback and Founders' $0.26 stayed inside the
+        #    agent's splittable base — balanced to the penny, so invisible.
+        if is_renewal and plan == "PARTD":
+            lumped = None
+            for base, lump in _UHC_PARTD_LUMPS:
+                if _near(abs(amount), lump):
+                    lumped = (base, lump)
+                    break
+            if lumped is not None:
+                base, _ = lumped
+                sign = 1.0 if amount >= 0 else -1.0
+                cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
+                out.append(draft(round(sign * base, 2), cls, rate, sref + "::r"))
+                out.append(draft(round(sign * _UHC_PARTD_OVERRIDE, 2),
+                                 FOUNDERS_OVERRIDE, None, sref + "::o"))
+                continue
 
-        # ── PARTD $4.59 renewal SPLITS at the agent's rate (quirk #2, Tim 2026-06-26).
-        #    It is NOT a 100% Founders override like the MA-family $4.59 — plan type
-        #    (col M) is the discriminator. The $0.26 PARTD override is handled above and
-        #    is unaffected. `rate` is the agent's UHC contract rate (via split_lookup).
-        if is_renewal and plan == "PARTD" and _near(abs(amount), _UHC_OVERRIDE):
+        # ── BARE PARTD commission ($4.59 or $4.17) SPLITS at the agent's rate
+        #    (quirk #2, Tim 2026-06-26). It is NOT a 100% Founders override like
+        #    the MA-family $4.59 — plan type (col M) is the discriminator. Its
+        #    $0.26 override arrives as its own row, so none is synthesized here.
+        if is_renewal and plan == "PARTD" \
+                and any(_near(abs(amount), c) for c in _UHC_PARTD_COMMISSIONS):
             cls = CHARGEBACK if amount < 0 else AGENT_COMMISSION
             out.append(draft(amount, cls, rate, sref))
+            continue
+
+        # ── ANY other PARTD renewal amount → QUARANTINE, never a silent pass.
+        #    This replaces both the old sub-$1 "partd dust" rule and, crucially,
+        #    the plain-renewal fallback below: an unrecognized Part D shape now
+        #    announces itself in AJ's review queue instead of being paid at a
+        #    plausible-but-wrong grain. Quarantine preserves raw_amount, so the
+        #    statement still balances while a human decides.
+        if is_renewal and plan == "PARTD":
+            out.append(draft(amount, NEEDS_MANUAL_REVIEW, None, sref,
+                             ptype="partd unrecognized"))
             continue
 
         # ── MA / Part D renewals: override-aware (the $4.59 / combined logic).

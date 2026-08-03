@@ -445,6 +445,11 @@
     row.setAttribute('data-agent-amt', Number(r.agent).toFixed(2));
     row.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
     row.setAttribute('data-agent-id', r.agent_id||'');
+    // contract-rate marker — must be kept in sync post-edit or the ⚠ badge (and the
+    // next editor open's rate label) goes stale until a reload.
+    row.setAttribute('data-off-contract', r.off_contract ? '1' : '');
+    row.setAttribute('data-contract-rate',
+      (r.contract_rate === null || r.contract_rate === undefined) ? '' : r.contract_rate);
   }
 
   function neg(n){ return n < 0 ? ' neg' : ''; }
@@ -464,6 +469,9 @@
     tr.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
     tr.setAttribute('data-agent-id', r.agent_id||'');
     tr.setAttribute('data-member-display', r.member_display||'');
+    tr.setAttribute('data-off-contract', r.off_contract ? '1' : '');
+    tr.setAttribute('data-contract-rate',
+      (r.contract_rate === null || r.contract_rate === undefined) ? '' : r.contract_rate);
     var pct=(r.split_rate!==null && r.split_rate!==undefined) ? ' · '+(r.split_rate*100).toFixed(1)+'%' : '';
     var nameCell=document.createElement('td'); nameCell.className='fd-mname';
     nameCell.textContent=r.member_display||'';

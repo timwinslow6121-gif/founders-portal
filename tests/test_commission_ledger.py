@@ -526,3 +526,96 @@ def test_healthspring_multibatch_filetoken_from_filename():
     assert _healthspring_filetoken(sheets) == "batch"
 
     assert "Healthspring" in PER_AGENT_CARRIERS
+
+
+def test_persist_line_items_stores_writing_agent_raw(db_session, agency):
+    """The pre-rollup writing-agent name must survive onto the ledger row.
+
+    apply_rollup() rewrites Cyndi Mortimer / Don Long -> Brian Freeman BEFORE
+    agent-matching, so `agent_id` alone can never answer "whose business is
+    this?". The value is already computed on every draft; this pins that it is
+    persisted rather than consumed and discarded.
+    """
+    from app.commission.ledger import LineItemDraft, persist_line_items, AGENT_COMMISSION
+    from app.models import CommissionStatement, CommissionLineItem
+    from app.extensions import db
+    from datetime import date
+
+    stmt = CommissionStatement(agency_id=agency.id, carrier="UHC", agent_id=None,
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+
+    drafts = [
+        LineItemDraft(carrier="UHC", source_ref="uhc::0::1", raw_amount=28.92,
+                      split_rate=0.5, classification=AGENT_COMMISSION,
+                      member_name="DOE, JANE",
+                      writing_agent_raw="MORTIMER, CYNTHIA WALKUP"),
+        LineItemDraft(carrier="UHC", source_ref="uhc::0::2", raw_amount=4.59,
+                      split_rate=0.55, classification=AGENT_COMMISSION,
+                      member_name="ROE, RICHARD", writing_agent_raw=""),
+    ]
+    persist_line_items("UHC", drafts, stmt, agency.id)
+    db.session.flush()
+
+    rows = {li.source_ref: li for li in
+            CommissionLineItem.query.filter_by(statement_id=stmt.id)}
+    # the retired agent's OWN name survives, even though the row pays Brian
+    assert rows["uhc::0::1"].writing_agent_raw == "MORTIMER, CYNTHIA WALKUP"
+    # blank -> NULL, never "", so "unknown" stays queryable as IS NULL
+    assert rows["uhc::0::2"].writing_agent_raw is None
+
+
+def test_persist_line_items_truncates_long_writing_agent(db_session, agency):
+    """The column is 128 chars; a longer carrier string must not raise."""
+    from app.commission.ledger import LineItemDraft, persist_line_items, AGENT_COMMISSION
+    from app.models import CommissionStatement, CommissionLineItem
+    from app.extensions import db
+    from datetime import date
+
+    stmt = CommissionStatement(agency_id=agency.id, carrier="UHC", agent_id=None,
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+    persist_line_items("UHC", [
+        LineItemDraft(carrier="UHC", source_ref="uhc::0::9", raw_amount=1.0,
+                      split_rate=0.5, classification=AGENT_COMMISSION,
+                      member_name="LONG, NAME",
+                      writing_agent_raw="X" * 300)], stmt, agency.id)
+    db.session.flush()
+    li = CommissionLineItem.query.filter_by(source_ref="uhc::0::9").first()
+    assert len(li.writing_agent_raw) == 128
+
+
+def test_persist_line_items_writing_agent_survives_rollup_to_brian(db_session, agency):
+    """The whole point: the row pays Brian (rollup) but records Cyndi as the
+    writer, so a report can attribute her book without changing the money."""
+    from app.commission.ledger import LineItemDraft, persist_line_items, AGENT_COMMISSION
+    from app.commission.rollup import apply_rollup
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from app.extensions import db
+    from datetime import date
+
+    brian = User(email="brian@x.com", name="Brian Freeman",
+                 agency_id=agency.id, role="agent")
+    db.session.add(brian); db.session.flush()
+    stmt = CommissionStatement(agency_id=agency.id, carrier="UHC", agent_id=None,
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+
+    # mirrors the live seam: resolve the agent AFTER rollup
+    def resolver(raw):
+        return brian.id if apply_rollup(raw, "UHC") == "Brian Freeman" else None
+
+    persist_line_items("UHC", [
+        LineItemDraft(carrier="UHC", source_ref="uhc::0::7", raw_amount=33.51,
+                      split_rate=0.5, classification=AGENT_COMMISSION,
+                      member_name="PRESSON, ROBIN",
+                      writing_agent_raw="MORTIMER, CYNTHIA WALKUP")],
+        stmt, agency.id, agent_resolver=resolver)
+    db.session.flush()
+
+    li = CommissionLineItem.query.filter_by(source_ref="uhc::0::7").first()
+    assert li.agent_id == brian.id                              # money rolls to Brian
+    assert li.writing_agent_raw == "MORTIMER, CYNTHIA WALKUP"   # provenance is Cyndi's

@@ -111,3 +111,25 @@ def test_rolled_up_name_finds_brians_aetna_050_contract(db_session, app, agency)
         # Devoted is NOT a rollup carrier: Don stays unresolvable (no Brian
         # Devoted contract, no rollup), so the seam can't pull Brian's 0.50.
         assert _match_agent_name(apply_rollup("Long, Donald", "Devoted")) is None
+
+
+def test_rollup_covers_short_name_variants():
+    """A carrier writing the familiar form must still roll up. A miss here is
+    SILENT: the name falls through to the 0.55 agency fallback and pays the wrong
+    amount with no error — the failure mode behind Don Long's original -$18."""
+    from app.commission.rollup import apply_rollup
+    for raw in ("MORTIMER, CYNDI", "Cyndi Mortimer", "MORTIMER, CYNTHIA WALKUP",
+                "LONG, DON", "Don Long", "LONG, DONALD"):
+        for carrier in ("UHC", "Aetna"):
+            assert apply_rollup(raw, carrier) == "Brian Freeman", (raw, carrier)
+
+
+def test_rollup_leaves_active_agents_and_other_carriers_alone():
+    """Regression guard: Rebekah Long normalizes to 'rebekah long' and must never
+    be captured by the 'long' family; and the rollup is Aetna/UHC ONLY."""
+    from app.commission.rollup import apply_rollup
+    for carrier in ("UHC", "Aetna", "Humana", "BCBS"):
+        assert apply_rollup("LONG, REBEKAH", carrier) == "LONG, REBEKAH"
+    for carrier in ("Humana", "BCBS", "Devoted", "Healthspring", "Wellabe"):
+        assert apply_rollup("MORTIMER, CYNDI", carrier) == "MORTIMER, CYNDI"
+        assert apply_rollup("LONG, DONALD", carrier) == "LONG, DONALD"

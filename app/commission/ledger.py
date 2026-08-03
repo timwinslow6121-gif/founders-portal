@@ -1321,6 +1321,12 @@ def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=Non
         existing.period_label = statement.period_label
         existing.statement_date = statement.statement_date
         existing.agent_id = agent_id
+        # Provenance: keep the carrier's own spelling of the writing agent, taken
+        # from the draft BEFORE apply_rollup() rewrote it for agent-matching. This
+        # value was already computed above (it is what resolved agent_id) and was
+        # previously discarded, which is why the ledger could not say whose book a
+        # rolled-up row came from. Blank -> None so "unknown" is queryable as NULL.
+        existing.writing_agent_raw = (d.writing_agent_raw or "").strip()[:128] or None
         existing.customer_id = cust_by_mbi.get((d.mbi or "").strip())
         existing.member_name = d.member_name
         existing.mbi = d.mbi

@@ -1616,6 +1616,43 @@ def commission_line_edit(line_id):
     except ValueError:
         return _fail("Enter valid amounts.")
 
+    # Off-contract guard. edit_line_split stores agent_amount as the FINAL payout
+    # (split_rate=1.0), so an entry equal to the whole line pays the agent 100%.
+    # That is CORRECT for Anjana Patel (she keeps 100% on non-Cannon-Pharmacy
+    # customers) and WRONG everywhere else — and the two are indistinguishable
+    # without asking. Require one explicit confirmation rather than blocking.
+    # No contract on file -> contract_rate_for returns None and the guard stays
+    # silent: never fabricate a rate to judge a save by.
+    from app.commission.recap import contract_rate_for
+    contract_rate = contract_rate_for(agent.id, li.carrier, current_user.agency_id)
+    # This guard judges against `combined` (the STORED line + its ::ovr sibling),
+    # while the client-side previews judge against what AJ typed (agent+override).
+    # Those are two different quantities that happen to be equal on every save that
+    # can succeed, because edit_line_split (ledger.py, the `must equal the line
+    # total` ValueError) refuses any save where agent+override != original_combined.
+    # That equality is the non-local invariant keeping the warning and the guard in
+    # step — if it is ever relaxed, this computation must be revisited too.
+    ovr_sibling = CommissionLineItem.query.filter_by(
+        statement_id=li.statement_id, agency_id=current_user.agency_id,
+        source_ref=f"{li.source_ref}::ovr").first()
+    combined = round((li.raw_amount or 0.0)
+                     + (ovr_sibling.raw_amount or 0.0 if ovr_sibling else 0.0), 2)
+    confirmed = request.form.get("confirm_off_contract") in ("1", "true", "on")
+    if contract_rate is not None and not confirmed and abs(combined) >= 0.005:
+        expected_agent = round(combined * contract_rate, 2)
+        if abs(round(agent_amount, 2) - expected_agent) > 0.005:
+            msg = (f"{agent.display_name}'s {li.carrier} contract is "
+                   f"{contract_rate * 100:g}%, which pays "
+                   f"${expected_agent:,.2f} of ${combined:,.2f}. "
+                   f"This saves ${agent_amount:,.2f} to the agent and "
+                   f"${override_amount:,.2f} to Founders.")
+            if wants_json:
+                return jsonify(ok=False, error=msg, needs_confirm=True,
+                               contract_rate=contract_rate,
+                               expected_agent=expected_agent), 400
+            flash(msg + " Re-submit with confirmation to save anyway.", "error")
+            return redirect(back)
+
     # AJ enters the EXACT dollars (agent + Founders override). edit_line_split stores
     # the agent amount as the final payout (split_rate=1.0), so no contract rate is
     # re-applied — this is what lets a special case (e.g. Anjana keeps 100% of the

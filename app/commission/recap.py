@@ -187,36 +187,42 @@ def _suggested_quarantine_agent(li, agency_id):
     return None
 
 
-def _quarantine_row(li, agency_id):
+def _quarantine_row(li, agency_id, rate_cache=None):
     return {"id": li.id, "carrier": li.carrier,
             "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
             "agent_id": li.agent_id,
-            "suggested_agent_id": _suggested_quarantine_agent(li, agency_id)}
+            "suggested_agent_id": _suggested_quarantine_agent(li, agency_id),
+            "contract_rate": contract_rate_for(li.agent_id, li.carrier, agency_id,
+                                               rate_cache)}
 
 
 def quarantined_line_items(statement_id, agency_id):
     """needs_manual_review line items for ONE statement. Any carrier — these are
     recorded but NOT split (payout 0), so nothing is silently dropped; AJ resolves
     them in-line. Returns {count, total, rows:[{id, carrier, member_name, mbi,
-    amount, action, agent_id, suggested_agent_id}]}."""
+    amount, action, agent_id, suggested_agent_id, contract_rate}]}."""
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     items = (CommissionLineItem.query
              .filter_by(statement_id=statement_id, agency_id=agency_id,
                         classification="needs_manual_review")
              .order_by(CommissionLineItem.member_name)
              .all())
-    rows = [_quarantine_row(li, agency_id) for li in items]
+    rows = [_quarantine_row(li, agency_id, rate_cache) for li in items]
     return {"count": len(rows),
             "total": round(sum(r["amount"] for r in rows), 2),
             "rows": rows}
 
 
-def _resolved_row(li, revisions):
+def _resolved_row(li, revisions, agency_id=None, rate_cache=None):
     return {"id": li.id, "carrier": li.carrier,
             "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
             "agent_id": li.agent_id, "classification": li.classification,
-            "revisions": revisions}
+            "revisions": revisions,
+            "contract_rate": contract_rate_for(li.agent_id, li.carrier,
+                                               agency_id if agency_id is not None else li.agency_id,
+                                               rate_cache)}
 
 
 def _revisions_by_line(line_ids, agency_id):
@@ -256,7 +262,8 @@ def recently_resolved_line_items(statement_id, agency_id):
                      CommissionLineItem.classification != "needs_manual_review")
              .all())
     revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
-    rows = [_resolved_row(li, revs_by_line.get(li.id, [])) for li in items]
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
+    rows = [_resolved_row(li, revs_by_line.get(li.id, []), agency_id, rate_cache) for li in items]
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
     return rows
 
@@ -265,12 +272,13 @@ def period_quarantine(agency_id, period_label):
     """ALL needs_manual_review line items for a period, across every carrier /
     statement — what the agency-overview matrix links to. Same row shape as
     quarantined_line_items, plus a per-carrier breakdown for the header."""
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     items = (CommissionLineItem.query
              .filter_by(agency_id=agency_id, period_label=period_label,
                         classification="needs_manual_review")
              .order_by(CommissionLineItem.carrier, CommissionLineItem.member_name)
              .all())
-    rows = [_quarantine_row(li, agency_id) for li in items]
+    rows = [_quarantine_row(li, agency_id, rate_cache) for li in items]
     by_carrier = {}
     for r in rows:
         b = by_carrier.setdefault(r["carrier"], {"count": 0, "total": 0.0})
@@ -301,7 +309,8 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
        flat:[...], by_carrier:{carrier:{count,total}},
        filter_options:{periods:[...], carriers:[...], agents:[user_id,...]}}
     Rows use the shared _quarantine_row shape (id/carrier/member_name/mbi/amount/
-    action/agent_id/suggested_agent_id) plus 'period_label' for display."""
+    action/agent_id/suggested_agent_id/contract_rate) plus 'period_label' for display."""
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     q = CommissionLineItem.query.filter_by(
         agency_id=agency_id, classification="needs_manual_review")
     if period:
@@ -313,7 +322,7 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
     items = q.all()
 
     def row(li):
-        r = _quarantine_row(li, agency_id)
+        r = _quarantine_row(li, agency_id, rate_cache)
         r["period_label"] = li.period_label or ""
         return r
     rows = [row(li) for li in items]
@@ -471,7 +480,35 @@ def _calc_explanation(li, agent, founders):
                if rate is not None else "no active contract → 100% Founders."))
 
 
-def fidelity_row(li, agent_names=None):
+def contract_rate_for(agent_id, carrier, agency_id, cache=None):
+    """The agent's active split rate for this carrier, or None if none exists.
+
+    THE single place a contract rate is resolved for display. Returns None
+    rather than a default: a fabricated 0.55 shown next to a real amount is
+    worse than an honest "no contract on file", because AJ would reasonably
+    trust it. (commission_line_resolve has a 0.55 fallback for its own MATH --
+    that is deliberate there and must not be copied here.)
+
+    `cache` is an optional dict, keyed (agent_id, carrier.lower()), so a caller
+    serializing many rows resolves each pair once.
+    """
+    if not agent_id or not carrier:
+        return None
+    key = (agent_id, carrier.strip().lower())
+    if cache is not None and key in cache:
+        return cache[key]
+    from app.models import AgentCarrierContract
+    c = (AgentCarrierContract.query
+         .filter_by(agent_id=agent_id, carrier=carrier, is_active=True,
+                    agency_id=agency_id)
+         .first())
+    rate = c.split_rate if c else None
+    if cache is not None:
+        cache[key] = rate
+    return rate
+
+
+def fidelity_row(li, agent_names=None, rate_cache=None):
     """Build ONE Fidelity-view row dict for a CommissionLineItem. The single source
     of the per-row display shape — used by fidelity_view (the table) AND the AJAX
     edit endpoint (so an edited row repaints from the exact same logic; no math
@@ -494,6 +531,14 @@ def fidelity_row(li, agent_names=None):
         agent_name = u.display_name if u else "— unassigned —"
     else:
         agent_name = "— unassigned —"
+    # The agent's contracted rate for this carrier, so the edit form can show it
+    # and flag a stored rate that contradicts it. None = no contract on file;
+    # a row is never flagged off-contract on a rate we cannot verify.
+    contract_rate = contract_rate_for(li.agent_id, li.carrier, li.agency_id,
+                                      rate_cache)
+    off_contract = (contract_rate is not None
+                    and li.split_rate is not None
+                    and abs((li.split_rate or 0.0) - contract_rate) > 0.0005)
     return {
         "id": li.id,
         "member_name": li.member_name or "(non-customer)",
@@ -505,6 +550,8 @@ def fidelity_row(li, agent_names=None):
         "agent_id": li.agent_id,
         "agent_name": agent_name,
         "split_rate": li.split_rate,
+        "contract_rate": contract_rate,
+        "off_contract": off_contract,
         "calc_label": calc_label, "calc_rule": calc_rule,
         "is_chargeback": (li.classification == "chargeback" or raw < 0),
     }
@@ -529,8 +576,9 @@ def fidelity_view(statement_id, agency_id):
                    User.query.filter(User.id.in_(agent_ids)).all()} if agent_ids else {}
     rows = []
     raw_total = agent_total = founders_total = 0.0
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     for li in items:
-        row = fidelity_row(li, agent_names)
+        row = fidelity_row(li, agent_names, rate_cache)
         rows.append(row)
         raw_total += row["raw"]
         agent_total += row["agent"]
@@ -684,9 +732,10 @@ def recently_resolved_workbench(agency_id, *, period=None, carrier=None, agent_i
         q = q.filter(CommissionLineItem.agent_id == agent_id)
     items = q.all()
     revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     rows = []
     for li in items:
-        r = _resolved_row(li, revs_by_line.get(li.id, []))
+        r = _resolved_row(li, revs_by_line.get(li.id, []), agency_id, rate_cache)
         r["period_label"] = li.period_label or ""
         rows.append(r)
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
@@ -716,7 +765,8 @@ def recently_resolved_period_line_items(agency_id, period_label):
                      CommissionLineItem.classification != "needs_manual_review")
              .all())
     revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
-    rows = [_resolved_row(li, revs_by_line.get(li.id, [])) for li in items]
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
+    rows = [_resolved_row(li, revs_by_line.get(li.id, []), agency_id, rate_cache) for li in items]
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
     return rows
 

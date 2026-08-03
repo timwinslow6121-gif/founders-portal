@@ -73,6 +73,10 @@
   .fd-editform button.fd-save[disabled] { opacity:.5; cursor:not-allowed; }
   .fd-editform button.fd-cancel { background:none; border:1px solid var(--border); border-radius:8px;
                  color:var(--slate); padding:7px 12px; cursor:pointer; }
+  .fd-ef-rate{font-size:12px;color:var(--slate);margin-right:10px;white-space:nowrap}
+  .fd-ef-preview{font-size:12px;color:var(--slate);margin-left:8px}
+  .fd-ef-preview.warn{color:#C0392B;font-weight:600}
+  tr[data-off-contract="1"] .js-agent-amt::after{content:" ⚠";color:#C0392B}
   tr.fd-row.flash-saved td { animation: fdsaved 1.1s ease; }
   @keyframes fdsaved { 0% { background: color-mix(in srgb, var(--green) 30%, transparent); } 100% { background: transparent; } }
 </style>
@@ -86,7 +90,9 @@
       data-type="{{ r.classification }}" data-amount="{{ r.raw }}"
       data-raw="{{ r.raw }}" data-agent-amt="{{ '%.2f'|format(r.agent) }}"
       data-founders-amt="{{ '%.2f'|format(r.founders) }}" data-agent-id="{{ r.agent_id or '' }}"
-      data-member-display="{{ r.member_display }}">
+      data-member-display="{{ r.member_display }}"
+      data-contract-rate="{{ '' if r.contract_rate is none else r.contract_rate }}"
+      data-off-contract="{{ '1' if r.off_contract else '' }}">
     <td class="fd-mname">
       {% if r.customer_id %}<a href="{{ url_for('customers.customer_profile', customer_id=r.customer_id) }}">{{ r.member_display }}</a>
       {% else %}{{ r.member_display }}{% endif %}
@@ -304,6 +310,8 @@
     var agentAmt=row.getAttribute('data-agent-amt')||'0.00';
     var foundersAmt=row.getAttribute('data-founders-amt')||'0.00';
     var agentId=row.getAttribute('data-agent-id')||'';
+    var contractRate=row.getAttribute('data-contract-rate');
+    contractRate = (contractRate === '' || contractRate === null) ? null : parseFloat(contractRate);
 
     var tr=document.createElement('tr');
     tr.className='fd-editrow';
@@ -311,10 +319,12 @@
     var form=document.createElement('div'); form.className='fd-editform';
     form.innerHTML =
       '<span class="fd-ef-lbl">Correct the split for <strong></strong> (must total '+fmt(raw)+'):</span>'+
+      '<span class="fd-ef-rate"></span>'+
       '<select class="fd-ef-agent" required>'+agentsHtml+'</select>'+
       '<label>Agent $ <input type="number" step="0.01" class="fd-ef-amt fd-ef-agentamt"></label>'+
       '<label>Founders $ <input type="number" step="0.01" class="fd-ef-amt fd-ef-ovramt"></label>'+
       '<span class="fd-ef-sum"></span>'+
+      '<span class="fd-ef-preview"></span>'+
       '<button type="button" class="fd-save">Save</button>'+
       '<button type="button" class="fd-cancel">Cancel</button>'+
       '<span class="fd-ef-err"></span>';
@@ -329,6 +339,36 @@
     ag.value=agentAmt; ov.value=foundersAmt;
     var sumEl=form.querySelector('.fd-ef-sum'), saveBtn=form.querySelector('.fd-save'),
         errEl=form.querySelector('.fd-ef-err');
+    var rateEl=form.querySelector('.fd-ef-rate'),
+        prevEl=form.querySelector('.fd-ef-preview');
+
+    function rateLabel(){
+      var name = agentSel2.options[agentSel2.selectedIndex];
+      name = name ? name.text : 'this agent';
+      if(contractRate === null || isNaN(contractRate)){
+        return name + ' — no contract on file for this carrier';
+      }
+      return name + ' — contract ' + (contractRate*100).toFixed(1).replace(/\.0$/,'') + '%';
+    }
+
+    // Show the OUTCOME in dollars, not the convention. That is what makes the
+    // edit form (two boxes = exact dollars) self-describing next to the resolve
+    // form (one box = split at contract), without a label AJ has to interpret.
+    function preview(){
+      rateEl.textContent = rateLabel();
+      var a=parseFloat(ag.value)||0, o=parseFloat(ov.value)||0, t=a+o;
+      if(Math.abs(t)<0.005){ prevEl.textContent=''; prevEl.className='fd-ef-preview'; return; }
+      var pct = Math.round((a/t)*1000)/10;
+      var txt = '→ agent gets '+fmt(a)+' of '+fmt(t)+' ('+pct+'%)';
+      var off = (contractRate !== null && !isNaN(contractRate) &&
+                 Math.abs(a - Math.round(t*contractRate*100)/100) > 0.005);
+      prevEl.textContent = txt + (off ? '  ⚠ not their contract rate' : '');
+      prevEl.className = 'fd-ef-preview' + (off ? ' warn' : '');
+    }
+    ag.addEventListener('input', preview);
+    ov.addEventListener('input', preview);
+    agentSel2.addEventListener('change', preview);
+    preview();
 
     function check(){
       var t=Math.round(((parseFloat(ag.value)||0)+(parseFloat(ov.value)||0))*100)/100;
@@ -345,10 +385,12 @@
       if(!check()) return;
       if(!agentSel2.value){ errEl.textContent='Pick an agent.'; return; }
       errEl.textContent=''; saveBtn.disabled=true;
+      var confirmOff = form.getAttribute('data-confirmed') === '1';
       var body=new URLSearchParams();
       body.set('agent_id', agentSel2.value);
       body.set('agent_amount', ag.value||'0');
       body.set('override_amount', ov.value||'0');
+      if(confirmOff) body.set('confirm_off_contract','1');
       fetch(FD_EDIT_URL.replace('/0/edit', '/'+row.getAttribute('data-id')+'/edit'), {
         method:'POST',
         headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json',
@@ -356,7 +398,20 @@
         body: body.toString()
       }).then(function(r){ return r.json().catch(function(){ throw new Error('Server error'); }); })
         .then(function(j){
-          if(!j.ok){ errEl.textContent=j.error||'Could not save.'; saveBtn.disabled=false; return; }
+          if(!j.ok){
+            if(j.needs_confirm){
+              // One explicit click turns a silent mistake into a decision.
+              if(window.confirm(j.error + '\n\nSave anyway?')){
+                form.setAttribute('data-confirmed','1');
+                saveBtn.disabled=false;
+                saveBtn.click();
+                return;
+              }
+              errEl.textContent='Not saved.'; saveBtn.disabled=false; return;
+            }
+            errEl.textContent=j.error||'Could not save.'; saveBtn.disabled=false; return;
+          }
+          form.removeAttribute('data-confirmed');
           repaintRow(row, j.row);
           // the ::ovr Founders-override sibling: repaint it in place if present, else
           // insert it right after the edited row; if the override was zeroed out, remove it.
@@ -390,6 +445,11 @@
     row.setAttribute('data-agent-amt', Number(r.agent).toFixed(2));
     row.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
     row.setAttribute('data-agent-id', r.agent_id||'');
+    // contract-rate marker — must be kept in sync post-edit or the ⚠ badge (and the
+    // next editor open's rate label) goes stale until a reload.
+    row.setAttribute('data-off-contract', r.off_contract ? '1' : '');
+    row.setAttribute('data-contract-rate',
+      (r.contract_rate === null || r.contract_rate === undefined) ? '' : r.contract_rate);
   }
 
   function neg(n){ return n < 0 ? ' neg' : ''; }
@@ -409,6 +469,9 @@
     tr.setAttribute('data-founders-amt', Number(r.founders).toFixed(2));
     tr.setAttribute('data-agent-id', r.agent_id||'');
     tr.setAttribute('data-member-display', r.member_display||'');
+    tr.setAttribute('data-off-contract', r.off_contract ? '1' : '');
+    tr.setAttribute('data-contract-rate',
+      (r.contract_rate === null || r.contract_rate === undefined) ? '' : r.contract_rate);
     var pct=(r.split_rate!==null && r.split_rate!==undefined) ? ' · '+(r.split_rate*100).toFixed(1)+'%' : '';
     var nameCell=document.createElement('td'); nameCell.className='fd-mname';
     nameCell.textContent=r.member_display||'';

@@ -367,3 +367,137 @@ def test_undo_recreated_sibling_inherits_customer_id(db_session, app, agency):
         sib = CommissionLineItem.query.filter_by(source_ref="uhc::0::611::ovr").first()
         assert sib is not None
         assert sib.customer_id == 321        # not NULL — no re-orphan
+
+
+# ── Off-contract guard (Task 3) ───────────────────────────────────────────────
+# edit_line_split stores the entered agent amount as the FINAL payout
+# (split_rate=1.0). That is CORRECT for Anjana Patel (100% on non-Cannon-Pharmacy
+# customers) and WRONG for everyone else — and the two are indistinguishable
+# without asking. These tests pin the confirm-and-proceed guard.
+
+import pytest
+
+
+@pytest.fixture
+def client_admin(client, app, agency, db_session):
+    """An admin-logged-in test client plus one UHC line item (raw 4.85) whose
+    agent is contracted at 0.525."""
+    from datetime import date
+    from app.extensions import db
+    from app.models import (User, AgentCarrierContract,
+                            CommissionStatement, CommissionLineItem)
+    with app.app_context():
+        admin = User(email="aj-offcontract@foundersinsuranceagency.com",
+                     name="AJ Admin", agency_id=agency.id, role="admin",
+                     is_admin=True)
+        db.session.add(admin)
+        db.session.flush()
+        db.session.add(AgentCarrierContract(agent_id=admin.id, carrier="UHC",
+                                            agency_id=agency.id, is_active=True,
+                                            split_rate=0.525))
+        stmt = CommissionStatement(agency_id=agency.id, carrier="UHC",
+                                   period_label="July 2026",
+                                   statement_date=date(2026, 7, 1))
+        db.session.add(stmt)
+        db.session.flush()
+        li = CommissionLineItem(agency_id=agency.id, statement_id=stmt.id,
+                                carrier="UHC", source_ref="uhc::0::1",
+                                agent_id=admin.id, raw_amount=4.85,
+                                split_rate=0.525,
+                                classification="agent_commission",
+                                member_name="TEST, MEMBER")
+        db.session.add(li)
+        db.session.commit()
+        with client.session_transaction() as sess:
+            sess["_user_id"] = str(admin.id)
+            sess["_fresh"] = True
+        yield app, agency.id, client, li.id, admin.id
+        with client.session_transaction() as sess:
+            sess.clear()
+
+
+def test_edit_off_contract_requires_confirmation(client_admin):
+    """A save that pays a 52.5% agent 100% must not go through silently. This is
+    the guard for the 2026-08-01/03 incidents: AJ typed the commission base into
+    a form that stores it as the FINAL payout, and nothing warned him."""
+    app, agency_id, client, line_id, agent_id = client_admin
+
+    res = client.post(f"/admin/commissions/line/{line_id}/edit",
+                      data={"agent_id": str(agent_id), "agent_amount": "4.85",
+                            "override_amount": "0.00"},
+                      headers={"X-Requested-With": "XMLHttpRequest",
+                               "Accept": "application/json"})
+    assert res.status_code == 400
+    body = res.get_json()
+    assert body["ok"] is False
+    assert body["needs_confirm"] is True
+    assert "52.5" in body["error"] or "0.525" in body["error"]
+
+
+def test_edit_off_contract_succeeds_with_confirmation(client_admin):
+    """Confirm-and-proceed, never block: Anjana Patel's non-Cannon-Pharmacy 100%
+    is exactly this shape every month and must stay ONE extra click."""
+    from app.models import CommissionLineItem
+    app, agency_id, client, line_id, agent_id = client_admin
+
+    res = client.post(f"/admin/commissions/line/{line_id}/edit",
+                      data={"agent_id": str(agent_id), "agent_amount": "4.85",
+                            "override_amount": "0.00",
+                            "confirm_off_contract": "1"},
+                      headers={"X-Requested-With": "XMLHttpRequest",
+                               "Accept": "application/json"})
+    assert res.status_code == 200
+    assert res.get_json()["ok"] is True
+    with app.app_context():
+        li = CommissionLineItem.query.get(line_id)
+        assert li.split_rate == 1.0          # storage convention unchanged
+
+
+def test_edit_on_contract_needs_no_confirmation(client_admin):
+    """An amount consistent with the contract saves in one click, as today."""
+    app, agency_id, client, line_id, agent_id = client_admin
+    # 4.85 * 0.525 = 2.546 -> 2.55 to the agent, 2.30 to Founders
+    res = client.post(f"/admin/commissions/line/{line_id}/edit",
+                      data={"agent_id": str(agent_id), "agent_amount": "2.55",
+                            "override_amount": "2.30"},
+                      headers={"X-Requested-With": "XMLHttpRequest",
+                               "Accept": "application/json"})
+    assert res.status_code == 200
+    assert res.get_json()["ok"] is True
+
+
+def test_edit_no_contract_on_file_is_not_challenged(client_admin):
+    """Never fabricate a rate: with no active contract the guard cannot judge the
+    save, so it must let it through unchallenged rather than invent 0.55."""
+    from app.extensions import db
+    from app.models import AgentCarrierContract
+    app, agency_id, client, line_id, agent_id = client_admin
+    with app.app_context():
+        AgentCarrierContract.query.filter_by(agent_id=agent_id,
+                                             carrier="UHC").delete()
+        db.session.commit()
+
+    res = client.post(f"/admin/commissions/line/{line_id}/edit",
+                      data={"agent_id": str(agent_id), "agent_amount": "4.85",
+                            "override_amount": "0.00"},
+                      headers={"X-Requested-With": "XMLHttpRequest",
+                               "Accept": "application/json"})
+    assert res.status_code == 200
+    assert res.get_json()["ok"] is True
+
+
+def test_edit_off_contract_form_fallback_redirects_with_flash(client_admin):
+    """The no-JS form POST path must be guarded too — it redirects with a flash
+    instead of returning JSON, but it must NOT save."""
+    from app.models import CommissionLineItem
+    app, agency_id, client, line_id, agent_id = client_admin
+
+    res = client.post(f"/admin/commissions/line/{line_id}/edit",
+                      data={"agent_id": str(agent_id), "agent_amount": "4.85",
+                            "override_amount": "0.00",
+                            "next": "/admin/commissions"},
+                      follow_redirects=False)
+    assert res.status_code == 302
+    with app.app_context():
+        li = CommissionLineItem.query.get(line_id)
+        assert li.split_rate == 0.525        # unchanged — the save was refused

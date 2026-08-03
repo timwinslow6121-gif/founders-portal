@@ -648,6 +648,14 @@ def retired_agent_breakdown(agency_id, period_label=None):
     Rows imported before migration 040 have writing_agent_raw = NULL and cannot be
     attributed; they are simply absent rather than guessed at. `period_label=None`
     covers all periods.
+
+    Two deliberate behaviours worth knowing:
+      - Groups key on the RAW carrier spelling, so "LONG, DONALD" and "LONG, DON"
+        appear as separate rows if a carrier varies its spelling within a period.
+        That is provenance fidelity — both still show the same `rolled_to`.
+      - A resolve/edit splits one row into a parent + an ::ovr sibling; both carry
+        the same writing_agent_raw, so `raw_total` is the member's FULL amount and
+        `founders_keep` includes the override portion.
     """
     from app.commission.rollup import _RETIRED_ROLLUPS
     from app.commission.routes import _normalize_name
@@ -679,7 +687,10 @@ def retired_agent_breakdown(agency_id, period_label=None):
     for g in out:
         for k in ("raw_total", "agent_payout", "founders_keep"):
             g[k] = round(g[k], 2)
-    out.sort(key=lambda g: -abs(g["agent_payout"]))
+    # Biggest CONTRIBUTOR first — signed, not by magnitude. Sorting on abs() would
+    # put a large chargeback at the top, where a reader reasonably takes the first
+    # row to be the largest earner.
+    out.sort(key=lambda g: -g["agent_payout"])
     return out
 
 

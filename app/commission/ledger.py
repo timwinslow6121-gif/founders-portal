@@ -1125,10 +1125,15 @@ def resolve_quarantine_line(line, agent_id, override_amount, split_rate, *, user
             statement_date=line.statement_date, source_ref=ovr_ref,
             member_name=line.member_name, mbi=line.mbi,
             carrier_member_id=line.carrier_member_id,
+            writing_agent_raw=line.writing_agent_raw,
             customer_id=line.customer_id)
         # the override sibling is the SAME member as its parent — keep its customer link
         # in sync (also repairs a previously-orphaned sibling on a re-resolve).
         override_row.customer_id = line.customer_id
+        # ...and the same writer. Without this the sibling's provenance is NULL and
+        # retired_agent_breakdown silently UNDER-reports the book: a $100 Cyndi row
+        # resolved into $60 agent + $40 override would report $60 raw / $0 kept.
+        override_row.writing_agent_raw = line.writing_agent_raw
         override_row.raw_amount = ov
         override_row.split_rate = None
         override_row.classification = FOUNDERS_OVERRIDE
@@ -1196,6 +1201,7 @@ def undo_last_change(line, *, user_id=None) -> bool:
                     source_ref=rev.sibling_source_ref,
                     member_name=line.member_name, mbi=line.mbi,
                     carrier_member_id=line.carrier_member_id,
+                    writing_agent_raw=line.writing_agent_raw,
                     customer_id=line.customer_id)   # same member — don't re-orphan on undo
                 db.session.add(sib)
             for k, v in sibling_before.items():
@@ -1264,6 +1270,7 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
             statement_date=line.statement_date, source_ref=ovr_ref,
             member_name=line.member_name, mbi=line.mbi,
             carrier_member_id=line.carrier_member_id,
+            writing_agent_raw=line.writing_agent_raw,
             customer_id=line.customer_id)
         ovr.raw_amount = override_amount
         ovr.split_rate = None
@@ -1272,6 +1279,7 @@ def edit_line_split(line, *, agent_amount, override_amount, agent_id, split_rate
         # same member as the parent — keep the customer link in sync (repairs a
         # previously-orphaned sibling on a re-edit).
         ovr.customer_id = line.customer_id
+        ovr.writing_agent_raw = line.writing_agent_raw   # same writer as the parent
         ovr.payment_type = "override [edited]"
         if existing_ovr is None:
             db.session.add(ovr)

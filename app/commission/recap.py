@@ -471,6 +471,34 @@ def _calc_explanation(li, agent, founders):
                if rate is not None else "no active contract → 100% Founders."))
 
 
+def contract_rate_for(agent_id, carrier, agency_id, cache=None):
+    """The agent's active split rate for this carrier, or None if none exists.
+
+    THE single place a contract rate is resolved for display. Returns None
+    rather than a default: a fabricated 0.55 shown next to a real amount is
+    worse than an honest "no contract on file", because AJ would reasonably
+    trust it. (commission_line_resolve has a 0.55 fallback for its own MATH --
+    that is deliberate there and must not be copied here.)
+
+    `cache` is an optional dict, keyed (agent_id, carrier.lower()), so a caller
+    serializing many rows resolves each pair once.
+    """
+    if not agent_id or not carrier:
+        return None
+    key = (agent_id, carrier.strip().lower())
+    if cache is not None and key in cache:
+        return cache[key]
+    from app.models import AgentCarrierContract
+    c = (AgentCarrierContract.query
+         .filter_by(agent_id=agent_id, carrier=carrier, is_active=True,
+                    agency_id=agency_id)
+         .first())
+    rate = c.split_rate if c else None
+    if cache is not None:
+        cache[key] = rate
+    return rate
+
+
 def fidelity_row(li, agent_names=None):
     """Build ONE Fidelity-view row dict for a CommissionLineItem. The single source
     of the per-row display shape — used by fidelity_view (the table) AND the AJAX

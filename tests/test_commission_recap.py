@@ -3,6 +3,70 @@ tests/test_commission_recap.py
 R2 agent commission recap: per-carrier new-vs-renewal classification, the recap
 assembler, publish workflow, access scoping. SQLite in-memory via conftest.
 """
+import pytest
+
+
+@pytest.fixture
+def app_ctx():
+    from app import create_app
+    from app.extensions import db
+    from app.models import Agency
+    app = create_app()
+    app.config.update(TESTING=True, SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
+                      RATELIMIT_ENABLED=False)
+    with app.app_context():
+        db.create_all()
+        ag = Agency(name="T"); db.session.add(ag); db.session.flush()
+        yield app, ag.id
+        db.session.remove(); db.drop_all()
+
+
+def test_contract_rate_for_returns_rate_and_none(app_ctx):
+    """The rate lookup is the ONE place a contract rate is resolved. It must
+    return None -- never a fabricated default -- when no contract exists, so
+    the UI can say 'no contract on file' instead of implying 0.55."""
+    from app.extensions import db
+    from app.models import User, AgentCarrierContract
+    from app.commission.recap import contract_rate_for
+    app, agency_id = app_ctx
+
+    mike = User(email="mike@x.com", name="Mike Lauzurique",
+                agency_id=agency_id, role="agent")
+    db.session.add(mike); db.session.flush()
+    db.session.add(AgentCarrierContract(agent_id=mike.id, carrier="UHC",
+                                        agency_id=agency_id, is_active=True,
+                                        split_rate=0.525))
+    db.session.flush()
+
+    assert contract_rate_for(mike.id, "UHC", agency_id) == 0.525
+    # carrier with no contract -> None, NOT 0.55
+    assert contract_rate_for(mike.id, "Humana", agency_id) is None
+    # no agent at all -> None
+    assert contract_rate_for(None, "UHC", agency_id) is None
+
+
+def test_contract_rate_for_uses_cache(app_ctx):
+    """A caller passing a cache must not re-query per row -- the Fidelity view
+    serializes ~4k rows and a per-row query would reintroduce the N+1 the
+    50a7f4a perf fix removed."""
+    from app.extensions import db
+    from app.models import User, AgentCarrierContract
+    from app.commission.recap import contract_rate_for
+    app, agency_id = app_ctx
+
+    u = User(email="a@x.com", name="A Agent", agency_id=agency_id, role="agent")
+    db.session.add(u); db.session.flush()
+    db.session.add(AgentCarrierContract(agent_id=u.id, carrier="UHC",
+                                        agency_id=agency_id, is_active=True,
+                                        split_rate=0.5))
+    db.session.flush()
+
+    cache = {}
+    assert contract_rate_for(u.id, "UHC", agency_id, cache) == 0.5
+    assert (u.id, "uhc") in cache
+    # poison the cache; a cached hit must be returned without re-querying
+    cache[(u.id, "uhc")] = 0.99
+    assert contract_rate_for(u.id, "UHC", agency_id, cache) == 0.99
 
 
 def test_is_new_enrollment_per_carrier():

@@ -31,6 +31,13 @@ _RETIRED_ROLLUPS = {
     # Cyndi's legal name on the carrier files is "MORTIMER, CYNTHIA WALKUP", which
     # _normalize_name reduces to "cynthia mortimer" (NOT "cyndi mortimer").
     "cynthia mortimer": "Brian Freeman",
+    # Short-name variants. A carrier writing the familiar form would otherwise MISS
+    # the rollup silently and fall to the 0.55 agency fallback — paying the wrong
+    # amount with no error. That is the failure mode that produced Don Long's
+    # original "-$18" discrepancy (CLAUDE.md, 2026-06-11), so cover it up front
+    # rather than waiting to be surprised by a carrier's spelling.
+    "cyndi mortimer": "Brian Freeman",
+    "don long": "Brian Freeman",
 }
 
 

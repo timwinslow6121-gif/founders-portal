@@ -632,6 +632,68 @@ def quarantine_total_count(agency_id):
         agency_id=agency_id, classification="needs_manual_review").count()
 
 
+def retired_agent_breakdown(agency_id, period_label=None):
+    """Of the money a rollup target was paid, how much came from a RETIRED agent's
+    book? Returns a list of dicts, biggest agent_payout first:
+
+        {writing_agent, rolled_to, carrier, period_label,
+         n_rows, raw_total, agent_payout, founders_keep}
+
+    Cyndi Mortimer's and Don Long's Aetna/UHC business pays Brian Freeman at his
+    rate (app/commission/rollup.py). Before `writing_agent_raw` existed, that money
+    was indistinguishable from Brian's own once imported — this is the report that
+    separates them. Money is DERIVED via split_breakdown(), never recomputed here,
+    so the figures reconcile to the agent's recap by construction.
+
+    Rows imported before migration 040 have writing_agent_raw = NULL and cannot be
+    attributed; they are simply absent rather than guessed at. `period_label=None`
+    covers all periods.
+
+    Two deliberate behaviours worth knowing:
+      - Groups key on the RAW carrier spelling, so "LONG, DONALD" and "LONG, DON"
+        appear as separate rows if a carrier varies its spelling within a period.
+        That is provenance fidelity — both still show the same `rolled_to`.
+      - A resolve/edit splits one row into a parent + an ::ovr sibling; both carry
+        the same writing_agent_raw, so `raw_total` is the member's FULL amount and
+        `founders_keep` includes the override portion.
+    """
+    from app.commission.rollup import _RETIRED_ROLLUPS
+    from app.commission.routes import _normalize_name
+
+    q = CommissionLineItem.query.filter(
+        CommissionLineItem.agency_id == agency_id,
+        CommissionLineItem.writing_agent_raw.isnot(None))
+    if period_label:
+        q = q.filter(CommissionLineItem.period_label == period_label)
+
+    groups = {}
+    for li in q.all():
+        rolled_to = _RETIRED_ROLLUPS.get(_normalize_name(li.writing_agent_raw))
+        if rolled_to is None:
+            continue                      # not a retired agent's row
+        key = (li.writing_agent_raw, rolled_to, li.carrier, li.period_label)
+        g = groups.setdefault(key, {
+            "writing_agent": li.writing_agent_raw, "rolled_to": rolled_to,
+            "carrier": li.carrier, "period_label": li.period_label,
+            "n_rows": 0, "raw_total": 0.0,
+            "agent_payout": 0.0, "founders_keep": 0.0})
+        payout, keep = split_breakdown(li)
+        g["n_rows"] += 1
+        g["raw_total"] += (li.raw_amount or 0.0)
+        g["agent_payout"] += payout
+        g["founders_keep"] += keep
+
+    out = list(groups.values())
+    for g in out:
+        for k in ("raw_total", "agent_payout", "founders_keep"):
+            g[k] = round(g[k], 2)
+    # Biggest CONTRIBUTOR first — signed, not by magnitude. Sorting on abs() would
+    # put a large chargeback at the top, where a reader reasonably takes the first
+    # row to be the largest earner.
+    out.sort(key=lambda g: -g["agent_payout"])
+    return out
+
+
 def commission_audit_overview(agency_id, period_label):
     """The redesigned admin Commission Audit page data for ONE period:
       - statements: every statement for the period, each with balance state + counts

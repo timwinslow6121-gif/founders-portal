@@ -878,3 +878,159 @@ def test_unassigned_customers_view_and_set_agent(app, db_session, agency):
     with app.app_context():
         from app.models import Customer
         assert Customer.query.get(cid).primary_agent_id == rid
+
+
+def test_retired_agent_breakdown_separates_cyndis_book_from_brians(app_ctx):
+    """The point of writing_agent_raw: Cyndi's rolled-up business pays Brian, and
+    this report is what tells them apart. Money is DERIVED from split_breakdown,
+    so the figures reconcile to Brian's recap rather than being recomputed."""
+    from app.extensions import db
+    from app.models import (User, CommissionStatement, CommissionLineItem)
+    from app.commission.recap import retired_agent_breakdown
+    from datetime import date
+    app, agency_id = app_ctx
+
+    brian = User(email="b@x.com", name="Brian Freeman",
+                 agency_id=agency_id, role="agent")
+    db.session.add(brian); db.session.flush()
+    stmt = CommissionStatement(agency_id=agency_id, carrier="UHC",
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+
+    def row(ref, amt, writer):
+        return CommissionLineItem(
+            agency_id=agency_id, statement_id=stmt.id, carrier="UHC",
+            period_label="May 2026", source_ref=ref, agent_id=brian.id,
+            raw_amount=amt, split_rate=0.5, classification="agent_commission",
+            member_name="M", writing_agent_raw=writer)
+
+    db.session.add_all([
+        row("uhc::0::1", 100.0, "MORTIMER, CYNTHIA WALKUP"),
+        row("uhc::0::2", 50.0, "MORTIMER, CYNTHIA WALKUP"),
+        row("uhc::0::3", 40.0, "LONG, DONALD"),
+        row("uhc::0::4", 999.0, "FREEMAN, BRIAN LEE"),   # Brian's OWN — excluded
+        row("uhc::0::5", 20.0, None),                     # pre-040 row — excluded
+    ])
+    db.session.flush()
+
+    out = retired_agent_breakdown(agency_id)
+    writers = {g["writing_agent"]: g for g in out}
+    assert set(writers) == {"MORTIMER, CYNTHIA WALKUP", "LONG, DONALD"}, \
+        "Brian's own rows and NULL-provenance rows must not appear"
+
+    cyndi = writers["MORTIMER, CYNTHIA WALKUP"]
+    assert cyndi["rolled_to"] == "Brian Freeman"
+    assert cyndi["n_rows"] == 2
+    assert cyndi["raw_total"] == 150.0
+    assert cyndi["agent_payout"] == 75.0      # 150 * 0.5, derived not recomputed
+    assert cyndi["founders_keep"] == 75.0
+    # biggest payout first
+    assert out[0]["writing_agent"] == "MORTIMER, CYNTHIA WALKUP"
+
+
+def test_retired_agent_breakdown_filters_by_period(app_ctx):
+    """A period filter must not leak other periods into the totals."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from app.commission.recap import retired_agent_breakdown
+    from datetime import date
+    app, agency_id = app_ctx
+
+    brian = User(email="b2@x.com", name="Brian Freeman",
+                 agency_id=agency_id, role="agent")
+    db.session.add(brian); db.session.flush()
+    stmt = CommissionStatement(agency_id=agency_id, carrier="UHC",
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+    for ref, per in (("uhc::0::1", "May 2026"), ("uhc::0::2", "June 2026")):
+        db.session.add(CommissionLineItem(
+            agency_id=agency_id, statement_id=stmt.id, carrier="UHC",
+            period_label=per, source_ref=ref, agent_id=brian.id,
+            raw_amount=100.0, split_rate=0.5, classification="agent_commission",
+            member_name="M", writing_agent_raw="LONG, DONALD"))
+    db.session.flush()
+
+    may = retired_agent_breakdown(agency_id, period_label="May 2026")
+    assert len(may) == 1 and may[0]["raw_total"] == 100.0
+    assert len(retired_agent_breakdown(agency_id)) == 2   # unfiltered sees both
+
+
+def test_retired_agent_breakdown_counts_the_ovr_sibling(app_ctx):
+    """A resolved/edited row splits into parent + ::ovr sibling. Both must carry
+    the writer, or the report UNDER-states the book: a $100 Cyndi row resolved to
+    $60 agent + $40 override would otherwise read as $100 -> $60 raw / $0 kept."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from app.commission.recap import retired_agent_breakdown
+    from app.commission.ledger import resolve_quarantine_line
+    from datetime import date
+    app, agency_id = app_ctx
+
+    brian = User(email="b3@x.com", name="Brian Freeman",
+                 agency_id=agency_id, role="agent")
+    db.session.add(brian); db.session.flush()
+    stmt = CommissionStatement(agency_id=agency_id, carrier="UHC",
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+    li = CommissionLineItem(
+        agency_id=agency_id, statement_id=stmt.id, carrier="UHC",
+        period_label="May 2026", source_ref="uhc::0::1", agent_id=brian.id,
+        raw_amount=100.0, split_rate=None, classification="needs_manual_review",
+        member_name="M", writing_agent_raw="MORTIMER, CYNTHIA WALKUP")
+    db.session.add(li); db.session.flush()
+
+    # AJ resolves it: $40 to Founders, the $60 remainder splits at 0.5
+    resolve_quarantine_line(li, brian.id, 40.0, 0.5)
+    db.session.flush()
+
+    sib = CommissionLineItem.query.filter_by(source_ref="uhc::0::1::ovr").first()
+    assert sib is not None
+    assert sib.writing_agent_raw == "MORTIMER, CYNTHIA WALKUP", \
+        "the override sibling must inherit the parent's writer"
+
+    out = retired_agent_breakdown(agency_id)
+    assert len(out) == 1
+    g = out[0]
+    assert g["raw_total"] == 100.0        # 60 parent + 40 sibling, the FULL amount
+    assert g["agent_payout"] == 30.0      # 60 * 0.5
+    assert g["founders_keep"] == 70.0     # 30 remainder + 40 override
+
+
+def test_retired_agent_breakdown_sorts_by_signed_payout_not_magnitude(app_ctx):
+    """A big chargeback must NOT lead the report — the first row is read as the
+    largest contributor, so sorting on abs() actively misleads."""
+    from app.extensions import db
+    from app.models import User, CommissionStatement, CommissionLineItem
+    from app.commission.recap import retired_agent_breakdown
+    from datetime import date
+    app, agency_id = app_ctx
+
+    brian = User(email="b4@x.com", name="Brian Freeman",
+                 agency_id=agency_id, role="agent")
+    db.session.add(brian); db.session.flush()
+    stmt = CommissionStatement(agency_id=agency_id, carrier="UHC",
+                               period_label="May 2026", filename="u.xlsx",
+                               statement_date=date(2026, 5, 1))
+    db.session.add(stmt); db.session.flush()
+    db.session.add_all([
+        CommissionLineItem(agency_id=agency_id, statement_id=stmt.id, carrier="UHC",
+                           period_label="May 2026", source_ref="uhc::0::1",
+                           agent_id=brian.id, raw_amount=-500.0, split_rate=0.5,
+                           classification="chargeback", member_name="M",
+                           writing_agent_raw="MORTIMER, CYNDI"),
+        CommissionLineItem(agency_id=agency_id, statement_id=stmt.id, carrier="UHC",
+                           period_label="May 2026", source_ref="uhc::0::2",
+                           agent_id=brian.id, raw_amount=120.0, split_rate=0.5,
+                           classification="agent_commission", member_name="M",
+                           writing_agent_raw="LONG, DONALD"),
+    ])
+    db.session.flush()
+
+    out = retired_agent_breakdown(agency_id)
+    assert out[0]["writing_agent"] == "LONG, DONALD", \
+        "the +$60 earner leads, not the -$250 chargeback"
+    assert out[0]["agent_payout"] == 60.0
+    assert out[-1]["agent_payout"] == -250.0

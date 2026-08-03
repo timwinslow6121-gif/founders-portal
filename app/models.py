@@ -864,6 +864,13 @@ class CommissionLineItem(db.Model):
     mbi           = db.Column(db.String(20), index=True)
     carrier_member_id = db.Column(db.String(128))
 
+    # The writing-agent name EXACTLY as the carrier file spelled it, captured
+    # BEFORE apply_rollup() rewrites it. agent_id says who gets PAID (Cyndi's and
+    # Don's Aetna/UHC business rolls up to Brian); this says WHOSE BOOK it came
+    # from, which agent_id alone can never answer. NULL = the file gave no name.
+    # Provenance only — it never participates in the split math.
+    writing_agent_raw = db.Column(db.String(128), nullable=True, index=True)
+
     raw_amount    = db.Column(db.Float, nullable=False)   # exactly what the sheet shows; may be negative. The TRUTH.
     split_rate    = db.Column(db.Float, nullable=True)    # snapshotted at import; NULL for founders_override
     # AJ hand-corrected this line's split in the Fidelity/quarantine UI. When True the

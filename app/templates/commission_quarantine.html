@@ -45,6 +45,9 @@
   .edit-form input { width:90px; text-align:right; }
   .edit-form button { padding:6px 14px; border:none; border-radius:8px; background:var(--gold);
                  color:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .ef-rate{font-size:12px;color:var(--slate);margin:0 8px;white-space:nowrap}
+  .ef-preview{font-size:12px;color:var(--slate);margin:0 8px}
+  .ef-preview.warn{color:#C0392B;font-weight:600}
 </style>
 {% endblock %}
 
@@ -153,8 +156,16 @@
                 <option value="{{ a.id }}" {% if a.id == r.agent_id %}selected{% endif %}>{{ a.display_name }}</option>
                 {% endfor %}
               </select>
+              <span class="ef-rate" data-rate="{{ '' if r.contract_rate is none else r.contract_rate }}">
+                {%- if r.contract_rate is none -%}
+                  no contract on file
+                {%- else -%}
+                  contract {{ (r.contract_rate * 100) | round(1) }}%
+                {%- endif -%}
+              </span>
               <input type="number" step="0.01" name="agent_amount" placeholder="Agent $" aria-label="Agent amount">
               <input type="number" step="0.01" name="override_amount" placeholder="Override $" aria-label="Override amount">
+              <input type="hidden" name="confirm_off_contract" value="" class="ef-confirm">
               <button type="submit">Save</button>
             </form>
           </td>
@@ -165,4 +176,40 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+  // Edit forms take TWO amounts (exact dollars). Show the resulting split so the
+  // convention is visible in dollars rather than implied by the number of boxes.
+  (function () {
+    function fmt(n){ return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2}); }
+    document.querySelectorAll('form.edit-form').forEach(function (f) {
+      var ag=f.querySelector('[name=agent_amount]'), ov=f.querySelector('[name=override_amount]'),
+          rateEl=f.querySelector('.ef-rate');
+      if(!ag || !ov) return;
+      var prev=document.createElement('span');
+      prev.className='ef-preview';
+      f.insertBefore(prev, f.querySelector('button[type=submit]'));
+      function upd(){
+        var rate=rateEl ? parseFloat(rateEl.getAttribute('data-rate')) : NaN;
+        var a=parseFloat(ag.value)||0, o=parseFloat(ov.value)||0, t=a+o;
+        if(Math.abs(t)<0.005){ prev.textContent=''; prev.className='ef-preview'; return; }
+        var off = !isNaN(rate) && Math.abs(a - Math.round(t*rate*100)/100) > 0.005;
+        prev.textContent='→ agent '+fmt(a)+' of '+fmt(t)+(off?'  ⚠ not their contract rate':'');
+        prev.className='ef-preview'+(off?' warn':'');
+      }
+      ag.addEventListener('input',upd); ov.addEventListener('input',upd); upd();
+      f.addEventListener('submit', function (e) {
+        var rate=rateEl ? parseFloat(rateEl.getAttribute('data-rate')) : NaN;
+        var a=parseFloat(ag.value)||0, o=parseFloat(ov.value)||0, t=a+o;
+        if(isNaN(rate) || Math.abs(t)<0.005) return;
+        if(Math.abs(a - Math.round(t*rate*100)/100) <= 0.005) return;
+        if(!window.confirm('That pays the agent '+fmt(a)+' of '+fmt(t)+
+                           ', not their contract rate. Save anyway?')){
+          e.preventDefault(); return;
+        }
+        var h=f.querySelector('.ef-confirm'); if(h) h.value='1';
+      });
+    });
+  })();
+</script>
 {% endblock %}

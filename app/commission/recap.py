@@ -187,36 +187,42 @@ def _suggested_quarantine_agent(li, agency_id):
     return None
 
 
-def _quarantine_row(li, agency_id):
+def _quarantine_row(li, agency_id, rate_cache=None):
     return {"id": li.id, "carrier": li.carrier,
             "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
             "agent_id": li.agent_id,
-            "suggested_agent_id": _suggested_quarantine_agent(li, agency_id)}
+            "suggested_agent_id": _suggested_quarantine_agent(li, agency_id),
+            "contract_rate": contract_rate_for(li.agent_id, li.carrier, agency_id,
+                                               rate_cache)}
 
 
 def quarantined_line_items(statement_id, agency_id):
     """needs_manual_review line items for ONE statement. Any carrier — these are
     recorded but NOT split (payout 0), so nothing is silently dropped; AJ resolves
     them in-line. Returns {count, total, rows:[{id, carrier, member_name, mbi,
-    amount, action, agent_id, suggested_agent_id}]}."""
+    amount, action, agent_id, suggested_agent_id, contract_rate}]}."""
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     items = (CommissionLineItem.query
              .filter_by(statement_id=statement_id, agency_id=agency_id,
                         classification="needs_manual_review")
              .order_by(CommissionLineItem.member_name)
              .all())
-    rows = [_quarantine_row(li, agency_id) for li in items]
+    rows = [_quarantine_row(li, agency_id, rate_cache) for li in items]
     return {"count": len(rows),
             "total": round(sum(r["amount"] for r in rows), 2),
             "rows": rows}
 
 
-def _resolved_row(li, revisions):
+def _resolved_row(li, revisions, agency_id=None, rate_cache=None):
     return {"id": li.id, "carrier": li.carrier,
             "member_name": li.member_name or "(unnamed)", "mbi": li.mbi,
             "amount": round(li.raw_amount or 0.0, 2), "action": li.payment_type or "",
             "agent_id": li.agent_id, "classification": li.classification,
-            "revisions": revisions}
+            "revisions": revisions,
+            "contract_rate": contract_rate_for(li.agent_id, li.carrier,
+                                               agency_id if agency_id is not None else li.agency_id,
+                                               rate_cache)}
 
 
 def _revisions_by_line(line_ids, agency_id):
@@ -256,7 +262,8 @@ def recently_resolved_line_items(statement_id, agency_id):
                      CommissionLineItem.classification != "needs_manual_review")
              .all())
     revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
-    rows = [_resolved_row(li, revs_by_line.get(li.id, [])) for li in items]
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
+    rows = [_resolved_row(li, revs_by_line.get(li.id, []), agency_id, rate_cache) for li in items]
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
     return rows
 
@@ -265,12 +272,13 @@ def period_quarantine(agency_id, period_label):
     """ALL needs_manual_review line items for a period, across every carrier /
     statement — what the agency-overview matrix links to. Same row shape as
     quarantined_line_items, plus a per-carrier breakdown for the header."""
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     items = (CommissionLineItem.query
              .filter_by(agency_id=agency_id, period_label=period_label,
                         classification="needs_manual_review")
              .order_by(CommissionLineItem.carrier, CommissionLineItem.member_name)
              .all())
-    rows = [_quarantine_row(li, agency_id) for li in items]
+    rows = [_quarantine_row(li, agency_id, rate_cache) for li in items]
     by_carrier = {}
     for r in rows:
         b = by_carrier.setdefault(r["carrier"], {"count": 0, "total": 0.0})
@@ -301,7 +309,8 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
        flat:[...], by_carrier:{carrier:{count,total}},
        filter_options:{periods:[...], carriers:[...], agents:[user_id,...]}}
     Rows use the shared _quarantine_row shape (id/carrier/member_name/mbi/amount/
-    action/agent_id/suggested_agent_id) plus 'period_label' for display."""
+    action/agent_id/suggested_agent_id/contract_rate) plus 'period_label' for display."""
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     q = CommissionLineItem.query.filter_by(
         agency_id=agency_id, classification="needs_manual_review")
     if period:
@@ -313,7 +322,7 @@ def quarantine_workbench(agency_id, *, period=None, carrier=None, agent_id=None,
     items = q.all()
 
     def row(li):
-        r = _quarantine_row(li, agency_id)
+        r = _quarantine_row(li, agency_id, rate_cache)
         r["period_label"] = li.period_label or ""
         return r
     rows = [row(li) for li in items]
@@ -723,9 +732,10 @@ def recently_resolved_workbench(agency_id, *, period=None, carrier=None, agent_i
         q = q.filter(CommissionLineItem.agent_id == agent_id)
     items = q.all()
     revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
     rows = []
     for li in items:
-        r = _resolved_row(li, revs_by_line.get(li.id, []))
+        r = _resolved_row(li, revs_by_line.get(li.id, []), agency_id, rate_cache)
         r["period_label"] = li.period_label or ""
         rows.append(r)
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
@@ -755,7 +765,8 @@ def recently_resolved_period_line_items(agency_id, period_label):
                      CommissionLineItem.classification != "needs_manual_review")
              .all())
     revs_by_line = _revisions_by_line([li.id for li in items], agency_id)
-    rows = [_resolved_row(li, revs_by_line.get(li.id, [])) for li in items]
+    rate_cache = {}   # (agent_id, carrier) -> rate; resolved once per pair, not per row
+    rows = [_resolved_row(li, revs_by_line.get(li.id, []), agency_id, rate_cache) for li in items]
     rows.sort(key=lambda r: max((rev.id for rev in r["revisions"]), default=0), reverse=True)
     return rows
 

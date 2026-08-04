@@ -42,6 +42,10 @@
   .detail-grid, .detail-grid-3 { grid-template-columns: 1fr; }
 }
 
+.benefits-empty { background:var(--surface); border:1px dashed var(--border);
+  border-radius:var(--radius); padding:24px; max-width:780px; margin-bottom:16px;
+  text-align:center; color:var(--slate); font-size:13px; }
+.benefits-empty strong { color:var(--ivory); font-weight:600; }
 .benefit-block { margin-top:10px; padding:10px 12px; background:var(--surface-low); border:1px solid var(--border); border-radius:10px; }
 .bb-title { font-size:12px; font-weight:700; color:var(--ivory-bright); margin-bottom:6px; }
 .bb-body { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
@@ -90,7 +94,7 @@
 .service-area-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
   background:var(--surface-low); border:1px solid var(--border);
   border-radius:var(--radius-sm); padding:8px 14px; margin-bottom:16px;
-  font-size:13px; color:var(--ivory); }
+  font-size:13px; color:var(--ivory); max-width:780px; }
 .service-area-bar .sa-pin { color:var(--gold); }
 .service-area-bar .sa-muted { color:var(--slate); }
 .service-area-bar button.sa-toggle { border:none; background:transparent; cursor:pointer;
@@ -174,7 +178,17 @@
 {# render_sections — the benefit-section cards, shared by BOTH the Consumer and
    Pro view wrappers so the loop is defined exactly once (both views are still
    fully server-rendered, per the toggle spec — this just keeps it DRY). #}
-{% macro render_sections(sections, details, medigap_rows, oop_cap, plan) %}
+{% macro render_sections(sections, details, medigap_rows, oop_cap, plan, benefits_empty) %}
+  {% if benefits_empty %}
+  <div class="benefits-empty">
+    <strong>No benefit details entered yet.</strong><br>
+    {% if current_user.is_admin %}
+      Add this plan's benefits via <a href="{{ url_for('carriers.plan_edit', plan_id=plan.id) }}" style="color:var(--gold)">Edit plan</a>.
+    {% else %}
+      An admin can add this plan's Summary-of-Benefits details.
+    {% endif %}
+  </div>
+  {% else %}
   {% for group in sections %}
   <div class="detail-card" style="margin-bottom:16px">
     <h3>{{ group.title }}</h3>
@@ -190,6 +204,7 @@
     {% endif %}
   </div>
   {% endfor %}
+  {% endif %}
 {% endmacro %}
 
 <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px">
@@ -303,7 +318,7 @@
 
 {# Consumer view = the customer-safe benefit sections #}
 <div class="consumer-view">
-  {{ render_sections(sections, details, medigap_rows, oop_cap, plan) }}
+  {{ render_sections(sections, details, medigap_rows, oop_cap, plan, benefits_empty) }}
 </div>
 
 {# Pro view = same sections + (Task 4) the Agent Quick-Info panel. Hidden by default. #}
@@ -343,7 +358,7 @@
     </div>
   </div>
   {% endif %}
-  {{ render_sections(sections, details, medigap_rows, oop_cap, plan) }}
+  {{ render_sections(sections, details, medigap_rows, oop_cap, plan, benefits_empty) }}
 </div>
 
 {% if current_user.is_admin %}

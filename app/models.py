@@ -299,6 +299,13 @@ pharmacy_agents = db.Table(
 )
 
 
+provider_carriers = db.Table(
+    "provider_carriers",
+    db.Column("provider_id", db.Integer, db.ForeignKey("providers.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("carrier", db.String(64), primary_key=True),
+)
+
+
 class Pharmacy(db.Model):
     """
     Partner pharmacy that refers customers to Founders agents.
@@ -329,6 +336,51 @@ class Pharmacy(db.Model):
 
     def __repr__(self):
         return f"<Pharmacy {self.name}>"
+
+
+class Provider(db.Model):
+    """Agency-shared tribal-knowledge directory of local medical providers: which
+    carriers each is IN-network with, and whether it'll bill a PPO out-of-network
+    ("plays nice"). Drives the plan-detail Network Snapshot panel. Manually
+    maintained by agents (NOT parsed from carrier directories)."""
+    __tablename__ = "providers"
+
+    id            = db.Column(db.Integer, primary_key=True)
+    agency_id     = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    name          = db.Column(db.String(256), nullable=False)
+    provider_type = db.Column(db.String(64))                      # gastro / family / dentist / ...
+    city          = db.Column(db.String(128))
+    county        = db.Column(db.String(128), index=True)
+    phone         = db.Column(db.String(32))
+    bills_ppo_oon = db.Column(db.String(16), default="unknown")   # yes | no | unknown
+    notes         = db.Column(db.Text)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at    = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at    = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    @property
+    def carrier_names(self):
+        """List of carrier strings this provider is in-network with."""
+        rows = db.session.execute(
+            provider_carriers.select().where(provider_carriers.c.provider_id == self.id)
+        ).all()
+        return [r.carrier for r in rows]
+
+    def set_carriers(self, carriers):
+        """Replace the provider's accepted-carrier set with `carriers` (list of str)."""
+        if self.id is None:
+            db.session.add(self)
+            db.session.flush()
+        db.session.execute(
+            provider_carriers.delete().where(provider_carriers.c.provider_id == self.id)
+        )
+        for c in sorted(set(x for x in carriers if x)):
+            db.session.execute(
+                provider_carriers.insert().values(provider_id=self.id, carrier=c)
+            )
+
+    def __repr__(self):
+        return f"<Provider {self.name} ({self.county})>"
 
 
 class Plan(db.Model):

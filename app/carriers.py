@@ -68,6 +68,25 @@ def _parse_details(details_json_str):
         return {}
 
 
+# Bare state tokens whose service_area free-text means "the whole state" — these
+# normalize to "Available statewide in NC" rather than showing a terse "📍 NC".
+_STATEWIDE_TOKENS = {"", "nc", "north carolina", "nc statewide", "statewide",
+                     "statewide nc"}
+
+
+def _state_line_label(service_area):
+    """Clean state-line label from the free-text service_area. A bare state / blank
+    reads "Available statewide in NC"; a real sub-area ("Western NC") is preserved as
+    "Available in Western NC"; "National" → "Available nationally". Never a bare token."""
+    raw = (service_area or "").strip()
+    low = raw.lower()
+    if low in _STATEWIDE_TOKENS:
+        return "Available statewide in NC"
+    if low in ("national", "nationwide"):
+        return "Available nationally"
+    return f"Available in {raw}"
+
+
 def service_area_for(plan, agency_id):
     """Build the service-area bar payload for a plan. Counties from plan_service_areas
     (agency-scoped) when present, else a state-line fallback. Never fabricates a count."""
@@ -84,8 +103,7 @@ def service_area_for(plan, agency_id):
         counties = sorted(by_state[state])
         return {"mode": "counties", "state": state,
                 "count": len(counties), "counties": counties}
-    return {"mode": "state",
-            "label": plan.service_area or "Available statewide in NC"}
+    return {"mode": "state", "label": _state_line_label(plan.service_area)}
 
 
 # Benefit field keys serialized into Plan.details_json via the admin form.
@@ -337,7 +355,8 @@ def plan_detail(plan_id):
     details = _parse_details(plan.details_json)
 
     from app.plan_sections import (sections_for, coverage_category,
-                                   oop_cap_for_year, medigap_coverage, kpis_for)
+                                   oop_cap_for_year, medigap_coverage, kpis_for,
+                                   benefit_body_is_empty)
 
     # Surface real Plan columns under the keys the section config expects, WITHOUT
     # clobbering anything already set in details_json (details_json wins if present).
@@ -361,6 +380,7 @@ def plan_detail(plan_id):
     medigap_rows = medigap_coverage(getattr(plan, "plan_letter", None))
 
     kpis = kpis_for(plan, details)
+    benefits_empty = benefit_body_is_empty(sections, details, medigap_rows, oop_cap)
 
     # Agent Quick-Info (Pro view) — commission at the VIEWING agent's OWN split.
     # Every portal user is an authenticated agent/admin, so is_agent_context is True;
@@ -403,6 +423,7 @@ def plan_detail(plan_id):
         medigap_rows=medigap_rows,
         kpis=kpis, is_agent_context=is_agent_context, quick_info=quick_info,
         service_area=service_area,
+        benefits_empty=benefits_empty,
     )
 
 

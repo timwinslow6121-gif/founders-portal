@@ -268,6 +268,49 @@ def test_service_area_state_mode_when_no_rows(ctx, monkeypatch):
     assert sa["label"] == "Available statewide in NC"   # plan.service_area is None
 
 
+def test_state_line_label_normalizes_bare_state_and_preserves_real_area():
+    from app.carriers import _state_line_label
+    assert _state_line_label(None) == "Available statewide in NC"
+    assert _state_line_label("") == "Available statewide in NC"
+    assert _state_line_label("NC") == "Available statewide in NC"
+    assert _state_line_label("nc") == "Available statewide in NC"
+    assert _state_line_label("NC Statewide") == "Available statewide in NC"
+    assert _state_line_label("North Carolina") == "Available statewide in NC"
+    assert _state_line_label("Western NC") == "Available in Western NC"
+    assert _state_line_label("National") == "Available nationally"
+
+
+def test_blank_plan_shows_empty_state_note(ctx):
+    app, agency_id, uid, pid = ctx
+    from app import carriers
+    with app.app_context():
+        blank = Plan(agency_id=agency_id, carrier="BCBS", plan_name="Dental Blue PPO",
+                     plan_type="dvh", year=2026, status="current")
+        db.session.add(blank); db.session.commit()
+        blank_id = blank.id
+    with app.test_request_context(f"/carriers/{blank_id}"):
+        from flask_login import login_user
+        from app.models import User
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(blank_id)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    # The note's copy only appears in the rendered div (the class name also lives in
+    # the always-present <style> block, so assert on the copy).
+    assert "No benefit details entered yet" in html
+
+
+def test_populated_plan_has_no_empty_state_note(ctx):
+    app, agency_id, uid, pid = ctx  # ctx plan has pcp_copay="$0" → a real row
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert "No benefit details entered yet" not in html
+
+
 def test_template_renders_service_area_bar(ctx):
     app, agency_id, uid, pid = ctx
     with app.app_context():

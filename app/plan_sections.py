@@ -171,6 +171,40 @@ def kpis_for(plan, details):
     return kpis
 
 
+def _block_has_content(block, details, medigap_rows):
+    """Would a benefit block actually render anything? Mirrors the template macros'
+    render conditions (otc_block/dental_block/medigap_block/hi_riders_block)."""
+    if block == "otc":
+        return bool(details.get("otc_allowance"))
+    if block == "dental":
+        return bool(details.get("dental_prev_innet")
+                    or details.get("dental_major_innet")
+                    or details.get("dental_allowance"))
+    if block == "medigap_grid":
+        return bool(medigap_rows)
+    if block == "hi_riders":
+        return bool(details.get("hi_riders"))
+    return False
+
+
+def benefit_body_is_empty(sections, details, medigap_rows, oop_cap):
+    """True when the benefit sections would render ZERO content — no populated rows,
+    no populated blocks, no OOP-cap row. Drives the "no benefit details entered yet"
+    empty-state note so a plan with no SOB data shows guidance instead of blank cards.
+    Matches the template's actual render conditions (a row shows only when its key is
+    truthy in `details`)."""
+    for group in sections:
+        for _label, key in group.get("rows", []):
+            if details.get(key):
+                return False
+        for block in group.get("blocks", []):
+            if _block_has_content(block, details, medigap_rows):
+                return False
+        if group.get("title") == "Drugs" and oop_cap:
+            return False
+    return True
+
+
 def sections_for(plan):
     cat = coverage_category(plan.plan_type)
     if cat == "part_c":

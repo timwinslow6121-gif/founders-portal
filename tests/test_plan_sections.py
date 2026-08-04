@@ -65,6 +65,37 @@ def test_medigap_unknown_letter_empty():
     assert medigap_coverage("Z") == []
 
 
+def test_benefit_body_is_empty_true_when_no_data():
+    from app.plan_sections import benefit_body_is_empty
+    sections = sections_for(_Plan("dvh"))
+    assert benefit_body_is_empty(sections, {}, [], None) is True
+
+
+def test_benefit_body_not_empty_with_a_row_value():
+    from app.plan_sections import benefit_body_is_empty
+    sections = sections_for(_Plan("dvh"))
+    assert benefit_body_is_empty(sections, {"annual_max": "$3,000"}, [], None) is False
+
+
+def test_benefit_body_not_empty_with_a_block():
+    from app.plan_sections import benefit_body_is_empty
+    sections = sections_for(_Plan("mapd"))
+    assert benefit_body_is_empty(sections, {"otc_allowance": "$45/qtr"}, [], None) is False
+
+
+def test_benefit_body_not_empty_with_medigap_grid():
+    from app.plan_sections import benefit_body_is_empty
+    sections = sections_for(_Plan("medigap", plan_letter="G"))
+    rows = medigap_coverage("G")
+    assert benefit_body_is_empty(sections, {}, rows, None) is False
+
+
+def test_benefit_body_not_empty_with_oop_cap_on_drugs():
+    from app.plan_sections import benefit_body_is_empty
+    sections = sections_for(_Plan("mapd"))
+    assert benefit_body_is_empty(sections, {}, [], "$2,100") is False
+
+
 def test_part_b_constant_present():
     assert PART_B_PREMIUM_2026 == 185.00
 

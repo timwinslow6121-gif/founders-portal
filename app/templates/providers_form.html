@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if provider else 'Add' }} provider{% endblock %}
+{% block content %}
+<h1 class="page-title">{{ 'Edit' if provider else 'Add' }} provider</h1>
+<form method="post" style="max-width:640px">
+  <label>Name<br><input class="form-input" name="name" required value="{{ provider.name if provider else '' }}"></label><br><br>
+  <label>Type<br><input class="form-input" name="provider_type" list="type-suggest" value="{{ provider.provider_type if provider else '' }}"></label>
+  <datalist id="type-suggest">{% for t in type_suggestions %}<option value="{{ t }}">{% endfor %}</datalist><br><br>
+  <label>City<br><input class="form-input" name="city" value="{{ provider.city if provider else '' }}"></label>
+  <label>County<br><input class="form-input" name="county" value="{{ provider.county if provider else '' }}"></label><br><br>
+  <label>Phone<br><input class="form-input" name="phone" value="{{ provider.phone if provider else '' }}"></label><br><br>
+  <fieldset><legend>In-network with</legend>
+    {% for c in carriers %}
+    <label style="display:inline-block;margin-right:12px">
+      <input type="checkbox" name="carriers" value="{{ c }}" {{ 'checked' if c in selected_carriers }}> {{ c }}
+    </label>
+    {% endfor %}
+  </fieldset><br>
+  <fieldset><legend>Bills a PPO out-of-network ("plays nice")</legend>
+    {% for opt in bills_opts %}
+    <label style="margin-right:12px"><input type="radio" name="bills_ppo_oon" value="{{ opt }}"
+      {{ 'checked' if (provider.bills_ppo_oon if provider else 'unknown') == opt }}> {{ opt }}</label>
+    {% endfor %}
+  </fieldset><br>
+  <label>Notes<br><textarea class="form-input" name="notes" rows="3">{{ provider.notes if provider else '' }}</textarea></label><br><br>
+  <button class="btn-primary" type="submit">Save</button>
+  <a href="{{ url_for('providers.provider_list') }}" class="btn-secondary">Cancel</a>
+</form>
+{% if provider and current_user.is_admin %}
+<form method="post" action="{{ url_for('providers.provider_delete', provider_id=provider.id) }}"
+      onsubmit="return confirm('Delete this provider?')" style="margin-top:16px">
+  <button class="btn-secondary" style="color:var(--status-error)" type="submit">Delete provider</button>
+</form>
+{% endif %}
+{% endblock %}

@@ -27,6 +27,7 @@ def create_app():
     from app.roadmap import roadmap_bp
     from app.notices import notices_bp
     from app.updates import updates_bp
+    from app.providers import providers_bp
     app.register_blueprint(main)
     app.register_blueprint(auth)
     app.register_blueprint(upload_bp)
@@ -40,9 +41,13 @@ def create_app():
     app.register_blueprint(roadmap_bp)
     app.register_blueprint(notices_bp)
     app.register_blueprint(updates_bp)
+    app.register_blueprint(providers_bp)
 
     from app.security import init_security
     init_security(app)
+
+    from app.models import can_edit_shared_data
+    app.jinja_env.globals["can_edit_shared_data"] = can_edit_shared_data
 
     @app.context_processor
     def inject_duplicate_count():

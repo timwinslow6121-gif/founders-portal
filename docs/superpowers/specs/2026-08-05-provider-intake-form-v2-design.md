@@ -27,7 +27,7 @@ Keep the existing **carrier layer**; add a **plan layer**.
 
 **`Provider.bills_ppo_oon` is RETIRED** (dropped) — the per-plan `bills_oon` is strictly more accurate (a provider can bill Devoted OON but not Aetna).
 
-**⚠ Data preservation (there is already 1 real provider on prod with a meaningful flag):** the migration must NOT silently lose the existing `bills_ppo_oon` value. Before dropping the column, for any provider whose `bills_ppo_oon` is non-null and not `"unknown"`, **append a line to `notes`**: `"[migrated] general PPO-OON billing: <value>"`. This preserves the human knowledge (there's no clean automatic per-plan target since the old flag was plan-agnostic) so Tim can re-enter it as a proper per-plan flag on next edit. The migration does this in a data step before `op.drop_column`.
+**Data note: the `providers` table is EMPTY on prod** (the one test provider was deleted 2026-08-05, Tim confirmed it was just a test). So dropping `bills_ppo_oon` is a clean column drop with **no data to preserve** — the migration is a straight `op.drop_column` (no data-migration step needed). The build should still confirm 0 rows before the drop as a safety check, but no notes-preservation logic is required.
 
 ## Section 2 — group field + expanded types
 
@@ -63,7 +63,7 @@ Keep the existing **carrier layer**; add a **plan layer**.
 
 ## Section 4 — testing & safety
 
-- **Model/migration:** `provider_plans` table (unique provider+plan, cascades); `Provider.group` added; `bills_ppo_oon` **data-preserved into notes then dropped**; migration valid (isolated-validate like prior ones). ⚠ The prod data step (preserve-then-drop) must be verified against the 1 existing provider.
+- **Model/migration:** `provider_plans` table (unique provider+plan, cascades); `Provider.group` added; `bills_ppo_oon` **dropped (clean — table empty on prod)**; migration valid (isolated-validate like prior ones).
 - **Accessor precedence:** `providers_for_plan` returns in/out honoring plan-specific flags over carrier default; `bills_oon` surfaced only from a plan-specific PPO flag; agency-scoped (no cross-agency leak).
 - **Management page:** add/remove a plan flag persists a `provider_plans` row; `group` persists; edit gate (`can_edit_shared_data`) unchanged + server-side.
 - **Plan panel:** a provider flagged out-of-network on a specific plan shows as out even if carrier-accepted (plan flag wins); PPO plays-nice from plan flag; group sub-label; empty state intact.
@@ -84,4 +84,4 @@ Keep the existing **carrier layer**; add a **plan layer**.
 - Provider↔customer linkage; the AEP formulary-change segmentation engine — unrelated future features.
 
 ## Deploy notes
-One migration (adds `provider_plans` + `Provider.group`; preserves-then-drops `bills_ppo_oon`). ⚠ DB backup before (there's 1 real provider row whose flag gets migrated to notes). `flask db upgrade`, restart. No seed. Verify the 1 existing provider's flag landed in its notes and its carriers/row survived.
+One migration (adds `provider_plans` + `Provider.group`; drops `bills_ppo_oon` — clean, `providers` table is empty on prod). DB backup before (protocol). `flask db upgrade`, restart. No seed. No data to preserve.

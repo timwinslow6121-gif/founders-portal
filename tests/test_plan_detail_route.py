@@ -1,7 +1,7 @@
 import pytest
 from app import create_app
 from app.extensions import db
-from app.models import Agency, User, Plan, PlanServiceArea
+from app.models import Agency, User, Plan, PlanServiceArea, Provider
 
 
 @pytest.fixture
@@ -343,3 +343,49 @@ def test_template_service_area_state_line(ctx):
     assert "service-area-bar" in html
     assert "Available statewide in NC" in html
     assert "data-service-area-toggle" not in html   # no toggle without counties
+
+
+def test_providers_for_plan_splits_in_and_not_in_network(ctx):
+    app, agency_id, uid, pid = ctx  # ctx plan carrier = "Humana"
+    from app.carriers import providers_for_plan
+    from app.models import Plan
+    with app.app_context():
+        innet = Provider(agency_id=agency_id, name="Kann Family", county="Cabarrus", created_by_id=uid)
+        db.session.add(innet); db.session.flush(); innet.set_carriers(["Humana", "BCBS"])
+        outnet = Provider(agency_id=agency_id, name="NE Digestive", county="Cabarrus", created_by_id=uid)
+        db.session.add(outnet); db.session.flush(); outnet.set_carriers(["BCBS"])  # NOT Humana
+        db.session.commit()
+        plan = db.session.get(Plan, pid)
+        res = providers_for_plan(plan, agency_id)
+    innet_names = {p.name for lst in res["in_network"].values() for p in lst}
+    outnet_names = {p.name for lst in res["not_in_network"].values() for p in lst}
+    assert "Kann Family" in innet_names
+    assert "NE Digestive" in outnet_names        # sole clinic out-of-network still surfaces
+    assert "NE Digestive" not in innet_names
+
+
+def test_providers_for_plan_is_ppo_flag(ctx):
+    app, agency_id, uid, pid = ctx
+    from app.carriers import providers_for_plan
+    from app.models import Plan
+    with app.app_context():
+        plan = db.session.get(Plan, pid)
+        plan.plan_subtype = "ppo"; db.session.commit()
+        assert providers_for_plan(plan, agency_id)["is_ppo"] is True
+        plan.plan_subtype = "hmo"; db.session.commit()
+        assert providers_for_plan(plan, agency_id)["is_ppo"] is False
+
+
+def test_providers_for_plan_agency_scoped(ctx):
+    app, agency_id, uid, pid = ctx
+    from app.carriers import providers_for_plan
+    from app.models import Plan, Agency
+    with app.app_context():
+        other = Agency(name="Other"); db.session.add(other); db.session.flush()
+        p = Provider(agency_id=other.id, name="Leak", county="X", created_by_id=uid)
+        db.session.add(p); db.session.flush(); p.set_carriers(["Humana"])
+        db.session.commit()
+        plan = db.session.get(Plan, pid)
+        res = providers_for_plan(plan, agency_id)
+    allnames = {pr.name for grp in (res["in_network"], res["not_in_network"]) for lst in grp.values() for pr in lst}
+    assert "Leak" not in allnames                # other agency's provider never returned

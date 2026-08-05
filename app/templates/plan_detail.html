@@ -113,6 +113,21 @@
   color:var(--ivory); line-height:1; }
 .qi-cell .qi-lbl { font-size:11px; color:var(--slate); margin-top:4px; }
 {% endif %}
+
+.network-panel { background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px 24px; margin-bottom:16px; max-width:820px; }
+.network-panel h3 { font-size:11px; font-weight:700; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--slate); margin:0 0 12px; }
+.net-county { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--gold); margin:12px 0 4px; }
+.net-row { padding:5px 0; border-bottom:1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  font-size:13px; color:var(--ivory); }
+.net-meta { font-size:12px; color:var(--slate); }
+.oon-yes { color:var(--green); font-weight:700; } .oon-no { color:var(--status-error); font-weight:700; }
+.oon-unknown { color:var(--slate); }
+.net-toggle { border:none; background:transparent; cursor:pointer; color:var(--gold);
+  font-size:12px; font-weight:600; padding:0; text-decoration:underline; margin-top:10px; }
+.net-empty { color:var(--slate); font-size:13px; }
 {% endblock %}
 {% block content %}
 
@@ -358,6 +373,42 @@
     </div>
   </div>
   {% endif %}
+
+  {% if is_agent_context %}
+  <div class="network-panel">
+    <h3>Network — local providers ({{ plan.carrier }})</h3>
+    {% if providers.in_network %}
+      {% for county, provs in providers.in_network.items() %}
+      <div class="net-county">{{ county }}</div>
+      {% for p in provs %}
+      <div class="net-row">{{ p.name }}{% if p.provider_type %} <span class="net-meta">· {{ p.provider_type }}</span>{% endif %}
+        {% if p.phone %} <span class="net-meta">· {{ p.phone }}</span>{% endif %}
+        {% if providers.is_ppo %}
+          · {% if p.bills_ppo_oon == 'yes' %}<span class="oon-yes">✓ bills OON</span>
+          {% elif p.bills_ppo_oon == 'no' %}<span class="oon-no">✗ won't bill OON — customer pays upfront</span>
+          {% else %}<span class="oon-unknown">? OON billing unknown</span>{% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% endfor %}
+    {% else %}
+      <div class="net-empty">No providers recorded for {{ plan.carrier }} yet.{% if can_edit_shared_data(current_user) %}
+        <a href="{{ url_for('providers.provider_list') }}" style="color:var(--gold)">Add them on the Providers page</a>.{% endif %}</div>
+    {% endif %}
+
+    {% if providers.not_in_network %}
+    <button type="button" class="net-toggle" data-net-toggle>Show providers NOT in network here</button>
+    <div class="net-notin" hidden>
+      {% for county, provs in providers.not_in_network.items() %}
+      <div class="net-county">{{ county }}</div>
+      {% for p in provs %}
+      <div class="net-row"><span class="oon-no">✗</span> {{ p.name }}{% if p.provider_type %} <span class="net-meta">· {{ p.provider_type }}</span>{% endif %} <span class="net-meta">· not in network on {{ plan.carrier }}</span></div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
   {{ render_sections(sections, details, medigap_rows, oop_cap, plan, benefits_empty) }}
 </div>
 
@@ -446,5 +497,18 @@
 })();
 </script>
 {% endif %}
+
+<script>
+(function () {
+  var btn = document.querySelector('[data-net-toggle]');
+  var box = document.querySelector('.net-notin');
+  if (!btn || !box) return;
+  btn.addEventListener('click', function () {
+    var show = box.hidden; box.hidden = !show;
+    btn.textContent = show ? 'Hide providers not in network here'
+                           : 'Show providers NOT in network here';
+  });
+})();
+</script>
 
 {% endblock %}

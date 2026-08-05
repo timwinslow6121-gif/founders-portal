@@ -389,3 +389,42 @@ def test_providers_for_plan_agency_scoped(ctx):
         res = providers_for_plan(plan, agency_id)
     allnames = {pr.name for grp in (res["in_network"], res["not_in_network"]) for lst in grp.values() for pr in lst}
     assert "Leak" not in allnames                # other agency's provider never returned
+
+
+def test_network_panel_renders_in_pro_view(ctx):
+    app, agency_id, uid, pid = ctx
+    from app.models import Provider, Plan
+    with app.app_context():
+        plan = db.session.get(Plan, pid); plan.plan_subtype = "ppo"
+        innet = Provider(agency_id=agency_id, name="Kann Family", county="Cabarrus",
+                         bills_ppo_oon="no", created_by_id=uid)
+        db.session.add(innet); db.session.flush(); innet.set_carriers(["Humana"])
+        db.session.commit()
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        # See _capture_context's comment above: test_request_context() reuses the
+        # already-active app context from the `ctx` fixture, so the session's
+        # identity map can hold a stale Plan cached before this test's own write
+        # above (a separate nested app_context()). Expire so the route re-queries.
+        db.session.expire_all()
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert "network-panel" in html
+    assert "Kann Family" in html
+    assert "won't bill OON" in html or "won&#39;t bill OON" in html  # PPO plays-nice flag (no==won't)
+
+
+def test_network_panel_empty_state(ctx):
+    app, agency_id, uid, pid = ctx  # no providers seeded
+    from app import carriers
+    with app.test_request_context(f"/carriers/{pid}"):
+        from flask_login import login_user
+        from app.models import User
+        login_user(db.session.get(User, uid))
+        resp = carriers.plan_detail(pid)
+    html = resp if isinstance(resp, str) else resp.get_data(as_text=True)
+    assert "No providers recorded for" in html
+

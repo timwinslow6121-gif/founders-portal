@@ -1303,8 +1303,9 @@ def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=Non
     resolution miss NEVER clears an existing customer_id — only a positive
     match ever overwrites it. Returns count written."""
     from app.commission.backlink import build_backlink_context, resolve_customer_id
-    # Built ONCE per statement — resolve_customer_id() is a pure dict/query
-    # lookup per row against these prebuilt maps.
+    # Built ONCE per statement. resolve_customer_id() checks a prebuilt dict
+    # first (step 1) but falls through to a live Policy query on a miss
+    # (step 2) — not a pure lookup.
     backlink_ctx = build_backlink_context(agency_id)
     count = 0
     for d in drafts:
@@ -1337,8 +1338,8 @@ def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=Non
         # not-yet-complete `existing` row (raw_amount still NULL at this point).
         with db.session.no_autoflush:
             resolved_cid = resolve_customer_id(
-                backlink_ctx, source_ref=d.source_ref, carrier=carrier,
-                mbi=d.mbi, carrier_member_id=d.carrier_member_id,
+                backlink_ctx, statement_id=statement.id, source_ref=d.source_ref,
+                carrier=carrier, mbi=d.mbi, carrier_member_id=d.carrier_member_id,
                 member_name=d.member_name)
         if resolved_cid is not None:
             existing.customer_id = resolved_cid

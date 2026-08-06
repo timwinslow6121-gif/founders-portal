@@ -49,7 +49,8 @@ def test_resolves_via_payment_sibling(ctx):
                                      policy_id=pid, source_ref="bcbs::T::Sheet1::7"))
         db.session.commit()
         c = build_backlink_context(aid)
-        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
+        got = resolve_customer_id(c, statement_id=sid, source_ref="bcbs::T::Sheet1::7",
+                                  carrier="BCBS",
                                   mbi=None, carrier_member_id=None, member_name=None)
         assert got == cid
 
@@ -62,7 +63,8 @@ def test_resolves_via_carrier_member_id_fallback(ctx):
 
     with app.app_context():
         c = build_backlink_context(aid)
-        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::99", carrier="BCBS",
+        got = resolve_customer_id(c, statement_id=sid, source_ref="bcbs::T::Sheet1::99",
+                                  carrier="BCBS",
                                   mbi=None, carrier_member_id="106703512",
                                   member_name=None)
         assert got == cid
@@ -75,7 +77,8 @@ def test_returns_none_when_unresolvable(ctx):
 
     with app.app_context():
         c = build_backlink_context(aid)
-        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::404", carrier="BCBS",
+        got = resolve_customer_id(c, statement_id=sid, source_ref="bcbs::T::Sheet1::404",
+                                  carrier="BCBS",
                                   mbi=None, carrier_member_id="NO_SUCH_ID",
                                   member_name="Nobody Here")
         assert got is None
@@ -104,7 +107,8 @@ def test_payment_sibling_wins_over_tiers(ctx):
         db.session.commit()
         c = build_backlink_context(aid)
         # carrier_member_id points at cust, but the payment sibling points at other
-        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::5", carrier="BCBS",
+        got = resolve_customer_id(c, statement_id=sid, source_ref="bcbs::T::Sheet1::5",
+                                  carrier="BCBS",
                                   mbi=None, carrier_member_id="106703512",
                                   member_name=None)
         assert got == other.id
@@ -122,7 +126,8 @@ def test_agency_scoped(ctx):
         db.session.add(ag2)
         db.session.flush()
         c = build_backlink_context(ag2.id)
-        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
+        got = resolve_customer_id(c, statement_id=sid, source_ref="bcbs::T::Sheet1::7",
+                                  carrier="BCBS",
                                   mbi=None, carrier_member_id="106703512",
                                   member_name="Mary Earnhardt")
         assert got is None
@@ -162,7 +167,8 @@ def test_agency_scoped_payment_sibling_join(ctx):
         db.session.commit()
 
         c_b = build_backlink_context(ag2.id)
-        got = resolve_customer_id(c_b, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
+        got = resolve_customer_id(c_b, statement_id=sid, source_ref="bcbs::T::Sheet1::7",
+                                  carrier="BCBS",
                                   mbi=None, carrier_member_id=None, member_name=None)
         assert got is None
 
@@ -232,6 +238,81 @@ def test_persist_does_not_touch_money_fields(ctx):
         assert row.raw_amount == 123.45
         assert row.classification == "chargeback"
         assert row.split_rate == 0.525
+
+
+def test_source_ref_is_scoped_per_statement_not_global(db_session, app, agency):
+    """THE CRITICAL REGRESSION TEST. source_ref is only unique WITHIN a
+    statement (aetna::0::147 is identical text in every monthly Aetna file);
+    the composite (statement_id, source_ref) key is what the DB's own
+    uq_payment_statement_source_ref / uq_lineitem_statement_source_ref
+    constraints declare unique. Two DIFFERENT statements sharing the SAME
+    source_ref string, each pointing at a DIFFERENT customer, must each
+    resolve to their OWN customer — never to the other statement's customer.
+
+    Constructed in BOTH insertion orders so the test cannot pass vacuously
+    on an order-dependent dict-overwrite bug (which is exactly how the
+    single-key version could look correct for one order and wrong for the
+    other, depending on which row a plain `by_source_ref[sref] = cust_id`
+    loop happened to write last)."""
+    from datetime import date
+    from app.models import Customer, Policy, CommissionStatement, PolicyPayment
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    def _make_statement_customer_policy_payment(label, month, cust_name, member_id, sref):
+        cust = Customer(agency_id=agency.id,
+                       first_name=cust_name.split()[0], last_name=cust_name.split()[1],
+                       full_name=cust_name)
+        db_session.add(cust)
+        db_session.flush()
+        pol = Policy(agency_id=agency.id, customer_id=cust.id, carrier="Aetna",
+                     member_id=member_id, full_name=cust_name, status="active")
+        db_session.add(pol)
+        db_session.flush()
+        stmt = CommissionStatement(agency_id=agency.id, carrier="Aetna",
+                                   period_label=label,
+                                   statement_date=date(2026, month, 1))
+        db_session.add(stmt)
+        db_session.flush()
+        db_session.add(PolicyPayment(agency_id=agency.id, statement_id=stmt.id,
+                                     carrier="Aetna", period_label=label,
+                                     member_name=cust_name, commission_action="renewal",
+                                     paid_amount=10.0, policy_id=pol.id, source_ref=sref))
+        db_session.commit()
+        return stmt.id, cust.id
+
+    with app.app_context():
+        # Order A: May (customer A) inserted BEFORE June (customer B).
+        sid_may, cid_a = _make_statement_customer_policy_payment(
+            "May 2026", 5, "Aaron Abbott", "AAA111", "aetna::0::147")
+        sid_jun, cid_b = _make_statement_customer_policy_payment(
+            "June 2026", 6, "Beatrice Baker", "BBB222", "aetna::0::147")
+
+        ctx = build_backlink_context(agency.id)
+        got_may = resolve_customer_id(ctx, statement_id=sid_may,
+                                      source_ref="aetna::0::147", carrier="Aetna",
+                                      mbi=None, carrier_member_id=None, member_name=None)
+        got_jun = resolve_customer_id(ctx, statement_id=sid_jun,
+                                      source_ref="aetna::0::147", carrier="Aetna",
+                                      mbi=None, carrier_member_id=None, member_name=None)
+        assert got_may == cid_a
+        assert got_jun == cid_b
+
+        # Order B (reversed insertion): July (customer C) inserted BEFORE
+        # August (customer D) — the opposite relative order from above.
+        sid_aug, cid_d = _make_statement_customer_policy_payment(
+            "August 2026", 8, "Diane Dexter", "DDD444", "aetna::0::200")
+        sid_jul, cid_c = _make_statement_customer_policy_payment(
+            "July 2026", 7, "Carl Carter", "CCC333", "aetna::0::200")
+
+        ctx2 = build_backlink_context(agency.id)
+        got_jul = resolve_customer_id(ctx2, statement_id=sid_jul,
+                                      source_ref="aetna::0::200", carrier="Aetna",
+                                      mbi=None, carrier_member_id=None, member_name=None)
+        got_aug = resolve_customer_id(ctx2, statement_id=sid_aug,
+                                      source_ref="aetna::0::200", carrier="Aetna",
+                                      mbi=None, carrier_member_id=None, member_name=None)
+        assert got_jul == cid_c
+        assert got_aug == cid_d
 
 
 def test_backfill_is_idempotent_and_dry_run_is_safe(ctx):

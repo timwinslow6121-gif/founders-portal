@@ -39,7 +39,8 @@ def backfill_ledger_links(agency_id, apply=False, sample=0):
     shown = 0
     for r in rows:
         cid = resolve_customer_id(
-            ctx, source_ref=r.source_ref, carrier=r.carrier, mbi=r.mbi,
+            ctx, statement_id=r.statement_id, source_ref=r.source_ref,
+            carrier=r.carrier, mbi=r.mbi,
             carrier_member_id=r.carrier_member_id, member_name=r.member_name)
         if cid is None:
             stats["unresolved"] += 1

@@ -1298,19 +1298,14 @@ def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=Non
     """Insert/update CommissionLineItem rows for a statement, idempotent on
     (statement_id, source_ref). agent_resolver(writing_agent_raw) -> user_id|None
     resolves each draft's writing agent. Each row is also back-linked to its
-    Customer by MBI (the ingest resolver already created/matched the customer), so
-    the recap can hyperlink the member name to their profile. Returns count written."""
-    from app.models import Customer
-    # One query for all MBIs in this batch → customer_id map (cheap; customers
-    # already exist post-ingest). Humana keys on humana_id, not mbi.
-    mbis = {(d.mbi or "").strip() for d in drafts if (d.mbi or "").strip()}
-    cust_by_mbi = {}
-    if mbis:
-        col = Customer.humana_id if carrier == "Humana" else Customer.mbi
-        for cid, key in (db.session.query(Customer.id, col)
-                         .filter(Customer.agency_id == agency_id, col.in_(mbis)).all()):
-            if key:
-                cust_by_mbi[key] = cid
+    Customer: first via its PolicyPayment sibling (same source_ref, already
+    resolved at ingest), then via the shared MBI/carrier-id/name resolver. A
+    resolution miss NEVER clears an existing customer_id — only a positive
+    match ever overwrites it. Returns count written."""
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+    # Built ONCE per statement — resolve_customer_id() is a pure dict/query
+    # lookup per row against these prebuilt maps.
+    backlink_ctx = build_backlink_context(agency_id)
     count = 0
     for d in drafts:
         agent_id = None
@@ -1335,7 +1330,18 @@ def persist_line_items(carrier, drafts, statement, agency_id, agent_resolver=Non
         # previously discarded, which is why the ledger could not say whose book a
         # rolled-up row came from. Blank -> None so "unknown" is queryable as NULL.
         existing.writing_agent_raw = (d.writing_agent_raw or "").strip()[:128] or None
-        existing.customer_id = cust_by_mbi.get((d.mbi or "").strip())
+        # Resolve via the payment sibling, then the shared resolver. A miss must
+        # NEVER clear an existing link — that erasure is the bug this fixes
+        # (BCBS 199/216 -> 0/218 across a June->July re-upload). no_autoflush
+        # guards the resolver's internal Policy query from flushing this
+        # not-yet-complete `existing` row (raw_amount still NULL at this point).
+        with db.session.no_autoflush:
+            resolved_cid = resolve_customer_id(
+                backlink_ctx, source_ref=d.source_ref, carrier=carrier,
+                mbi=d.mbi, carrier_member_id=d.carrier_member_id,
+                member_name=d.member_name)
+        if resolved_cid is not None:
+            existing.customer_id = resolved_cid
         existing.member_name = d.member_name
         existing.mbi = d.mbi
         existing.carrier_member_id = d.carrier_member_id

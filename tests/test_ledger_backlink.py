@@ -165,3 +165,70 @@ def test_agency_scoped_payment_sibling_join(ctx):
         got = resolve_customer_id(c_b, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
                                   mbi=None, carrier_member_id=None, member_name=None)
         assert got is None
+
+
+def test_persist_never_erases_an_established_link(ctx):
+    """THE REGRESSION TEST. A row that already has a customer_id must KEEP it
+    when re-persisted with a draft that cannot be resolved. This is the BCBS
+    199/216 -> 0/218 case."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import CommissionLineItem, CommissionStatement
+    from app.commission.ledger import persist_line_items, LineItemDraft
+    with app.app_context():
+        row = CommissionLineItem(
+            agency_id=aid, statement_id=sid, carrier="BCBS",
+            source_ref="bcbs::T::Sheet1::42", customer_id=cid,
+            raw_amount=100.0, classification="agent_commission", split_rate=0.55)
+        db.session.add(row); db.session.commit()
+        # A draft with NOTHING resolvable — no sibling, no id, no known name.
+        d = LineItemDraft(carrier="BCBS", source_ref="bcbs::T::Sheet1::42",
+                          raw_amount=100.0, classification="agent_commission",
+                          split_rate=0.55, member_name="Unknown Person",
+                          mbi=None, carrier_member_id="NOPE")
+        stmt = db.session.get(CommissionStatement, sid)
+        persist_line_items("BCBS", [d], stmt, aid)
+        db.session.commit()
+        again = CommissionLineItem.query.filter_by(
+            source_ref="bcbs::T::Sheet1::42").first()
+        assert again.customer_id == cid       # link SURVIVED
+
+
+def test_persist_links_bcbs_row_with_no_mbi(ctx):
+    """BCBS carries carrier_member_id only. Today this links to nothing."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import CommissionLineItem, CommissionStatement
+    from app.commission.ledger import persist_line_items, LineItemDraft
+    with app.app_context():
+        d = LineItemDraft(carrier="BCBS", source_ref="bcbs::T::Sheet1::43",
+                          raw_amount=50.0, classification="agent_commission",
+                          split_rate=0.55, member_name="Mary Earnhardt",
+                          mbi=None, carrier_member_id="106703512")
+        stmt = db.session.get(CommissionStatement, sid)
+        persist_line_items("BCBS", [d], stmt, aid)
+        db.session.commit()
+        row = CommissionLineItem.query.filter_by(
+            source_ref="bcbs::T::Sheet1::43").first()
+        assert row.customer_id == cid
+
+
+def test_persist_does_not_touch_money_fields(ctx):
+    """The fix must move customer_id ONLY."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import CommissionLineItem, CommissionStatement
+    from app.commission.ledger import persist_line_items, LineItemDraft
+    with app.app_context():
+        d = LineItemDraft(carrier="BCBS", source_ref="bcbs::T::Sheet1::44",
+                          raw_amount=123.45, classification="chargeback",
+                          split_rate=0.525, member_name="Mary Earnhardt",
+                          mbi=None, carrier_member_id="106703512")
+        stmt = db.session.get(CommissionStatement, sid)
+        persist_line_items("BCBS", [d], stmt, aid)
+        db.session.commit()
+        row = CommissionLineItem.query.filter_by(
+            source_ref="bcbs::T::Sheet1::44").first()
+        assert row.raw_amount == 123.45
+        assert row.classification == "chargeback"
+        assert row.split_rate == 0.525

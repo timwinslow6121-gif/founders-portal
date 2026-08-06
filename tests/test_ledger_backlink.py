@@ -232,3 +232,33 @@ def test_persist_does_not_touch_money_fields(ctx):
         assert row.raw_amount == 123.45
         assert row.classification == "chargeback"
         assert row.split_rate == 0.525
+
+
+def test_backfill_is_idempotent_and_dry_run_is_safe(ctx):
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import CommissionLineItem
+    from scripts.backfill_ledger_customer_links import backfill_ledger_links
+    with app.app_context():
+        db.session.add(CommissionLineItem(
+            agency_id=aid, statement_id=sid, carrier="BCBS",
+            source_ref="bcbs::T::Sheet1::77", customer_id=None,
+            raw_amount=10.0, classification="agent_commission", split_rate=0.55,
+            member_name="Mary Earnhardt", carrier_member_id="106703512"))
+        db.session.commit()
+
+        dry = backfill_ledger_links(aid, apply=False)
+        assert dry["resolved"] == 1
+        row = CommissionLineItem.query.filter_by(
+            source_ref="bcbs::T::Sheet1::77").first()
+        assert row.customer_id is None          # dry run wrote NOTHING
+
+        run1 = backfill_ledger_links(aid, apply=True)
+        assert run1["resolved"] == 1
+        db.session.expire_all()
+        row = CommissionLineItem.query.filter_by(
+            source_ref="bcbs::T::Sheet1::77").first()
+        assert row.customer_id == cid
+
+        run2 = backfill_ledger_links(aid, apply=True)
+        assert run2["resolved"] == 0            # idempotent

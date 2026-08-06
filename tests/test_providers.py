@@ -182,6 +182,29 @@ def test_add_and_remove_plan_flag_route(ctx):
         assert db.session.get(Provider, pid).plan_flags == []
 
 
+def test_plan_flag_add_rejects_invalid_status_and_bills(ctx):
+    app, agency_id, uid = ctx
+    from app import providers
+    from app.models import Plan
+    with app.app_context():
+        pl = Plan(agency_id=agency_id, carrier="Devoted", cms_plan_id="H1234-002",
+                  year=2026, plan_name="Devoted Choice (PPO)", plan_type="mapd",
+                  plan_subtype="ppo", status="current")
+        db.session.add(pl); db.session.flush()
+        p = Provider(agency_id=agency_id, name="NE Digestive", county="Cabarrus",
+                     created_by_id=uid)
+        db.session.add(p); db.session.commit()
+        pid, plid = p.id, pl.id
+    with app.test_request_context(f"/providers/{pid}/plan-flag", method="POST",
+            data={"plan_id": str(plid), "status": "x" * 40, "bills_oon": "maybe"}):
+        _login(app, uid)
+        providers.provider_add_plan_flag(pid)
+    with app.app_context():
+        flag = db.session.get(Provider, pid).plan_flag_for(plid)
+        assert flag["status"] == "in_network"
+        assert flag["bills_oon"] == "unknown"
+
+
 def test_plan_flag_add_blocked_for_non_editor(ctx):
     app, agency_id, uid = ctx
     from app import providers

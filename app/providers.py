@@ -122,8 +122,13 @@ def provider_add_plan_flag(provider_id):
     if not plan:
         flash("Pick a plan.", "error")
         return redirect(url_for("providers.provider_edit", provider_id=provider_id))
-    p.set_plan_flag(plan_id, request.form.get("status", "in_network"),
-                    request.form.get("bills_oon") or "unknown", current_user.agency_id)
+    status = request.form.get("status", "in_network")
+    if status not in PLAN_STATUS:
+        status = "in_network"
+    bills = request.form.get("bills_oon") or "unknown"
+    if bills not in BILLS_OON:
+        bills = "unknown"
+    p.set_plan_flag(plan_id, status, bills, current_user.agency_id)
     db.session.commit()
     flash("Plan flag saved.", "success")
     return redirect(url_for("providers.provider_edit", provider_id=provider_id))

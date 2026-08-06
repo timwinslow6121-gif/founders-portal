@@ -107,18 +107,27 @@ def service_area_for(plan, agency_id):
 
 
 def providers_for_plan(plan, agency_id):
-    """Network-snapshot payload for a plan: agency providers split into those
-    in-network with the plan's carrier vs. not, each grouped by county, plus an
-    is_ppo flag (drives the plays-nice display). Agency-scoped."""
+    """Network-snapshot payload for a plan. A provider's in/out for THIS plan =
+    its plan-specific flag if one exists, else the carrier-level default. Each
+    grouped entry is {"provider": p, "bills_oon": <str|None>} (bills_oon only from
+    a plan-specific flag). Agency-scoped."""
     from app.models import Provider
     provs = (Provider.query.filter_by(agency_id=agency_id)
              .order_by(Provider.county, Provider.name).all())
+    is_ppo = (plan.plan_subtype or "").lower() == "ppo"
     in_net, not_net = {}, {}
     for p in provs:
-        bucket = in_net if plan.carrier in p.carrier_names else not_net
-        bucket.setdefault(p.county or "—", []).append(p)
-    return {"in_network": in_net, "not_in_network": not_net,
-            "is_ppo": (plan.plan_subtype or "").lower() == "ppo"}
+        flag = p.plan_flag_for(plan.id)
+        if flag is not None:
+            in_network = flag["status"] == "in_network"
+            bills_oon = flag["bills_oon"] if is_ppo else None
+        else:
+            in_network = plan.carrier in p.carrier_names
+            bills_oon = None
+        entry = {"provider": p, "bills_oon": bills_oon}
+        bucket = in_net if in_network else not_net
+        bucket.setdefault(p.county or "—", []).append(entry)
+    return {"in_network": in_net, "not_in_network": not_net, "is_ppo": is_ppo}
 
 
 # Benefit field keys serialized into Plan.details_json via the admin form.

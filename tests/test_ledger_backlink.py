@@ -1,0 +1,128 @@
+"""
+tests/test_ledger_backlink.py
+
+Shared customer back-link resolution for commission ledger rows
+(app/commission/backlink.py). SQLite in-memory via conftest fixtures.
+"""
+import pytest
+
+
+@pytest.fixture
+def ctx(db_session, app, agency):
+    """Agency + a customer with one active policy + a paid statement."""
+    from datetime import date
+    from app.models import Customer, Policy, CommissionStatement
+
+    with app.app_context():
+        cust = Customer(agency_id=agency.id, first_name="Mary", last_name="Earnhardt",
+                       full_name="Mary Earnhardt")
+        db_session.add(cust)
+        db_session.flush()
+
+        pol = Policy(agency_id=agency.id, customer_id=cust.id, carrier="BCBS",
+                     member_id="106703512", full_name="Mary Earnhardt",
+                     status="active")
+        db_session.add(pol)
+        db_session.flush()
+
+        stmt = CommissionStatement(agency_id=agency.id, carrier="BCBS",
+                                   period_label="July 2026",
+                                   statement_date=date(2026, 7, 1))
+        db_session.add(stmt)
+        db_session.flush()
+        db_session.commit()
+
+        yield app, agency.id, cust.id, pol.id, stmt.id
+
+
+def test_resolves_via_payment_sibling(ctx):
+    """Step 1: a payment row with the same source_ref carries the identity."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import PolicyPayment
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    with app.app_context():
+        db.session.add(PolicyPayment(agency_id=aid, statement_id=sid, carrier="BCBS",
+                                     period_label="July 2026", member_name="Mary Earnhardt",
+                                     commission_action="renewal", paid_amount=10.0,
+                                     policy_id=pid, source_ref="bcbs::T::Sheet1::7"))
+        db.session.commit()
+        c = build_backlink_context(aid)
+        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
+                                  mbi=None, carrier_member_id=None, member_name=None)
+        assert got == cid
+
+
+def test_resolves_via_carrier_member_id_fallback(ctx):
+    """Step 2: no payment sibling, but carrier_member_id matches a policy.
+    This is the BCBS case that fails today — BCBS rows carry NO mbi."""
+    app, aid, cid, pid, sid = ctx
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    with app.app_context():
+        c = build_backlink_context(aid)
+        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::99", carrier="BCBS",
+                                  mbi=None, carrier_member_id="106703512",
+                                  member_name=None)
+        assert got == cid
+
+
+def test_returns_none_when_unresolvable(ctx):
+    """No sibling, no id match, no name match -> None (caller must not overwrite)."""
+    app, aid, cid, pid, sid = ctx
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    with app.app_context():
+        c = build_backlink_context(aid)
+        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::404", carrier="BCBS",
+                                  mbi=None, carrier_member_id="NO_SUCH_ID",
+                                  member_name="Nobody Here")
+        assert got is None
+
+
+def test_payment_sibling_wins_over_tiers(ctx):
+    """Step 1 takes precedence over step 2 when both could resolve."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import Customer, Policy, PolicyPayment
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    with app.app_context():
+        other = Customer(agency_id=aid, first_name="Other", last_name="Person",
+                        full_name="Other Person")
+        db.session.add(other)
+        db.session.flush()
+        opol = Policy(agency_id=aid, customer_id=other.id, carrier="BCBS",
+                      member_id="999", full_name="Other Person", status="active")
+        db.session.add(opol)
+        db.session.flush()
+        db.session.add(PolicyPayment(agency_id=aid, statement_id=sid, carrier="BCBS",
+                                     period_label="July 2026", member_name="Other Person",
+                                     commission_action="renewal", paid_amount=10.0,
+                                     policy_id=opol.id, source_ref="bcbs::T::Sheet1::5"))
+        db.session.commit()
+        c = build_backlink_context(aid)
+        # carrier_member_id points at cust, but the payment sibling points at other
+        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::5", carrier="BCBS",
+                                  mbi=None, carrier_member_id="106703512",
+                                  member_name=None)
+        assert got == other.id
+
+
+def test_agency_scoped(ctx):
+    """A payment/policy in another agency must never resolve."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import Agency
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    with app.app_context():
+        ag2 = Agency(name="Other")
+        db.session.add(ag2)
+        db.session.flush()
+        c = build_backlink_context(ag2.id)
+        got = resolve_customer_id(c, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
+                                  mbi=None, carrier_member_id="106703512",
+                                  member_name="Mary Earnhardt")
+        assert got is None

@@ -141,3 +141,61 @@ def test_plan_flag_upsert_and_remove(ctx):
         # remove
         p.remove_plan_flag(pl.id); db.session.commit()
         assert p.plan_flags == []
+
+
+def test_provider_new_persists_group(ctx):
+    app, agency_id, uid = ctx
+    from app import providers
+    with app.test_request_context("/providers/new", method="POST", data={
+            "name": "Atrium Health", "provider_type": "Provider group",
+            "group": "", "county": "Mecklenburg", "carriers": ["Devoted"]}):
+        _login(app, uid)
+        providers.provider_new()
+    with app.app_context():
+        p = Provider.query.filter_by(name="Atrium Health").first()
+        assert p is not None and p.provider_type == "Provider group"
+
+
+def test_add_and_remove_plan_flag_route(ctx):
+    app, agency_id, uid = ctx
+    from app import providers
+    from app.models import Plan
+    with app.app_context():
+        pl = Plan(agency_id=agency_id, carrier="Devoted", cms_plan_id="H1234-001",
+                  year=2026, plan_name="Devoted Choice (PPO)", plan_type="mapd",
+                  plan_subtype="ppo", status="current")
+        db.session.add(pl); db.session.flush()
+        p = Provider(agency_id=agency_id, name="NE Digestive", county="Cabarrus",
+                     created_by_id=uid)
+        db.session.add(p); db.session.commit()
+        pid, plid = p.id, pl.id
+    with app.test_request_context(f"/providers/{pid}/plan-flag", method="POST",
+            data={"plan_id": str(plid), "status": "out_of_network", "bills_oon": "no"}):
+        _login(app, uid)
+        providers.provider_add_plan_flag(pid)
+    with app.app_context():
+        assert db.session.get(Provider, pid).plan_flag_for(plid)["status"] == "out_of_network"
+    with app.test_request_context(f"/providers/{pid}/plan-flag/{plid}/delete", method="POST"):
+        _login(app, uid)
+        providers.provider_remove_plan_flag(pid, plid)
+    with app.app_context():
+        assert db.session.get(Provider, pid).plan_flags == []
+
+
+def test_plan_flag_add_blocked_for_non_editor(ctx):
+    app, agency_id, uid = ctx
+    from app import providers
+    from app.models import User, Plan
+    from werkzeug.exceptions import Forbidden
+    with app.app_context():
+        agent = User(email="ag2@foundersinsuranceagency.com", name="Ag2",
+                     is_admin=False, agency_id=agency_id, role="agent")
+        db.session.add(agent); db.session.flush()
+        p = Provider(agency_id=agency_id, name="X", created_by_id=uid)
+        db.session.add(p); db.session.commit()
+        aid, pid = agent.id, p.id
+    with app.test_request_context(f"/providers/{pid}/plan-flag", method="POST",
+                                  data={"plan_id": "1", "status": "in_network"}):
+        _login(app, aid)
+        with pytest.raises(Forbidden):
+            providers.provider_add_plan_flag(pid)

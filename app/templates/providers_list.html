@@ -9,13 +9,11 @@
 .prov-meta { font-size:12px; color:var(--slate); margin-top:2px; }
 .prov-chip { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:var(--radius-pill);
   background:color-mix(in srgb, var(--gold) 12%, transparent); color:var(--gold); margin:3px 4px 0 0; }
-.oon-yes { color:var(--green); font-weight:700; } .oon-no { color:var(--status-error); font-weight:700; }
-.oon-unknown { color:var(--slate); }
 {% endblock %}
 {% block content %}
 <div class="page-header" style="display:flex;justify-content:space-between;align-items:center">
   <div><h1 class="page-title">Providers</h1>
-  <p class="page-sub">Shared network directory — which carriers each provider takes, and whether they'll bill a PPO out-of-network.</p></div>
+  <p class="page-sub">Shared network directory — which carriers each provider takes. Edit a provider to flag it in/out-of-network on specific plans.</p></div>
   {% if can_edit %}<a href="{{ url_for('providers.provider_new') }}" class="btn-primary">+ Add provider</a>{% endif %}
 </div>
 {% for county, provs in by_county.items() %}
@@ -26,10 +24,8 @@
     <div>
       <span class="prov-name">{{ p.name }}</span>
       {% if p.provider_type %}<span class="prov-meta"> · {{ p.provider_type }}</span>{% endif %}
-      <div class="prov-meta">{{ p.city or '' }}{% if p.phone %} · {{ p.phone }}{% endif %}
-        · Bills PPO OON:
-        <span class="oon-{{ p.bills_ppo_oon }}">{{ {'yes':'✓ yes','no':'✗ no','unknown':'? unknown'}[p.bills_ppo_oon] }}</span>
-      </div>
+      {% if p.group %}<span class="prov-meta"> · {{ p.group }}</span>{% endif %}
+      <div class="prov-meta">{{ p.city or '' }}{% if p.phone %} · {{ p.phone }}{% endif %}</div>
       <div>{% for c in p.carrier_names %}<span class="prov-chip">{{ c }}</span>{% endfor %}</div>
       {% if p.notes %}<div class="prov-meta" style="margin-top:4px">{{ p.notes }}</div>{% endif %}
     </div>

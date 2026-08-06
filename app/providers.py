@@ -15,11 +15,21 @@ from app.carriers import CARRIERS
 
 providers_bp = Blueprint("providers", __name__)
 
-BILLS_PPO_OON = ["yes", "no", "unknown"]
-# Suggested specialties for the datalist (free text — not enforced).
-TYPE_SUGGESTIONS = ["Family medicine", "Gastroenterology", "Cardiology",
-                    "Dentist", "Orthopedics", "Dermatology", "Oncology",
-                    "OB/GYN", "Pulmonology", "Nephrology", "Urology"]
+PLAN_STATUS = ["in_network", "out_of_network"]
+BILLS_OON = ["yes", "no", "unknown"]
+
+# Category-grouped type suggestions (browse aid; free text still allowed).
+TYPE_GROUPS = [
+    ("Specialties", ["Family medicine", "Cardiology", "Gastroenterology", "Dermatology",
+                     "OB/GYN", "Urology", "Nephrology", "Pulmonology", "ENT", "Podiatry",
+                     "Oncology", "Orthopedics"]),
+    ("Facilities & centers", ["Hospital", "Surgical center", "Urgent care", "Rehab center",
+                              "Skilled nursing facility", "Imaging / radiology", "Lab"]),
+    ("Groups & systems", ["Provider group"]),
+    ("Ancillary & equipment", ["DME", "Home health", "Hospice", "Physical therapy",
+                               "Behavioral / mental health", "Optometry / ophthalmology",
+                               "Audiology", "Chiropractic", "Dentist"]),
+]
 
 
 def _can_edit():
@@ -57,8 +67,8 @@ def provider_new():
             city=request.form.get("city", "").strip() or None,
             county=request.form.get("county", "").strip() or None,
             phone=request.form.get("phone", "").strip() or None,
-            bills_ppo_oon=(request.form.get("bills_ppo_oon") or "unknown"),
             notes=request.form.get("notes", "").strip() or None,
+            group=request.form.get("group", "").strip() or None,
             created_by_id=current_user.id,
         )
         db.session.add(p); db.session.flush()
@@ -67,8 +77,8 @@ def provider_new():
         flash(f"{p.name} added.", "success")
         return redirect(url_for("providers.provider_list"))
     return render_template("providers_form.html", provider=None,
-                           carriers=CARRIERS, bills_opts=BILLS_PPO_OON,
-                           type_suggestions=TYPE_SUGGESTIONS, selected_carriers=set())
+                           carriers=CARRIERS, type_groups=TYPE_GROUPS,
+                           selected_carriers=set())
 
 
 @providers_bp.route("/providers/<int:provider_id>/edit", methods=["GET", "POST"])
@@ -83,16 +93,56 @@ def provider_edit(provider_id):
         p.city          = request.form.get("city", "").strip() or None
         p.county        = request.form.get("county", "").strip() or None
         p.phone         = request.form.get("phone", "").strip() or None
-        p.bills_ppo_oon = request.form.get("bills_ppo_oon") or "unknown"
+        p.group         = request.form.get("group", "").strip() or None
         p.notes         = request.form.get("notes", "").strip() or None
         p.set_carriers(request.form.getlist("carriers"))
         db.session.commit()
         flash(f"{p.name} updated.", "success")
         return redirect(url_for("providers.provider_list"))
+    from app.models import Plan
+    plans = (Plan.query.filter_by(agency_id=current_user.agency_id, status="current")
+             .order_by(Plan.carrier, Plan.plan_name).all())
     return render_template("providers_form.html", provider=p,
-                           carriers=CARRIERS, bills_opts=BILLS_PPO_OON,
-                           type_suggestions=TYPE_SUGGESTIONS,
-                           selected_carriers=set(p.carrier_names))
+                           carriers=CARRIERS, type_groups=TYPE_GROUPS,
+                           selected_carriers=set(p.carrier_names),
+                           plans=plans, plans_by_id={pl.id: pl for pl in plans},
+                           plan_flags=p.plan_flags,
+                           plan_status=PLAN_STATUS, bills_oon=BILLS_OON)
+
+
+@providers_bp.route("/providers/<int:provider_id>/plan-flag", methods=["POST"])
+@login_required
+def provider_add_plan_flag(provider_id):
+    _can_edit()
+    p = Provider.query.filter_by(id=provider_id,
+                                 agency_id=current_user.agency_id).first_or_404()
+    plan_id = int(request.form.get("plan_id") or 0)
+    from app.models import Plan
+    plan = Plan.query.filter_by(id=plan_id, agency_id=current_user.agency_id).first()
+    if not plan:
+        flash("Pick a plan.", "error")
+        return redirect(url_for("providers.provider_edit", provider_id=provider_id))
+    status = request.form.get("status", "in_network")
+    if status not in PLAN_STATUS:
+        status = "in_network"
+    bills = request.form.get("bills_oon") or "unknown"
+    if bills not in BILLS_OON:
+        bills = "unknown"
+    p.set_plan_flag(plan_id, status, bills, current_user.agency_id)
+    db.session.commit()
+    flash("Plan flag saved.", "success")
+    return redirect(url_for("providers.provider_edit", provider_id=provider_id))
+
+
+@providers_bp.route("/providers/<int:provider_id>/plan-flag/<int:plan_id>/delete", methods=["POST"])
+@login_required
+def provider_remove_plan_flag(provider_id, plan_id):
+    _can_edit()
+    p = Provider.query.filter_by(id=provider_id,
+                                 agency_id=current_user.agency_id).first_or_404()
+    p.remove_plan_flag(plan_id); db.session.commit()
+    flash("Plan flag removed.", "success")
+    return redirect(url_for("providers.provider_edit", provider_id=provider_id))
 
 
 @providers_bp.route("/providers/<int:provider_id>/delete", methods=["POST"])

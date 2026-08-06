@@ -378,14 +378,14 @@
   <div class="network-panel">
     <h3>Network — local providers ({{ plan.carrier }})</h3>
     {% if providers.in_network %}
-      {% for county, provs in providers.in_network.items() %}
+      {% for county, entries in providers.in_network.items() %}
       <div class="net-county">{{ county }}</div>
-      {% for p in provs %}
-      <div class="net-row">{{ p.name }}{% if p.provider_type %} <span class="net-meta">· {{ p.provider_type }}</span>{% endif %}
+      {% for e in entries %}{% set p = e.provider %}
+      <div class="net-row">{{ p.name }}{% if p.group %} <span class="net-meta">· {{ p.group }}</span>{% endif %}{% if p.provider_type %} <span class="net-meta">· {{ p.provider_type }}</span>{% endif %}
         {% if p.phone %} <span class="net-meta">· {{ p.phone }}</span>{% endif %}
-        {% if providers.is_ppo %}
-          · {% if p.bills_ppo_oon == 'yes' %}<span class="oon-yes">✓ bills OON</span>
-          {% elif p.bills_ppo_oon == 'no' %}<span class="oon-no">✗ won't bill OON — customer pays upfront</span>
+        {% if providers.is_ppo and e.bills_oon %}
+          · {% if e.bills_oon == 'yes' %}<span class="oon-yes">✓ bills OON</span>
+          {% elif e.bills_oon == 'no' %}<span class="oon-no">✗ won't bill OON — customer pays upfront</span>
           {% else %}<span class="oon-unknown">? OON billing unknown</span>{% endif %}
         {% endif %}
       </div>
@@ -399,10 +399,10 @@
     {% if providers.not_in_network %}
     <button type="button" class="net-toggle" data-net-toggle>Show providers NOT in network here</button>
     <div class="net-notin" hidden>
-      {% for county, provs in providers.not_in_network.items() %}
+      {% for county, entries in providers.not_in_network.items() %}
       <div class="net-county">{{ county }}</div>
-      {% for p in provs %}
-      <div class="net-row"><span class="oon-no">✗</span> {{ p.name }}{% if p.provider_type %} <span class="net-meta">· {{ p.provider_type }}</span>{% endif %} <span class="net-meta">· not in network on {{ plan.carrier }}</span></div>
+      {% for e in entries %}{% set p = e.provider %}
+      <div class="net-row"><span class="oon-no">✗</span> {{ p.name }}{% if p.group %} <span class="net-meta">· {{ p.group }}</span>{% endif %}{% if p.provider_type %} <span class="net-meta">· {{ p.provider_type }}</span>{% endif %} <span class="net-meta">· not in network on {{ plan.carrier }}</span></div>
       {% endfor %}
       {% endfor %}
     </div>

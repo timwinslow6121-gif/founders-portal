@@ -306,6 +306,18 @@ provider_carriers = db.Table(
 )
 
 
+provider_plans = db.Table(
+    "provider_plans",
+    db.Column("id", db.Integer, primary_key=True),
+    db.Column("provider_id", db.Integer, db.ForeignKey("providers.id", ondelete="CASCADE"), nullable=False),
+    db.Column("plan_id", db.Integer, db.ForeignKey("plans.id", ondelete="CASCADE"), nullable=False),
+    db.Column("agency_id", db.Integer, db.ForeignKey("agencies.id"), nullable=False),
+    db.Column("status", db.String(16)),        # in_network | out_of_network
+    db.Column("bills_oon", db.String(16)),      # yes | no | unknown
+    db.UniqueConstraint("provider_id", "plan_id", name="uq_provider_plan"),
+)
+
+
 class Pharmacy(db.Model):
     """
     Partner pharmacy that refers customers to Founders agents.
@@ -340,9 +352,10 @@ class Pharmacy(db.Model):
 
 class Provider(db.Model):
     """Agency-shared tribal-knowledge directory of local medical providers: which
-    carriers each is IN-network with, and whether it'll bill a PPO out-of-network
-    ("plays nice"). Drives the plan-detail Network Snapshot panel. Manually
-    maintained by agents (NOT parsed from carrier directories)."""
+    carriers each is IN-network with, and (per-PLAN, via provider_plans) whether
+    it's in/out of network for that specific plan and whether it'll bill a PPO
+    out-of-network ("plays nice"). Drives the plan-detail Network Snapshot panel.
+    Manually maintained by agents (NOT parsed from carrier directories)."""
     __tablename__ = "providers"
 
     id            = db.Column(db.Integer, primary_key=True)
@@ -352,7 +365,7 @@ class Provider(db.Model):
     city          = db.Column(db.String(128))
     county        = db.Column(db.String(128), index=True)
     phone         = db.Column(db.String(32))
-    bills_ppo_oon = db.Column(db.String(16), default="unknown")   # yes | no | unknown
+    group         = db.Column(db.String(256))          # affiliation / umbrella (Atrium/Novant)
     notes         = db.Column(db.Text)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     created_at    = db.Column(db.DateTime, server_default=db.func.now())
@@ -378,6 +391,42 @@ class Provider(db.Model):
             db.session.execute(
                 provider_carriers.insert().values(provider_id=self.id, carrier=c)
             )
+
+    @property
+    def plan_flags(self):
+        """Per-plan flags: [{'plan_id','status','bills_oon'}, ...]."""
+        rows = db.session.execute(
+            provider_plans.select().where(provider_plans.c.provider_id == self.id)
+        ).all()
+        return [{"plan_id": r.plan_id, "status": r.status, "bills_oon": r.bills_oon}
+                for r in rows]
+
+    def plan_flag_for(self, plan_id):
+        """The single flag dict for plan_id, or None."""
+        for f in self.plan_flags:
+            if f["plan_id"] == plan_id:
+                return f
+        return None
+
+    def set_plan_flag(self, plan_id, status, bills_oon, agency_id):
+        """Upsert (replace) the provider's flag for plan_id."""
+        if self.id is None:
+            db.session.add(self); db.session.flush()
+        db.session.execute(
+            provider_plans.delete().where(
+                (provider_plans.c.provider_id == self.id) &
+                (provider_plans.c.plan_id == plan_id))
+        )
+        db.session.execute(provider_plans.insert().values(
+            provider_id=self.id, plan_id=plan_id, agency_id=agency_id,
+            status=status, bills_oon=(bills_oon or "unknown")))
+
+    def remove_plan_flag(self, plan_id):
+        db.session.execute(
+            provider_plans.delete().where(
+                (provider_plans.c.provider_id == self.id) &
+                (provider_plans.c.plan_id == plan_id))
+        )
 
     def __repr__(self):
         return f"<Provider {self.name} ({self.county})>"

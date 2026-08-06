@@ -357,8 +357,8 @@ def test_providers_for_plan_splits_in_and_not_in_network(ctx):
         db.session.commit()
         plan = db.session.get(Plan, pid)
         res = providers_for_plan(plan, agency_id)
-    innet_names = {p.name for lst in res["in_network"].values() for p in lst}
-    outnet_names = {p.name for lst in res["not_in_network"].values() for p in lst}
+    innet_names = {e["provider"].name for lst in res["in_network"].values() for e in lst}
+    outnet_names = {e["provider"].name for lst in res["not_in_network"].values() for e in lst}
     assert "Kann Family" in innet_names
     assert "NE Digestive" in outnet_names        # sole clinic out-of-network still surfaces
     assert "NE Digestive" not in innet_names
@@ -387,8 +387,41 @@ def test_providers_for_plan_agency_scoped(ctx):
         db.session.commit()
         plan = db.session.get(Plan, pid)
         res = providers_for_plan(plan, agency_id)
-    allnames = {pr.name for grp in (res["in_network"], res["not_in_network"]) for lst in grp.values() for pr in lst}
+    allnames = {e["provider"].name for grp in (res["in_network"], res["not_in_network"]) for lst in grp.values() for e in lst}
     assert "Leak" not in allnames                # other agency's provider never returned
+
+
+def test_plan_flag_overrides_carrier_default(ctx):
+    app, agency_id, uid, pid = ctx  # ctx plan carrier "Humana", make it the flagged plan
+    from app.carriers import providers_for_plan
+    from app.models import Plan, Provider
+    with app.app_context():
+        plan = db.session.get(Plan, pid)
+        # provider accepts Humana at carrier level → would be in-network by default
+        p = Provider(agency_id=agency_id, name="NE Digestive", county="Cabarrus", created_by_id=uid)
+        db.session.add(p); db.session.flush(); p.set_carriers(["Humana"])
+        # but a plan-specific OUT flag on THIS plan must override → not_in_network
+        p.set_plan_flag(pid, "out_of_network", "unknown", agency_id)
+        db.session.commit()
+        res = providers_for_plan(plan, agency_id)
+    innames = {e["provider"].name for lst in res["in_network"].values() for e in lst}
+    outnames = {e["provider"].name for lst in res["not_in_network"].values() for e in lst}
+    assert "NE Digestive" in outnames and "NE Digestive" not in innames
+
+
+def test_plan_flag_bills_oon_surfaced(ctx):
+    app, agency_id, uid, pid = ctx
+    from app.carriers import providers_for_plan
+    from app.models import Plan, Provider
+    with app.app_context():
+        plan = db.session.get(Plan, pid); plan.plan_subtype = "ppo"
+        p = Provider(agency_id=agency_id, name="Kann Family", county="Cabarrus", created_by_id=uid)
+        db.session.add(p); db.session.flush(); p.set_carriers(["Humana"])
+        p.set_plan_flag(pid, "in_network", "yes", agency_id)
+        db.session.commit()
+        res = providers_for_plan(plan, agency_id)
+    entry = [e for lst in res["in_network"].values() for e in lst if e["provider"].name == "Kann Family"][0]
+    assert entry["bills_oon"] == "yes"
 
 
 def test_network_panel_renders_in_pro_view(ctx):
@@ -397,8 +430,9 @@ def test_network_panel_renders_in_pro_view(ctx):
     with app.app_context():
         plan = db.session.get(Plan, pid); plan.plan_subtype = "ppo"
         innet = Provider(agency_id=agency_id, name="Kann Family", county="Cabarrus",
-                         bills_ppo_oon="no", created_by_id=uid)
+                         created_by_id=uid)
         db.session.add(innet); db.session.flush(); innet.set_carriers(["Humana"])
+        innet.set_plan_flag(pid, "in_network", "no", agency_id)
         db.session.commit()
     from app import carriers
     with app.test_request_context(f"/carriers/{pid}"):

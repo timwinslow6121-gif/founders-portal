@@ -45,6 +45,7 @@ def build_backlink_context(agency_id):
     rows = (db.session.query(PolicyPayment.source_ref, Policy.customer_id)
             .join(Policy, Policy.id == PolicyPayment.policy_id)
             .filter(PolicyPayment.agency_id == agency_id,
+                    Policy.agency_id == agency_id,
                     PolicyPayment.source_ref.isnot(None),
                     Policy.customer_id.isnot(None))
             .all())

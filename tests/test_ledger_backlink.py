@@ -126,3 +126,42 @@ def test_agency_scoped(ctx):
                                   mbi=None, carrier_member_id="106703512",
                                   member_name="Mary Earnhardt")
         assert got is None
+
+
+def test_agency_scoped_payment_sibling_join(ctx):
+    """Regression for the by_source_ref join: it must filter Policy.agency_id
+    explicitly, not rely solely on PolicyPayment.agency_id.
+
+    Constructs the one case that actually exercises the missing filter: a
+    PolicyPayment ROW STAMPED WITH AGENCY B's id (e.g. a stray/misattributed
+    payment row) that nonetheless points (via policy_id) at agency A's real
+    Policy/Customer. Building the context for agency B must NOT resolve this
+    source_ref to agency A's customer — building it for agency B should only
+    ever surface agency-B-owned links.
+
+    test_agency_scoped does not cover this: there, ag2 has zero payments, so
+    the map is trivially empty regardless of whether the Policy filter exists.
+    Here agency B's map WOULD be non-empty (falsely) without the Policy.agency_id
+    filter, because the PolicyPayment.agency_id == B filter alone is satisfied."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import Agency, PolicyPayment
+    from app.commission.backlink import build_backlink_context, resolve_customer_id
+
+    with app.app_context():
+        ag2 = Agency(name="Other")
+        db.session.add(ag2)
+        db.session.flush()
+
+        # A payment stamped agency_id=ag2 but pointing at agency A's policy
+        # (cross-agency data-quality edge case; the schema doesn't forbid it).
+        db.session.add(PolicyPayment(agency_id=ag2.id, statement_id=sid, carrier="BCBS",
+                                     period_label="July 2026", member_name="Mary Earnhardt",
+                                     commission_action="renewal", paid_amount=10.0,
+                                     policy_id=pid, source_ref="bcbs::T::Sheet1::7"))
+        db.session.commit()
+
+        c_b = build_backlink_context(ag2.id)
+        got = resolve_customer_id(c_b, source_ref="bcbs::T::Sheet1::7", carrier="BCBS",
+                                  mbi=None, carrier_member_id=None, member_name=None)
+        assert got is None

@@ -397,7 +397,7 @@ def test_network_panel_renders_in_pro_view(ctx):
     with app.app_context():
         plan = db.session.get(Plan, pid); plan.plan_subtype = "ppo"
         innet = Provider(agency_id=agency_id, name="Kann Family", county="Cabarrus",
-                         bills_ppo_oon="no", created_by_id=uid)
+                         created_by_id=uid)
         db.session.add(innet); db.session.flush(); innet.set_carriers(["Humana"])
         db.session.commit()
     from app import carriers

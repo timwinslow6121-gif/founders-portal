@@ -57,7 +57,6 @@ def provider_new():
             city=request.form.get("city", "").strip() or None,
             county=request.form.get("county", "").strip() or None,
             phone=request.form.get("phone", "").strip() or None,
-            bills_ppo_oon=(request.form.get("bills_ppo_oon") or "unknown"),
             notes=request.form.get("notes", "").strip() or None,
             created_by_id=current_user.id,
         )

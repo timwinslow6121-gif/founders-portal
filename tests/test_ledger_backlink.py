@@ -315,6 +315,59 @@ def test_source_ref_is_scoped_per_statement_not_global(db_session, app, agency):
         assert got_aug == cid_d
 
 
+def test_surnames_agree_handles_carrier_name_formats():
+    """The gate must accept the real carrier formats, or it would refuse good links."""
+    from scripts.backfill_ledger_customer_links import _surnames_agree
+    # BCBS "Last,First M" / Humana "LAST FIRST M" / UHC "LAST, FIRST"
+    assert _surnames_agree("Robinson,Keith M", "Keith M. Robinson")
+    assert _surnames_agree("HELMS TERESSA D", "Teressa Helms")
+    assert _surnames_agree("PRESSON, ROBIN", "Robin Presson")
+    assert _surnames_agree("COUCHELL, JOHN", "John Couchell")
+    # the real prod mis-link this gate exists to catch
+    assert not _surnames_agree("COUCHELL, JOHN", "Andrea Horstmann")
+    # a missing name on either side must REFUSE, never silently pass
+    assert not _surnames_agree("", "John Couchell")
+    assert not _surnames_agree("COUCHELL, JOHN", "")
+    assert not _surnames_agree(None, "John Couchell")
+    # different people who happen to share only a FIRST name must be refused
+    assert not _surnames_agree("SMITH, JOHN", "John Couchell")
+    assert not _surnames_agree("Wells,Kristie F", "Kristie Barnhardt")
+    # a lone shared middle initial must never carry the match
+    assert not _surnames_agree("Nash,Joan D", "Deborah D. Whitlock")
+
+
+def test_backfill_refuses_a_name_mismatched_link(ctx):
+    """A resolvable row whose member name disagrees with the target customer is
+    REFUSED and left NULL — the COUCHELL,JOHN -> Andrea Horstmann case on prod.
+    A wrong customer_id is invisible and permanent, so refusing beats guessing."""
+    app, aid, cid, pid, sid = ctx
+    from app.extensions import db
+    from app.models import CommissionLineItem, PolicyPayment
+    from scripts.backfill_ledger_customer_links import backfill_ledger_links
+    with app.app_context():
+        # A payment sibling resolves this source_ref to the ctx customer (Mary
+        # Earnhardt), but the ledger row's member is somebody else entirely.
+        db.session.add(PolicyPayment(
+            agency_id=aid, statement_id=sid, carrier="BCBS", policy_id=pid,
+            source_ref="bcbs::T::Sheet1::88", period_label="July 2026",
+            member_name="Mary Earnhardt", commission_action="renewal",
+            paid_amount=10.0))
+        db.session.add(CommissionLineItem(
+            agency_id=aid, statement_id=sid, carrier="BCBS",
+            source_ref="bcbs::T::Sheet1::88", customer_id=None,
+            raw_amount=10.0, classification="agent_commission", split_rate=0.55,
+            member_name="Horstmann, Andrea"))
+        db.session.commit()
+
+        res = backfill_ledger_links(aid, apply=True)
+        assert res["refused_name_mismatch"] == 1
+        assert res["resolved"] == 0
+        db.session.expire_all()
+        row = CommissionLineItem.query.filter_by(
+            source_ref="bcbs::T::Sheet1::88").first()
+        assert row.customer_id is None          # refused, left for a human
+
+
 def test_backfill_is_idempotent_and_dry_run_is_safe(ctx):
     app, aid, cid, pid, sid = ctx
     from app.extensions import db

@@ -20,12 +20,64 @@ import sys
 
 from app import create_app
 from app.extensions import db
-from app.models import CommissionLineItem
+from app.models import CommissionLineItem, Customer
 from app.commission.backlink import build_backlink_context, resolve_customer_id
+from app.commission.payments import _norm
 
 # Only rows that represent real member money. Overrides/HRA are intentionally
 # excluded -- they mirror the same classification filter the /unassigned page uses.
 _CLASSES = ["agent_commission", "chargeback"]
+
+
+def _surnames_agree(member_name, customer_full_name):
+    """Does the ledger row's member name agree with the customer it would link to?
+
+    A SAFETY GATE, not a matcher. The resolver's step-1 (payment sibling) inherits
+    whatever the ingest resolver decided, and on messy historical records that can
+    be wrong -- a real example found on prod: two identical `COUCHELL, JOHN` rows,
+    one resolving to John Couchell (right) and one to Andrea Horstmann (WRONG).
+    A wrong customer_id is invisible (money still balances -- only attribution
+    moves) and permanent (the never-erase rule means re-uploads never correct it),
+    so a link whose name disagrees is REFUSED and left NULL for a human.
+
+    Extracts the SURNAME from each side and requires them to be equal. Comparing
+    whole-token SETS would be too loose -- two different people sharing only a
+    first name ("SMITH, JOHN" vs "John Couchell") would pass. Comparing by
+    position is impossible, because the two sides use different orders: the ledger
+    holds carrier formats ("Robinson,Keith M", "HELMS TERESSA D", "PRESSON, ROBIN")
+    while the portal stores "First M. Last".
+
+    payments._norm is deliberately NOT reused here: it is built for the carrier
+    side and mangles the portal side ("Keith M. Robinson" -> "m. keith").
+
+    Surname rules, matching the formats actually present in this data:
+      - comma form ("Robinson,Keith M" / "PRESSON, ROBIN") -> text before the comma
+        is unambiguously the surname.
+      - space form is AMBIGUOUS: the ledger holds both "HELMS TERESSA D"
+        (LAST FIRST M) and "Mary Earnhardt" (First Last), and nothing in the row
+        says which. So a comma-less side yields BOTH candidate ends, and agreement
+        means the two sides share a surname under some consistent reading.
+    Single-character tokens (middle initials) are never candidates, so a shared
+    initial can never carry a match. Requiring an end token -- rather than any
+    token -- is what keeps "SMITH, JOHN" from matching "John Couchell".
+    """
+    def candidates(s):
+        s = str(s or "").strip()
+        if not s:
+            return set()
+        if "," in s:
+            head = s.split(",", 1)[0].strip().lower()
+            return {head} if len(head) > 1 else set()
+        toks = [t.strip(".").lower() for t in s.split()]
+        toks = [t for t in toks if len(t) > 1]      # drop middle initials
+        if not toks:
+            return set()
+        return {toks[0], toks[-1]}                  # ambiguous order -> both ends
+
+    a, b = candidates(member_name), candidates(customer_full_name)
+    if not a or not b:
+        return False                      # no name to check -> refuse
+    return bool(a & b)
 
 
 def backfill_ledger_links(agency_id, apply=False, sample=0):
@@ -35,7 +87,8 @@ def backfill_ledger_links(agency_id, apply=False, sample=0):
                     CommissionLineItem.customer_id.is_(None),
                     CommissionLineItem.classification.in_(_CLASSES))
             .all())
-    stats = {"examined": len(rows), "resolved": 0, "unresolved": 0, "by_carrier": {}}
+    stats = {"examined": len(rows), "resolved": 0, "unresolved": 0,
+             "refused_name_mismatch": 0, "by_carrier": {}}
     shown = 0
     for r in rows:
         cid = resolve_customer_id(
@@ -44,6 +97,13 @@ def backfill_ledger_links(agency_id, apply=False, sample=0):
             carrier_member_id=r.carrier_member_id, member_name=r.member_name)
         if cid is None:
             stats["unresolved"] += 1
+            continue
+        cust = db.session.get(Customer, cid)
+        if cust is None or not _surnames_agree(r.member_name, cust.full_name):
+            stats["refused_name_mismatch"] += 1
+            print(f"  REFUSED (name mismatch): {r.carrier} | "
+                  f"{r.member_name or '(none)'} -> #{cid} "
+                  f"{cust.full_name if cust else '(missing customer)'}")
             continue
         stats["resolved"] += 1
         stats["by_carrier"][r.carrier] = stats["by_carrier"].get(r.carrier, 0) + 1
@@ -76,6 +136,7 @@ def main():
         print(f"\nexamined   : {s['examined']}")
         print(f"resolved   : {s['resolved']}")
         print(f"unresolved : {s['unresolved']}")
+        print(f"REFUSED (name mismatch) : {s['refused_name_mismatch']}")
         for carrier, n in sorted(s["by_carrier"].items(),
                                  key=lambda kv: -kv[1]):
             print(f"   {carrier:14} {n}")

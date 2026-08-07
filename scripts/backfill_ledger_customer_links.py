@@ -61,18 +61,29 @@ def _surnames_agree(member_name, customer_full_name):
     initial can never carry a match. Requiring an end token -- rather than any
     token -- is what keeps "SMITH, JOHN" from matching "John Couchell".
     """
+    # Generational suffixes are part of neither side's surname and appear
+    # inconsistently ("Koman Jr,Charles" vs "Charles Koman Jr").
+    _SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
     def candidates(s):
         s = str(s or "").strip()
         if not s:
             return set()
         if "," in s:
-            head = s.split(",", 1)[0].strip().lower()
-            return {head} if len(head) > 1 else set()
-        toks = [t.strip(".").lower() for t in s.split()]
-        toks = [t for t in toks if len(t) > 1]      # drop middle initials
+            # Comma form: everything before the comma is the surname, which may
+            # itself be compound ("Ortiz Maldonado,Orlando"). Yield each word so a
+            # compound surname still meets the other side's tokens.
+            head = s.split(",", 1)[0]
+            toks = [t.strip(".").lower() for t in head.split()]
+        else:
+            toks = [t.strip(".").lower() for t in s.split()]
+        toks = [t for t in toks
+                if len(t) > 1 and t not in _SUFFIXES]   # drop initials + Jr/Sr
         if not toks:
             return set()
-        return {toks[0], toks[-1]}                  # ambiguous order -> both ends
+        if "," in s:
+            return set(toks)                # whole (possibly compound) surname
+        return {toks[0], toks[-1]}          # ambiguous order -> both ends
 
     a, b = candidates(member_name), candidates(customer_full_name)
     if not a or not b:

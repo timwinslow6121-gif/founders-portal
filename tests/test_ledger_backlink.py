@@ -334,6 +334,18 @@ def test_surnames_agree_handles_carrier_name_formats():
     assert not _surnames_agree("Wells,Kristie F", "Kristie Barnhardt")
     # a lone shared middle initial must never carry the match
     assert not _surnames_agree("Nash,Joan D", "Deborah D. Whitlock")
+    # generational suffixes appear on one side only — these are the SAME person
+    # (all real rows the first version of this gate wrongly refused on prod)
+    assert _surnames_agree("Koman Jr,Charles", "Charles Koman Jr")
+    assert _surnames_agree("Scales Jr,Robert H", "Robert H. Scales Jr")
+    assert _surnames_agree("Thompson Sr,David A", "David A. Thompson Sr")
+    assert _surnames_agree("Sherrill Jr,R Mitchell", "R Sherrill Jr")
+    # compound surnames must match on a shared surname word
+    assert _surnames_agree("Ortiz Maldonado,Orlando", "Orlando Ortiz Maldonado")
+    assert _surnames_agree("Diego Stitt,Linda P", "Linda P. Diego Stitt")
+    assert _surnames_agree("Roberts Donahue,Helen M", "Helen M. Roberts Donahue")
+    # ...but a shared SUFFIX alone must never be the match
+    assert not _surnames_agree("Koman Jr,Charles", "David A. Thompson Jr")
 
 
 def test_backfill_refuses_a_name_mismatched_link(ctx):

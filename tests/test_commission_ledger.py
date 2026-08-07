@@ -245,10 +245,11 @@ def test_persist_line_items_resolves_agent_and_is_idempotent(db_session, agency)
 
 
 def test_persist_line_items_backlinks_customer_id_by_mbi(db_session, agency):
-    """Line items must carry customer_id (by MBI) so the recap can hyperlink the
-    member name to their profile. The customer already exists (the ingest resolver
-    created/matched it before persist_line_items runs)."""
-    from app.models import CommissionLineItem, CommissionStatement, Customer
+    """Line items must carry customer_id so the recap can hyperlink the member
+    name to their profile. The customer (+ their Policy, which the shared
+    resolver matches against) already exists — the ingest resolver
+    created/matched both before persist_line_items runs."""
+    from app.models import CommissionLineItem, CommissionStatement, Customer, Policy
     from app.commission.ledger import LineItemDraft, persist_line_items, AGENT_COMMISSION
     from app.extensions import db
     from datetime import date
@@ -256,6 +257,11 @@ def test_persist_line_items_backlinks_customer_id_by_mbi(db_session, agency):
     cust = Customer(agency_id=agency.id, first_name="Jane", last_name="Doe",
                     full_name="Jane Doe", mbi="1AB2CD3EF45", source="bob")
     db.session.add(cust)
+    db.session.flush()
+    pol = Policy(agency_id=agency.id, customer_id=cust.id, carrier="UHC",
+                member_id="UHC-JANE-1", mbi="1AB2CD3EF45", full_name="Jane Doe",
+                status="active")
+    db.session.add(pol)
     stmt = CommissionStatement(agency_id=agency.id, carrier="UHC", agent_id=None,
                                period_label="May 2026", filename="u.xlsx",
                                statement_date=date(2026, 5, 1))

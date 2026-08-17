@@ -283,6 +283,33 @@ developer cost comparison. ² Leanware, software development retainer pricing.
 
 ## ⚠ NOTES FOR TIM — REMOVE BEFORE SENDING
 
+**READ THIS FIRST — what actually matters (Tim, Aug 2026).**
+
+**$3,000/month is the win.** If Brian agrees to 4a, that is a genuinely good
+outcome — on top of Founders agent income and the Workflow consultancy, it's the
+start of real financial stability. Everything below is about not accidentally
+losing that.
+
+So: **4a is the deal. 4b is upside.** Walk in optimizing for a yes on the monthly,
+not for maximizing the total. The risk in this meeting is not leaving money on the
+table — it's over-pushing the $35,000 and souring a conversation that was going to
+land where you wanted.
+
+**If he says yes to the monthly and no to the $35k, take it.** Have the line
+ready so you don't improvise:
+
+> "That works. I'd still like to revisit the build at the January review — but
+> let's get the ongoing piece in place."
+
+Accept, keep the door open, don't haggle a yes into a maybe.
+
+**The floor is still the floor.** $2,000/month is where you stop. "Not driven by
+money" is honest and it is also exactly the instinct that leads to accepting less
+than the work is worth — you have already done five months for free. Below $2,000
+this becomes a hobby that costs you time you could bill elsewhere.
+
+---
+
 **Negotiation position** (do not put this table in the document):
 
 | | Ask | Good outcome | Floor |

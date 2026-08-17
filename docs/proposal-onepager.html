@@ -8,67 +8,69 @@
   * { box-sizing: border-box; }
   body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 9.4pt; line-height: 1.38; color: #1A202C; margin: 0;
+    font-size: 9.4pt; line-height: 1.4; color: #1A202C; margin: 0;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .head { border-bottom: 2.5px solid #266EA5; padding-bottom: 6px; margin-bottom: 9px; }
-  .head h1 { font-size: 16.5pt; margin: 0 0 2px; color: #002E4D; letter-spacing: -0.2px; }
-  .head .sub { font-size: 8.6pt; color: #5A6B7D; }
+  .head { border-bottom: 2.5px solid #266EA5; padding-bottom: 7px; margin-bottom: 11px; }
+  .head h1 { font-size: 17pt; margin: 0 0 2px; color: #002E4D; letter-spacing: -0.2px; }
+  .head .sub { font-size: 8.8pt; color: #5A6B7D; }
   .head .meta { float: right; text-align: right; font-size: 8.4pt; color: #5A6B7D; line-height: 1.5; }
 
-  h2 { font-size: 9.8pt; color: #266EA5; margin: 13px 0 5px;
+  h2 { font-size: 10pt; color: #266EA5; margin: 14px 0 5px;
        text-transform: uppercase; letter-spacing: 0.6px; }
 
   .lede { background: #F2F7FB; border-left: 3px solid #266EA5;
-          padding: 9px 12px; margin-bottom: 10px; font-size: 9.6pt; }
+          padding: 10px 13px; margin-bottom: 4px; font-size: 9.7pt; }
   .lede strong { color: #002E4D; }
 
-  /* the ask */
-  .ask { display: flex; gap: 9px; margin: 6px 0 3px; }
+  .two { display: flex; gap: 15px; }
+  .two > div { flex: 1; }
+
+  .model { background: #F7FAFC; border: 1px solid #DCE5EC; border-radius: 5px;
+           padding: 9px 12px; }
+  .model .t { font-size: 8.2pt; text-transform: uppercase; letter-spacing: 0.6px;
+              color: #002E4D; font-weight: 700; margin-bottom: 4px; }
+  .model b { color: #002E4D; }
+
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 0; }
+  td { padding: 3px 0; text-align: left; vertical-align: top; }
+  .book td { font-size: 9.1pt; border-bottom: 1px solid #EAEFF4; }
+  .book td.n { text-align: right; font-weight: 700; color: #002E4D; font-variant-numeric: tabular-nums; }
+  .book tr.hi td { color: #266EA5; }
+  .book tr.hi td.n { color: #266EA5; }
+
+  .vs { display: flex; gap: 13px; margin-top: 5px; }
+  .vs > div { flex: 1; border-radius: 5px; padding: 9px 11px; font-size: 8.9pt; line-height: 1.45; }
+  .vs .now  { background: #FDF7F4; border: 1px solid #E8C4B0; }
+  .vs .next { background: #F4FBF6; border: 1px solid #A9D9BC; }
+  .vs .t { font-size: 8.2pt; text-transform: uppercase; letter-spacing: 0.6px;
+           font-weight: 700; margin-bottom: 4px; }
+  .vs .now .t  { color: #A0522D; }
+  .vs .next .t { color: #2E7D52; }
+  .vs .big { font-size: 15pt; font-weight: 700; line-height: 1.1; margin: 4px 0 2px; }
+  .vs .now .big  { color: #A0522D; }
+  .vs .next .big { color: #2E7D52; }
+  .vs b { color: #002E4D; }
+
+  .ask { display: flex; gap: 10px; margin: 5px 0 3px; }
   .ask-box { flex: 1; border: 1.5px solid #266EA5; border-radius: 5px; padding: 10px 12px; }
   .ask-box.secondary { border-color: #B9C6D2; }
   .ask-label { font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.7px;
                color: #5A6B7D; margin-bottom: 2px; }
   .ask-num { font-size: 20pt; font-weight: 700; color: #002E4D; line-height: 1.05; }
   .ask-num span { font-size: 10pt; font-weight: 400; color: #5A6B7D; }
-  .ask-desc { font-size: 8.3pt; color: #43536A; margin-top: 3px; line-height: 1.3; }
+  .ask-desc { font-size: 8.3pt; color: #43536A; margin-top: 3px; line-height: 1.32; }
 
-  table { width: 100%; border-collapse: collapse; margin: 3px 0 0; }
-  td, th { padding: 3px 0; text-align: left; vertical-align: top; }
-  .stats td { font-size: 9.1pt; border-bottom: 1px solid #EAEFF4; }
-  .stats td.n { text-align: right; font-weight: 700; color: #002E4D; font-variant-numeric: tabular-nums; }
+  .be { background: #002E4D; color: #fff; border-radius: 5px; padding: 10px 13px; margin-top: 5px; }
+  .be .n { font-size: 15pt; font-weight: 700; color: #7BD49B; }
+  .be .x { font-size: 9pt; line-height: 1.45; margin-top: 3px; color: #D6E3EE; }
+  .be .x b { color: #fff; }
 
-  ul { margin: 3px 0 0; padding-left: 15px; }
-  li { margin-bottom: 4px; }
-  li strong { color: #002E4D; }
-
-  .two { display: flex; gap: 16px; }
-  .two > div { flex: 1; }
-
-  .cost { background: #F7FAFC; border: 1px solid #DCE5EC; border-radius: 5px;
-          padding: 6px 10px; margin-top: 3px; }
-  .cost .big { font-size: 13pt; font-weight: 700; color: #002E4D; }
-  .cost .note { font-size: 8.5pt; color: #5A6B7D; margin-top: 3px; line-height: 1.3; }
-
-  .covers { font-size: 8.9pt; line-height: 1.45; }
+  .covers { font-size: 8.8pt; line-height: 1.45; }
   .covers b { color: #002E4D; }
 
-  .aep { background: #F2F7FB; border: 1px solid #C8D9E8; border-radius: 5px; padding: 7px 9px; }
-  .aep-t { width: 100%; font-size: 9pt; }
-  .aep-t td { padding: 1.8px 0; border-bottom: 1px solid #DEE9F2; }
-  .aep-t td.n { text-align: right; font-weight: 700; color: #002E4D; font-variant-numeric: tabular-nums; }
-  .aep-t tr.tot td { border-top: 1.5px solid #266EA5; border-bottom: none; padding-top: 3px; font-weight: 700; }
-  .aep-t tr.real td { border-bottom: none; color: #266EA5; font-weight: 700; font-size: 9.2pt; }
-  .aep-note { font-size: 8.2pt; color: #5A6B7D; margin-top: 4px; line-height: 1.3; }
-
-  .prob { font-size: 8.8pt; line-height: 1.45; background: #FBF9F6;
-          border-left: 3px solid #C9A227; border-radius: 3px; padding: 8px 10px; height: 100%; }
-  .prob.good { background: #F5FBF7; border-left-color: #65BB84; }
-  .prob-h { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.6px;
-            color: #002E4D; font-weight: 700; margin-bottom: 3px; }
-  .prob b { color: #002E4D; }
   .foot { margin-top: 12px; padding-top: 8px; border-top: 1px solid #DCE5EC;
-          font-size: 8.6pt; color: #5A6B7D; line-height: 1.4; }
+          font-size: 8.6pt; color: #5A6B7D; line-height: 1.45; }
   .foot b { color: #002E4D; }
 </style>
 </head>
@@ -77,15 +79,101 @@
 <div class="head">
   <div class="meta">Tim Winslow<br>August 2026</div>
   <h1>Founders Agent Portal</h1>
-  <div class="sub">Proposal for the developer &amp; agency-IT role</div>
+  <div class="sub">What it's for, and what I'm asking for</div>
 </div>
 
 <div class="lede">
-  You asked me what the purpose of the portal is. The short answer: <strong>to help Founders
-  grow.</strong> Not by keeping us tidy — by removing the ceiling on how many customers each
-  agent can actually serve. That ceiling is set during AEP, and it is set by time.
-  I built the system and I maintain it, along with the agency's website, email and technical
-  support. <strong>That work has been unpaid; I'm asking for it to become a defined role.</strong>
+  You asked me what the purpose of the portal is, and said it sounds like it's meant to keep us
+  organized. That's fair — but it undersells it. <strong>The purpose is to grow Founders</strong>,
+  by raising the ceiling on how many customers each agent can actually serve.
+  That ceiling isn't ambition or work ethic. It's <strong>time, and it is set during AEP.</strong>
+</div>
+
+<h2>You already proved the model works</h2>
+<div class="two">
+  <div>
+    <div class="model">
+      <div class="t">The model that built the biggest book</div>
+      You sell. A support system handles the calendar, the callbacks, the follow-ups, the
+      applications, the birthday cards and the AEP letters. Betty, Amanda, Ben and the pharmacy
+      staff take everything off your plate that isn't sitting across from a customer.
+      <br><br>
+      <b>That's why your book is the largest in the agency.</b> It isn't luck — it's what happens
+      when one person only has to do the part that actually requires them.
+      <br><br>
+      <b>Nobody else has that.</b> The rest of us are the salesperson, the scheduler, the
+      follow-up, the data entry and the mail room. That is the whole difference in the numbers
+      beside this — and it's the gap the portal exists to close.
+    </div>
+  </div>
+  <div>
+    <table class="book">
+      <tr class="hi"><td><b>Brian</b> — with a support team</td><td class="n">1,417</td></tr>
+      <tr><td>Rebekah</td><td class="n">1,180</td></tr>
+      <tr><td>Chris</td><td class="n">785</td></tr>
+      <tr><td>Justin</td><td class="n">764</td></tr>
+      <tr><td>Mike</td><td class="n">711</td></tr>
+      <tr><td>Tim</td><td class="n">571</td></tr>
+    </table>
+    <div class="covers" style="margin-top:6px">
+      Active policies per agent. The agents without support sit at
+      <b>40–55% of your book</b>. Not because they work less — because every hour spent
+      scheduling, chasing and re-entering is an hour not spent in front of a customer.
+      <br><br>
+      <b>The portal is how the other five get a version of what you already have</b> — for
+      $36,000 a year instead of four more salaries.
+    </div>
+  </div>
+</div>
+
+<h2>The bottleneck is nine weeks long</h2>
+
+<div class="two">
+  <div style="flex:0 0 37%">
+    <div class="model">
+      <div class="t">AEP capacity, per agent</div>
+      <table class="book" style="margin-top:0">
+        <tr><td>Oct 1 – Dec 7</td><td class="n">68 days</td></tr>
+        <tr><td>Working days (6-day weeks)</td><td class="n">58</td></tr>
+        <tr><td>Less Thanksgiving week</td><td class="n">52</td></tr>
+        <tr><td>Slots/day (9–6, 30 min)</td><td class="n">18</td></tr>
+        <tr class="hi"><td><b>Theoretical maximum</b></td><td class="n">936</td></tr>
+      </table>
+      <div style="font-size:8.2pt;color:#5A6B7D;margin-top:5px;line-height:1.35">
+        Nobody runs 18 back-to-back appointments for nine weeks. Notes, no-shows, callbacks and
+        applications come out of the same hours. <b>Realistically closer to 500.</b>
+      </div>
+    </div>
+  </div>
+  <div>
+    <p style="margin:0 0 6px">That is the entire year's growth, decided in nine weeks. An agent
+    cannot create more hours. So there are only two ways to serve more customers:
+    <b>stop spending appointments on people who never needed one</b>, and
+    <b>stop losing the ones who did.</b></p>
+    <div class="vs">
+      <div class="now">
+        <div class="t">AEP 2026 — as things stand</div>
+        An agent with ~800 customers has <b>no way to know who needs to come in</b> until they
+        call and ask.
+        <div class="big">~12 days</div>
+        of the season spent on triage calls before a single review happens — and that assumes
+        people answer the first time. Meanwhile customers reach us by mail, text, email and calls
+        to several different numbers. Nothing records who we spoke to or what was decided. After
+        a week of 25+ conversations a day, whatever isn't handled on the spot probably doesn't
+        get handled at all.
+      </div>
+      <div class="next">
+        <div class="t">AEP with the portal working</div>
+        The portal already knows every customer's plan and what changed for next year. The
+        <b>"you're fine" / "we should talk"</b> split goes out in the first two weeks of October —
+        before AEP even opens.
+        <div class="big">~270 slots</div>
+        freed per agent for the customers who genuinely need the time, or for new business. Every
+        conversation, decision and follow-up stays attached to the customer, so nothing depends on
+        remembering it nine days later.
+      </div>
+    </div>
+  </div>
 </div>
 
 <h2>What I'm asking for</h2>
@@ -93,128 +181,40 @@
   <div class="ask-box">
     <div class="ask-label">Ongoing — the role</div>
     <div class="ask-num">$3,000<span> / month</span></div>
-    <div class="ask-desc">Begins 1 Sept 2026. Cancellable on 90 days' notice.
-      Covers the portal <em>and</em> agency IT. Reviewed each January as the system grows.</div>
+    <div class="ask-desc">Begins 1 Sept 2026. Cancellable on 90 days' notice. Covers the portal
+      <em>and</em> the agency's IT — website, Google Workspace and email, Business profile, and
+      day-to-day technical support for agents. Reviewed each January as the system grows.</div>
   </div>
   <div class="ask-box secondary">
     <div class="ask-label">One-time — work already delivered</div>
     <div class="ask-num">$35,000</div>
-    <div class="ask-desc">For the production system built through Aug 2026.
-      Can be financed: $10,000 now, then $2,500/month for 10 months.</div>
+    <div class="ask-desc">For the production system built through August 2026 — five months,
+      unpaid. Outside replacement cost is roughly $100–150k. Can be financed: $10,000 now, then
+      $2,500/month for 10 months.</div>
   </div>
 </div>
 
-<div class="two">
-  <div>
-    <h2>What the agency has today</h2>
-    <table class="stats">
-      <tr><td>Active policies</td><td class="n">5,608</td></tr>
-      <tr><td>Customers</td><td class="n">5,458</td></tr>
-      <tr><td>Commission transactions</td><td class="n">14,687</td></tr>
-      <tr><td>Commission dollars tracked</td><td class="n">$273,660</td></tr>
-      <tr><td>Carrier statements processed</td><td class="n">29</td></tr>
-      <tr><td>Agents with accounts</td><td class="n">10</td></tr>
-    </table>
-  </div>
-  <div>
-    <h2>What it would cost to replace</h2>
-    <div class="cost">
-      <div class="big">$100,000 &ndash; $150,000</div>
-      <div class="note">800&ndash;1,200 hours at a conservative blended rate of $125/hr;
-        published 2026 U.S. rates put small firms at $90&ndash;$160/hr.
-        <b>I am not proposing Founders pay this</b> &mdash; it is context for what replacing
-        the system externally would involve. An outside firm would also need months of your
-        and AJ&rsquo;s time to learn how UHC commissions actually work, what an override is, or
-        when two customer records are the same person.</div>
-    </div>
-  </div>
-</div>
-
-<div class="covers" style="margin-top:6px">
-  Book-of-business imports from <b>7 carriers</b>, commission processing for <b>6</b>, per-agent
-  recaps, customer &amp; policy records, plan data, phone integration &mdash; on a secured server
-  with an audit trail and nightly encrypted off-site backups.
-  &nbsp;·&nbsp; <b>Adoption is the honest gap:</b> every agent&rsquo;s recap runs through it monthly,
-  but most haven&rsquo;t used it beyond that &mdash; it has never been rolled out, trained on, or
-  aimed at a season. That is what a defined role changes, starting with AEP.
-</div>
-
-<h2>It isn't about being organized — it's about AEP capacity</h2>
-
-<div class="two" style="gap:14px">
-  <div style="flex:0 0 40%">
-    <div class="aep">
-      <table class="aep-t">
-        <tr><td>Oct 1 – Dec 7</td><td class="n">68 days</td></tr>
-        <tr><td>Working days (6-day weeks)</td><td class="n">58</td></tr>
-        <tr><td>Less Thanksgiving week</td><td class="n">52</td></tr>
-        <tr><td>Slots/day (9–6, 30 min)</td><td class="n">18</td></tr>
-        <tr class="tot"><td>Theoretical maximum</td><td class="n">936</td></tr>
-        <tr class="real"><td>Realistic, per agent</td><td class="n">450–560</td></tr>
-      </table>
-      <div class="aep-note">No one runs 18 back-to-back appointments for nine weeks. Notes,
-        no-shows, callbacks and applications all come out of the same hours.</div>
-    </div>
-  </div>
-  <div>
-    <p style="margin:0 0 5px">That is the whole year's growth, decided in nine weeks. An agent
-    cannot create more hours — so the only ways to serve more customers are to
-    <strong>stop spending appointments on people who didn't need one</strong>, and to
-    <strong>stop losing the ones who did</strong>.</p>
-    <p style="margin:0 0 5px"><strong>Oct 1–14 is the leverage point.</strong> We can talk to
-    customers two weeks before AEP opens. Those 12 working days are
-    <strong>216 appointment slots — roughly a quarter of the season</strong> — and right now
-    they're mostly spent finding out who needs to come in. Used to triage instead, every
-    remaining slot goes to a customer who actually needs it.</p>
-    <p style="margin:0"><strong>What the portal does about it:</strong> it already knows what plan
-    every customer is on and what changed for next year — so the "you're fine" / "we should talk"
-    split can be sent out at scale in early October instead of discovered one call at a time.</p>
-  </div>
-</div>
-
-<div class="two" style="gap:16px; margin-top:9px">
-  <div>
-    <div class="prob">
-      <div class="prob-h">Where the time goes today</div>
-      Customers reach us by mail, text, email, and calls to several different numbers — some to
-      personal cells, some to the pharmacy. There is no single place recording who we spoke to,
-      what was discussed, or what was decided. After a week of 25+ conversations a day, anything
-      not acted on immediately is unlikely to get done — and the odds fall further with every
-      passing day. That is how follow-ups get missed and applications go in late, or not at all.
-    </div>
-  </div>
-  <div>
-    <div class="prob good">
-      <div class="prob-h">What changes</div>
-      One record per customer, carrying the conversation, the decision, and the next step — so
-      nothing depends on remembering it a week later. Agents spend October's slots on customers
-      who need them, and go into the season knowing who those are. <b>Time saved is capacity, and
-      capacity is customers per agent</b> — which is the only lever that grows the agency without
-      hiring.
-    </div>
-  </div>
-</div>
-
-<h2>What the monthly covers</h2>
-<div class="covers">
-  <b>Portal:</b> hosting oversight, backups, security updates, bug fixes, carrier
-  file-format maintenance, small improvements, data-import support, system administration.
-  &nbsp;·&nbsp; <b>Agency IT:</b> website, Google Workspace &amp; email, Google Business profile,
-  day-to-day technical support for agents.
-  &nbsp;·&nbsp; <b>Quoted separately:</b> major new modules, new integrations, a website
-  rebuild, or significant scope expansions.
+<div class="be">
+  <div class="n">Less than one extra policy, per agent, per week.</div>
+  <div class="x">That is all it takes for the $36,000 to pay for itself — <b>231 net new policies
+  a year across five producing agents</b>, about 46 each. If instead they close even half the gap
+  to your book, that is <b>roughly $240,000 a year in additional agency revenue</b>, of which
+  <b>51% is yours</b>. The portal doesn't have to transform anyone to be worth it. It has to save
+  each agent about one afternoon a week.</div>
 </div>
 
 <div class="foot">
-  <b>My agent book doesn't change.</b> I remain a producing agent; my customers keep their
-  servicing agent. I'm asking to be paid for the second job I'm already doing.
+  <b>My book doesn't change.</b> I remain a producing agent; my customers keep their servicing
+  agent. I'm asking to be paid for the second job I'm already doing — one that currently has no
+  one else covering it.
   &nbsp;·&nbsp;
   <b>Ownership:</b> Founders receives a perpetual, irrevocable license to use the portal to run
-  the agency, and owns its data outright — permanently, even if this arrangement ends. I retain
-  ownership of the software itself.
+  the agency, and owns all of its data outright — permanently, even if this arrangement ends.
+  I retain ownership of the software itself.
   &nbsp;·&nbsp;
-  <b>Timing:</b> AEP is when carrier files change without warning and a broken import lands the
-  week commissions are due. Having this settled before then is the point.
+  <b>The honest gap:</b> the portal has never been rolled out or trained on — most agents have
+  only seen their commission recap. That is exactly what a defined role changes, and AEP is the
+  deadline.
 </div>
 
 </body>

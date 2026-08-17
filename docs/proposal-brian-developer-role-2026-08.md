@@ -8,9 +8,10 @@
 
 ---
 
-> **⚠ DRAFT — review before sending.** Items marked `[BRACKETED]` need Tim's
-> input. Notes at the end. Everything else is verified from the live system and is
-> checkable.
+> **⚠ DRAFT — two things before sending: (1) confirm the rate citations in
+> Section 3 say what this document claims, (2) delete this banner and the notes
+> section at the end.** Everything else is complete and verified from the live
+> system.
 
 ---
 
@@ -143,7 +144,7 @@ keep it running.
 > for the production system delivered through August 2026
 >
 > ### Maintenance and development: $2,000/month
-> beginning [DATE], cancellable with 90 days' notice
+> beginning **1 September 2026**, cancellable with 90 days' notice
 
 At $35,000, the internal development fee is roughly a quarter of the estimated
 external replacement cost. The monthly figure is **$24,000/year** against outside
@@ -180,18 +181,12 @@ commissions are due.
 
 ## 5. What this means for my book
 
-**[TIM — choose one and write it in your own words. Don't leave all three.]**
+**Nothing changes.** I remain a producing agent, my book stays mine, and my
+customers keep their servicing agent.
 
-- *Keeping the book as-is:* "No change. This has been done alongside my book for
-  five months and my production reflects that. I'm asking to be paid for the
-  second job I'm already doing."
-- *Shifting toward development:* "Yes, deliberately — [what you'd propose, and
-  what happens to your AOR/servicing]."
-- *Leaving it open:* "That depends on what the agency needs. I'd rather settle the
-  developer role first, then talk about the right mix."
-
-Either way, my existing customers keep their servicing agent and nothing changes
-for them without your sign-off.
+This work has been done alongside my book for five months and my production
+reflects that. I'm not asking to write less business or to be carried — I'm asking
+to be paid for the second job I'm already doing.
 
 ---
 
@@ -242,6 +237,14 @@ person maintains it — along with the email, the website and the day-to-day
 technical support. A commission-processing defect could cost several thousand
 dollars before anyone noticed, and Section 2 shows that isn't hypothetical.
 
+**On timing:** AEP is the argument for settling this now rather than after. The
+portal is not new software being introduced — agents have used it daily for
+months and it already runs the commission recaps and the agency book. What AEP
+actually brings is the season when carrier files change without warning, volume
+spikes, and a broken import lands the same week commissions are due. Section 2's
+examples all happened in ordinary months. Going into AEP with no maintenance
+arrangement is the risk; having one is the mitigation.
+
 I'd rather keep building it. I'm asking that it be compensated as the work it is.
 
 ---
@@ -264,9 +267,24 @@ developer cost comparison. ² Leanware, software development retainer pricing.
 
 Opening at $35k gives room to land at $30k. Don't open at $30k hoping for $30k.
 
-**Still to fill:**
-- `[DATE]` — proposed maintenance start (1 September was discussed).
-- **Section 5** — pick one option, delete the others.
+**Nothing left to fill except the rate citations** (below) — the document is
+otherwise complete and sendable.
+
+**On the start date — I put 1 September and I'd argue against offering January.**
+You raised January in case Brian doesn't want new software close to AEP. But the
+portal ISN'T new software to him: agents have used it daily for months, and
+Sections 1–2 establish it as already load-bearing. Offering a January start
+contradicts your own case — it invites him to think of this as a risky rollout to
+postpone rather than an existing system to fund.
+
+The AEP argument runs the other way, and Section 7 now makes it: AEP is when
+carrier formats change, volume spikes, and a broken import lands the week
+commissions are due. No-maintenance-during-AEP is the risk.
+
+If he genuinely balks at September, **October is the concession to make, not
+January** — it keeps you covered for AEP. Hold January in reserve and only if he
+ties it to something (a signed agreement now, dated start later). Don't open with
+a delay he hasn't asked for.
 **⚠ SECTION 6 — GET A LAWYER ON THIS CLAUSE BEFORE SIGNING ANYTHING.**
 
 I've written it as a **perpetual license, not a sale**: you keep ownership and the

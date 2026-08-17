@@ -102,6 +102,13 @@ labeled as having no drug coverage when they do.**
 Every one of these was invisible before, because there was no system to see them
 in.
 
+**To be straight about it: the system isn't finished, and it won't be.** There are
+known issues on the list right now, and carrier files will break something again
+this year. That is the nature of software that sits between six carriers and a
+payroll — it needs someone maintaining it continuously, not a one-time build. The
+difference between now and a year ago isn't that problems stopped happening. It's
+that they get found, and there's a record of what was done about them.
+
 ---
 
 ## 3. What replacing this would involve
@@ -137,29 +144,18 @@ most of what makes this system correct — and it is already in it.
 
 ## 4. Proposal
 
-Two things to compensate: the system already delivered, and the work required to
-keep it running.
+There are two separate things here, and they can be decided separately.
 
-> ### Development fee: $35,000
-> for the production system delivered through August 2026
->
-> ### Maintenance and development: $2,000/month
+### 4a. Going forward — the role
+
+> ## $3,000/month
 > beginning **1 September 2026**, cancellable with 90 days' notice
 
-At $35,000, the internal development fee is roughly a quarter of the estimated
-external replacement cost. The monthly figure is **$24,000/year** against outside
-development retainers that commonly start at $5,000–$10,000/month.²
+This covers the portal *and* the agency's IT function. Compared against outside
+development retainers that commonly start at $5,000–$10,000/month,² it is
+**$36,000/year** for work that currently has no one else covering it.
 
-**If a single payment is difficult, an alternative:**
-
-| | Option A — Purchase | Option B — Financed |
-|---|---|---|
-| Upfront | $35,000 | $10,000 |
-| Then | $2,000/mo maintenance | $3,000/mo × 10 months, then $2,000/mo |
-
-Option B totals $40,000 over the first ten months, reflecting the financing.
-
-### What the monthly covers
+**What it covers**
 
 **The portal:** production hosting oversight, backups, security updates, bug
 fixes, carrier file-format maintenance, reasonable small improvements, data-import
@@ -171,6 +167,35 @@ the Google Business profile, and day-to-day technical support for agents.
 **Not included (quoted separately):** major new modules, substantial new
 integrations, entirely new business systems, a website rebuild or redesign, or
 significant scope expansions.
+
+That distinction matters both ways. Carrier formats change without warning — Aetna
+switched file formats mid-year, Devoted mislabels its files, UHC changed a payment
+convention. Each breaks imports until someone fixes it, usually the week
+commissions are due; that is maintenance and it's covered. But building an entirely
+new capability is a project, and should be priced as one rather than absorbed.
+
+**Annual review.** The system keeps growing, and what it takes to run it grows with
+it. Rather than renegotiating every time something is added, the monthly figure is
+reviewed **each January** against the system's actual scope and usage. One
+conversation, on a known date.
+
+### 4b. The work already delivered
+
+> ## $35,000
+> for the production system built through August 2026
+
+This is roughly a quarter of the estimated external replacement cost in Section 3,
+for five months of work that has so far been unpaid.
+
+**If a single payment is difficult:**
+
+| | Option A — Direct | Option B — Financed |
+|---|---|---|
+| Upfront | $35,000 | $10,000 |
+| Then | — | $2,500/month × 10 months |
+
+Option B totals $35,000 over ten months. Either option is separate from and in
+addition to the monthly in 4a.
 
 That distinction matters because carrier formats change without warning — Aetna
 switched file formats mid-year, Devoted mislabels its files, UHC changed a payment
@@ -260,12 +285,42 @@ developer cost comparison. ² Leanware, software development retainer pricing.
 
 **Negotiation position** (do not put this table in the document):
 
-| | Ask | Good outcome | Reluctant floor |
+| | Ask | Good outcome | Floor |
 |---|---|---|---|
-| System | **$35,000** | $30,000 | $25,000 |
-| Monthly | **$2,000** | $1,750–2,000 | $1,500 |
+| Monthly (4a) | **$3,000** | $2,500 | **$2,000** |
+| Delivered work (4b) | **$35,000** | $25–30,000 | financed, or folded in |
 
-Opening at $35k gives room to land at $30k. Don't open at $30k hoping for $30k.
+**Why the monthly is now $3,000 and why that's not just padding.** The scope
+genuinely grew when the agency IT work went in — portal *plus* website, Workspace,
+Business profile, agent support. $3,000 is defensible on scope alone, and it gives
+real room to land at $2,000 (your stated floor) without going below it. Opening at
+$2,000 guarantees you end up under it.
+
+**The two asks are now SEPARATE sections on purpose.** Brian can say yes to 4a
+while still thinking about 4b. Previously they read as one package he could reject
+whole. Lead the conversation with 4a — it's the one you think he'll pay, and a yes
+there changes the tone of everything after.
+
+**On the $35k — ask for it.** You said you don't know how he'll react, which means
+you're anticipating a "no" you haven't actually heard. An unasked number is a
+guaranteed $0. If he refuses, you've lost nothing and you're still negotiating 4a.
+If you pre-emptively drop it, you've given away $25–35k to avoid a conversation.
+
+**If he balks at 4b, the order of concessions:**
+1. Offer Option B (financed) — often it's cash timing, not the principle.
+2. Offer a lower figure, $25,000 financed over 12 months (~$2,080/mo).
+3. **Last resort — fold it into the monthly instead of abandoning it:** e.g.
+   $3,500/month for the first 24 months, then $3,000. That recovers ~$12k of it
+   without him ever writing a large check. Worse for you than 4b, better than $0.
+4. Only if all of that fails: accept that the five months is a sunk investment, and
+   protect the monthly. **Do not trade 4b away for a lower monthly** — the monthly
+   is the recurring income and compounds; the upfront is one-time.
+
+**Why an annual review, not per-feature pay.** You floated raising the rate as new
+functions are added. Two problems: it means renegotiating repeatedly (each one a
+chance for "not right now"), and it quietly rewards you for building things that
+need *more* upkeep. A January review is one scheduled conversation, and "major new
+modules quoted separately" already covers big additions as project work.
 
 **Nothing left to fill except the rate citations** (below) — the document is
 otherwise complete and sendable.

@@ -68,7 +68,44 @@ records" has no soft edge to push on.
 
 ---
 
-## ⬜ OPEN — the SMS-to-booking conversion (worth chasing, not blocking)
+## ✅ SMS LOG ANALYZED — `SMS_Log_Download_20260819-202948.csv` (1,106 msgs, Sep 5 – Dec 31)
+
+**AEP window (Oct 1 – Dec 7): 861 messages** — 474 outbound, 387 inbound, across
+**164 distinct people**, on 56 active days (avg 15/day, busiest 57). **75 people (46%)
+were two-way conversations.**
+
+**The combined number, and the one now in the proposal:**
+
+> **617 calls + 861 texts = 1,478 touchpoints in nine weeks.** One agent. No record of
+> what any of them decided.
+
+The call log alone understated the real contact load by more than half.
+
+### Auto-reply detection (structural, since the export has no message body)
+
+Method: an outbound SMS sent within 10 minutes of an unanswered call to the same
+number ≈ the auto-reply firing.
+
+- **117 of 309** unanswered calls (38%) triggered a text
+- **87 distinct people** received one
+- **52 of those (60%) texted back** — the auto-reply started a real conversation more
+  often than not
+
+### ⚠ What this data CANNOT prove — do not claim it
+
+Whether those texts became booked appointments. The export has no message body and no
+link-click data, so the Calendly conversion is still unmeasured (see below).
+
+**A comparison that looks meaningful and is NOT:** of the 87 who got an auto-text, 59%
+never had to call again; of the 77 missed people who got no text, 81% never called
+again. That looks like the auto-text made things *worse*. It is a **selection
+artifact** — the auto-text fired on people who called repeatedly, while a one-off
+missed call from someone who never called back often never triggered one. The groups
+aren't comparable. Do not use this comparison in either direction.
+
+---
+
+## ⬜ STILL OPEN — the SMS-to-booking conversion (worth chasing, not blocking)
 
 Tim's VOIP auto-texted a Calendly link to anyone who left a voicemail. **How many of
 those booked themselves an appointment?** That is the closest thing to direct proof

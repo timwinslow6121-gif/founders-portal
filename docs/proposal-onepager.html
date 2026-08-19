@@ -16,18 +16,18 @@
   .head .sub { font-size: 8.8pt; color: #5A6B7D; }
   .head .meta { float: right; text-align: right; font-size: 8.4pt; color: #5A6B7D; line-height: 1.5; }
 
-  h2 { font-size: 10pt; color: #266EA5; margin: 14px 0 5px;
+  h2 { break-after: avoid; page-break-after: avoid; font-size: 10pt; color: #266EA5; margin: 14px 0 5px;
        text-transform: uppercase; letter-spacing: 0.6px; }
 
   .lede { background: #F2F7FB; border-left: 3px solid #266EA5;
           padding: 10px 13px; margin-bottom: 4px; font-size: 9.7pt; }
   .lede strong { color: #002E4D; }
 
-  .two { display: flex; gap: 15px; }
+  .two { display: flex; gap: 15px; break-inside: avoid; page-break-inside: avoid; }
   .two > div { flex: 1; }
 
   .model { background: #F7FAFC; border: 1px solid #DCE5EC; border-radius: 5px;
-           padding: 9px 12px; }
+           padding: 9px 12px; break-inside: avoid; page-break-inside: avoid; }
   .model .t { font-size: 8.2pt; text-transform: uppercase; letter-spacing: 0.6px;
               color: #002E4D; font-weight: 700; margin-bottom: 4px; }
   .model b { color: #002E4D; }
@@ -39,8 +39,9 @@
   .book tr.hi td { color: #266EA5; }
   .book tr.hi td.n { color: #266EA5; }
 
-  .vs { display: flex; gap: 13px; margin-top: 5px; }
-  .vs > div { flex: 1; border-radius: 5px; padding: 9px 11px; font-size: 8.9pt; line-height: 1.45; }
+  .vs { display: flex; gap: 13px; margin-top: 5px; break-inside: avoid; page-break-inside: avoid; }
+  .vs > div { flex: 1; border-radius: 5px; padding: 9px 11px; font-size: 8.9pt; line-height: 1.45;
+              break-inside: avoid; page-break-inside: avoid; }
   .vs .now  { background: #FDF7F4; border: 1px solid #E8C4B0; }
   .vs .next { background: #F4FBF6; border: 1px solid #A9D9BC; }
   .vs .t { font-size: 8.2pt; text-transform: uppercase; letter-spacing: 0.6px;
@@ -52,7 +53,7 @@
   .vs .next .big { color: #2E7D52; }
   .vs b { color: #002E4D; }
 
-  .ask { display: flex; gap: 10px; margin: 5px 0 3px; }
+  .ask { display: flex; gap: 10px; margin: 5px 0 3px; break-inside: avoid; page-break-inside: avoid; }
   .ask-box { flex: 1; border: 1.5px solid #266EA5; border-radius: 5px; padding: 10px 12px; }
   .ask-box.secondary { border-color: #B9C6D2; }
   .ask-label { font-size: 7.6pt; text-transform: uppercase; letter-spacing: 0.7px;
@@ -61,7 +62,7 @@
   .ask-num span { font-size: 10pt; font-weight: 400; color: #5A6B7D; }
   .ask-desc { font-size: 8.3pt; color: #43536A; margin-top: 3px; line-height: 1.32; }
 
-  .be { background: #002E4D; color: #fff; border-radius: 5px; padding: 10px 13px; margin-top: 5px; }
+  .be { break-inside: avoid; page-break-inside: avoid; background: #002E4D; color: #fff; border-radius: 5px; padding: 10px 13px; margin-top: 5px; }
   .be .n { font-size: 15pt; font-weight: 700; color: #7BD49B; }
   .be .x { font-size: 9pt; line-height: 1.45; margin-top: 3px; color: #D6E3EE; }
   .be .x b { color: #fff; }
@@ -126,6 +127,36 @@
   </div>
 </div>
 
+<h2>What I'm asking for</h2>
+<div class="ask">
+  <div class="ask-box">
+    <div class="ask-label">Ongoing — the role</div>
+    <div class="ask-num">$3,000<span> / month</span></div>
+    <div class="ask-desc">Begins 1 Sept 2026. Cancellable on 90 days' notice. Covers the portal
+      <em>and</em> the agency's IT — website, Google Workspace and email, Business profile, and
+      day-to-day technical support for agents. Reviewed each January as the system grows.</div>
+  </div>
+  <div class="ask-box secondary">
+    <div class="ask-label">One-time — work already delivered</div>
+    <div class="ask-num">$35,000</div>
+    <div class="ask-desc">For the production system built through August 2026 — five months,
+      unpaid. Outside replacement cost is roughly $100–150k. Can be financed: $10,000 now, then
+      $2,500/month for 10 months.</div>
+  </div>
+</div>
+
+<div class="be">
+  <div class="n">Less than one extra policy, per agent, per week.</div>
+  <div class="x">That is all it takes for the $36,000 to pay for itself — <b>231 net new policies
+  a year across five producing agents</b>, about 46 each. If instead they close even half the gap
+  to your book, that is <b>roughly $240,000 a year in additional agency revenue</b>, of which
+  <b>51% is yours</b>. The portal doesn't have to transform anyone to be worth it. It has to save
+  each agent about one afternoon a week.</div>
+</div>
+
+
+<div style="page-break-before: always"></div>
+
 <h2>The bottleneck is nine weeks long</h2>
 
 <div class="two">
@@ -178,33 +209,6 @@
       </div>
     </div>
   </div>
-</div>
-
-<h2>What I'm asking for</h2>
-<div class="ask">
-  <div class="ask-box">
-    <div class="ask-label">Ongoing — the role</div>
-    <div class="ask-num">$3,000<span> / month</span></div>
-    <div class="ask-desc">Begins 1 Sept 2026. Cancellable on 90 days' notice. Covers the portal
-      <em>and</em> the agency's IT — website, Google Workspace and email, Business profile, and
-      day-to-day technical support for agents. Reviewed each January as the system grows.</div>
-  </div>
-  <div class="ask-box secondary">
-    <div class="ask-label">One-time — work already delivered</div>
-    <div class="ask-num">$35,000</div>
-    <div class="ask-desc">For the production system built through August 2026 — five months,
-      unpaid. Outside replacement cost is roughly $100–150k. Can be financed: $10,000 now, then
-      $2,500/month for 10 months.</div>
-  </div>
-</div>
-
-<div class="be">
-  <div class="n">Less than one extra policy, per agent, per week.</div>
-  <div class="x">That is all it takes for the $36,000 to pay for itself — <b>231 net new policies
-  a year across five producing agents</b>, about 46 each. If instead they close even half the gap
-  to your book, that is <b>roughly $240,000 a year in additional agency revenue</b>, of which
-  <b>51% is yours</b>. The portal doesn't have to transform anyone to be worth it. It has to save
-  each agent about one afternoon a week.</div>
 </div>
 
 <div class="foot">

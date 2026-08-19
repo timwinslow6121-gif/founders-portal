@@ -49,6 +49,46 @@ during the only nine weeks that matter* is the persuasive part.
 
 ---
 
+## ⚠ 51% IS A FLOOR, NOT A MEASUREMENT — this is in the proposal
+
+The log covers **one channel**: the VOIP line. It does **not** include:
+
+- calls to/from **personal cell phones** (Tim's or the customer's)
+- calls to/from the **pharmacy number**, where staff took messages for agents
+- **any SMS**, in either direction (the export is voice-only — `Type` = "Voice" on
+  all 780 rows)
+
+So every unanswered call that reached Tim another way is invisible here. **The real
+miss rate is higher than 51%.**
+
+This makes the number *stronger*, not weaker, and the document now says so
+explicitly. A measured floor is harder to argue with than an estimate — Brian can
+question an assumption, but "it's at least this bad, on the only channel that kept
+records" has no soft edge to push on.
+
+---
+
+## ⬜ OPEN — the SMS-to-booking conversion (worth chasing, not blocking)
+
+Tim's VOIP auto-texted a Calendly link to anyone who left a voicemail. **How many of
+those booked themselves an appointment?** That is the closest thing to direct proof
+that the portal's core mechanic works, because the auto-text is a crude version of
+exactly what the portal would do at scale: reach the customer first, let them
+self-select, and keep the appointment slot for someone who needs it.
+
+**Where to look:** Calendly, not the phone system. Export bookings for Oct 1 – Dec 7
+2025 and segment by source/UTM if the link carried one; otherwise compare booking
+timestamps against voicemail timestamps in this log (a booking within ~24h of a
+voicemail from the same person is almost certainly the auto-text working).
+
+**A weak proxy already in this data — do NOT use it as evidence:** of 122 numbers
+that left a voicemail, 71 (58%) never called again, while 51 (42%) had to keep
+trying. "Stopped calling" is ambiguous — it could mean booked, gave up, or reached
+Tim on a personal cell. It hints the auto-text helped, but it cannot carry that
+claim. Calendly is the only real source.
+
+---
+
 ## Secondary findings (useful in conversation, not in the document)
 
 - **Timing:** 92% of unanswered calls arrive inside 9am–6pm — i.e. during

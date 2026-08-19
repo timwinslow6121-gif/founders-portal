@@ -1,105 +1,100 @@
-# AEP call data — what to pull, and why it matters
+# AEP 2025 call data — ANALYZED
 
-**Status:** outstanding. Tim has VOIP data from AEP 2025 somewhere; this is the guide
-for what to extract and where it goes in the proposal.
-
----
-
-## Why this is the most valuable evidence in the proposal
-
-Everything else in the one-pager is **projection**. The triage-minutes, the utilization
-rate, the share of customers who need an appointment — all estimates, and all
-attackable. Brian can say "8 minutes a call seems high" and the comparison wobbles.
-
-**This is measured data from a real AEP.** He cannot argue with call logs.
-
-And it carries an argument nothing else does:
-
-> Tim had the **best** inbound setup of anyone at Founders — a VOIP system that
-> auto-replied by SMS with a calendar link — and the **smallest book**, so the
-> lowest call volume of any producing agent. He still got buried.
->
-> Every other agent ran AEP on a personal cell phone or through pharmacy staff
-> taking messages, with a bigger book generating more calls.
->
-> **If it overwhelmed the best-equipped agent with the least volume, it was worse
-> for everyone else.** That conclusion needs no estimate — it follows from the data.
-
-That is the emotional core of the pitch, and unlike the rest of it, it is unarguable.
+**Status:** ✅ done. Source: `docs/CallLog_20260819-202751.csv` (780 records,
+Sep 1 – Dec 31 2025). Figures below are in the one-pager.
 
 ---
 
-## What to pull
+## Headline findings — AEP window (Oct 1 – Dec 7 2025)
 
-**Primary (any one of these makes the case):**
+| | |
+|---|---|
+| Calls in the window | **617** |
+| Unanswered (missed / voicemail / caller hung up) | **310** |
+| Answered | 302 |
+| **Share unanswered** | **51%** |
+| Active days with call traffic | 57 of 68 |
+| Unanswered per active day | **5.4** |
+| Distinct people missed | 165 |
+| **People missed MORE THAN ONCE** | **66 (40%)** |
+| Failed attempts to those 66 | **211** |
+| Worst single number | **13 attempts** before connecting |
+| Average answered call | 9.6 min |
+| Total talk time in window | 54.2 hrs (≈57 min/day) |
 
-1. **Missed / unanswered inbound calls per day** across Oct 1 – Dec 7 2025.
-   The single best number. A daily average plus the peak day.
-2. **Total inbound call volume** over the same window — establishes the baseline
-   ("this is what the SMALLEST book generates").
-3. **Outbound callbacks placed** — the return-call burden.
+**Callback cost at the observed 9.6-min average:** 310 × 9.6 min ≈ **50 hours** ≈
+5.5 nine-hour days ≈ **99 thirty-minute appointment slots.**
 
-**Secondary (multiplies the impact):**
-
-4. **Callback connect rate** — what share of return calls actually reached the person.
-   Anything under ~50% proves the phone-tag point with your own data.
-5. **Call duration** — average inbound and average callback. Turns call counts into hours.
-6. **Time-of-day distribution** — if callbacks cluster after 6pm, that's the "hours
-   after appointments are done" point, evidenced.
-7. **How many SMS auto-replies converted to a booked appointment** — this is the
-   closest thing you have to a *proof the portal's approach works*, because the
-   auto-reply is a primitive version of exactly what the portal would do at scale.
-
----
-
-## What the numbers would mean
-
-Callback burden over 52 AEP working days, at 6 minutes per callback:
-
-| Missed calls/day | Per day | Over the season | In 30-min appointment slots |
-|---|---|---|---|
-| 10 | 1.0 hr | 52 hrs (≈6 nine-hour days) | **104 slots** |
-| 15 | 1.5 hr | 78 hrs (≈9 days) | **156 slots** |
-| 20 | 2.0 hr | 104 hrs (≈12 days) | **208 slots** |
-
-Against a realistic season of ~500 appointments per agent, 20 missed calls a day is
-**over 40% of capacity** spent on callbacks — and that is the floor, because it counts
-each callback once and ignores phone tag entirely.
-
-⚠ **Use your real average, not the top of the range.** A defensible 12 is worth more
-than an arguable 20. Also confirm the 6-minute callback assumption against your actual
-call durations — if you have the data, use it rather than the estimate.
+Data is essentially complete — only 3 Mon–Sat days in the window have zero logged
+calls, and two of those are Thanksgiving and the Saturday after.
 
 ---
 
-## Where it goes in the one-pager
+## ⚠ IMPORTANT — a correction to what we assumed
 
-Replace the **"AEP 2026 — as things stand"** panel (currently `~12 days`, built on my
-triage estimate) with the real figure. Suggested shape:
+The working assumption was **"20+ missed calls per day."** The actual figure is
+**5.4 per active day.** Do not use 20+ — your own log contradicts it, and a number
+Brian can disprove costs more than it gains.
 
-> **AEP 2025 — what actually happened**
->
-> I ran AEP on a VOIP system that auto-replied to every missed call with a booking
-> link. No other agent had that — they used a personal cell or the pharmacy took
-> messages. I also have the smallest book, so the fewest calls.
->
-> **[N] missed calls a day. Every day of AEP.**
->
-> That is [X] hours of callbacks over the season — [Y] appointment slots — and it does
-> not count the ones who didn't pick up when I called back. The agents with bigger
-> books and no system had it worse. That is where the capacity goes.
+**The real data is still strong — it's just a different argument.** The power isn't
+raw volume, it's:
 
-Then the green panel's contrast stays as-is.
+1. **51% of calls went unanswered.** Half of everyone who reached out got nobody.
+2. **40% had to be missed repeatedly** — 66 people, 211 failed attempts, one tried
+   13 times. That's the phone-tag point, evidenced.
+3. **You had the best system and the smallest book and this still happened.**
+
+Volume was never the persuasive part. *A coin-flip chance of reaching your agent
+during the only nine weeks that matter* is the persuasive part.
 
 ---
 
-## The line to say out loud in the meeting
+## Secondary findings (useful in conversation, not in the document)
 
-Not in the document — for the conversation:
+- **Timing:** 92% of unanswered calls arrive inside 9am–6pm — i.e. during
+  appointments. Only 8% are after-hours. So the problem isn't customers calling at
+  odd times; it's that **you're with another customer**. That's exactly the gap a
+  support system fills, and it's why Brian doesn't experience it.
+- **Peak days:** 14 unanswered on Mon 10/06; 11 on Mon 11/03, Wed 11/12, Mon 12/01.
+  Mondays are consistently worst.
+- **Trend:** October 43% unanswered → November 58% → December 53%. **It got worse as
+  the season went on**, which is what you'd expect as backlog compounds.
+- **Volume shape:** 293 calls in October, 232 in November, 92 in the first week of
+  December.
 
-> "I had the best phone setup in the agency and the smallest book, and I still missed
-> [N] calls a day for nine straight weeks. Ask Chris or Justin what theirs looked like."
+---
 
-Handing the comparison to Brian as a question he can go verify is stronger than
-asserting it — and per *Never Split the Difference*, a question he answers himself
-lands harder than a claim he has to accept.
+## The line for the room (not the document)
+
+> "Half the people who called me during AEP got nobody. Not because I was ignoring
+> them — because I was sitting with another customer. And 66 of them had to try more
+> than once; one called 13 times. I had the only real phone system in the agency and
+> the smallest book. Ask Chris or Justin what theirs looked like."
+
+Handing Brian a question he can verify himself lands harder than a claim he has to
+accept.
+
+---
+
+## Reproducing this
+
+```bash
+cd docs && python3 - <<'PY'
+import csv, collections
+from datetime import datetime
+rows=list(csv.DictReader(open('CallLog_20260819-202751.csv',encoding='utf-8-sig')))
+def d(r): return datetime.strptime(r["Date"].split()[1],"%m/%d/%Y").date()
+aep=[r for r in rows if datetime(2025,10,1).date() <= d(r) <= datetime(2025,12,7).date()]
+UN={"Missed","Voicemail","Hang Up"}
+un=[r for r in aep if r["Action Result"] in UN]
+an=[r for r in aep if r["Action Result"] in ("Accepted","Call connected")]
+byn=collections.Counter(r["Phone Number"] for r in un)
+multi={k:v for k,v in byn.items() if v>1}
+print(f"{len(aep)} calls, {len(un)} unanswered = {len(un)/(len(un)+len(an))*100:.0f}%")
+print(f"{len(multi)}/{len(byn)} missed more than once; worst {max(byn.values())} attempts")
+PY
+```
+
+**Note on method:** "unanswered" = `Missed` + `Voicemail` + `Hang Up`. The
+`Result Description` column confirms direction — "The *caller* hung up before the
+call was answered" is inbound, "The number *you dialed*" is outbound.

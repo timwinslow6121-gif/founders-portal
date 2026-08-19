@@ -105,7 +105,40 @@ aren't comparable. Do not use this comparison in either direction.
 
 ---
 
-## ⬜ STILL OPEN — the SMS-to-booking conversion (worth chasing, not blocking)
+## ✅ CALENDLY ANALYZED — the conversion question is ANSWERED
+
+Source: `docs/event-data-from-20250901-to-20251231.csv` (247 events).
+**AEP window (Oct 1 – Dec 7): 242 events, 200 kept, 42 canceled.**
+
+| | |
+|---|---|
+| **Self-booked by the customer** | **191 (79%)** |
+| Booked manually by Tim | 51 (21%) |
+| **Kept AND self-booked** | **156 appointments Tim never had to schedule** |
+| Median booking lead time | 2 days |
+
+**This is the strongest single proof in the proposal**, because it isn't a claim about
+what the portal *would* do — it's what one crude automation on one channel *already
+did*. The `Invitee scheduled by` column is what separates the two: blank = the invitee
+booked themselves, populated = Tim created it.
+
+### Traceable SMS → booking conversion
+
+Matching self-bookings to an outbound text within 48 hours: **25 of 180** self-bookings
+with a usable phone number (14%) directly followed a text. That is a **floor** — it
+only catches people who booked with the same number that received the text, within two
+days.
+
+### Bonus finding — more evidence the logs undercount
+
+Of 143 unique self-booking customers: 60% appear in the call log, 38% in the SMS log,
+and **33% appear in NEITHER**. Those booked from a link they received some other way —
+email, the pharmacy, a personal cell, or an earlier conversation. Contact volume is
+higher than any of these three exports shows.
+
+---
+
+## ⬜ CLOSED — the SMS-to-booking conversion (answered above; kept for method notes)
 
 Tim's VOIP auto-texted a Calendly link to anyone who left a voicemail. **How many of
 those booked themselves an appointment?** That is the closest thing to direct proof

@@ -9,7 +9,11 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-08-11_
+_Last updated: 2026-08-24_
+
+## 🗓 2027 CONTRACT YEAR — carrier First Look data (NEXT UP, 2026-08-24)
+- ⬜ 🔴 **Add a First Look data layer for CY2027.** Tim has first-look materials from some carriers now. Carriers publish preliminary plan details BEFORE CMS data is published/verified, and agents need them for AEP prep, carrier comparison and training — but they must **never overwrite or corrupt CMS-sourced production data**. **A 1,931-line draft spec exists: `docs/medicare_first_look_portal_spec.md` (UNTRACKED — Tim's own, not yet reviewed).** Wants 2026-vs-2027 comparison, year-over-year, multi-carrier, MA/MAPD/SNP/PDP. ⚠ **Read the draft, then brainstorm→spec→plan — do not build straight from it.** It touches the `Plan` table the entire carriers/plans module reads from. **📌 Strong prior: `app/plan_provenance.py` already models exactly this** — its precedence rules (`set_cms_value()`: empty→write, first-look `unverified`→CMS overwrites, `agent_entered`+match→promote, mismatch→flag conflict, `human_verified`→skip) were designed for "an unverified source that CMS later supersedes". First Look is that case with a new source label, not a new mechanism. Also relevant: `Plan` is keyed `(carrier, cms_plan_id, year)` so 2027 rows coexist with 2026 by construction; `scripts/sync_cms_plan_data.py` and `seed_plan_buckets.py` are the existing ingest paths.
+
 
 ## ✅ APPLIED + LIVE 2026-08-11 (2nd pass) — Devoted + Aetna plan linkage from their BOBs · 33 → 20
 - ✅ **Devoted 13 → 1 and Aetna 1 → 0** (same script, extended carrier-generic; DB backup `/root/founders_pre_dev_aetna_link_20260811_165119.sql`). **Money identical:** ledger 14,687 / **$273,660.22** and payments 12,011 / **$270,577.68** both unchanged; policies 5,655 + customers 5,458 unchanged. Unlinked actives now: **Humana 12 · BCBS 7 · UHC 2 · Devoted 1 · Aetna 0 · HealthSpring 0.**

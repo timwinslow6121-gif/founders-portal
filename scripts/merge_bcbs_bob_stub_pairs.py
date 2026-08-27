@@ -47,6 +47,15 @@ from app.customers import merge_customers
 AGENCY_ID = 1
 IMPORT_DATE = date(2026, 8, 27)   # the BCBS BOB import that created the dupes
 
+# Human decisions for pairs the gates correctly refuse.
+# 14888 "Betty Beaver" (dob 1949-06-20) matched two stubs that both survive the
+# gates — "Betty A. Beaver" and "Bethany B. Beaver", neither carrying a DOB.
+# Tim confirmed 2026-08-27: it is Betty A. (2252); Bethany B. is a different
+# person and must be left alone.
+MANUAL_PAIRS = {
+    14888: 2252,
+}
+
 
 def _norm(s):
     return (s or "").strip().upper()
@@ -80,6 +89,19 @@ def find_pairs(agency_id, import_date):
 
         if not cands:
             continue
+
+        # A human decision overrides ambiguity — but only to a candidate that
+        # already passed every gate, so it can never resurrect a refused match.
+        chosen_id = MANUAL_PAIRS.get(n.id)
+        if chosen_id is not None:
+            chosen = next((c for c in cands if c.id == chosen_id), None)
+            if chosen is None:
+                refused.append((n, cands,
+                                f"MANUAL_PAIRS names {chosen_id}, which did not pass the gates"))
+                continue
+            pairs.append((n, chosen))
+            continue
+
         if len(cands) > 1:
             refused.append((n, cands, "ambiguous: %d candidates survive the gates" % len(cands)))
             continue

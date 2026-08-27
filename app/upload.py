@@ -383,7 +383,10 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
         customer.last_name = rec.get("last_name") or customer.last_name
         customer.full_name = full_name or customer.full_name
         _fill_if_blank(customer, "dob", rec.get("dob"))
+        _fill_if_blank(customer, "gender", rec.get("gender"))
         _fill_if_blank(customer, "phone_primary", rec.get("phone"))
+        _fill_if_blank(customer, "phone_secondary", rec.get("phone_secondary"))
+        _fill_if_blank(customer, "email", rec.get("email"))
         _fill_if_blank(customer, "address1", rec.get("address1"))
         _fill_if_blank(customer, "city", rec.get("city"))
         _fill_if_blank(customer, "state", rec.get("state"))

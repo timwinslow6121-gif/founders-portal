@@ -19,11 +19,30 @@ anniversary date, NOT a real disenrollment. These should never appear in
 the upcoming terminations list. We flag them with is_renewal=True.
 """
 
+import re
 import pandas as pd
 from datetime import date
 
 REQUIRED_COLUMNS = {"First Name", "Last Name"}
 BCBS_SENTINEL_DATES = {"12/31/2199", "12/31/9999", "01/01/9999"}
+
+
+def _normalize_phone(raw: str) -> str:
+    """Canonical 'NNN-NNN-NNNN'.
+
+    The book currently holds five different phone shapes (dashed, bare 10-digit,
+    parenthesised, E.164, other), which is why lookups by number are unreliable.
+    Anything that is not a recognisable US 10-digit number is returned unchanged
+    rather than mangled — a bad guess is worse than an odd-looking value.
+    """
+    if not raw:
+        return ""
+    digits = re.sub(r"\D", "", str(raw))
+    if len(digits) == 11 and digits.startswith("1"):
+        digits = digits[1:]
+    if len(digits) != 10:
+        return str(raw).strip()
+    return f"{digits[0:3]}-{digits[3:6]}-{digits[6:]}"
 
 
 def parse(filepath: str) -> list[dict]:
@@ -86,7 +105,21 @@ def parse(filepath: str) -> list[dict]:
             "term_date": None if is_supplement else term_date,
             "renewal_date": term_date if is_supplement else None,
             "dob": _parse_date(row, "Date Of Birth"),
-            "phone": _str(row, "Home Phone"),
+            "gender": _str(row, "Gender").upper()[:1],
+            # BCBS's own member number — kept alongside the MBI so the record is
+            # still identifiable for Supplement/Dental rows that have no MBI.
+            "carrier_member_id": member_num,
+            "phone": _normalize_phone(_str(row, "Home Phone")),
+            "phone_secondary": _normalize_phone(_str(row, "Alternate Phone")),
+            "email": _str(row, "Email Address").lower(),
+            # Address columns are present in the Aug-2026+ export. The importer
+            # (_upsert_customer_from_policy) reads address1/city/state/zip_code;
+            # omitting them left every imported customer with a blank address.
+            "address1": _str(row, "Address 1").title(),
+            "address2": _str(row, "Address 2").title(),
+            "city": _str(row, "City").title(),
+            "state": _str(row, "State").upper(),
+            "zip_code": _str(row, "Zip"),
             "county": _str(row, "County"),
             "agent_id": _str(row, "Producer ID"),
             "status": "active",

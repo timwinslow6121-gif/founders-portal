@@ -49,7 +49,12 @@ def _pick_survivor(pols):
     return max(pols, key=score)
 
 
-def dedupe(agency_id, apply=False):
+def dedupe(agency_id, apply=False, customer_ids=None):
+    """customer_ids: optional whitelist — limit the sweep to those customers.
+
+    Used to fix a specific import's damage without also sweeping unrelated
+    pre-existing duplicates in the same pass.
+    """
     counts = {"merged_pairs": 0, "policies_removed": 0, "held_diff_eff": 0,
               "payments_moved": 0}
     # group active policies by (customer_id, plan_id) — same linked bucket = same enrollment
@@ -57,6 +62,8 @@ def dedupe(agency_id, apply=False):
     q = (Policy.query
          .filter(Policy.agency_id == agency_id, Policy.status == "active",
                  Policy.plan_id.isnot(None)))
+    if customer_ids:
+        q = q.filter(Policy.customer_id.in_(list(customer_ids)))
     for p in q.all():
         groups[(p.customer_id, p.plan_id)].append(p)
 
@@ -102,10 +109,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--agency", type=int, required=True)
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--customer-ids", default="",
+                    help="comma-separated whitelist — scope the sweep to these customers")
     args = ap.parse_args()
+    cids = [int(x) for x in args.customer_ids.split(",") if x.strip()] or None
     app = create_app()
     with app.app_context():
-        res = dedupe(args.agency, apply=args.apply)
+        res = dedupe(args.agency, apply=args.apply, customer_ids=cids)
         mode = "APPLIED" if args.apply else "DRY-RUN (no writes)"
         print(f"[{mode}] duplicate-policy dedupe, agency {args.agency}:")
         print(f"  merged pairs:        {res['merged_pairs']}")

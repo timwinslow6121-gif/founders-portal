@@ -806,7 +806,13 @@ searchInput.addEventListener('input', () => {
   }
   debounce = setTimeout(() => {
     fullList.style.display = 'none';
-    fetch(`/customers/search?q=${encodeURIComponent(q)}`)
+    // Carry the page's active filters into the dropdown, so search narrows
+    // the list you are looking at rather than the whole agency book.
+    const sp = new URLSearchParams(window.location.search);
+    const passthru = new URLSearchParams({q: q});
+    ['carrier','plan_type','agent_id','medicaid','language','include_former']
+      .forEach(k => { const v = sp.get(k); if (v) passthru.set(k, v); });
+    fetch(`/customers/search?${passthru.toString()}`)
       .then(r => {
         if (!r.ok) throw new Error('Search request failed (' + r.status + ')');
         return r.json();

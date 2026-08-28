@@ -582,10 +582,19 @@ def customers_search():
     if len(q) < 2:
         return jsonify([])
 
-    name_filter = _name_search_filter(q)
-    query = _customer_query()
-    if name_filter is not None:
-        query = query.filter(name_filter)
+    # Search must NARROW the filtered list, never escape it. This endpoint used
+    # to apply the name filter alone, so searching from a page filtered to one
+    # agent still returned every other agent's customers.
+    include_former = request.args.get("include_former") == "1"
+    query = _apply_customer_filters(
+        _customer_query(include_former=include_former),
+        q,
+        request.args.get("carrier", "").strip(),
+        request.args.get("plan_type", "").strip(),
+        request.args.get("agent_id", type=int),
+        request.args.get("medicaid", "").strip(),
+        request.args.get("language", "").strip(),
+    )
     query = query.limit(20)
 
     results = [

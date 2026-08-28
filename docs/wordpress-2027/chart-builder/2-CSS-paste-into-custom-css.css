@@ -1,0 +1,72 @@
+/* ===== 2027 Chart Builder ===== */
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&display=swap");
+#cb{--navy:#2E5A82;--band:#3E6D9E;--band2:#38648F;--gold:#F2B233;--w:#fff;--ink:#16212B;
+ --panel:#fff;--line:#D5DFE8;--fl:#B4700A;--fls:#FFF4DE;
+ font-family:"Barlow Semi Condensed",Arial,sans-serif;color:var(--ink);max-width:1560px;margin:0 auto;padding:16px}
+#cb *{box-sizing:border-box}
+#cb .ctl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+#cb h2{margin:0 0 10px;font-size:19px;font-weight:700}
+#cb .row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}
+#cb label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#5A6B7A;margin-bottom:3px}
+#cb select,#cb input[type=text]{font:inherit;font-size:14px;padding:7px 10px;border:1px solid #B9C7D3;border-radius:7px;background:#fff;min-width:150px}
+#cb button{font:inherit;font-size:14px;font-weight:600;padding:7px 14px;border-radius:7px;border:1px solid #8FA5B8;background:#fff;color:#16212B !important;cursor:pointer;line-height:1.2;text-shadow:none;-webkit-appearance:none;appearance:none}
+#cb button:hover{background:#EEF4FA;border-color:#0A5BA8}
+#cb button.pri{background:#0A5BA8;color:#fff !important;border-color:#0A5BA8}
+#cb button.pri:hover{background:#08498A}
+#cb select,#cb input[type=text]{color:#16212B !important;background:#fff !important}
+#cb label{color:#5A6B7A !important}
+#cb .hint{color:#6B7C8B !important}
+#cb .pk,#cb .pk *{color:#16212B !important}
+#cb h2{color:#16212B !important}
+#cb .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:5px;
+ max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:9px;background:#FAFCFE}
+#cb .pk{display:flex;gap:7px;align-items:flex-start;font-size:13px;padding:3px 5px;border-radius:5px}
+#cb .pk:hover{background:#EEF4FA}
+#cb .pk input{margin-top:2px}
+#cb .pk .cd{color:#7A8B99;font-size:11.5px}
+#cb .hint{font-size:12px;color:#6B7C8B;margin-top:7px}
+/* ---- the chart ---- */
+#sheet{background:var(--navy);color:var(--w);padding:14px 18px 22px;border-radius:8px}
+#sheet .top{font-size:11px;letter-spacing:.05em;opacity:.9;margin-bottom:5px;display:flex;justify-content:space-between;gap:12px}
+#sheet .hd{display:grid;grid-template-columns:200px 1fr;align-items:center;gap:10px;margin-bottom:8px}
+#sheet .yr{font-size:26px;font-weight:700;line-height:1.03}
+#sheet h1{grid-column:2;text-align:center;font-size:28px;font-weight:700;margin:0}
+#sheet table{width:100%;border-collapse:separate;border-spacing:3px 2px;table-layout:fixed}
+#sheet th.rl{width:196px;text-align:right;color:var(--gold);font-size:14px;font-weight:700;padding:6px 9px 6px 4px;line-height:1.12}
+#sheet thead th{background:var(--navy);padding:5px 7px 9px;vertical-align:bottom;border-bottom:3px solid var(--w)}
+#sheet .pt{color:var(--gold);font-size:12.5px;font-weight:700;line-height:1.15;text-transform:uppercase}
+#sheet .pcode{font-size:11px;font-weight:600;margin-top:2px}
+#sheet .yrs{display:flex;gap:3px;margin-top:5px}
+#sheet .yrs span{flex:1;font-size:15px;font-weight:700}
+#sheet tbody td{background:var(--band);text-align:center;padding:6px 5px;vertical-align:middle;
+ border-left:2px solid var(--w);border-right:2px solid var(--w)}
+#sheet tbody tr:nth-child(even) td{background:var(--band2)}
+#sheet .big{font-size:18px;font-weight:700;line-height:1.1}
+#sheet .sm{font-size:10px;font-weight:600;color:var(--gold);line-height:1.15}
+#sheet .pair{display:flex;gap:3px}
+#sheet .pair>div{flex:1}
+#sheet sup.fl{color:var(--gold);font-size:9.5px;font-weight:700;margin-left:1px}
+#sheet tr.rxh th.rl{font-size:16px;text-align:left;padding-left:12px}
+#sheet tr.rxh td{background:transparent;border:none}
+#sheet .ft{margin-top:11px;font-size:10.5px;opacity:.9;line-height:1.5}
+#sheet .key{margin-top:6px;font-size:10.5px}
+#sheet .key b{color:var(--gold)}
+#cb .empty{padding:30px;text-align:center;color:#7A8B99;font-size:15px}
+@media print{
+  /* Hide every top-level branch of the page, then re-show only the
+     ancestor chain down to the chart. display:none removes layout space
+     (visibility:hidden does not, which leaves blank pages). */
+  body > *{display:none !important}
+  body > #cb{display:block !important;max-width:none !important;margin:0 !important;padding:0 !important}
+  #cb > *{display:none !important}
+  #cb > #cb-out{display:block !important}
+  #sheet{
+    display:block !important;
+    margin:0 !important;border-radius:0 !important;box-shadow:none !important;
+    -webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;
+  }
+  #sheet *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+  #sheet table{width:100% !important}
+  #sheet tr{page-break-inside:avoid}
+  @page{size:landscape;margin:8mm}
+}

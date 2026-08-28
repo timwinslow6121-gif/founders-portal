@@ -1,0 +1,29 @@
+<div id="cb">
+<div class="ctl noprint">
+<h2>2027 Chart Builder</h2>
+<div class="row">
+<div><label for="cb-carrier">Carrier</label>
+<select id="cb-carrier"><option value="">All carriers</option></select></div>
+<div><label for="cb-county">County</label>
+<select id="cb-county"><option value="">All counties</option></select></div>
+<div><label for="cb-type">Plan type</label>
+<select id="cb-type"><option value="">All types</option></select></div>
+<div><label for="cb-years">Years shown</label>
+<select id="cb-years"><option value="27">2027 only</option><option value="both">2026 vs 2027</option><option value="26">2026 only</option></select></div>
+<div><label for="cb-title">Chart title</label>
+<input id="cb-title" type="text" size="30" placeholder="auto"></div>
+<div><label for="cb-note">Note (top right)</label>
+<input id="cb-note" type="text" size="26" placeholder="e.g. RX COPAYS AT CANNON PHARMACY"></div>
+</div>
+<div class="row">
+<button id="cb-all" type="button">Select all shown</button>
+<button id="cb-none" type="button">Clear</button>
+<button id="cb-edit" type="button">Edit: off</button>
+<button id="cb-print" class="pri" type="button">Print / Save PDF</button>
+<span class="hint" id="cb-count"></span>
+</div>
+<div class="picks" id="cb-picks"></div>
+<div class="hint">Tick up to 6 plans. Values marked <b>FL</b> are carrier First Look and are not CMS-approved &mdash; they can change. Turn on Edit to type over any cell (e.g. pharmacy Rx copays), then Print.</div>
+</div>
+<div id="cb-out"></div>
+</div>

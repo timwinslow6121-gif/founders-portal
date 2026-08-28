@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UHC 2027 First Look</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f4f6f8;color:#172033}
+header{background:#123a70;color:#fff;padding:24px}
+main{max-width:1150px;margin:auto;padding:20px}
+.panel{background:#fff;border:1px solid #d8dee8;border-radius:12px;padding:14px}
+.filters{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+label{font-size:12px;font-weight:700;color:#667085}
+select,input{width:100%;padding:10px;border:1px solid #ccd3dd;border-radius:8px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:16px}
+.card{background:#fff;border:1px solid #d8dee8;border-radius:12px;padding:15px;position:relative;overflow:hidden}
+.card::before{content:"";display:block;height:7px;margin:-15px -15px 13px;background:#123a70}
+.card.non-snp::before{background:#063b7a}
+.card.c-snp::before{background:#08aebd}
+.card.d-snp::before{background:#f2b600}
+.card.uhc-gray::before{background:#8a8f98}
+.legend{display:flex;flex-wrap:wrap;gap:9px;margin:14px 0}
+.legend-item{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #d8dee8;border-radius:999px;padding:6px 10px;font-size:12px}
+.swatch{width:13px;height:13px;border-radius:3px;display:inline-block}
+.swatch.blue{background:#063b7a}.swatch.teal{background:#08aebd}.swatch.yellow{background:#f2b600}.swatch.gray{background:#8a8f98}
+.cms{font-family:monospace;font-weight:700;color:#123a70}
+.badge{display:inline-block;background:#edf3fb;color:#123a70;border-radius:999px;padding:4px 8px;font-size:12px;font-weight:700;margin:6px 4px 6px 0}
+.metric{margin:6px 0}
+.note{background:#fff8dc;border:1px solid #ecd88c;border-radius:10px;padding:12px;margin:14px 0;font-size:13px}
+#count{margin:14px 0;font-weight:700}
+button{padding:10px 14px;border:0;border-radius:8px;background:#123a70;color:#fff;font-weight:700;cursor:pointer}
+@media(max-width:800px){.filters{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.filters{grid-template-columns:1fr}}
+@media print{.filters,button,.note{display:none}body{background:#fff}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header><h1>UHC 2027 First Look — Priority NC Counties</h1><div>Mecklenburg • Iredell • Davidson • Cabarrus • Rowan • Union</div></header>
+<main>
+<div class="note"><b>Internal First Look.</b> Preliminary carrier-provided information; not yet CMS verified. For standard plans, the five-county source was a combined listing. D-SNP segment county assignments come from dedicated UHC service-area comparisons.</div>
+<div class="legend" aria-label="UHC color key">
+  <span class="legend-item"><span class="swatch blue"></span><b>Non-SNP</b></span>
+  <span class="legend-item"><span class="swatch teal"></span><b>C-SNP</b></span>
+  <span class="legend-item"><span class="swatch yellow"></span><b>D-SNP</b></span>
+  <span class="legend-item" title="UHC uses gray in some source listings, but the supplied materials do not include a key explaining its meaning."><span class="swatch gray"></span><b>Gray:</b> UHC source use unclear</span>
+</div>
+<div class="panel filters">
+<div><label>County</label><select id="county"><option value="">All</option><option>Mecklenburg</option><option>Iredell</option><option>Davidson</option><option>Cabarrus</option><option>Rowan</option><option>Union</option></select></div>
+<div><label>Plan type</label><select id="type"><option value="">All</option><option>MAPD</option><option>Giveback MAPD</option><option>MA Only</option><option>C-SNP</option><option>D-SNP</option></select></div>
+<div><label>Drug coverage</label><select id="rx"><option value="">Any</option><option value="yes">With Rx</option><option value="no">No Rx</option></select></div>
+<div><label>Minimum giveback</label><select id="gb"><option value="0">Any</option><option value="1">Has giveback</option><option value="50">$50+</option><option value="100">$100+</option><option value="150">$150+</option></select></div>
+<div><label>Search</label><input id="q" placeholder="CMS code or plan name"></div>
+</div>
+<div style="margin-top:10px"><button id="print">Print results</button></div>
+<div id="count"></div>
+<div class="grid" id="results"></div>
+</main>
+<script>
+const plans=[{"cms": "H5253-117-000", "name": "AARP Medicare Advantage from UHC NC-15", "type": "MAPD", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H5253-037-000", "name": "AARP Medicare Advantage from UHC NC-0021", "type": "MAPD", "network": "HMO-POS", "premium": "$42", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H5253-038-000", "name": "AARP Medicare Advantage from UHC NC-0022", "type": "MAPD", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H2406-098-000", "name": "AARP Medicare Advantage from UHC NC-0017", "type": "MAPD", "network": "PPO", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H5253-110-000", "name": "AARP Medicare Advantage Giveback from UHC NC-14", "type": "Giveback MAPD", "network": "HMO-POS", "premium": "$0", "giveback": 84, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan"]}, {"cms": "H5253-040-000", "name": "AARP Medicare Advantage Patriot No Rx NC-MA02", "type": "MA Only", "network": "HMO-POS", "premium": "$0", "giveback": 190, "rx": false, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H5253-189-000", "name": "UHC Complete Care NC-28", "type": "C-SNP", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H5253-216-001", "name": "UHC Dual Complete NC-S3", "type": "D-SNP", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Cabarrus", "Rowan", "Union"], "dental": "$2,500", "vision": "$200/year", "otc": "$300/month"}, {"cms": "H5253-216-002", "name": "UHC Dual Complete NC-S3", "type": "D-SNP", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Davidson"], "dental": "$2,500", "vision": "$250/year", "otc": "$358/month"}, {"cms": "H1889-034-000", "name": "UHC Dual Complete NC-S2", "type": "D-SNP", "network": "PPO", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H2406-034-000", "name": "AARP Medicare Advantage from UHC NC-0016", "type": "MAPD", "network": "PPO", "premium": "$53", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H5253-217-001", "name": "UHC Dual Complete NC-Q2", "type": "D-SNP", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Cabarrus", "Rowan", "Union"], "dental": "$1,500", "vision": "$300/year", "otc": "$230/month"}, {"cms": "H5253-217-002", "name": "UHC Dual Complete NC-Q2", "type": "D-SNP", "network": "HMO-POS", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Davidson"], "dental": "$1,500", "vision": "$300/year", "otc": "$310/month"}, {"cms": "H5253-116-000", "name": "UHC Dual Advantage NC-V1", "type": "D-SNP", "network": "HMO-POS", "premium": "$0\u2013$13.30", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}, {"cms": "H1889-005-000", "name": "UHC Dual Complete NC-Q1", "type": "D-SNP", "network": "PPO", "premium": "$0", "giveback": 0, "rx": true, "counties": ["Mecklenburg", "Iredell", "Davidson", "Cabarrus", "Rowan", "Union"]}];
+const county=document.getElementById('county'), type=document.getElementById('type'),
+rx=document.getElementById('rx'), gb=document.getElementById('gb'), q=document.getElementById('q'),
+results=document.getElementById('results'), count=document.getElementById('count');
+
+function render(){
+ const c=county.value,t=type.value,r=rx.value,g=+gb.value,s=q.value.toLowerCase().trim();
+ const rows=plans.filter(p=>
+   (!c||p.counties.includes(c)) &&
+   (!t||p.type===t) &&
+   (!r||(r==='yes'?p.rx:!p.rx)) &&
+   (!(g===1)||p.giveback>0) &&
+   (!(g>1)||p.giveback>=g) &&
+   (!s||(p.cms.toLowerCase().includes(s)||p.name.toLowerCase().includes(s)))
+ );
+ count.textContent=rows.length+' matching plan'+(rows.length===1?'':'s');
+ results.innerHTML=rows.map(p=>{
+   const colorClass = p.type==='C-SNP' ? 'c-snp' : p.type==='D-SNP' ? 'd-snp' : 'non-snp';
+   return `<div class="card ${colorClass}">
+   <div class="cms">${p.cms}</div>
+   <h3>${p.name}</h3>
+   <span class="badge">${p.type}</span><span class="badge">${p.network}</span><span class="badge">${p.rx?'Rx included':'No Rx'}</span>
+   <div class="metric"><b>Premium:</b> ${p.premium}</div>
+   <div class="metric"><b>Part B giveback:</b> ${p.giveback?'$'+p.giveback+'/mo':'—'}</div>
+   ${p.dental?'<div class="metric"><b>Dental:</b> '+p.dental+'</div>':''}
+   ${p.vision?'<div class="metric"><b>Vision:</b> '+p.vision+'</div>':''}
+   ${p.otc?'<div class="metric"><b>OTC / support:</b> '+p.otc+'</div>':''}
+   <div class="metric"><b>Priority counties:</b> ${p.counties.join(', ')}</div>
+ </div>`;
+ }).join('');
+}
+[county,type,rx,gb].forEach(e=>e.addEventListener('change',render)); q.addEventListener('input',render);
+document.getElementById('print').addEventListener('click',()=>window.print());
+render();
+</script>
+</body></html>

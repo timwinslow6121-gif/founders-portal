@@ -52,13 +52,24 @@ from app.models import Customer, Plan, Policy, PolicyPayment
 AGENCY_ID = 1
 
 
-def _surname(name):
+def _name_tokens(name):
+    """Comparable name tokens, order- and format-agnostic.
+
+    Carriers write the same person three ways in one book:
+        'HOWELL REBECCA M'  (Humana commission: LAST FIRST MI, no comma)
+        'Howell, Rebecca'   (comma form)
+        'Rebecca Howell'    (portal form)
+    Taking the last token as the surname picks the MIDDLE INITIAL out of the
+    first form, which refused all 142 real pairs on the first dry run. Compare
+    on the set of substantive tokens instead, ignoring single letters and
+    common suffixes, so any word order agrees.
+    """
     if not name:
-        return ""
-    n = name.strip()
-    if "," in n:
-        return n.split(",")[0].strip().lower()
-    return n.split()[-1].strip().lower() if n.split() else ""
+        return set()
+    n = name.replace(",", " ")
+    toks = {t.strip(".").lower() for t in n.split()}
+    return {t for t in toks
+            if len(t) > 1 and t not in {"jr", "sr", "ii", "iii", "iv", "md"}}
 
 
 def _load_bob_ids(path):
@@ -97,10 +108,20 @@ def main(apply, carrier, bob_path):
             if a.term_date or b.term_date:
                 refused.append((label, "a row carries a term date")); continue
 
-            surn = _surname(cust.full_name if cust else "")
-            if surn and not all(_surname(x.full_name) in ("", surn)
-                                for x in (a, b)):
-                refused.append((label, "surname disagreement between rows")); continue
+            # Every row must share at least two substantive name tokens with the
+            # customer (surname + given name), which tolerates middle initials,
+            # suffixes and word order but still catches a genuine wrong-person link.
+            cust_toks = _name_tokens(cust.full_name if cust else "")
+            if cust_toks:
+                for x in (a, b):
+                    xt = _name_tokens(x.full_name)
+                    if xt and len(cust_toks & xt) < min(2, len(cust_toks)):
+                        refused.append((label, f"name disagreement: {x.full_name!r}"))
+                        break
+                else:
+                    pass
+                if refused and refused[-1][0] == label:
+                    continue
 
             if bob_ids is not None:
                 in_bob = [x for x in (a, b) if (x.member_id or "").strip() in bob_ids]

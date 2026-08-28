@@ -243,9 +243,15 @@
       {% if include_former %}Hide former customers{% else %}Show former customers{% endif %}
     </a>
     {% endif %}
-    <a href="{{ url_for('customers.customers_export', q=q, carrier=f_carrier, plan_type=f_plan_type, agent_id=f_agent_id, medicaid=f_medicaid, include_former='1' if include_former else None) }}"
-       class="btn-secondary" style="font-size:12px;" title="Export current view to CSV">
-      ↓ Export CSV
+    <a href="{{ url_for('customers.customers_export', q=q, carrier=f_carrier, plan_type=f_plan_type, agent_id=f_agent_id, medicaid=f_medicaid, language=f_language, include_former='1' if include_former else None) }}"
+       class="btn-secondary" style="font-size:12px;"
+       title="One row per customer — contact details plus their primary medical plan">
+      ↓ Export customers
+    </a>
+    <a href="{{ url_for('customers.customers_export', mode='policies', q=q, carrier=f_carrier, plan_type=f_plan_type, agent_id=f_agent_id, medicaid=f_medicaid, language=f_language, include_former='1' if include_former else None) }}"
+       class="btn-secondary" style="font-size:12px;"
+       title="One row per active policy — for reconciling against a carrier book">
+      ↓ Export policies
     </a>
     <a href="{{ url_for('customers.customer_new') }}" class="btn-primary">+ Add Customer</a>
   </div>

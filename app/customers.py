@@ -19,6 +19,7 @@ from app.extensions import db
 from app.models import Customer, CustomerNote, CustomerContact, CustomerAorHistory, Policy, PolicyPayment, User, Pharmacy, SmsTemplate, CustomerSavedView, CommissionLineItem
 from app import customer_provenance as cp
 from app.audit import log_event
+from app.plan_lane import plan_lane
 
 customers_bp = Blueprint("customers", __name__)
 
@@ -319,6 +320,109 @@ def customers_list():
     )
 
 
+CUSTOMER_COLS = ["Name", "Preferred Name", "MBI", "DOB", "Gender",
+                 "Phone", "Phone (alt)", "Email",
+                 "Address", "City", "State", "Zip", "County",
+                 "Medicaid Level", "Language", "Lead Source",
+                 "Stage", "Agent", "Pharmacy"]
+
+PLAN_COLS = ["Carrier", "Plan Name", "CMS Code", "Segment", "Plan Type",
+             "Carrier Plan Type", "Member ID", "Effective Date"]
+
+
+def _active_policies_for(customers):
+    """{customer_id: [Policy]} for the exported set, with the linked Plan bucket.
+
+    One query for the whole page rather than N+1 — the export can run over the
+    entire book.
+    """
+    ids = [c.id for c in customers]
+    if not ids:
+        return {}
+    pols = (Policy.query
+            .options(joinedload(Policy.plan))
+            .filter(Policy.agency_id == current_user.agency_id,
+                    Policy.customer_id.in_(ids),
+                    Policy.status == "active")
+            .order_by(Policy.carrier, Policy.id)
+            .all())
+    out = {}
+    for p in pols:
+        out.setdefault(p.customer_id, []).append(p)
+    return out
+
+
+def _bucket_type(p):
+    """Authoritative plan type: the LINKED BUCKET, never Policy.plan_type.
+
+    Policy.plan_type carries CARRIER vocabulary — UHC types most Part C policies
+    "MA" whether or not they include drug coverage, so ~2,133 of 2,272 active UHC
+    rows say MA while only ~15 are truly MA-only. metrics._by_plan_type() derives
+    the mix from the bucket for exactly this reason; the export must too.
+    """
+    plan = getattr(p, "plan", None)
+    return (getattr(plan, "plan_type", None) or "").strip()
+
+
+def _split_primary_medical(pols):
+    """(primary_medical_policy_or_None, ['Medigap Plan G', ...]) for the rest.
+
+    Uses the shared plan_lane classifier so "primary medical" means the same
+    thing here as it does in the merge logic.
+    """
+    primary, others = None, []
+    for p in pols:
+        lane = plan_lane(_bucket_type(p) or p.plan_type)
+        if lane == "primary_medical" and primary is None:
+            primary = p
+        else:
+            label = (getattr(getattr(p, "plan", None), "plan_name", None)
+                     or p.plan_name or p.carrier or "").strip()
+            if label:
+                others.append(label)
+    return primary, others
+
+
+def _customer_cells(c):
+    return [
+        c.display_name,
+        c.preferred_name or "",
+        c.mbi or "",
+        c.dob.strftime("%m/%d/%Y") if c.dob else "",
+        c.gender or "",
+        c.phone_primary or "",
+        c.phone_secondary or "",
+        c.email or "",
+        c.address1 or "",
+        c.city or "",
+        c.state or "",
+        c.zip_code or "",
+        c.county or "",
+        c.medicaid_level or "",
+        c.language or "",
+        c.lead_source or "",
+        c.deal_stage or "Active",
+        c.primary_agent.display_name if c.primary_agent else "",
+        c.pharmacy.name if c.pharmacy else "",
+    ]
+
+
+def _plan_cells(p):
+    if p is None:
+        return [""] * len(PLAN_COLS)
+    plan = getattr(p, "plan", None)
+    return [
+        p.carrier or "",
+        (getattr(plan, "plan_name", None) or p.plan_name or ""),
+        (getattr(plan, "cms_plan_id", None) or ""),
+        (p.contract_code or "").split("-")[-1] if (p.contract_code or "").count("-") == 2 else "",
+        _bucket_type(p),
+        p.plan_type or "",
+        p.member_id or "",
+        p.effective_date.strftime("%m/%d/%Y") if p.effective_date else "",
+    ]
+
+
 @customers_bp.route("/customers/export")
 @login_required
 def customers_export():
@@ -340,31 +444,37 @@ def customers_export():
         joinedload(Customer.pharmacy),
     ).order_by(Customer.last_name, Customer.first_name).all()
 
+    # mode=policies -> one row per ACTIVE POLICY (reconcile against a carrier book).
+    # default       -> one row per CUSTOMER (who do I contact).
+    per_policy = request.args.get("mode", "").strip() == "policies"
+
+    policies_by_customer = _active_policies_for(rows)
+
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Name", "MBI", "Phone", "Email", "DOB", "Address", "City", "State", "Zip",
-                     "Medicaid Level", "Stage", "Agent", "Pharmacy"])
+    writer.writerow(CUSTOMER_COLS + PLAN_COLS +
+                    ([] if per_policy else ["Other Active Plans"]))
+
+    emitted = 0
     for c in rows:
-        writer.writerow([
-            c.display_name,
-            c.mbi or "",
-            c.phone_primary or "",
-            c.email or "",
-            c.dob.strftime("%m/%d/%Y") if c.dob else "",
-            c.address1 or "",
-            c.city or "",
-            c.state or "",
-            c.zip_code or "",
-            c.medicaid_level or "",
-            c.deal_stage or "Active",
-            c.primary_agent.display_name if c.primary_agent else "",
-            c.pharmacy.name if c.pharmacy else "",
-        ])
+        pols = policies_by_customer.get(c.id, [])
+        if per_policy:
+            # a customer with no active policy still deserves a row, so the
+            # export never silently drops people the filters matched
+            for p in (pols or [None]):
+                writer.writerow(_customer_cells(c) + _plan_cells(p))
+                emitted += 1
+        else:
+            primary, others = _split_primary_medical(pols)
+            writer.writerow(_customer_cells(c) + _plan_cells(primary) +
+                            ["; ".join(others)])
+            emitted += 1
 
     output = buf.getvalue()
-    filename = f"customers_export_{datetime.today().strftime('%Y%m%d')}.csv"
+    kind = "policies" if per_policy else "customers"
+    filename = f"{kind}_export_{datetime.today().strftime('%Y%m%d')}.csv"
     log_event("customer_export_csv", category="export",
-              detail="customer CSV export", record_count=len(rows))
+              detail=f"{kind} CSV export", record_count=emitted)
     return Response(
         output,
         mimetype="text/csv",

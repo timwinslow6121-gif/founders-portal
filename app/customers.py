@@ -423,6 +423,45 @@ def _plan_cells(p):
     ]
 
 
+def _filter_description(*, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid,
+                        f_language, include_former, per_policy, emitted):
+    """One human-readable line describing what this export IS.
+
+    An exported CSV outlives the screen it came from — it gets emailed to a
+    carrier, dropped in Drive, opened next AEP. Without this line a filtered
+    list is indistinguishable from the whole book, which is exactly how someone
+    concludes "we only have 235 BCBS members" from a Rebekah-only export.
+    """
+    parts = []
+    if q_str:
+        parts.append(f"Search={q_str}")
+    if f_carrier:
+        parts.append(f"Carrier={f_carrier}")
+    if f_plan_type:
+        parts.append(f"Plan type={f_plan_type}")
+    if f_agent_id and current_user.is_admin:
+        agent = User.query.filter_by(id=f_agent_id,
+                                     agency_id=current_user.agency_id).first()
+        parts.append(f"Agent={agent.name if agent else f_agent_id}")
+    if f_medicaid:
+        parts.append(f"Medicaid={f_medicaid}")
+    if f_language:
+        parts.append(f"Language={f_language}")
+    if include_former:
+        parts.append("Includes former-AOR customers")
+
+    # A non-admin only ever sees their own book — that IS a filter, and one the
+    # reader of the file cannot infer from the rows.
+    if not current_user.is_admin:
+        parts.append(f"Agent={current_user.name} (own book)")
+
+    scope = "one row per active policy" if per_policy else "one row per customer"
+    filters = " · ".join(parts) if parts else "no filters (whole book)"
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    return (f"# Founders portal export · {stamp} · {emitted} rows · {scope} "
+            f"· Filters: {filters}")
+
+
 @customers_bp.route("/customers/export")
 @login_required
 def customers_export():
@@ -470,7 +509,11 @@ def customers_export():
                             ["; ".join(others)])
             emitted += 1
 
-    output = buf.getvalue()
+    note = _filter_description(
+        q_str=q_str, f_carrier=f_carrier, f_plan_type=f_plan_type,
+        f_agent_id=f_agent_id, f_medicaid=f_medicaid, f_language=f_language,
+        include_former=include_former, per_policy=per_policy, emitted=emitted)
+    output = note + "\n" + buf.getvalue()
     kind = "policies" if per_policy else "customers"
     filename = f"{kind}_export_{datetime.today().strftime('%Y%m%d')}.csv"
     log_event("customer_export_csv", category="export",

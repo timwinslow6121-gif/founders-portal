@@ -21,7 +21,10 @@ import io
 
 
 def _rows(resp):
-    return list(csv.DictReader(io.StringIO(resp.data.decode())))
+    """Skip the leading '#' provenance line, as any consumer of the file does."""
+    body = resp.data.decode()
+    assert body.startswith("#"), "export lost its filter provenance line"
+    return list(csv.DictReader(io.StringIO(body.split("\n", 1)[1])))
 
 
 def _setup(app, agency, *, with_medigap=False):
@@ -129,3 +132,26 @@ def test_policy_mode_also_honours_filters(client, app, agency, db_session):
     _login(client, uid)
     rows = _rows(client.get("/customers/export?mode=policies&carrier=Humana"))
     assert rows == []
+
+
+def test_export_records_the_filters_used(client, app, agency, db_session):
+    """An exported file must say what it is a list OF — a CSV that has left the
+    building is otherwise indistinguishable from any other export."""
+    uid = _setup(app, agency)
+    _login(client, uid)
+    body = client.get("/customers/export?carrier=UHC&plan_type=all_ma").data.decode()
+    first = body.splitlines()[0]
+    assert first.startswith("#"), "no filter provenance line"
+    assert "Carrier=UHC" in first
+    assert "Plan type=all_ma" in first
+    # the header row still parses as the header
+    rows = list(csv.DictReader(io.StringIO(body.split("\n", 1)[1])))
+    assert rows and "CMS Code" in rows[0]
+
+
+def test_unfiltered_export_says_so(client, app, agency, db_session):
+    uid = _setup(app, agency)
+    _login(client, uid)
+    first = client.get("/customers/export").data.decode().splitlines()[0]
+    assert first.startswith("#")
+    assert "no filters" in first.lower()

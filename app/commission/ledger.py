@@ -297,6 +297,14 @@ def _devoted_format(sheets):
         return "agency"
     if "Detail" in sheets:
         return "statement"
+    # 2026-08: Devoted re-cut both exports. Rebekah's per-agent statement became
+    # Transactions/Statement Summary ('MBI', 'Agent ID', 'Contract' replacing
+    # 'Member HICN', 'Agent NPN'), and the agency file was replaced by a
+    # Tidewater Management Group FMO statement on a single 'Agent Report' sheet.
+    if "Transactions" in sheets:
+        return "statement2026"
+    if "Agent Report" in sheets:
+        return "tmg"
     raise ValueError(
         f"Unrecognized Devoted file shape; sheets={list(sheets)}. "
         "Expected agency (Agent Portion) or statement (Detail; Misc optional).")
@@ -310,6 +318,14 @@ def _devoted_filetoken(sheets):
     fmt = _devoted_format(sheets)
     if fmt == "agency":
         return "agency"
+    if fmt == "tmg":
+        return "tmg"
+    if fmt == "statement2026":
+        # Agent ID column (index 3) on the Transactions sheet.
+        for row in sheets.get("Transactions", [])[1:]:
+            if any(row) and len(row) > 3 and str(row[3] or "").strip():
+                return "npn" + str(row[3]).strip()
+        return "npn"
     detail = sheets.get("Detail", [])
     npn = ""
     for row in detail[1:]:

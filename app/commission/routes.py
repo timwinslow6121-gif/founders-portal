@@ -98,6 +98,13 @@ def _detect_carrier_from_headers(header_cells):
         return "BCBS"
     if "member hicn" in header_str or "agent npn" in header_str:
         return "Devoted"
+    # 2026-08 Devoted re-cut: per-agent statement lost 'Member HICN'/'Agent NPN'
+    # for 'MBI'/'Agent ID', and the agency file became a Tidewater (TMG) FMO
+    # statement whose own 'Carrier' column reads DEVOTEDHEALTH.
+    if "commission period" in header_str and "disenroll/cancel" in header_str:
+        return "Devoted"
+    if "payee npn" in header_str and "writing agent number" in header_str:
+        return "Devoted"
     if "payment type" in header_str and "medicare beneficiary identifier" in header_str:
         return "Healthspring"
     if "distributor number" in header_str and "advance type" in header_str:
@@ -587,6 +594,13 @@ def _detect_carrier(ws):
     if "billed amount" in header_str or ("group type" in header_str and "customer name" in header_str):
         return "BCBS"
     if "member hicn" in header_str or "agent npn" in header_str:
+        return "Devoted"
+    # 2026-08 Devoted re-cut: per-agent statement lost 'Member HICN'/'Agent NPN'
+    # for 'MBI'/'Agent ID', and the agency file became a Tidewater (TMG) FMO
+    # statement whose own 'Carrier' column reads DEVOTEDHEALTH.
+    if "commission period" in header_str and "disenroll/cancel" in header_str:
+        return "Devoted"
+    if "payee npn" in header_str and "writing agent number" in header_str:
         return "Devoted"
     if "payment type" in header_str and "medicare beneficiary identifier" in header_str:
         return "Healthspring"

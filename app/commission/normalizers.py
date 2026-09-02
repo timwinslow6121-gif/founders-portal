@@ -120,7 +120,15 @@ def _classify_devoted(commission_type, amount, disenroll):
     if amount < 0 or disenroll:
         return RowClass.CHARGEBACK
     ct = str(commission_type or "").lower()
-    if "new" in ct:        # "Initial - New" / "Initial - Not New"
+    # "Initial - New" AND "Initial - Not New" are both first-year enrollments —
+    # 'Not New' means not new to Medicare, not "not a new enrollment". Match on
+    # the 'initial' prefix: a bare `"new" in ct` also matched "Renewal - Monthly"
+    # (re-NEW-al), classifying every renewal as an enrollment.
+    if ct.startswith("initial"):
+        return RowClass.ENROLLMENT
+    if "renewal" in ct:
+        return RowClass.RENEWAL
+    if "new" in ct:
         return RowClass.ENROLLMENT
     return RowClass.RENEWAL
 
@@ -130,7 +138,140 @@ def normalize_devoted(sheets):
     filetoken = _devoted_filetoken(sheets)
     if fmt == "statement":
         return _normalize_devoted_statement(sheets, filetoken)
+    if fmt == "statement2026":
+        return _normalize_devoted_statement_2026(sheets, filetoken)
+    if fmt == "tmg":
+        return _normalize_tidewater(sheets, filetoken)
     return _normalize_devoted_agency(sheets, filetoken)
+
+
+def _hdr_index(rows):
+    """{lowercased header name: column index} for a header-row sheet."""
+    if not rows:
+        return {}
+    return {str(c or "").strip().lower(): i for i, c in enumerate(rows[0])}
+
+
+def _normalize_devoted_statement_2026(sheets, filetoken):
+    """Devoted's 2026-08 per-agent statement: Transactions / Statement Summary.
+
+    Replaces the Summary/Detail shape. 'Member HICN' -> 'MBI', 'Agent NPN' ->
+    'Agent ID', and a 'Contract' column (H9700) now carries the plan. Read BY
+    HEADER NAME, not fixed index: the previous layout's indices are exactly what
+    broke when Devoted re-cut the file.
+
+    The Statement Summary sheet is NOT extracted -- its Statement Total already
+    nets a 'Balance Adjustment' (a prior-period carryforward), so importing it
+    would double-count. Verified: Transactions sum 2602.49, minus the -168.74
+    adjustment, equals the summary's 2433.75.
+    """
+    rows = sheets.get("Transactions", [])
+    ix = _hdr_index(rows)
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+
+        def g(name):
+            i = ix.get(name)
+            return str(row[i] or "").strip() if i is not None and i < len(row) else ""
+
+        amount = _to_float(g("amount"))
+        if amount == 0:
+            continue
+        member = g("member")
+        first_n, mi, last_n, full = normalize_person_name(member)
+        disen = None if g("disenroll/cancel").lower() in ("", "no") else _parse_date(g("effective date"))
+        out.append(MemberFact(
+            carrier="Devoted",
+            full_name=full or member,
+            first_name=first_n,
+            last_name=last_n,
+            mbi=g("mbi") or None,
+            carrier_member_id=g("mbi") or None,
+            effective_date=_parse_date(g("effective date")),
+            term_date=disen,
+            plan_contract=g("contract") or None,
+            row_class=_classify_devoted(g("type"), amount, disen),
+            amount=amount,
+            writing_agent_raw=g("agent"),
+            source_ref=f"devoted::{filetoken}::Transactions::{idx}",
+        ))
+    return out
+
+
+def _normalize_tidewater(sheets, filetoken):
+    """Tidewater Management Group (TMG) FMO statement -- one 'Agent Report' sheet.
+
+    This is NOT a carrier export: TMG pays Founders for business written with a
+    carrier named in its own 'Carrier' column (DEVOTEDHEALTH here). It is parsed
+    under Devoted because that is the carrier in this file, and the column is
+    read rather than assumed so a future TMG file for another carrier surfaces
+    instead of being silently mislabelled.
+
+    TWO TRAPS, both verified against the real 2026-08 file:
+
+    1. SUMMARY ROWS. Two rows carry 'Total Amount:' / 'Payment Amount:' in the
+       Member Count column and repeat the statement total -- $13,306.56, or 67%
+       of the raw sum. Importing them would more than double the statement.
+       Excluded by requiring a Payee ID, which the summary rows lack.
+
+    2. AGENT vs FOUNDERS. 'Transaction Type' already splits Commission (the
+       writing agent's share) from Override (Founders'). Treating every row as
+       agent commission would double-count. Override rows are flagged
+       is_agency_share so the split is not recomputed downstream.
+
+    Verified: 53 data rows = $6,653.28, matching the file's own total to the
+    penny; Commission $5,204.96 + Override $1,448.32; 12 chargebacks -$1,596.56.
+    """
+    rows = sheets.get("Agent Report", [])
+    ix = _hdr_index(rows)
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+
+        def g(name):
+            i = ix.get(name)
+            return str(row[i] or "").strip() if i is not None and i < len(row) else ""
+
+        # Summary rows ('Total Amount:' / 'Payment Amount:') carry no Payee ID.
+        if not g("payee id"):
+            continue
+        amount = _to_float(g("amount"))
+        if amount == 0:
+            continue
+
+        carrier_raw = g("carrier").upper()
+        carrier = "Devoted" if "DEVOTED" in carrier_raw else (carrier_raw.title() or "Devoted")
+
+        insured = g("insured")
+        first_n, mi, last_n, full = normalize_person_name(insured)
+        is_override = g("transaction type").lower() == "override"
+        ctype = g("carrier transaction type")
+
+        if amount < 0:
+            row_class = RowClass.CHARGEBACK
+        elif ctype.lower().startswith("initial"):
+            row_class = RowClass.ENROLLMENT
+        else:
+            row_class = RowClass.RENEWAL
+
+        out.append(MemberFact(
+            carrier=carrier,
+            full_name=full or insured,
+            first_name=first_n,
+            last_name=last_n,
+            carrier_member_id=g("policy") or None,
+            effective_date=_parse_date(g("effective date")),
+            plan_contract=None,
+            row_class=row_class,
+            amount=amount,
+            is_agency_share=is_override,
+            writing_agent_raw=g("writing agent name"),
+            source_ref=f"devoted::{filetoken}::Agent Report::{idx}",
+        ))
+    return out
 
 
 def _normalize_devoted_agency(sheets, filetoken):

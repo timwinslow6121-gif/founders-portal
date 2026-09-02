@@ -521,6 +521,34 @@ def resolve_customer(fact: MemberFact, *, agency_id: int, agent_id: Optional[int
         _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
         return result
 
+    # 2a. Composite match — name + DOB + a corroborating zip or phone.
+    #     Carriers that MASK the MBI in their BOB (Humana) give us a row with a
+    #     name and DOB and nothing unique, so tiers 1/2 miss and every monthly
+    #     upload minted a fresh duplicate customer: 46 of them on 2026-09-01
+    #     alone. _composite_match already existed for exactly this case and was
+    #     simply never called on the BOB branch — the code fell through to
+    #     _find_name_dob_match below, which always creates a stub.
+    #     Name+DOB ALONE still refuses to auto-match (§6 prevention boundary:
+    #     two people can share a name and a birthday); the corroborating field
+    #     is what makes it safe. Verified against the real 48 clusters: matches
+    #     46, declines Cheatham and Mullis, which genuinely lack corroboration
+    #     and stay human decisions.
+    customer, _conf = _composite_match(fact, agency_id)
+    if customer is not None:
+        result.customer = customer
+        existing = _crosswalk(fact, agency_id)
+        if existing is not None:
+            existing.customer_id = existing.customer_id or customer.id
+            result.policy = existing
+        else:
+            result.policy = _attach_policy(fact, customer, agency_id, agent_id)
+            result.created_policy = True
+        result.match_path = "composite"
+        _apply_rapid_disenroll(result.policy, fact, result)
+        _apply_carrier_switch(fact, result.customer, result.policy, agency_id, agent_id, result)
+        _open_aor_interval(fact, result.customer, agency_id, agent_id, batch_id, result, source)
+        return result
+
     # 2b. carrier_member_id match — a real carrier id is as good as an MBI.
     customer = _match_by_carrier_member_id(fact, agency_id)
     if customer is not None:
@@ -597,6 +625,12 @@ def member_fact_from_bob_rec(rec: dict) -> MemberFact:
         mbi=(rec.get("mbi") or None),
         carrier_member_id=(rec.get("member_id") or None),
         dob=rec.get("dob"),
+        # Corroborating fields for _composite_match. The BOB row carries both and
+        # this adapter used to drop them, so the composite tier could never fire
+        # on a BOB row -- which is why MBI-masking carriers (Humana) minted a new
+        # duplicate customer every single monthly upload.
+        zip_code=(rec.get("zip_code") or None),
+        phone=(rec.get("phone") or None),
         effective_date=rec.get("effective_date"),
         term_date=rec.get("term_date"),
         plan_type=rec.get("plan_type"),

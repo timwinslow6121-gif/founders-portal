@@ -234,3 +234,49 @@ def test_an_empty_ledger_never_reports_balanced():
     # column names returns 0 from both sides and 0 == 0 passed.
     rep = verify_statement_balance("Devoted", [], {"Agent Report": [["Amount"]]})
     assert not rep.completeness_ok, "empty ledger reported as balanced"
+
+
+def test_chargebacks_split_at_the_agents_contract_rate():
+    """Tim's rule (2026-09-02): a chargeback is treated EXACTLY like a payment.
+    If Mike earned 52.5% of a $500 enrollment ($262.50) and it is later clawed
+    back in full, $262.50 comes out of Mike's next cheque and $237.50 out of
+    Founders' — it is not fair for Founders to absorb the whole $500 when the
+    agent kept his share of the original payment.
+
+    Every other carrier already does this (UHC, Humana, Aetna, BCBS,
+    HealthSpring chargebacks all carry a real split_rate). Devoted's TMG
+    extractor set split_rate=None, making Founders eat 100% and overpaying Mike
+    by $592.08 on the August statement.
+    """
+    from app.commission.ledger import extract_lineitems_devoted
+    drafts = extract_lineitems_devoted(_sheets(TMG), lambda n, c=None: 0.525)
+    # TMG reverses a clawback as a PAIR — the Commission row (the agent's share)
+    # and the Override row (Founders') come back separately, e.g.
+    #     LEONARD, JANET  Commission  -144.59
+    #     LEONARD, JANET  Override     -52.09
+    # so only the commission-side reversal is split; the override reversal stays
+    # whole to Founders, or Mike would be charged twice for one clawback.
+    cbs = [d for d in drafts if d.classification == "chargeback"]
+    assert cbs, "no chargebacks found"
+    split_cbs = [d for d in cbs if d.split_rate is not None]
+    whole_cbs = [d for d in cbs if d.split_rate is None]
+    assert len(split_cbs) == 5, "commission-side reversals must carry the agent's rate"
+    assert round(sum(d.raw_amount for d in split_cbs), 2) == -1127.77
+    assert len(whole_cbs) == 7, "override-side reversals stay whole to Founders"
+    assert round(sum(d.raw_amount for d in whole_cbs), 2) == -468.79
+
+
+def test_a_clawed_back_enrollment_nets_to_the_agents_share():
+    """The worked example: $500 in, $500 clawed back, agent nets $0 — not a
+    windfall, and not Founders eating the whole reversal."""
+    from app.commission.ledger import LineItemDraft, split_breakdown
+    paid = LineItemDraft(carrier="Devoted", source_ref="x::1", raw_amount=500.0,
+                         classification="agent_commission", split_rate=0.525)
+    back = LineItemDraft(carrier="Devoted", source_ref="x::2", raw_amount=-500.0,
+                         classification="chargeback", split_rate=0.525)
+    pa, ka = split_breakdown(paid)
+    pb, kb = split_breakdown(back)
+    assert round(pa, 2) == 262.50 and round(ka, 2) == 237.50
+    assert round(pb, 2) == -262.50 and round(kb, 2) == -237.50
+    assert round(pa + pb, 2) == 0.0        # agent nets zero
+    assert round(ka + kb, 2) == 0.0        # Founders nets zero

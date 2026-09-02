@@ -541,10 +541,17 @@ def _extract_tidewater(sheets, filetoken, split_lookup):
             continue
         writing = g("writing agent name")
         is_override = g("transaction type").lower() == "override"
-        if amount < 0:
-            classification, rate = CHARGEBACK, None
-        elif is_override:
-            classification, rate = FOUNDERS_OVERRIDE, None
+        # A chargeback is treated EXACTLY like a payment (Tim, 2026-09-02): the
+        # agent keeps his share of the original commission, so he gives back his
+        # share of the reversal. $500 at 52.5% pays Mike $262.50; clawed back in
+        # full it takes $262.50 from Mike and $237.50 from Founders. Founders
+        # absorbing 100% would claw back more than the agent ever received.
+        # Every other carrier already splits chargebacks this way; only Devoted's
+        # negative OVERRIDE rows stay whole, because an override was never split.
+        if is_override:
+            classification, rate = (CHARGEBACK if amount < 0 else FOUNDERS_OVERRIDE), None
+        elif amount < 0:
+            classification, rate = CHARGEBACK, split_lookup(writing)
         else:
             classification, rate = AGENT_COMMISSION, split_lookup(writing)
         out.append(LineItemDraft(

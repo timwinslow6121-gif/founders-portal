@@ -55,12 +55,28 @@ def _crosswalk(fact: MemberFact, agency_id: int):
     SELECT — that flush would fire ix_customers_mbi and crash the whole upload.
     The match queries are pure reads; suppressing autoflush is safe."""
     cid = _effective_member_id(fact)
-    if not cid:
-        return None
     with db.session.no_autoflush:
-        return (Policy.query
-                .filter_by(agency_id=agency_id, carrier=fact.carrier, member_id=cid)
-                .first())
+        if cid:
+            hit = (Policy.query
+                   .filter_by(agency_id=agency_id, carrier=fact.carrier, member_id=cid)
+                   .first())
+            if hit:
+                return hit
+
+        # Fallback: same carrier + same MBI. Carriers key their BOB and their
+        # commission file differently for the SAME enrollment (Devoted BOB
+        # '8QN7HG8JM38' vs commission 'D7A4R5'; Aetna BOB MBI vs 'NG1022859895'),
+        # so a member_id miss is NOT proof the policy is absent. Without this the
+        # resolver attached a SECOND active policy every month -- _match_by_mbi
+        # found the right CUSTOMER, so the duplicate landed on the correct person
+        # and was invisible in the money. upload.py's BOB path has had this
+        # fallback all along; the commission path did not.
+        mbi = (fact.mbi or "").strip()
+        if mbi:
+            return (Policy.query
+                    .filter_by(agency_id=agency_id, carrier=fact.carrier, mbi=mbi)
+                    .first())
+    return None
 
 
 def _attach_policy(fact: MemberFact, customer: Customer, agency_id: int,

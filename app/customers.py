@@ -1396,6 +1396,64 @@ def merge_customers(keeper_id, loser_ids, agency_id, actor):
                 xw_moved += 1
         moved["CarrierIdCrosswalk"] = xw_moved
 
+        # Collapse duplicate policies the merge itself just created.
+        # Reattaching both people's policies to one customer is exactly what
+        # leaves a person holding the SAME plan twice — Tim's 46 customer merges
+        # on 2026-09-01 produced 46 duplicate policy pairs (Tiwana Burch with
+        # HumanaChoice PPO H5525-070 twice). The two rows are one enrollment
+        # keyed two ways (BOB id vs the commission file's internal id) with no
+        # shared MBI, so neither ingest nor this merge could match them.
+        #
+        # Conservative on purpose — collapse ONLY when the rows cannot be
+        # anything but duplicates:
+        #   · identical effective dates (a different date could be a genuine
+        #     re-enrollment)
+        #   · neither row carries a term date (term-then-rejoin is a real
+        #     sequence)
+        #   · at most one row carries payments (if BOTH are paid the carrier is
+        #     paying two policies, and collapsing would hide real money)
+        # The survivor is the BOB-sourced row (it has an import_batch_id): its
+        # member_id is the agent-facing identifier, where the commission file's
+        # numeric id is a carrier-internal payment key.
+        collapsed = 0
+        by_plan = {}
+        for pol in Policy.query.filter_by(customer_id=keeper.id, status="active").all():
+            if pol.plan_id is None:
+                continue
+            by_plan.setdefault((pol.carrier, pol.plan_id), []).append(pol)
+        for group in by_plan.values():
+            if len(group) < 2:
+                continue
+            for i in range(len(group)):
+                for j in range(i + 1, len(group)):
+                    a, b = group[i], group[j]
+                    if a is None or b is None:
+                        continue
+                    if a.term_date or b.term_date:
+                        continue
+                    if a.effective_date != b.effective_date:
+                        continue
+                    pa = PolicyPayment.query.filter_by(policy_id=a.id).count()
+                    pb = PolicyPayment.query.filter_by(policy_id=b.id).count()
+                    if pa and pb:
+                        continue
+                    if a.import_batch_id and not b.import_batch_id:
+                        keep_p, drop_p = a, b
+                    elif b.import_batch_id and not a.import_batch_id:
+                        keep_p, drop_p = b, a
+                    else:
+                        continue
+                    if not keep_p.mbi and drop_p.mbi:
+                        keep_p.mbi = drop_p.mbi
+                    if not keep_p.agent_id and drop_p.agent_id:
+                        keep_p.agent_id = drop_p.agent_id
+                    PolicyPayment.query.filter_by(policy_id=drop_p.id).update(
+                        {"policy_id": keep_p.id}, synchronize_session=False)
+                    db.session.delete(drop_p)
+                    group[group.index(drop_p)] = None
+                    collapsed += 1
+        moved["duplicate_policies_collapsed"] = collapsed
+
         # Report PolicyPayment transitively (moved via their policies above).
         moved["PolicyPayment"] = pp_count
 

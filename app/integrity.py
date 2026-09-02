@@ -202,6 +202,10 @@ _ALLOWLIST = {
     ("app/customers.py", "deal_stage"),
     ("app/customers.py", "primary_agent_id=None"),
     ("app/customers.py", "CommissionLineItem.classification"),
+    # merge_customers counts payments PER POLICY to decide whether two rows are a
+    # duplicate (both paid = the carrier is paying two policies, so never collapse).
+    # Not a book count — it never aggregates across the agency.
+    ("app/customers.py", "PolicyPayment.query.filter_by(policy_id="),
 }
 _COUNT_RE = re.compile(r"func\.count\(\s*Policy|\.filter_by\([^)]*\)\.count\(\)"
                        r"|Policy\.query[\s\S]{0,80}\.count\(\)")

@@ -150,3 +150,87 @@ def test_old_devoted_shapes_still_parse():
         pytest.skip("July agency file not present")
     facts = normalize_devoted(_sheets(old))
     assert facts and all(f.source_ref.startswith("devoted::agency::") for f in facts)
+
+
+# ---------------------------------------------------------------- LEDGER PATH
+# The normalizer (customer sync) and the LEDGER (money) are SEPARATE extractors.
+# Fixing normalize_devoted alone left extract_lineitems_devoted falling through
+# to the agency branch, which reads sheets these files do not have -> statement
+# 92 imported with 0 line items, $0 ledger, and balanced=True because 0 == 0.
+# A silent zero is worse than a crash: the upload looked successful.
+
+def _split_lookup(_name, _carrier=None):
+    return 0.55
+
+
+def test_ledger_extracts_money_from_the_tmg_file():
+    from app.commission.ledger import extract_lineitems_devoted
+    drafts = extract_lineitems_devoted(_sheets(TMG), _split_lookup)
+    assert drafts, "ledger extracted NOTHING — statement would import as $0"
+    assert len(drafts) == 53
+    assert round(sum(d.raw_amount for d in drafts), 2) == 6653.28
+
+
+def test_ledger_extracts_money_from_the_new_rebekah_file():
+    from app.commission.ledger import extract_lineitems_devoted
+    drafts = extract_lineitems_devoted(_sheets(REB), _split_lookup)
+    assert drafts, "ledger extracted NOTHING"
+    assert len(drafts) == 6
+    assert round(sum(d.raw_amount for d in drafts), 2) == 2602.49
+
+
+def test_money_rows_total_matches_the_ledger_for_both_files():
+    """The completeness invariant: the independent re-sum must equal the ledger,
+    or verify_statement_balance silently passes on a dropped sheet."""
+    from app.commission.ledger import extract_lineitems_devoted, money_rows_total_devoted
+    for path, expected in ((TMG, 6653.28), (REB, 2602.49)):
+        sheets = _sheets(path)
+        drafts = extract_lineitems_devoted(sheets, _split_lookup)
+        assert round(money_rows_total_devoted(sheets), 2) == expected
+        assert round(sum(d.raw_amount for d in drafts), 2) == expected
+
+
+def test_ledger_separates_agent_commission_from_founders_override():
+    from app.commission.ledger import extract_lineitems_devoted
+    drafts = extract_lineitems_devoted(_sheets(TMG), _split_lookup)
+    agent = round(sum(d.raw_amount for d in drafts
+                      if d.classification == "agent_commission"), 2)
+    ovr = round(sum(d.raw_amount for d in drafts
+                    if d.classification == "founders_override"), 2)
+    cb = round(sum(d.raw_amount for d in drafts
+                   if d.classification == "chargeback"), 2)
+    # Negative rows are chargebacks regardless of Transaction Type, so the
+    # positive Override rows ($1,917.11) and their 7 clawbacks (-$468.79) are
+    # classified separately. Net Override is 1917.11 - 468.79 = 1448.32, and
+    # net Commission is 6332.73 - 1127.77 = 5204.96, matching the file.
+    assert ovr == 1917.11
+    assert agent == 6332.73
+    assert cb == -1596.56
+    assert round(agent + ovr + cb, 2) == 6653.28
+
+
+def test_ledger_source_refs_are_unique_and_file_scoped():
+    """Devoted's replace-on-reupload deletes by source_ref prefix; a shared
+    prefix across the two files would make one wipe the other."""
+    from app.commission.ledger import extract_lineitems_devoted
+    a = extract_lineitems_devoted(_sheets(TMG), _split_lookup)
+    b = extract_lineitems_devoted(_sheets(REB), _split_lookup)
+    refs_a = {d.source_ref for d in a}
+    refs_b = {d.source_ref for d in b}
+    assert len(refs_a) == len(a) and len(refs_b) == len(b)
+    assert not (refs_a & refs_b), "the two files share source_refs — one will wipe the other"
+
+
+def test_an_empty_ledger_never_reports_balanced():
+    """Statement 92 imported with 0 line items, $0 ledger and balanced=True,
+    because completeness compares 0 == 0. A silent zero is worse than a crash:
+    the upload looked successful and $0 reached every agent. An extractor that
+    finds NOTHING must fail the balance check, not pass it."""
+    from app.commission.ledger import verify_statement_balance
+    # Both sides zero — what actually happened: the extractor AND the re-sum
+    # both read sheets the file does not have, so 0 == 0 passed.
+    # A RECOGNIZED shape that yields no rows — an unrecognized one already
+    # raises ValueError (fail loud), but a known shape read with the wrong
+    # column names returns 0 from both sides and 0 == 0 passed.
+    rep = verify_statement_balance("Devoted", [], {"Agent Report": [["Amount"]]})
+    assert not rep.completeness_ok, "empty ledger reported as balanced"

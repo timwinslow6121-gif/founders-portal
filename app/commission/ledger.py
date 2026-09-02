@@ -465,12 +465,126 @@ def extract_lineitems_devoted(sheets, split_lookup) -> List[LineItemDraft]:
     filetoken = _devoted_filetoken(sheets)
     if fmt == "statement":
         return _extract_devoted_statement(sheets, filetoken, split_lookup)
+    if fmt == "statement2026":
+        return _extract_devoted_statement_2026(sheets, filetoken, split_lookup)
+    if fmt == "tmg":
+        return _extract_tidewater(sheets, filetoken, split_lookup)
     return _extract_devoted_agency(sheets, filetoken, split_lookup)
+
+
+def _ledger_hdr(rows):
+    return {str(c or "").strip().lower(): i for i, c in enumerate(rows[0])} if rows else {}
+
+
+def _extract_devoted_statement_2026(sheets, filetoken, split_lookup):
+    """Devoted's 2026-08 per-agent statement (Transactions sheet), read by header
+    name. Statement Summary is NOT extracted — its Statement Total already nets a
+    prior-period Balance Adjustment and would double-count."""
+    rows = _devoted_sheet_rows(sheets, "Transactions")
+    ix = _ledger_hdr(rows)
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+
+        def g(name):
+            i = ix.get(name)
+            return str(row[i] or "").strip() if i is not None and i < len(row) else ""
+
+        amount = _to_float(g("amount"))
+        if amount == 0:
+            continue
+        writing = g("agent")
+        disen = g("disenroll/cancel").lower() not in ("", "no")
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::{filetoken}::Transactions::{idx}",
+            raw_amount=amount,
+            classification=CHARGEBACK if (amount < 0 or disen) else AGENT_COMMISSION,
+            split_rate=split_lookup(writing),
+            payment_type=g("type").lower() or None,
+            member_name=g("member"),
+            mbi=g("mbi") or None,
+            carrier_member_id=g("mbi") or None,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(g("effective date")),
+        ))
+    return out
+
+
+def _extract_tidewater(sheets, filetoken, split_lookup):
+    """Tidewater (TMG) FMO statement — one 'Agent Report' sheet.
+
+    Two traps, both verified against the real 2026-08 file:
+      · the 'Total Amount:' / 'Payment Amount:' rows repeat the statement total
+        ($13,306.56 — 67% of the raw sum) and carry no Payee ID; excluding them
+        is what keeps the ledger honest.
+      · 'Transaction Type' already splits Commission (agent) from Override
+        (Founders), so Override rows are FOUNDERS_OVERRIDE with split_rate None
+        — Founders keeps them whole and the split must not be recomputed.
+    """
+    rows = _devoted_sheet_rows(sheets, "Agent Report")
+    ix = _ledger_hdr(rows)
+    out = []
+    for idx, row in enumerate(rows[1:], start=1):
+        if not any(row):
+            continue
+
+        def g(name):
+            i = ix.get(name)
+            return str(row[i] or "").strip() if i is not None and i < len(row) else ""
+
+        if not g("payee id"):        # summary rows carry no payee id
+            continue
+        amount = _to_float(g("amount"))
+        if amount == 0:
+            continue
+        writing = g("writing agent name")
+        is_override = g("transaction type").lower() == "override"
+        if amount < 0:
+            classification, rate = CHARGEBACK, None
+        elif is_override:
+            classification, rate = FOUNDERS_OVERRIDE, None
+        else:
+            classification, rate = AGENT_COMMISSION, split_lookup(writing)
+        out.append(LineItemDraft(
+            carrier="Devoted",
+            source_ref=f"devoted::{filetoken}::Agent Report::{idx}",
+            raw_amount=amount,
+            classification=classification,
+            split_rate=rate,
+            payment_type=(g("carrier transaction type") or "").lower() or None,
+            member_name=g("insured"),
+            carrier_member_id=g("policy") or None,
+            writing_agent_raw=writing,
+            effective_date=_parse_date(g("effective date")),
+        ))
+    return out
 
 
 def money_rows_total_devoted(sheets) -> float:
     fmt = _devoted_format(sheets)
     total = 0.0
+    if fmt == "statement2026":
+        rows = _devoted_sheet_rows(sheets, "Transactions")
+        ix = _ledger_hdr(rows)
+        ai = ix.get("amount")
+        for row in rows[1:]:
+            if not any(row) or ai is None or ai >= len(row):
+                continue
+            total += _to_float(row[ai])
+        return total
+    if fmt == "tmg":
+        rows = _devoted_sheet_rows(sheets, "Agent Report")
+        ix = _ledger_hdr(rows)
+        ai, pi = ix.get("amount"), ix.get("payee id")
+        for row in rows[1:]:
+            if not any(row) or ai is None or ai >= len(row):
+                continue
+            if pi is None or pi >= len(row) or not str(row[pi] or "").strip():
+                continue          # summary row
+            total += _to_float(row[ai])
+        return total
     if fmt == "statement":
         for row in _devoted_sheet_rows(sheets, "Detail")[1:]:
             if not any(row) or len(row) <= 17 or not str(row[3] or "").strip():
@@ -1082,6 +1196,15 @@ def verify_statement_balance(carrier, line_items, sheets, tol=0.01) -> BalanceRe
     keep_total = round(keep_sum, 2)
     money_total = round(money_total_fn(sheets), 2)
     completeness_ok = abs(li_total - money_total) <= tol
+    # A statement that extracted NOTHING must never report balanced. When a
+    # carrier changes its file shape, the extractor and the independent re-sum
+    # can BOTH read sheets/columns that no longer exist and both return 0 —
+    # 0 == 0 passes, the upload reports success, and $0 reaches every agent.
+    # That is exactly how Devoted's 2026-08 statement imported with 0 line
+    # items and a $0 ledger while showing a green check. An empty ledger is a
+    # parser failure, not a balanced statement.
+    if not line_items or li_total == 0:
+        completeness_ok = False
     return BalanceReport(
         carrier=carrier, lineitem_total=li_total, money_rows_total=money_total,
         agent_payout_total=payout_total, founders_keep_total=keep_total,

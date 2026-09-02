@@ -142,8 +142,18 @@ def main(apply, carrier, bob_path):
             if apply:
                 if not keep.mbi and drop.mbi:
                     keep.mbi = drop.mbi
-                if drop.effective_date and not keep.effective_date:
-                    keep.effective_date = drop.effective_date
+                # EARLIEST effective date wins (Tim, 2026-08-28). The BOB date is
+                # when the current CONTRACT took over, not when coverage began:
+                # Elva Sprouse's BOB says 2025-01-01 while Humana's own commission
+                # file still pays her renewals against EffDate 2022-01-01 across a
+                # contract renumber. Keeping the BOB date would make a four-year
+                # member look brand new, which drives commission type, the AOR
+                # timeline and rapid-disenrollment reporting.
+                # (This reverses the BCBS rule, where the older row was the stale
+                # one and BCBS date data is not trustworthy.)
+                dates = [d for d in (keep.effective_date, drop.effective_date) if d]
+                if dates:
+                    keep.effective_date = min(dates)
                 if not keep.agent_id and drop.agent_id:
                     keep.agent_id = drop.agent_id
                 PolicyPayment.query.filter_by(policy_id=drop.id).update(

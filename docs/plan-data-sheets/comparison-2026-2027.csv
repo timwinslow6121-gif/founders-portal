@@ -1,0 +1,924 @@
+Carrier,CMS Code,Plan Name,Benefit,2026,2027
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Premium,$0.00,$0
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Part B giveback,,$0
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Max out-of-pocket,"$9,250","$9,850"
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),PCP,$0,$0
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Specialist,$20,$25
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Referrals,,No
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Inpatient hospital,$375 days 1-7 / $0 days 8-90,$375 per day (days 1-7)
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Outpatient surgery (ASC),$0 - $335,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Emergency room,$115,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Urgent care,$40,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Ambulance (ground),$0 - $450,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Lab services,$335,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Diagnostic radiology,$335,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Rx deductible,"$350 (tiers 1,2 exempt)","$450 Tiers 3,4,5"
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Rx retail (30-day),,$0 / $5 / 17% / 43% / 28%
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Dental - allowance,"$1,500 per year","$2,500 annually; 50% coinsurance; OON coverage available (DENK71)"
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Hearing aids,$399 - $699 (2 per year),
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),OTC allowance,$0,$50 per quarter
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Transportation,$0 - $375,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Meals,$0,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Wellness programs,$0,
+Humana,H1036-137-000,Humana Gold Plus (HMO-POS),Key notes,,"Dental, Vision, Hearing, Fitness, OTC"
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Premium,$13.00,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Max out-of-pocket,"$9,250",
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),PCP,$0,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Specialist,$25,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Inpatient hospital,$399 days 1-6 / $0 days 7-90,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Outpatient surgery (ASC),$0 - $335,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Emergency room,$115,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Urgent care,$40,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Ambulance (ground),$0 - $450,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Lab services,$335,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Diagnostic radiology,$335,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Rx deductible,"$615 (tiers 1,2 exempt)",
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Dental - allowance,"$2,000 per year","$1,000 annually (DEN282)"
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Vision - eyeglasses,,$0 copayment for annual exam and $100 allowance per year for eyewear or contact lenses including fittings at PLUS Provider
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Hearing aids,$0 (2 per month),"$0 copay for annual exam, fitting and $0 copayment for Advanced level hearing aid per ear every 3 years plus 80 batteries per aid"
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),OTC allowance,$0,"$115.00 monthly Healthy Options allowance (prepaid card, rolls over)"
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Transportation,$0 - $375,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Meals,$0,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Wellness programs,$0,
+Humana,H1036-307-000,Humana Dual Select (HMO D-SNP),Service area,,"Statewide (ex. Dare, Craven, Carteret, Onslow)"
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Premium,$0.00,$0
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Part B giveback,,$0
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Max out-of-pocket,"$9,250","$9,850"
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),PCP,$0,$0
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Specialist,$45,$45
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Referrals,,No
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Inpatient hospital,$375 days 1-7 / $0 days 8-90,$375 per day (days 1-7)
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Outpatient surgery (ASC),$0 - $335,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Emergency room,$115,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Urgent care,$40,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Ambulance (ground),$0 - $450,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Lab services,$335,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Diagnostic radiology,$335,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Rx deductible,"$450 (tiers 1,2,6 exempt)","$550 Tiers 3,4,5"
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Rx retail (30-day),,$0 / $5 / 17% / 50% / 27%
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Dental - allowance,"$1,000 per year","$1,750 annually with 50% coinsurance (DENK15)"
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Hearing aids,$299 - $899 (2 per year),
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),OTC allowance,$0,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Transportation,$0 - $375,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Wellness programs,$0,
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Service area,,"Statewide (ex. Dare, Craven, Carteret, Onslow)"
+Humana,H1036-308-000,Humana Gold Plus - Diabetes and Heart (HMO C-SNP),Key notes,,"Dental, Vision, Hearing"
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Premium,$20.00,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Max out-of-pocket,"$9,250",
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),PCP,20%,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Specialist,20%,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Outpatient surgery (ASC),$200 - $335,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Emergency room,$115,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Urgent care,20%,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Ambulance (ground),20%,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Lab services,$335,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Diagnostic radiology,$335,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Rx deductible,"$615 (tiers 1,2 exempt)",
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Dental - allowance,"$4,000 per year","$1,250 annually (DENC99)"
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Vision - eyeglasses,,$0 copayment for annual exam and $200 allowance per year for eyewear or contact lenses including fittings at PLUS Provider
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Hearing aids,$0 (2 per month),"$0 copay for annual exam, fitting and $0 copayment for Advanced level hearing aid per ear every 3 years plus 80 batteries per aid"
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),OTC allowance,$0,"$375.00 monthly Healthy Options allowance (prepaid card, rolls over)"
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Transportation,20%,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Meals,$0,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Wellness programs,$0,
+Humana,H1036-331-000,Humana Gold Plus SNP-DE (HMO D-SNP),Service area,,"Statewide (ex. Dare, Craven, Carteret, Onslow)"
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Premium,$0.00,$0
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Part B giveback,,$0
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Max out-of-pocket,"$3,500","$4,100"
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),PCP,$0,$0
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Specialist,$5,$5
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Referrals,,No
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Inpatient hospital,$295 days 1-5 / $0 days 6-90,$295 per day (days 1-5)
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Outpatient surgery (ASC),$0 - $335,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Emergency room,$150,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Urgent care,$65,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Ambulance (ground),$0 - $395,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Lab services,$335,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Diagnostic radiology,$335,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Rx deductible,"$250 (tiers 1,2 exempt)","$700 Tiers 3,4,5"
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Rx retail (30-day),,$0 / $5 / 17% / 46% / 25%
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Dental - allowance,"$2,500 per year","$4,000 annually; 50% coinsurance; OON coverage available (DENK79)"
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Hearing aids,$499 - $799 (2 per year),
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),OTC allowance,$0,$50 per quarter
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Transportation,$0 - $295,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Meals,$0,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Wellness programs,$0,
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Service area,,"Brunswick, Davidson, Davie, Forsyth, New Hanover, Stokes, Yadkin"
+Humana,H1036-335-001,Humana Gold Plus (HMO-POS),Key notes,,"Dental, Vision, Hearing, Fitness, OTC"
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Premium,$36.20,
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Medical deductible,,$0 combined INN/OON
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Max out-of-pocket,"$9,250.00",$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,PCP,0% - 20%,$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Specialist,0% - 20%,$0; no referral required
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Inpatient hospital,,$0 per stay; unlimited days
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Outpatient surgery (ASC),0% - 20%,$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Emergency room,$115,$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Urgent care,$0 - $40,$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Ambulance (ground),0% - 20%,$0 ground/air
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Lab services,20%,$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Diagnostic radiology,20%,$0
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Rx deductible,$615 (tiers 1 exempt),$0 T1; $700 T2-5; $0 with LIS
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Rx retail (30-day),,$0 T1; other drugs vary by LIS
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Dental - allowance,"$2,000 per year","$2,000 toward covered services; $0 all covered services"
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Vision - eyeglasses,$0 (1 per year),Routine exam $0; $150/year
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Hearing aids,$0 (2 per quarter),"$1,500 allowance for 2 hearing aids every 2 years"
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,OTC allowance,$0,$190/month OTC & wellness; healthy food/utilities for qualifying members
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Transportation,0% - 20%,
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Meals,$0,
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Fitness,,Free gym membership with core network
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Wellness programs,$0,
+UHC,H1889-005-000,UHC Dual Complete NC-Q1,Key notes,,Transportation: 24 one-way trips; $0 INN / 75% OON; combined INN/OON
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Premium,$36.20,
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Medical deductible,,$0 combined INN/OON
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Max out-of-pocket,"$9,250.00",$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,PCP,0% - 20%,$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Specialist,0% - 20%,$0; no referral required
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Inpatient hospital,,$0 per stay; unlimited days
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Outpatient surgery (ASC),0% - 20%,$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Emergency room,$115,$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Urgent care,$0 - $40,$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Ambulance (ground),0% - 20%,$0 ground/air
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Lab services,20%,$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Diagnostic radiology,20%,$0
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Rx deductible,$615 (tiers 1 exempt),$0 T1-2; $700 T3-5; $0 with LIS
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Rx retail (30-day),,$0 T1; other drugs vary by LIS
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Dental - allowance,,Covered under Medicaid
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Vision - eyeglasses,$0 (1 per year),Routine exam $0; $150/year
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Hearing aids,$0 (2 per quarter),"$1,500 allowance for 2 hearing aids every 2 years"
+UHC,H1889-034-000,UHC Dual Complete NC-S2,OTC allowance,$0,$210/month OTC & wellness; healthy food/utilities for qualifying members
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Transportation,0% - 20%,
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Meals,$0,
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Fitness,,Free gym membership with core network
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Wellness programs,$0,
+UHC,H1889-034-000,UHC Dual Complete NC-S2,Key notes,,Transportation: 36 one-way trips; $0 INN / 75% OON; combined INN/OON
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Premium,$53.00,
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Medical deductible,,"$1,000 OON only"
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Max out-of-pocket,"$4,200.00","$4,450"
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,PCP,$0,$0
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Specialist,$0 - $40,$45; no referral required
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Inpatient hospital,$395 days 1-6 / $0 days 7-90,$495 days 1-5; $0 thereafter
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Outpatient surgery (ASC),$0 - $250,$395
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Emergency room,$150,$150
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Urgent care,$0 - $65,$65
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Ambulance (ground),$0 - $395,$275 ground/air
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Lab services,$250,$0
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Diagnostic radiology,$250,$320; mammograms $0
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Rx deductible,"$520 (tiers 1,2 exempt)",$0 T1-2; $595 T3-5
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Rx retail (30-day),,$0 / $6 / 22% / 27% / 27%; insulin $35
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Dental - allowance,"$2,500 per year","$2,000 toward covered services; preventive $0; comprehensive 50%"
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $200 every 2 years
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Hearing aids,"$199 - $1,249 (2 per year)",$700 allowance for 2 hearing aids/year
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,OTC allowance,,Not covered
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Transportation,$0 - $295,
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Meals,$0,
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Fitness,,Not covered
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Wellness programs,$0,
+UHC,H2406-034-000,AARP Medicare Advantage from UHC NC-0016,Key notes,,Not covered
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Premium,$0.00,
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Medical deductible,,"$1,000 OON only"
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Max out-of-pocket,"$6,200.00","$7,150"
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,PCP,$0,$0
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Specialist,$0 - $45,$60; no referral required
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Inpatient hospital,$550 days 1-5 / $0 days 6-90,$685 days 1-4; $0 thereafter
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Outpatient surgery (ASC),$0 - $190,$585
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Emergency room,$130,$130
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Urgent care,$0 - $50,$50
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Ambulance (ground),$0 - $550,$370 ground/air
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Lab services,$275,$0
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Diagnostic radiology,$275,$320; mammograms $0
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Rx deductible,"$600 (tiers 1,2 exempt)",$0 T1-2; $685 T3-5
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Rx retail (30-day),,$0 / $8 / 20% / 27% / 26%; insulin $35
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Dental - allowance,,Preventive dental $0; Platinum Dental Rider available
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $200 every 2 years
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Hearing aids,"$199 - $1,249 (2 per year)",$700 allowance for 2 hearing aids/year
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,OTC allowance,,Not covered
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Transportation,$0 - $450,
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Meals,$0,
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Fitness,,Free gym membership with core network
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Wellness programs,$0,
+UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Key notes,,Not covered
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Premium,$0.00,$0
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Part B giveback,,$79
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Max out-of-pocket,,"$9,850 INN"
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),PCP,$0,$0
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Specialist,$40,$45
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Referrals,,No
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Inpatient hospital,$375 days 1-7 / $0 days 8-90,$375 per day (days 1-7)
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Outpatient surgery (ASC),$0 - $335,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Emergency room,$115,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Urgent care,$40,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Ambulance (ground),$0 - $450,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Lab services,$335,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Diagnostic radiology,$335,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Rx deductible,"$450 (tiers 1,2 exempt)","$700 Tiers 3,4,5"
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Rx retail (30-day),,$0 / $4 / 19% / 30% / 25%
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Dental - allowance,,"$0 copayment covers exams, x-rays, cleanings; OON coverage available (DEN350)"
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Hearing aids,$699 - $999 (2 per year),
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Transportation,$0 - $375,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Meals,$0,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Wellness programs,$0,
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Service area,,Western and Central Counties
+Humana,H5216-017-000,HumanaChoice Giveback (PPO),Key notes,,"Dental, Vision, Hearing"
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Premium,$37.00,
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Medical deductible,,$0 combined INN/OON
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Max out-of-pocket,"$4,200","$4,900"
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,PCP,$0,$0
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Specialist,$0 - $25,$30; referral required
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Inpatient hospital,$395 days 1-6 / $0 days 7-90,$425 days 1-6; $0 thereafter
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Outpatient surgery (ASC),$0 - $250,$325
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Emergency room,$150,$130
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Urgent care,$0 - $65,$50
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Ambulance (ground),$0 - $395,$275 ground/air
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Lab services,$275,$0
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Diagnostic radiology,$275,$320; mammograms $0
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Rx deductible,"$355 (tiers 1,2 exempt)",$0 T1-2; $595 T3-5
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Rx retail (30-day),,$0 / $0 / 22% / 29% / 27%; insulin $35
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Dental - allowance,"$4,000 per year","$3,000 toward covered services; preventive $0; comprehensive 50%"
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $300 every 2 years
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Hearing aids,"$199 - $1,249 (2 per year)",$700 allowance for 2 hearing aids/year
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,OTC allowance,$0,$50/quarter
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Transportation,$0 - $295,
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Meals,$0,
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Fitness,,Free gym membership with core network
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Wellness programs,$0,
+UHC,H5253-037-000,AARP Medicare Advantage from UHC NC-0021,Key notes,,"Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Premium,$0.00,
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Medical deductible,,$0 combined INN/OON
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Max out-of-pocket,"$5,400","$5,900"
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,PCP,$0,$0
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Specialist,$0 - $40,$45; referral required
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Inpatient hospital,$455 days 1-6 / $0 days 7-90,$550 days 1-5; $0 thereafter
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Outpatient surgery (ASC),$0 - $260,$420
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Emergency room,$130,$130
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Urgent care,$0 - $50,$50
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Ambulance (ground),$0 - $455,$380 ground/air
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Lab services,$275,$0
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Diagnostic radiology,$275,$320; mammograms $0
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Rx deductible,"$440 (tiers 1,2 exempt)",$0 T1-2; $685 T3-5
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Rx retail (30-day),,$0 / $6 / 21% / 27% / 26%; insulin $35
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Dental - allowance,"$1,250 per year","$1,250 toward covered services; preventive $0; comprehensive 50%"
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $150 every 2 years
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Hearing aids,"$199 - $1,249 (2 per year)",$700 allowance for 2 hearing aids/year
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,OTC allowance,,Not covered
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Transportation,$0 - $325,
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Meals,$0,
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Fitness,,Free gym membership with core network
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Wellness programs,$0,
+UHC,H5253-038-000,AARP Medicare Advantage from UHC NC-0022,Key notes,,"Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Premium,Not Applicable,
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Part B giveback,,$190/month
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Medical deductible,,$0 combined INN/OON
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Max out-of-pocket,"$7,900","$9,300"
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,PCP,$0,$0
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Specialist,$0 - $55,$55; referral required
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Inpatient hospital,$475 days 1-5 / $0 days 6-90,$610 days 1-4; $0 thereafter
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Outpatient surgery (ASC),$0 - $260,$510
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Emergency room,$115,$115
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Urgent care,$0 - $40,$40
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Ambulance (ground),$0 - $475,$350 ground/air
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Lab services,$290,$0
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Diagnostic radiology,$290,$320; mammograms $0
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Rx deductible,,N/A
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Rx retail (30-day),,N/A
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Dental - allowance,,"$1,000 toward covered services; preventive $0; comprehensive 50%"
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $300 every 2 years
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Hearing aids,"$199 - $1,249 (2 per year)","$1,000 allowance for 2 hearing aids/year"
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,OTC allowance,,Not covered
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Transportation,$0 - $375,
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Meals,$0,
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Fitness,,Free gym membership with core network
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Wellness programs,$0,
+UHC,H5253-040-000,AARP Medicare Advantage Patriot No Rx NC-MA02,Key notes,,"Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Premium,$0.00,
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Part B giveback,,$84/month
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Medical deductible,,$0 in-network
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Max out-of-pocket,"$9,250","$9,500"
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,PCP,$0,$0
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Specialist,$0 - $55,$55; referral required
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Inpatient hospital,$595 days 1-4 / $0 days 5-90,$610 days 1-4; $0 thereafter
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Outpatient surgery (ASC),$0 - $260,$510
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Emergency room,$115,$115
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Urgent care,$0 - $40,$40
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Ambulance (ground),$0 - $595,$350 ground/air
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Lab services,$285,$0
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Diagnostic radiology,$285,$320; mammograms $0
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Rx deductible,"$600 (tiers 1,2 exempt)",$0 T1-2; $685 T3-5
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Rx retail (30-day),,$0 / $6 / 19% / 27% / 26%; insulin $35
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Dental - allowance,,Preventive dental $0; Platinum Dental Rider available
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $200 every 2 years
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Hearing aids,"$199 - $1,249 (2 per year)","$1,000 allowance for 2 hearing aids/year"
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,OTC allowance,,Not covered
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Transportation,$0 - $495,
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Meals,$0,
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Fitness,,Free gym membership with core network
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Wellness programs,$0,
+UHC,H5253-110-000,AARP Medicare Advantage Giveback from UHC NC-14,Key notes,,"Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Premium,$36.20,
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Medical deductible,,$0 combined INN/OON
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Max out-of-pocket,"$5,900","$5,900"
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,PCP,$0,$0
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Specialist,$0 - $30,$30; referral required
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Inpatient hospital,$450 days 1-6 / $0 days 7-90,$495 days 1-5; $0 thereafter
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Outpatient surgery (ASC),$0 - $260,$445
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Emergency room,$130,$130
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Urgent care,$0 - $50,$50
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Ambulance (ground),$0 - $450,$350 ground/air
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Lab services,$275,$0
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Diagnostic radiology,$275,$320; mammograms $0
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Rx deductible,$615 (tiers 1 exempt),$0 T1; $700 T2-5; $0 with LIS
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Rx retail (30-day),,$0 T1; other drugs vary by LIS
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Dental - allowance,,Preventive dental $0
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $250 every 2 years
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Hearing aids,"$199 - $1,249 (2 per year)","$1,000 allowance for 2 hearing aids/year"
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,OTC allowance,$0,$53/month OTC & wellness; healthy food/utilities for qualifying members
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Transportation,$0 - $400,
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Meals,$0,
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Fitness,,Free gym membership with core network
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Wellness programs,$0,
+UHC,H5253-116-000,UHC Dual Advantage NC-V1,Key notes,,"Transportation: 24 one-way trips; post-discharge meals: 28 over 14 days, unlimited times/year"
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Premium,$0.00,
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Medical deductible,,$0 combined INN/OON
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Max out-of-pocket,"$4,200","$4,450"
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,PCP,$0,$0
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Specialist,$0 - $35,$35; referral required
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Inpatient hospital,$455 days 1-6 / $0 days 7-90,$550 days 1-5; $0 thereafter
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Outpatient surgery (ASC),$0 - $260,$420
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Emergency room,$150,$150
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Urgent care,$0 - $65,$65
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Ambulance (ground),$0 - $455,$380 ground/air
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Lab services,$275,$0
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Diagnostic radiology,$275,$320; mammograms $0
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Rx deductible,"$440 (tiers 1,2 exempt)",$0 T1-2; $685 T3-5
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Rx retail (30-day),,$0 / $5 / 22% / 27% / 26%; insulin $35
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Dental - allowance,"$2,000 per year","$1,500 toward covered services; preventive $0; comprehensive 50%"
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $150 every 2 years
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Hearing aids,"$199 - $1,249 (2 per year)",$700 allowance for 2 hearing aids/year
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,OTC allowance,$0,$25/quarter
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Transportation,$0 - $325,
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Meals,$0,
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Fitness,,Free gym membership with core network
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Wellness programs,$0,
+UHC,H5253-117-000,AARP Medicare Advantage from UHC NC-15,Key notes,,"Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+UHC,H5253-189-000,UHC Complete Care NC-28,Premium,$0.00,
+UHC,H5253-189-000,UHC Complete Care NC-28,Medical deductible,,$0 combined INN/OON
+UHC,H5253-189-000,UHC Complete Care NC-28,Max out-of-pocket,"$4,200","$4,450"
+UHC,H5253-189-000,UHC Complete Care NC-28,PCP,$0,$0
+UHC,H5253-189-000,UHC Complete Care NC-28,Specialist,$0 - $25,$25; referral required
+UHC,H5253-189-000,UHC Complete Care NC-28,Inpatient hospital,$455 days 1-6 / $0 days 7-90,$525 days 1-5; $0 thereafter
+UHC,H5253-189-000,UHC Complete Care NC-28,Outpatient surgery (ASC),$0 - $260,$495
+UHC,H5253-189-000,UHC Complete Care NC-28,Emergency room,$150,$150
+UHC,H5253-189-000,UHC Complete Care NC-28,Urgent care,$0 - $65,$65
+UHC,H5253-189-000,UHC Complete Care NC-28,Ambulance (ground),$0 - $455,$325 ground/air
+UHC,H5253-189-000,UHC Complete Care NC-28,Lab services,$275,$0
+UHC,H5253-189-000,UHC Complete Care NC-28,Diagnostic radiology,$275,$285; mammograms $0
+UHC,H5253-189-000,UHC Complete Care NC-28,Rx deductible,"$355 (tiers 1,2 exempt)",$0 T1-2; $595 T3-5
+UHC,H5253-189-000,UHC Complete Care NC-28,Rx retail (30-day),,$0 / $0 / 22% / 33% / 27%; insulin $25
+UHC,H5253-189-000,UHC Complete Care NC-28,Dental - allowance,,Preventive dental $0; Platinum Dental Rider available
+UHC,H5253-189-000,UHC Complete Care NC-28,Vision - eyeglasses,$0 - $153 (1 per quarter),Routine exam $0; $250 every 2 years
+UHC,H5253-189-000,UHC Complete Care NC-28,Hearing aids,"$199 - $1,249 (2 per year)","$1,000 allowance for 2 hearing aids/year"
+UHC,H5253-189-000,UHC Complete Care NC-28,OTC allowance,$0,$70/month OTC; healthy food for qualifying members
+UHC,H5253-189-000,UHC Complete Care NC-28,Transportation,$0 - $325,
+UHC,H5253-189-000,UHC Complete Care NC-28,Meals,$0,
+UHC,H5253-189-000,UHC Complete Care NC-28,Fitness,,Free gym membership with core network
+UHC,H5253-189-000,UHC Complete Care NC-28,Wellness programs,$0,
+UHC,H5253-189-000,UHC Complete Care NC-28,Key notes,,"Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Premium,$0.00,$0.00
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Medical deductible,,$0
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Max out-of-pocket,"$3,600","$4,050"
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),PCP,,$0 copay
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Specialist,$25,$25 copay
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Referrals,,No
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Inpatient hospital,$295 days 1-5 / $0 days 6-90,"$295 per day for days 1-5, $0 days 6+"
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Outpatient surgery (ASC),$0 - $300,$295-$395 copay
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Emergency room,$150,$150 copay
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Urgent care,$0 - $45,
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Ambulance (ground),$0 - $395,
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Lab services,$0 - $315,$0 copay
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Diagnostic radiology,20%,
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Rx deductible,"$395 (tiers 1,2 exempt)",$650 tiers 3-5
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Rx retail (30-day),,$0 / $5 / 25% / 25% / 26%
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Dental - allowance,"$1,500 per year","$2,250 per year (Direct member reimbursement)"
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Vision - eyeglasses,,$300 per year
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Transportation,$0 - $295,
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Wellness programs,,$150 per year
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Service area,,"Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-001-000,DEVOTED CORE 001 NC (HMO),Key notes,,The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Premium,$0.00,$0.00
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Medical deductible,,$200
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Max out-of-pocket,"$6,700","$7,950"
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),PCP,,$0 copay
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Specialist,$45,$45 copay
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Referrals,,No
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Inpatient hospital,$395 days 1-5 / $0 days 6-90,"$395 per day for days 1-5, $0 days 6+"
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Outpatient surgery (ASC),$0 - $300,$395-$495 copay
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Emergency room,$130,$115 copay
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Urgent care,$0 - $45,
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Ambulance (ground),$0 - $495,
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Lab services,$0 - $315,$0 copay
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Diagnostic radiology,20%,
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Rx deductible,"$605 (tiers 1,2 exempt)",$461 tiers 3-5
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Dental - allowance,$500 per year,$500 per year (Direct member reimbursement)
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Vision - eyeglasses,,$200 per year
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Hearing aids,$599 - $899 (2 per year),$599-$899 copay per aid
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),OTC allowance,$24 per visit,$37 per quarter
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Transportation,$0 - $395,
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Wellness programs,,$150 per year
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Service area,,"Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-002-000,DEVOTED GIVEBACK 002 NC (HMO),Key notes,,"Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Premium,$35.00,$0.00
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Medical deductible,$830,$750
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Max out-of-pocket,"$9,250","$9,850"
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),PCP,,$0 copay
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Specialist,30%,30% coinsurance
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Referrals,,No
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Inpatient hospital,,"$2,241 per stay"
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Outpatient surgery (ASC),30% - 50%,50% coinsurance
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Emergency room,$115,$115 copay
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Urgent care,0% - 30%,
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Ambulance (ground),0% - 50%,
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Lab services,0% - 50%,50% coinsurance
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Diagnostic radiology,50%,
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Rx deductible,$615 (tiers 6 exempt),$700 tiers 3-5
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Rx retail (30-day),,$0 / $0 / 11% / 25% / 25%
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Dental - allowance,"$2,000 per year","$2,000 per year (Network-based)"
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Vision - eyeglasses,,$350 per year
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Transportation,0% - 50%,
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Wellness programs,,$150 per year
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-006-000,DEVOTED DUAL PLUS 006 NC (HMO D-SNP),Key notes,,Members with Full Medicaid or QMB typically pay $0 for Medicare-covered services due to cost-share protections. Standard LIS Part D cost shares apply. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Premium,$36.20,$0.00
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Medical deductible,,$0
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Max out-of-pocket,"$6,750","$6,750"
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),PCP,,$0 copay
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Specialist,$25,$25 copay
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Referrals,,No
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Inpatient hospital,$395 days 1-5 / $0 days 6-90,"$395 per day for days 1-5, $0 days 6+"
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Outpatient surgery (ASC),$0 - $300,$395-$495 copay
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Emergency room,$130,$130 copay
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Urgent care,$0 - $45,
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Ambulance (ground),$0 - $495,
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Lab services,$0 - $315,$0 copay
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Diagnostic radiology,20%,
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Rx deductible,$615 (tiers 6 exempt),$700 tiers 3-5
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Rx retail (30-day),,$0 / $0 / 11% / 25% / 25%
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Dental - allowance,"$2,000 per year","$2,000 per year (Network-based)"
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Vision - eyeglasses,,$350 per year
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Transportation,$0 - $395,
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Wellness programs,,$150 per year
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-009-000,DEVOTED DUAL 009 NC (HMO D-SNP),Key notes,,Standard LIS Part D cost shares apply. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Premium,$0.00,$0.00
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Medical deductible,,$200
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Max out-of-pocket,"$8,900","$9,850"
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),PCP,,$0 copay
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Specialist,$45,$45 copay
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Referrals,,No
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Inpatient hospital,$440 days 1-4 / $0 days 5-90,"$490 per day for days 1-5, $0 days 6+"
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Outpatient surgery (ASC),$0 - $300,$490-$590 copay
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Emergency room,$115,$115 copay
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Urgent care,$0 - $40,
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Ambulance (ground),$0 - $540,
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Lab services,$0 - $315,$0 copay
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Diagnostic radiology,20%,
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Rx deductible,"$605 (tiers 1,2 exempt)",$461 tiers 3-5
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Dental - allowance,$500 per year,$500 per year (Direct member reimbursement)
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Vision - eyeglasses,,$200 per year
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Hearing aids,$599 - $899 (2 per year),$599-$899 copay per aid
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),OTC allowance,,$24 per quarter
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Transportation,$0 - $440,
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Wellness programs,,$150 per year
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union)"
+Devoted,H5299-012-000,DEVOTED GIVEBACK 012 NC (HMO),Key notes,,"Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Premium,$36.20,$0.00
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Medical deductible,$760,$990
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Max out-of-pocket,"$9,250","$9,850"
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),PCP,,$0 copay
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Specialist,30%,30% coinsurance
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Referrals,,No
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Inpatient hospital,,"$2,241 per stay"
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Outpatient surgery (ASC),30% - 50%,50% coinsurance
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Emergency room,$115,$115 copay
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Urgent care,0% - 30%,
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Ambulance (ground),0% - 50%,
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Lab services,0% - 50%,50% coinsurance
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Diagnostic radiology,50%,
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Rx deductible,$615 (tiers 6 exempt),$700 tiers 3-5
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Rx retail (30-day),,$0 / $0 / 11% / 25% / 25%
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Dental - allowance,"$3,000 per year","$3,000 per year (Network-based)"
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Vision - eyeglasses,,$350 per year
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Transportation,0% - 50%,
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Wellness programs,,$150 per year
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-013-000,DEVOTED DUAL FULL 013 NC (HMO D-SNP),Key notes,,Members with Full Medicaid typically pay $0 for Medicare-covered services due to cost-share protections. Standard LIS Part D cost shares apply. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Premium,$36.20,$0.00
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Medical deductible,,$0
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Max out-of-pocket,"$6,200","$6,200"
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),PCP,,$0 copay
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Specialist,$40,$40 copay
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Referrals,,No
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Inpatient hospital,$430 days 1-5 / $0 days 6-90,"$430 per day for days 1-5, $0 days 6+"
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Outpatient surgery (ASC),$0 - $300,$430-$530 copay
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Emergency room,$130,$130 copay
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Urgent care,$0 - $45,
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Ambulance (ground),$0 - $530,
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Lab services,$0 - $325,$0 copay
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Diagnostic radiology,20%,
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Rx deductible,$615 (tiers 6 exempt),$461 tiers 3-5
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Dental - allowance,"$2,000 per year","$2,000 per year (Network-based)"
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Vision - eyeglasses,,$300 per year
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Transportation,$0 - $430,
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Wellness programs,,$150 per year
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Service area,,"Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender)"
+Devoted,H5299-014-000,DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP),Key notes,,"LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Premium,$36.20,$0.00
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Medical deductible,$925,$990
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Max out-of-pocket,"$9,250","$9,850"
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),PCP,,$0 copay
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Specialist,30%,30% coinsurance
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Referrals,,No
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Inpatient hospital,,"$2,241 per stay"
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Outpatient surgery (ASC),50%,50% coinsurance
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Emergency room,$115,$115 copay
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Urgent care,0% - 20%,
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Ambulance (ground),0% - 50%,
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Lab services,0% - 50%,50% coinsurance
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Diagnostic radiology,50%,
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Rx deductible,$615 (tiers 6 exempt),$461 tiers 3-5
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Dental - allowance,"$3,000 per year","$3,000 per year (Network-based)"
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Vision - eyeglasses,,$300 per year
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Transportation,0% - 50%,
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Wellness programs,,$150 per year
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-015-000,DEVOTED C-SNP PLUS 015 NC (HMO C-SNP),Key notes,,"Members with Full Medicaid or QMB typically pay $0 for Medicare-covered services due to cost-share protections. Standard medical cost shares for all others. Extra Help members pay standard LIS cost shares. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Premium,$36.20,$0.00
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Medical deductible,,$0
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Max out-of-pocket,"$4,900","$5,400"
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),PCP,,$0 copay
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Specialist,$30,$40 copay
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Referrals,,No
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Inpatient hospital,$405 days 1-6 / $0 days 7-90,"$410 per day for days 1-6, $0 days 7+"
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Outpatient surgery (ASC),$0 - $300,$410-$510 copay
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Emergency room,$130,$130 copay
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Urgent care,$0 - $45,
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Ambulance (ground),$0 - $505,
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Lab services,$0 - $325,$0 copay
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Diagnostic radiology,20%,
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Rx deductible,$615 (tiers 6 exempt),$461 tiers 3-5
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Dental - allowance,"$2,000 per year","$2,000 per year (Network-based)"
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Vision - eyeglasses,,$300 per year
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Transportation,$0 - $405,
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Wellness programs,,$150 per year
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union)"
+Devoted,H5299-016-000,DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP),Key notes,,"LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Premium,$36.20,$0.00
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Medical deductible,,$0
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Max out-of-pocket,"$4,800","$4,800"
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),PCP,,$0 copay
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Specialist,$30,$30 copay
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Referrals,,No
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Inpatient hospital,$405 days 1-6 / $0 days 7-90,"$405 per day for days 1-5, $0 days 6+"
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Outpatient surgery (ASC),$0 - $300,$405-$505 copay
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Emergency room,$130,$130 copay
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Urgent care,$0 - $45,
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Ambulance (ground),$0 - $505,
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Lab services,$0 - $325,$0 copay
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Diagnostic radiology,20%,
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Rx deductible,$615 (tiers 6 exempt),$461 tiers 3-5
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Dental - allowance,"$2,000 per year","$2,000 per year (Network-based)"
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Vision - eyeglasses,,$300 per year
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Transportation,$0 - $405,
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Wellness programs,,$150 per year
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Service area,,"Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H5299-017-000,DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP),Key notes,,"LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Premium,$36.20,$0.00
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Medical deductible,,$0
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Max out-of-pocket,"$5,600","$5,600"
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),PCP,,$0 copay
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Specialist,$30,$30 copay
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Referrals,,No
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Inpatient hospital,$475 days 1-5 / $0 days 6-90,"$475 per day for days 1-5, $0 days 6+"
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Outpatient surgery (ASC),$0 - $300,$475-$575 copay
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Emergency room,$130,$130 copay
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Urgent care,$0 - $45,
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Ambulance (ground),$0 - $575,
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Lab services,$0 - $325,$0 copay
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Diagnostic radiology,20%,
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Rx deductible,$615 (tiers 6 exempt),$461 tiers 3-5
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Rx retail (30-day),,$0 / $0 / 15% / 25% / 26%
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Dental - allowance,"$2,000 per year","$2,000 per year (Network-based)"
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Vision - eyeglasses,,$300 per year
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Hearing aids,$399 - $699 (2 per year),$399-$699 copay per aid
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),OTC allowance,$50 per visit,$50 per quarter
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Transportation,$0 - $475,
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Wellness programs,,$150 per year
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Service area,,"Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey)"
+Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Key notes,,"LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Premium,$0.00,$0
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Part B giveback,,$110
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Max out-of-pocket,,"$9,850"
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),PCP,$0,$0
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Specialist,$35,$45
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Referrals,,No
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Inpatient hospital,$375 days 1-7 / $0 days 8-90,$375 per day (days 1-7)
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Outpatient surgery (ASC),$0 - $335,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Emergency room,$115,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Urgent care,$40,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Ambulance (ground),$0 - $450,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Lab services,$335,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Diagnostic radiology,$335,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Rx deductible,"$450 (tiers 1,2 exempt)","$700 Tiers 3,4,5"
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Rx retail (30-day),,$0 / $4 / 19% / 30% / 25%
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Dental - allowance,,"$0 copayment covers exams, x-rays, cleanings; OON coverage available (DEN350)"
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Hearing aids,$699 - $999 (2 per year),
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Transportation,$0 - $375,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Meals,$0,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Wellness programs,$0,
+Humana,H5525-035-000,HumanaChoice Giveback (PPO),Key notes,,"Dental, Vision, Hearing, Fitness · EXITS Cherokee, Clay, Swain, Cabarrus, Pender, Gates for 2027"
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Premium,,$0
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Part B giveback,,$165
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Max out-of-pocket,,"$9,850 INN"
+Humana,H5525-065-000,Humana Honor Plan (MA Only),PCP,,$0
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Specialist,,$45
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Referrals,,No
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Inpatient hospital,$375 days 1-7 / $0 days 8-90,$375 per day (days 1-7)
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Outpatient surgery (ASC),$0,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Emergency room,$115,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Urgent care,$40,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Ambulance (ground),$0,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Lab services,$335,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Diagnostic radiology,$335,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Rx deductible,,No deductible
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Rx retail (30-day),,N/A (MA only)
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Dental - allowance,,"$0 copayment covers exams, x-rays, cleanings; OON coverage available (DEN350)"
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Hearing aids,$699 - $999 (2 per year),
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Transportation,$0,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Wellness programs,$0,
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Service area,,"Statewide (ex. Craven, Carteret, Onslow)"
+Humana,H5525-065-000,Humana Honor Plan (MA Only),Key notes,,"Dental, Vision, Hearing, Fitness"
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Premium,$33.50,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),PCP,$0,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Specialist,$25,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Inpatient hospital,$399 days 1-6 / $0 days 7-90,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Outpatient surgery (ASC),$0 - $335,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Emergency room,$115,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Urgent care,$40,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Ambulance (ground),$0 - $450,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Lab services,$335,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Diagnostic radiology,$335,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Rx deductible,"$615 (tiers 1,2 exempt)",
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Dental - allowance,"$1,500 per year","$1,500 annually (DEN285); OON coverage available"
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Vision - eyeglasses,,$0 copayment for annual exam and $100 allowance per year for eyewear or contact lenses including fittings at PLUS Provider
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Hearing aids,$0 (2 per month),"$0 copay for annual exam, fitting and $0 copayment for Advanced level hearing aid per ear every 3 years plus 80 batteries per aid"
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),OTC allowance,$0,"$85.00 monthly Healthy Options allowance (prepaid card, rolls over)"
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Transportation,$0 - $375,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Meals,$0,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Wellness programs,$0,
+Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Service area,,"Statewide (ex. Craven, Carteret, Onslow)"
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Premium,$0.00,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Max out-of-pocket,"$5,400.00",
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Specialist,$30,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Inpatient hospital,$325 days 1-6 / $0 days 7-90,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Emergency room,$130,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Urgent care,$0 - $45,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Ambulance (ground),$0 - $425,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Lab services,$0 - $325,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Rx deductible,"$370 (tiers 1,2 exempt)",
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Dental - allowance,"$3,000 per year",
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Hearing aids,$399 - $699 (2 per year),
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),OTC allowance,$50 per visit,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Transportation,$0 - $325,
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Service area,,"Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Stanly, Union"
+Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Key notes,,The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Premium,$0.00,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Max out-of-pocket,"$8,000.00",
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Specialist,$45,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Inpatient hospital,$440 days 1-5 / $0 days 6-90,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Emergency room,$115,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Urgent care,$0 - $40,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Ambulance (ground),$0 - $540,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Lab services,$0 - $350,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Rx deductible,"$605 (tiers 1,2 exempt)",
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Dental - allowance,$250 per year,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Hearing aids,$599 - $899 (2 per year),
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),OTC allowance,$116 per visit,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Transportation,$0 - $440,
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Service area,,"Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Stanly, Union"
+Devoted,H9700-002-000,DEVOTED CHOICE GIVEBACK 002 NC (PPO),Key notes,,"Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Premium,$0.00,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Max out-of-pocket,"$4,500.00",
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Specialist,$30,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Inpatient hospital,$325 days 1-6 / $0 days 7-90,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Emergency room,$130,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Urgent care,$0 - $45,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Ambulance (ground),$0 - $425,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Lab services,$0 - $325,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Rx deductible,"$370 (tiers 1,2 exempt)",
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Dental - allowance,"$2,500 per year",
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Hearing aids,$399 - $699 (2 per year),
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),OTC allowance,$50 per visit,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Transportation,$0 - $325,
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Service area,,"Alamance, Caswell, Guilford, Person, Randolph, Rockingham"
+Devoted,H9700-003-000,DEVOTED CHOICE 003 NC (PPO),Key notes,,The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Premium,$0.00,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Max out-of-pocket,"$8,000.00",
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Specialist,$45,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Inpatient hospital,$440 days 1-5 / $0 days 6-90,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Emergency room,$115,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Urgent care,$0 - $40,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Ambulance (ground),$0 - $540,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Lab services,$0 - $350,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Rx deductible,"$605 (tiers 1,2 exempt)",
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Dental - allowance,$250 per year,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Hearing aids,$599 - $899 (2 per year),
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),OTC allowance,$50 per visit,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Transportation,$0 - $440,
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Service area,,"Alamance, Caswell, Guilford, Person, Randolph, Rockingham"
+Devoted,H9700-004-000,DEVOTED CHOICE GIVEBACK 004 NC (PPO),Key notes,,"Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Premium,$0.00,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Max out-of-pocket,"$5,300.00",
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Specialist,$30,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Inpatient hospital,$395 days 1-5 / $0 days 6-90,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Emergency room,$130,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Urgent care,$0 - $45,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Ambulance (ground),$0 - $495,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Lab services,$0 - $325,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Rx deductible,"$370 (tiers 1,2 exempt)",
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Dental - allowance,"$2,500 per year",
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Hearing aids,$399 - $699 (2 per year),
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),OTC allowance,$50 per visit,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Transportation,$0 - $395,
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Service area,,"Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey"
+Devoted,H9700-005-000,DEVOTED CHOICE 005 NC (PPO),Key notes,,The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process.
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Premium,$0.00,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Max out-of-pocket,"$8,000.00",
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Specialist,$45,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Inpatient hospital,$440 days 1-5 / $0 days 6-90,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Emergency room,$115,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Urgent care,$0 - $40,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Ambulance (ground),$0 - $540,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Lab services,$0 - $350,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Rx deductible,"$605 (tiers 1,2 exempt)",
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Dental - allowance,$250 per year,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Hearing aids,$599 - $899 (2 per year),
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Transportation,$0 - $440,
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Service area,,"Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey"
+Devoted,H9700-006-000,DEVOTED CHOICE GIVEBACK 006 NC (PPO),Key notes,,"Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Premium,Not Applicable,$0.00
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Medical deductible,,$0
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Max out-of-pocket,"$9,250.00","$9,250 INN / $13,900 combined INN and OON"
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),PCP,,$0 copay INN / $15 copay OON
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Specialist,$45,$45 copay INN / $55 copay OON
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Referrals,,No
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Inpatient hospital,$425 days 1-4 / $0 days 5-90,"$425 per day for days 1-4, $0 days 5+ INN / $425 per day for days 1-4, $0"
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Outpatient surgery (ASC),$0 - $300,$425-$525 copay INN / $525 copay - 40% coinsurance OON
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Emergency room,$115,$115 copay INN / $115 copay OON
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Urgent care,$0 - $40,
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Ambulance (ground),$0 - $525,
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Lab services,$0 - $350,$0 copay INN / $10 copay OON
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Rx deductible,,Not covered
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Rx retail (30-day),,Not covered
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Dental - allowance,"$1,000 per year","$1,000 per year (Direct member reimbursement)"
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Vision - eyeglasses,,$400 per year
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Hearing aids,$599 - $899 (2 per year),$599-$899 copay per aid
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),OTC allowance,,Not covered
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Transportation,$0 - $425,
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Wellness programs,,$150 per year
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Service area,,"Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+Devoted,H9700-007-000,DEVOTED CHOICE MA ONLY 007 NC (PPO),Key notes,,Does not include Part D coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months.
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Premium,$0.00,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Max out-of-pocket,"$5,900.00",
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Specialist,$30,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Inpatient hospital,$325 days 1-6 / $0 days 7-90,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Outpatient surgery (ASC),$0 - $300,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Emergency room,$130,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Urgent care,$0 - $45,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Ambulance (ground),$0 - $425,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Lab services,$0 - $325,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Rx deductible,"$270 (tiers 1,2 exempt)",
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Dental - allowance,"$2,500 per year",
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Hearing aids,$399 - $699 (2 per year),
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),OTC allowance,$100 per visit,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Transportation,$0 - $325,
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Service area,,"Alleghany, Ashe, Wilkes"
+Devoted,H9700-008-000,DEVOTED CHOICE 008 NC (PPO),Key notes,,-
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Premium,$0.00,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Max out-of-pocket,"$9,250.00",
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Specialist,$55,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Inpatient hospital,$475 days 1-4 / $0 days 5-90,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Outpatient surgery (ASC),$0 - $280,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Emergency room,$115,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Urgent care,$0 - $40,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Ambulance (ground),$0 - $475,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Lab services,$0 - $315,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Diagnostic radiology,20%,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Rx deductible,"$605 (tiers 1,2 exempt)",
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Dental - allowance,$250 per year,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Hearing aids,$599 - $899 (2 per year),
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Transportation,$0 - $475,
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Service area,,"Alleghany, Ashe, Wilkes"
+Devoted,H9700-009-000,DEVOTED CHOICE GIVEBACK 009 NC (PPO),Key notes,,"Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Premium,,$0.00
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Part B giveback,,$115.00
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Medical deductible,,No deductible
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Max out-of-pocket,"$6,750","$6,750"
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),PCP,,$0
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Specialist,$50,$50
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Inpatient hospital,$300 days 1-7 / $0 days 8-90,$300 per day for days 1-7; $0 per day for days 8-90
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Outpatient surgery (ASC),$0 - $195,$0 - $280
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Emergency room,$130,
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Urgent care,$50,
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Ambulance (ground),$0 - $300,
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Lab services,$270,
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Diagnostic radiology,20%,
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Rx deductible,,N/A
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Rx retail (30-day),,N/A
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Dental - allowance,"$1,000 per year","$1,000 allowance"
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Vision - eyeglasses,,$100 allowance (eyewear)
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Hearing aids,"$399 - $1,800 (2 per year)",Included
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),OTC allowance,,Not included
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Transportation,$0 - $280,Not included
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Meals,,Included
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Fitness,,Included
+Healthspring,H9725-005-000,HealthSpring Courage (HMO),Service area,,"Alamance, Alexander, Alleghany, Anson, Cabarrus, Catawba, Cleveland, Davidson, Davie, Durham, Forsyth, Gaston, Guilford, Iredell, Lincoln, Mecklenburg, Orange, Randolph, Rockingham, Rowan, Stokes, Union, Wilkes, Yadkin"
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Premium,$0.00,$0.00
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Part B giveback,,$5.00
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Medical deductible,,No deductible
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Max out-of-pocket,"$3,450","$3,900"
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),PCP,,$0
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Specialist,$20,$20
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Inpatient hospital,$290 days 1-5 / $0 days 6-90,$290 per day for days 1-5; $0 per day for days 6-90
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Outpatient surgery (ASC),$0 - $195,$0 - $200
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Emergency room,$150,
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Urgent care,$65,
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Ambulance (ground),$0 - $290,
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Lab services,$270,
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Diagnostic radiology,20%,
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Rx deductible,"$295 (tiers 1,2 exempt)",$400 (does not apply to tier 1 or 2)
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Rx retail (30-day),,$0 / $50 / 20% / 25% / 29% (1-month preferred)
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Dental - allowance,"$1,850 per year","$1,650 allowance"
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Vision - eyeglasses,,$150 allowance (eyewear)
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Hearing aids,"$399 - $1,800 (2 per year)",Included
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),OTC allowance,$45 per visit,$20 per quarter
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Transportation,$0 - $200,Not included
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Meals,,Included
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Fitness,,Included
+Healthspring,H9725-009-001,HealthSpring Preferred (HMO),Service area,,"Alexander, Anson, Cabarrus, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Union"
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Premium,$0.00,$0.00
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Part B giveback,,$179.00
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Medical deductible,$225,$150
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Max out-of-pocket,"$6,000","$6,750"
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),PCP,,$0
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Specialist,$45,$45
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Inpatient hospital,$370 days 1-6 / $0 days 7-90,$370 per day for days 1-6; $0 per day for days 7-90
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Outpatient surgery (ASC),$0 - $195,$0 - $275
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Emergency room,$130,
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Urgent care,$50,
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Ambulance (ground),$0 - $370,
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Lab services,$290,
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Diagnostic radiology,20%,
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Rx deductible,$0,$600 (does not apply to tier 1 or 2)
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Rx retail (30-day),,$0 / $4 / 20% / 25% / 26% (1-month preferred)
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Dental - allowance,$500 per year,$700 allowance
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Vision - eyeglasses,,$100 allowance (eyewear)
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Hearing aids,"$399 - $1,800 (2 per year)",Included
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),OTC allowance,,Not included
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Transportation,$0 - $275,Not included
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Meals,,Included
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Fitness,,Included
+Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Service area,,"Alexander, Anson, Cabarrus, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Union"

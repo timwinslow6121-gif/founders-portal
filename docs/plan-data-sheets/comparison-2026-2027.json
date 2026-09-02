@@ -1,0 +1,4923 @@
+{
+  "prior_year": "2026",
+  "look_year": "2027",
+  "notice": "2027 values are preliminary carrier First Look data, not yet verified against published CMS data. Internal agent use only.",
+  "plans": [
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$20",
+          "y2027": "$25"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$375 days 1-7 / $0 days 8-90",
+          "y2027": "$375 per day (days 1-7)"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$350 (tiers 1,2 exempt)",
+          "y2027": "$450 Tiers 3,4,5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $5 / 17% / 43% / 28%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$2,500 annually; 50% coinsurance; OON coverage available (DENK71)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Dental, Vision, Hearing, Fitness, OTC"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H1036-137-000",
+      "plan_name": "Humana Gold Plus (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$13.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": ""
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$25",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$399 days 1-6 / $0 days 7-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$1,000 annually (DEN282)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$0 copayment for annual exam and $100 allowance per year for eyewear or contact lenses including fittings at PLUS Provider"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per month)",
+          "y2027": "$0 copay for annual exam, fitting and $0 copayment for Advanced level hearing aid per ear every 3 years plus 80 batteries per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$115.00 monthly Healthy Options allowance (prepaid card, rolls over)"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Statewide (ex. Dare, Craven, Carteret, Onslow)"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H1036-307-000",
+      "plan_name": "Humana Dual Select (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$45"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$375 days 1-7 / $0 days 8-90",
+          "y2027": "$375 per day (days 1-7)"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$450 (tiers 1,2,6 exempt)",
+          "y2027": "$550 Tiers 3,4,5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $5 / 17% / 50% / 27%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,000 per year",
+          "y2027": "$1,750 annually with 50% coinsurance (DENK15)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$299 - $899 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Statewide (ex. Dare, Craven, Carteret, Onslow)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Dental, Vision, Hearing"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H1036-308-000",
+      "plan_name": "Humana Gold Plus - Diabetes and Heart (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$20.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": ""
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$200 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$4,000 per year",
+          "y2027": "$1,250 annually (DENC99)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$0 copayment for annual exam and $200 allowance per year for eyewear or contact lenses including fittings at PLUS Provider"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per month)",
+          "y2027": "$0 copay for annual exam, fitting and $0 copayment for Advanced level hearing aid per ear every 3 years plus 80 batteries per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$375.00 monthly Healthy Options allowance (prepaid card, rolls over)"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Statewide (ex. Dare, Craven, Carteret, Onslow)"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H1036-331-000",
+      "plan_name": "Humana Gold Plus SNP-DE (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$3,500",
+          "y2027": "$4,100"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$5",
+          "y2027": "$5"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$295 days 1-5 / $0 days 6-90",
+          "y2027": "$295 per day (days 1-5)"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$65",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $395",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$250 (tiers 1,2 exempt)",
+          "y2027": "$700 Tiers 3,4,5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $5 / 17% / 46% / 25%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,500 per year",
+          "y2027": "$4,000 annually; 50% coinsurance; OON coverage available (DENK79)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $799 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $295",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Brunswick, Davidson, Davie, Forsyth, New Hanover, Stokes, Yadkin"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Dental, Vision, Hearing, Fitness, OTC"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H1036-335-001",
+      "plan_name": "Humana Gold Plus (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "0% - 20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "0% - 20%",
+          "y2027": "$0; no referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$0 per stay; unlimited days"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "0% - 20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "0% - 20%",
+          "y2027": "$0 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1 exempt)",
+          "y2027": "$0 T1; $700 T2-5; $0 with LIS"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 T1; other drugs vary by LIS"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 toward covered services; $0 all covered services"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 (1 per year)",
+          "y2027": "Routine exam $0; $150/year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per quarter)",
+          "y2027": "$1,500 allowance for 2 hearing aids every 2 years"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$190/month OTC & wellness; healthy food/utilities for qualifying members"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "0% - 20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Transportation: 24 one-way trips; $0 INN / 75% OON; combined INN/OON"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H1889-005-000",
+      "plan_name": "UHC Dual Complete NC-Q1"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "0% - 20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "0% - 20%",
+          "y2027": "$0; no referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$0 per stay; unlimited days"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "0% - 20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "0% - 20%",
+          "y2027": "$0 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1 exempt)",
+          "y2027": "$0 T1-2; $700 T3-5; $0 with LIS"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 T1; other drugs vary by LIS"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "Covered under Medicaid"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 (1 per year)",
+          "y2027": "Routine exam $0; $150/year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per quarter)",
+          "y2027": "$1,500 allowance for 2 hearing aids every 2 years"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$210/month OTC & wellness; healthy food/utilities for qualifying members"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "0% - 20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Transportation: 36 one-way trips; $0 INN / 75% OON; combined INN/OON"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H1889-034-000",
+      "plan_name": "UHC Dual Complete NC-S2"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$53.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$1,000 OON only"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,200.00",
+          "y2027": "$4,450"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $40",
+          "y2027": "$45; no referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$395 days 1-6 / $0 days 7-90",
+          "y2027": "$495 days 1-5; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $250",
+          "y2027": "$395"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": "$150"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $65",
+          "y2027": "$65"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $395",
+          "y2027": "$275 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$250",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$250",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$520 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $595 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $6 / 22% / 27% / 27%; insulin $35"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,500 per year",
+          "y2027": "$2,000 toward covered services; preventive $0; comprehensive 50%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $200 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$700 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $295",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Not covered"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H2406-034-000",
+      "plan_name": "AARP Medicare Advantage from UHC NC-0016"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$1,000 OON only"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,200.00",
+          "y2027": "$7,150"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $45",
+          "y2027": "$60; no referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$550 days 1-5 / $0 days 6-90",
+          "y2027": "$685 days 1-4; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $190",
+          "y2027": "$585"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $50",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $550",
+          "y2027": "$370 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$600 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $685 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $8 / 20% / 27% / 26%; insulin $35"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "Preventive dental $0; Platinum Dental Rider available"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $200 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$700 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Not covered"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H2406-098-000",
+      "plan_name": "AARP Medicare Advantage from UHC NC-0017"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$79"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "",
+          "y2027": "$9,850 INN"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$40",
+          "y2027": "$45"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$375 days 1-7 / $0 days 8-90",
+          "y2027": "$375 per day (days 1-7)"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$450 (tiers 1,2 exempt)",
+          "y2027": "$700 Tiers 3,4,5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $4 / 19% / 30% / 25%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 copayment covers exams, x-rays, cleanings; OON coverage available (DEN350)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$699 - $999 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Western and Central Counties"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Dental, Vision, Hearing"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H5216-017-000",
+      "plan_name": "HumanaChoice Giveback (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$37.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,200",
+          "y2027": "$4,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $25",
+          "y2027": "$30; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$395 days 1-6 / $0 days 7-90",
+          "y2027": "$425 days 1-6; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $250",
+          "y2027": "$325"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $65",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $395",
+          "y2027": "$275 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$355 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $595 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 22% / 29% / 27%; insulin $35"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$4,000 per year",
+          "y2027": "$3,000 toward covered services; preventive $0; comprehensive 50%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $300 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$700 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$50/quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $295",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-037-000",
+      "plan_name": "AARP Medicare Advantage from UHC NC-0021"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,400",
+          "y2027": "$5,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $40",
+          "y2027": "$45; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$455 days 1-6 / $0 days 7-90",
+          "y2027": "$550 days 1-5; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $260",
+          "y2027": "$420"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $50",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $455",
+          "y2027": "$380 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$440 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $685 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $6 / 21% / 27% / 26%; insulin $35"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,250 per year",
+          "y2027": "$1,250 toward covered services; preventive $0; comprehensive 50%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $150 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$700 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-038-000",
+      "plan_name": "AARP Medicare Advantage from UHC NC-0022"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "Not Applicable",
+          "y2027": ""
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$190/month"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$7,900",
+          "y2027": "$9,300"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $55",
+          "y2027": "$55; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$475 days 1-5 / $0 days 6-90",
+          "y2027": "$610 days 1-4; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $260",
+          "y2027": "$510"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $475",
+          "y2027": "$350 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$290",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$290",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "N/A"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "N/A"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$1,000 toward covered services; preventive $0; comprehensive 50%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $300 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$1,000 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-040-000",
+      "plan_name": "AARP Medicare Advantage Patriot No Rx NC-MA02"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$84/month"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 in-network"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,500"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $55",
+          "y2027": "$55; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$595 days 1-4 / $0 days 5-90",
+          "y2027": "$610 days 1-4; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $260",
+          "y2027": "$510"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $595",
+          "y2027": "$350 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$285",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$285",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$600 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $685 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $6 / 19% / 27% / 26%; insulin $35"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "Preventive dental $0; Platinum Dental Rider available"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $200 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$1,000 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $495",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-110-000",
+      "plan_name": "AARP Medicare Advantage Giveback from UHC NC-14"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,900",
+          "y2027": "$5,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $30",
+          "y2027": "$30; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$450 days 1-6 / $0 days 7-90",
+          "y2027": "$495 days 1-5; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $260",
+          "y2027": "$445"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $50",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": "$350 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1 exempt)",
+          "y2027": "$0 T1; $700 T2-5; $0 with LIS"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 T1; other drugs vary by LIS"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "Preventive dental $0"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $250 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$1,000 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$53/month OTC & wellness; healthy food/utilities for qualifying members"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $400",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Transportation: 24 one-way trips; post-discharge meals: 28 over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-116-000",
+      "plan_name": "UHC Dual Advantage NC-V1"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,200",
+          "y2027": "$4,450"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $35",
+          "y2027": "$35; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$455 days 1-6 / $0 days 7-90",
+          "y2027": "$550 days 1-5; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $260",
+          "y2027": "$420"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": "$150"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $65",
+          "y2027": "$65"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $455",
+          "y2027": "$380 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$320; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$440 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $685 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $5 / 22% / 27% / 26%; insulin $35"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$1,500 toward covered services; preventive $0; comprehensive 50%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $150 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$700 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$25/quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-117-000",
+      "plan_name": "AARP Medicare Advantage from UHC NC-15"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0 combined INN/OON"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,200",
+          "y2027": "$4,450"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $25",
+          "y2027": "$25; referral required"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$455 days 1-6 / $0 days 7-90",
+          "y2027": "$525 days 1-5; $0 thereafter"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $260",
+          "y2027": "$495"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": "$150"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $65",
+          "y2027": "$65"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $455",
+          "y2027": "$325 ground/air"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$285; mammograms $0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$355 (tiers 1,2 exempt)",
+          "y2027": "$0 T1-2; $595 T3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 22% / 33% / 27%; insulin $25"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "Preventive dental $0; Platinum Dental Rider available"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0 - $153 (1 per quarter)",
+          "y2027": "Routine exam $0; $250 every 2 years"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$199 - $1,249 (2 per year)",
+          "y2027": "$1,000 allowance for 2 hearing aids/year"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$70/month OTC; healthy food for qualifying members"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Free gym membership with core network"
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Post-discharge meals: 28 meals over 14 days, unlimited times/year"
+        }
+      ],
+      "carrier": "UHC",
+      "cms_code": "H5253-189-000",
+      "plan_name": "UHC Complete Care NC-28"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$3,600",
+          "y2027": "$4,050"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$25",
+          "y2027": "$25 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$295 days 1-5 / $0 days 6-90",
+          "y2027": "$295 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$295-$395 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": "$150 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $395",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $315",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$395 (tiers 1,2 exempt)",
+          "y2027": "$650 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $5 / 25% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$2,250 per year (Direct member reimbursement)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $295",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-001-000",
+      "plan_name": "DEVOTED CORE 001 NC (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$200"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,700",
+          "y2027": "$7,950"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$45 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$395 days 1-5 / $0 days 6-90",
+          "y2027": "$395 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$395-$495 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $495",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $315",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$605 (tiers 1,2 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$500 per year",
+          "y2027": "$500 per year (Direct member reimbursement)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$200 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": "$599-$899 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$24 per visit",
+          "y2027": "$37 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $395",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-002-000",
+      "plan_name": "DEVOTED GIVEBACK 002 NC (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$35.00",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "$830",
+          "y2027": "$750"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "30%",
+          "y2027": "30% coinsurance"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$2,241 per stay"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "30% - 50%",
+          "y2027": "50% coinsurance"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "0% - 30%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "0% - 50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "0% - 50%",
+          "y2027": "50% coinsurance"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$700 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 11% / 25% / 25%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$350 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "0% - 50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Members with Full Medicaid or QMB typically pay $0 for Medicare-covered services due to cost-share protections. Standard LIS Part D cost shares apply. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-006-000",
+      "plan_name": "DEVOTED DUAL PLUS 006 NC (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750",
+          "y2027": "$6,750"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$25",
+          "y2027": "$25 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$395 days 1-5 / $0 days 6-90",
+          "y2027": "$395 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$395-$495 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $495",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $315",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$700 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 11% / 25% / 25%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$350 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $395",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Standard LIS Part D cost shares apply. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-009-000",
+      "plan_name": "DEVOTED DUAL 009 NC (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$200"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$8,900",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$45 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$440 days 1-4 / $0 days 5-90",
+          "y2027": "$490 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$490-$590 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $540",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $315",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$605 (tiers 1,2 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$500 per year",
+          "y2027": "$500 per year (Direct member reimbursement)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$200 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": "$599-$899 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "$24 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $440",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-012-000",
+      "plan_name": "DEVOTED GIVEBACK 012 NC (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "$760",
+          "y2027": "$990"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "30%",
+          "y2027": "30% coinsurance"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$2,241 per stay"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "30% - 50%",
+          "y2027": "50% coinsurance"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "0% - 30%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "0% - 50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "0% - 50%",
+          "y2027": "50% coinsurance"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$700 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 11% / 25% / 25%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$3,000 per year",
+          "y2027": "$3,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$350 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "0% - 50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Members with Full Medicaid typically pay $0 for Medicare-covered services due to cost-share protections. Standard LIS Part D cost shares apply. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-013-000",
+      "plan_name": "DEVOTED DUAL FULL 013 NC (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,200",
+          "y2027": "$6,200"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$40",
+          "y2027": "$40 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$430 days 1-5 / $0 days 6-90",
+          "y2027": "$430 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$430-$530 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $530",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $430",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-014-000",
+      "plan_name": "DEVOTED C-SNP ENHANCED 014 NC (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "$925",
+          "y2027": "$990"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "30%",
+          "y2027": "30% coinsurance"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$2,241 per stay"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "50%",
+          "y2027": "50% coinsurance"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "0% - 20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "0% - 50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "0% - 50%",
+          "y2027": "50% coinsurance"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$3,000 per year",
+          "y2027": "$3,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "0% - 50%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Surry, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston- Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Members with Full Medicaid or QMB typically pay $0 for Medicare-covered services due to cost-share protections. Standard medical cost shares for all others. Extra Help members pay standard LIS cost shares. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-015-000",
+      "plan_name": "DEVOTED C-SNP PLUS 015 NC (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,900",
+          "y2027": "$5,400"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": "$40 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$405 days 1-6 / $0 days 7-90",
+          "y2027": "$410 per day for days 1-6, $0 days 7+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$410-$510 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $505",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $405",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Montgomery, Rowan, Stanly, Union)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-016-000",
+      "plan_name": "DEVOTED C-SNP ENHANCED 016 NC (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,800",
+          "y2027": "$4,800"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": "$30 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$405 days 1-6 / $0 days 7-90",
+          "y2027": "$405 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$405-$505 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $505",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $405",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-017-000",
+      "plan_name": "DEVOTED C-SNP ENHANCED 017 NC (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,600",
+          "y2027": "$5,600"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": "$30 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$475 days 1-5 / $0 days 6-90",
+          "y2027": "$475 per day for days 1-5, $0 days 6+"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$475-$575 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $575",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 6 exempt)",
+          "y2027": "$461 tiers 3-5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $0 / 15% / 25% / 26%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 per year (Network-based)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": "$399-$699 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "$50 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $475",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H5299-018-000",
+      "plan_name": "DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$110"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$35",
+          "y2027": "$45"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$375 days 1-7 / $0 days 8-90",
+          "y2027": "$375 per day (days 1-7)"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$450 (tiers 1,2 exempt)",
+          "y2027": "$700 Tiers 3,4,5"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $4 / 19% / 30% / 25%"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 copayment covers exams, x-rays, cleanings; OON coverage available (DEN350)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$699 - $999 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Dental, Vision, Hearing, Fitness \u00b7 EXITS Cherokee, Clay, Swain, Cabarrus, Pender, Gates for 2027"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H5525-035-000",
+      "plan_name": "HumanaChoice Giveback (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$165"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "",
+          "y2027": "$9,850 INN"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "",
+          "y2027": "$45"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$375 days 1-7 / $0 days 8-90",
+          "y2027": "$375 per day (days 1-7)"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "No deductible"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "N/A (MA only)"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 copayment covers exams, x-rays, cleanings; OON coverage available (DEN350)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$699 - $999 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Statewide (ex. Craven, Carteret, Onslow)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Dental, Vision, Hearing, Fitness"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H5525-065-000",
+      "plan_name": "Humana Honor Plan (MA Only)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$33.50",
+          "y2027": ""
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$25",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$399 days 1-6 / $0 days 7-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $450",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$335",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$1,500 annually (DEN285); OON coverage available"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$0 copayment for annual exam and $100 allowance per year for eyewear or contact lenses including fittings at PLUS Provider"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per month)",
+          "y2027": "$0 copay for annual exam, fitting and $0 copayment for Advanced level hearing aid per ear every 3 years plus 80 batteries per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": "$85.00 monthly Healthy Options allowance (prepaid card, rolls over)"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $375",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Statewide (ex. Craven, Carteret, Onslow)"
+        }
+      ],
+      "carrier": "Humana",
+      "cms_code": "H5525-072-000",
+      "plan_name": "Humana Dual Select (PPO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,400.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$325 days 1-6 / $0 days 7-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $425",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$370 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$3,000 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Stanly, Union"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-001-000",
+      "plan_name": "DEVOTED CHOICE 001 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$8,000.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$440 days 1-5 / $0 days 6-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $540",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$605 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$250 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$116 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $440",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Stanly, Union"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-002-000",
+      "plan_name": "DEVOTED CHOICE GIVEBACK 002 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,500.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$325 days 1-6 / $0 days 7-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $425",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$370 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,500 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Caswell, Guilford, Person, Randolph, Rockingham"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-003-000",
+      "plan_name": "DEVOTED CHOICE 003 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$8,000.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$440 days 1-5 / $0 days 6-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $540",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$605 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$250 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $440",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Caswell, Guilford, Person, Randolph, Rockingham"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-004-000",
+      "plan_name": "DEVOTED CHOICE GIVEBACK 004 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,300.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$395 days 1-5 / $0 days 6-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $495",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$370 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,500 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $395",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-005-000",
+      "plan_name": "DEVOTED CHOICE 005 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$8,000.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$440 days 1-5 / $0 days 6-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $540",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$605 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$250 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $440",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-006-000",
+      "plan_name": "DEVOTED CHOICE GIVEBACK 006 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "Not Applicable",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250.00",
+          "y2027": "$9,250 INN / $13,900 combined INN and OON"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0 copay INN / $15 copay OON"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$45 copay INN / $55 copay OON"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "No"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$425 days 1-4 / $0 days 5-90",
+          "y2027": "$425 per day for days 1-4, $0 days 5+ INN / $425 per day for days 1-4, $0"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$425-$525 copay INN / $525 copay - 40% coinsurance OON"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115 copay INN / $115 copay OON"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $525",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $350",
+          "y2027": "$0 copay INN / $10 copay OON"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,000 per year",
+          "y2027": "$1,000 per year (Direct member reimbursement)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$400 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": "$599-$899 copay per aid"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not covered"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $425",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "",
+          "y2027": "$150 per year"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Charlotte (Alexander, Anson, Cabarrus, Caldwell, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Stanly, Union); Greensboro (Alamance, Caswell, Guilford, Person, Randolph, Rockingham); Northwest North Carolina (Alleghany, Ashe, Wilkes); Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey); Wilmington (Bladen, Brunswick, Columbus, New Hanover, Pender); Winston-Salem (Davidson, Davie, Forsyth, Stokes, Yadkin)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Does not include Part D coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-007-000",
+      "plan_name": "DEVOTED CHOICE MA ONLY 007 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,900.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$325 days 1-6 / $0 days 7-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $45",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $425",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$270 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,500 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $699 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$100 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $325",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alleghany, Ashe, Wilkes"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "-"
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-008-000",
+      "plan_name": "DEVOTED CHOICE 008 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250.00",
+          "y2027": ""
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$55",
+          "y2027": ""
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$475 days 1-4 / $0 days 5-90",
+          "y2027": ""
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $280",
+          "y2027": ""
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$0 - $40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $475",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$0 - $315",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$605 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$250 per year",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$599 - $899 (2 per year)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $475",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alleghany, Ashe, Wilkes"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Higher giveback amount, less supplemental coverage. The Part B premium buydown benefit is designed for members who pay their own Medicare Part B premium. Members whose premium is paid by Medicaid or another assistance program will not benefit from the premium reduction. Processing through Social Security may take several months."
+        }
+      ],
+      "carrier": "Devoted",
+      "cms_code": "H9700-009-000",
+      "plan_name": "DEVOTED CHOICE GIVEBACK 009 NC (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$115.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "No deductible"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750",
+          "y2027": "$6,750"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$50",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$300 days 1-7 / $0 days 8-90",
+          "y2027": "$300 per day for days 1-7; $0 per day for days 8-90"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $195",
+          "y2027": "$0 - $280"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$270",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "N/A"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "N/A"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,000 per year",
+          "y2027": "$1,000 allowance"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$100 allowance (eyewear)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $1,800 (2 per year)",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not included"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $280",
+          "y2027": "Not included"
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Alexander, Alleghany, Anson, Cabarrus, Catawba, Cleveland, Davidson, Davie, Durham, Forsyth, Gaston, Guilford, Iredell, Lincoln, Mecklenburg, Orange, Randolph, Rockingham, Rowan, Stokes, Union, Wilkes, Yadkin"
+        }
+      ],
+      "carrier": "Healthspring",
+      "cms_code": "H9725-005-000",
+      "plan_name": "HealthSpring Courage (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$5.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "No deductible"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$3,450",
+          "y2027": "$3,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$20",
+          "y2027": "$20"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$290 days 1-5 / $0 days 6-90",
+          "y2027": "$290 per day for days 1-5; $0 per day for days 6-90"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $195",
+          "y2027": "$0 - $200"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$65",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $290",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$270",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$295 (tiers 1,2 exempt)",
+          "y2027": "$400 (does not apply to tier 1 or 2)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $50 / 20% / 25% / 29% (1-month preferred)"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,850 per year",
+          "y2027": "$1,650 allowance"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$150 allowance (eyewear)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $1,800 (2 per year)",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$45 per visit",
+          "y2027": "$20 per quarter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $200",
+          "y2027": "Not included"
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alexander, Anson, Cabarrus, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Union"
+        }
+      ],
+      "carrier": "Healthspring",
+      "cms_code": "H9725-009-001",
+      "plan_name": "HealthSpring Preferred (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0.00"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$179.00"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "$225",
+          "y2027": "$150"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,000",
+          "y2027": "$6,750"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$45"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$370 days 1-6 / $0 days 7-90",
+          "y2027": "$370 per day for days 1-6; $0 per day for days 7-90"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $195",
+          "y2027": "$0 - $275"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": ""
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $370",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$290",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$0",
+          "y2027": "$600 (does not apply to tier 1 or 2)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "$0 / $4 / 20% / 25% / 26% (1-month preferred)"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$500 per year",
+          "y2027": "$700 allowance"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "",
+          "y2027": "$100 allowance (eyewear)"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$399 - $1,800 (2 per year)",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not included"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $275",
+          "y2027": "Not included"
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Included"
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alexander, Anson, Cabarrus, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Union"
+        }
+      ],
+      "carrier": "Healthspring",
+      "cms_code": "H9725-015-001",
+      "plan_name": "HealthSpring Preferred Savings (HMO)"
+    }
+  ]
+}

@@ -45,3 +45,8 @@ stitch_founders_portal_lux/
 
 # proposal PDF is generated from proposal-onepager.html
 docs/proposal-onepager.pdf
+
+# Google Sheets sync (Medicare plan data)
+.google-service-account.json
+.plan-sheet-id
+.venv-sheets/

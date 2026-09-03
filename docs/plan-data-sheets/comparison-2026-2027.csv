@@ -197,6 +197,337 @@ UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Meals,$0,
 UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Fitness,,Free gym membership with core network
 UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Wellness programs,$0,
 UHC,H2406-098-000,AARP Medicare Advantage from UHC NC-0017,Key notes,,Not covered
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Premium,$0.00,$0
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Part B giveback,,$0
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Medical deductible,,$0
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Max out-of-pocket,"$5,500","$5,500"
+Aetna,H3146-001,Aetna Medicare Signature (HMO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Specialist,$0 - $40,$30 copay
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Outpatient surgery (ASC),$0 - $300,$358 copay
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Emergency room,$130,$130 copay
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Urgent care,$50,$50 copay
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Ambulance (ground),$0 - $382,$310 copay
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Diagnostic radiology,20%,
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,500 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $35 copay"
+Aetna,H3146-001,Aetna Medicare Signature (HMO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Transportation,$0 - $332,
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-001,Aetna Medicare Signature (HMO),Wellness programs,20%,
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Premium,$36.20,$0
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Medical deductible,,$0
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Max out-of-pocket,"$9,250","$9,850 So long as Medicaid continues to pay your Medicare deductible, coinsurance, and copayments, you will not have a maximum out-of-pocket responsibility."
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),PCP,20%,$0 copay In-network PCP selection is required.
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Specialist,20%,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Inpatient hospital,,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Outpatient surgery (ASC),0% - 20%,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Emergency room,$115,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Urgent care,$40,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Ambulance (ground),20%,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Lab services,20%,$0 copay
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Diagnostic radiology,20%,
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Dental - allowance,"$2,000 per year","Our plan pays $2,000 every year for in-network preventive and comprehensive dental services combined. You must use the Aetna Dental PPO Network."
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $0 copay"
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),OTC allowance,$205 per lifetime,Over-the-Counter (OTC) Wallet $248 benefit amount (allowance) monthly on the Aetna Medicare Extra Benefits Card to help pay for certain OTC health and wellness products.
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Transportation,20%,
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Meals,$0,"Up to 14 home-delivered meals over a 7-day period after being discharged from an Inpatient Acute Hospital, Inpatient Psychiatric Hospital or Skilled Nursing Facility."
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-002,Aetna Medicare Full Dual (HMO D-SNP),Wellness programs,20%,
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Premium,$0.00,$0
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Part B giveback,,$0
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Medical deductible,,$0
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Max out-of-pocket,"$6,750","$6,750"
+Aetna,H3146-004,Aetna Medicare Signature (HMO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Specialist,$0 - $45,$45 copay
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Outpatient surgery (ASC),$0 - $300,$358 copay
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Emergency room,$130,$130 copay
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Urgent care,$50,$50 copay
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Ambulance (ground),$0 - $382,$310 copay
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Diagnostic radiology,20%,
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $35 copay"
+Aetna,H3146-004,Aetna Medicare Signature (HMO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Transportation,$0 - $332,
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-004,Aetna Medicare Signature (HMO),Wellness programs,20%,
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Premium,$0.00,$0
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Medical deductible,,$0
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Max out-of-pocket,"$5,200","$5,200"
+Aetna,H3146-007,Aetna Medicare Prime (HMO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Specialist,$0 - $20,$20 copay
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Outpatient surgery (ASC),$0 - $300,$358 copay
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Emergency room,$130,$130 copay
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Urgent care,$50,$50 copay
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Diagnostic radiology,20%,
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,500 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $35 copay"
+Aetna,H3146-007,Aetna Medicare Prime (HMO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Transportation,$0 - $332,
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-007,Aetna Medicare Prime (HMO),Wellness programs,20%,
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Premium,$28.20,$0
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Medical deductible,,$0
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Max out-of-pocket,"$9,250","$9,850 long as Medicaid continues to pay your Medicare deductible, coinsurance, and copayments, you will not have a maximum out-of-pocket responsibility."
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),PCP,20%,$0 copay In-network PCP selection is required.
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Specialist,20%,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Inpatient hospital,,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Outpatient surgery (ASC),0% - 20%,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Emergency room,$115,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Urgent care,$40,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Ambulance (ground),20%,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Lab services,20%,$0 copay
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Diagnostic radiology,20%,
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Dental - allowance,,plan pays $500 every year for in-network preventive and comprehensive dental services combined. You must use the Aetna Dental PPO Network.
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $0 copay"
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),OTC allowance,$285 per lifetime,Over-the-Counter (OTC) Wallet benefit amount (allowance) monthly on the Aetna Medicare Extra Card to help pay for certain OTC health and wellness products.
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Transportation,20%,
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Meals,$0,"to 14 home-delivered meals over a 7-day period after being discharged from an Inpatient Acute Hospital, Inpatient Psychiatric Hospital or Skilled Nursing Facility."
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-022,Aetna Medicare Full Dual Care (HMO D-SNP),Wellness programs,20%,
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Premium,$0.00,$0
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Medical deductible,,$0
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Max out-of-pocket,"$6,750","$6,750"
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Specialist,$0 - $45,"$0 - $35 copay for certain physician specialist visits including: Cardiologists, Endocrinologists, Nephrologists, and Pulmonologists $35 copay for all other physician specialist visits"
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"per day, days 1-5; $0 per day, days 6-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Outpatient surgery (ASC),$0 - $300,$420 copay
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Emergency room,$130,$130 copay
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Urgent care,$50,$50 copay
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Ambulance (ground),$0 - $382,$310 copay
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Lab services,$275,$0 copay
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Diagnostic radiology,20%,
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Dental - allowance,,"$0 - 50% cost share. pays for preventive dental services and $1,250 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Hearing aids,$0 (2 per year),Our plan pays $500 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $35 copay
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),OTC allowance,$40 per lifetime,Over-the-Counter (OTC) Wallet benefit amount (allowance) monthly on the Aetna Medicare Extra Card to help pay for certain OTC health and wellness products.
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Transportation,$0 - $332,
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-037,Aetna Medicare Chronic Care (HMO C-SNP),Wellness programs,20%,
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Premium,$63.00,$49
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Medical deductible,,$0
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Max out-of-pocket,"$5,900","$5,900"
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Specialist,$0 - $10,$10 copay
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Inpatient hospital,$395 days 1-5 / $0 days 6-90,"$395 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Outpatient surgery (ASC),$0 - $20,$345 copay
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Emergency room,$130,$130 copay
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Urgent care,$20,$50 copay
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Ambulance (ground),$0 - $395,$315 copay
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Lab services,$275,$0 - $10 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Diagnostic radiology,20%,
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $3,000 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Vision - eyeglasses,$0,Our plan pays $300 every year for prescription eyewear. You must use the EyeMed network.
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing®. $20 copay"
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Transportation,$0 - $295,
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H3146-039,Aetna Medicare Enhanced (HMO),Wellness programs,20%,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Premium,Not Applicable,$0 (must continue to pay Medicare Part B premium)
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Part B giveback,,Up to $912 yearly
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Max out-of-pocket,"$9,250.00","$6,000-$9,850 with federal retiree benefits; $9,850 without"
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),PCP,20%,$0 with federal retiree benefits; 20% of cost without
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Specialist,20%,$0 with federal retiree benefits; 20% of cost without
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Inpatient hospital,$838 days 1-60,"$0 with federal retiree benefits; $2,241 copay per stay up to 90 days without"
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Outpatient surgery (ASC),20%,$0 with federal retiree benefits; 20% of cost without
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Emergency room,$115,$0 with federal retiree benefits; $115 copay without
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Urgent care,$40,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Ambulance (ground),20%,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Lab services,20%,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Diagnostic radiology,20%,$0 with federal retiree benefits; 20% of cost without
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Rx deductible,,Covered with federal retiree benefits; not covered without
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Vision - eyeglasses,$0,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),OTC allowance,$0,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Transportation,20%,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Meals,$0,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Wellness programs,$0,
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Service area,,"Alamance, Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Buncombe, Burke, Cabarrus, Caldwell, Camden, Carteret, Caswell, Catawba, Chatham, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Davidson, Davie, Duplin, Durham, Edgecombe, Forsyth, Franklin, Gaston, Gates, Graham, Granville, Greene, Guilford, Halifax, Harnett, Haywood, Henderson, Hertford, Hoke, Hyde, Iredell, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mecklenburg, Mitchell, Montgomery, Moore, Nash, New Hanover, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Person, Pitt, Polk, Randolph, Richmond, Robeson, Rockingham, Rowan, Rutherford, Sampson, Scotland, Stanly, Stokes, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilkes, Wilson, Yadkin, Yancey"
+BCBS,H3404-004,Blue Medicare Freedom+ (PPO),Key notes,,Benefits are illustrative and based on 2026 federal retiree benefits and having Medicare Advantage pay primary. Members pay 40% for most out-of-network services.
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Premium,Not Applicable,$0
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Part B giveback,,$35 a month
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Max out-of-pocket,"$3,900","$3,900"
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),PCP,$0,$0
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Specialist,$25,$25
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Inpatient hospital,$295 days 1-6 / $0 days 7-90,$295 days 1-6
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Outpatient surgery (ASC),$0 - $300,$0-$225
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Emergency room,$150,$150
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Urgent care,$65,$65
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Ambulance (ground),$0 - $275,$250
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Lab services,$250,
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Diagnostic radiology,$250,$0-$300
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Rx deductible,,No prescription benefits offered with this plan
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Dental - allowance,"$2,000 per year","$2,000 combined; OON at 20% and 40%"
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Vision - eyeglasses,$0,$300 per year
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),OTC allowance,$100 per visit,$100 per quarter (no rollover)
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Transportation,$0 - $225,
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Meals,$0,2 per day for 7 days (post-discharge)
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Wellness programs,$0,
+BCBS,H3449-012,Blue Medicare Medical Only (HMO-POS),Service area,,"Alamance, Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Buncombe, Burke, Cabarrus, Caldwell, Camden, Carteret, Caswell, Catawba, Chatham, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Davidson, Davie, Duplin, Durham, Edgecombe, Forsyth, Franklin, Gaston, Gates, Graham, Granville, Greene, Guilford, Halifax, Harnett, Haywood, Henderson, Hertford, Hoke, Hyde, Iredell, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mecklenburg, Mitchell, Montgomery, Moore, Nash, New Hanover, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Person, Pitt, Polk, Randolph, Richmond, Robeson, Rockingham, Rowan, Rutherford, Sampson, Scotland, Stanly, Stokes, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilkes, Wilson, Yadkin, Yancey"
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Premium,$0.00,$0
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Medical deductible,,$130
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Max out-of-pocket,"$4,900","$5,900"
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),PCP,$0,$0
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Specialist,$20,$30
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Inpatient hospital,$400 days 1-6 / $0 days 7-90,$450 days 1-6
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Outpatient surgery (ASC),$0 - $300,$0-$350
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Emergency room,$130,$130
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Urgent care,$50,$50
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Ambulance (ground),$0 - $400,$300
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Lab services,$300,
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Diagnostic radiology,$300,$0-$300
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Rx deductible,"$615 (tiers 1,2,6 exempt)","$700 (Tiers 3, 4, and 5)"
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Rx retail (30-day),,T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Dental - allowance,"$1,500 per year",$0 / OON at 40%
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Vision - eyeglasses,$0,$100 per year
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),OTC allowance,$49 per visit,
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Transportation,$0 - $350,
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Meals,$0,Two per day for 7 days (post-discharge)
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Wellness programs,$0,
+BCBS,H3449-023-001,Blue Medicare Essential Plus (HMO-POS),Service area,,"Alamance, Buncombe, Burke, Catawba, Chatham, Davidson, Davie, Forsyth, Guilford, Haywood, Iredell, Mecklenburg, New Hanover, Person, Randolph, Rockingham, Stokes, Yadkin"
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Premium,$0.00,$0
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Medical deductible,,$150
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Max out-of-pocket,"$5,400","$7,000"
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),PCP,$0,$0
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Specialist,$25,$40
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Inpatient hospital,$400 days 1-6 / $0 days 7-90,$450 days 1-6
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Outpatient surgery (ASC),$0 - $300,$0-$350
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Emergency room,$130,$130
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Urgent care,$50,$50
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Ambulance (ground),$0 - $400,$300
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Lab services,$300,
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Diagnostic radiology,$300,$0-$300
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Rx deductible,"$615 (tiers 1,2,6 exempt)","$700 (Tiers 3, 4, and 5)"
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Rx retail (30-day),,T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Dental - allowance,"$1,500 per year",$0 / OON at 40%
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Vision - eyeglasses,$0,$100 per year
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),OTC allowance,$40 per visit,
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Transportation,$0 - $350,
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Meals,$0,Two per day for 7 days (post-discharge)
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Wellness programs,$0,
+BCBS,H3449-023-002,Blue Medicare Essential Plus (HMO-POS),Service area,,"Alexander, Brunswick, Caswell, Cumberland, Durham, Harnett, Hoke, Johnston, Macon, Madison, McDowell, Mitchell, Moore, Orange, Polk, Rowan, Surry, Union, Wake, Yancey"
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Premium,$0.00,$0
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Medical deductible,,$90
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Max out-of-pocket,"$6,750","$8,400"
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),PCP,$0,$5
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Specialist,$30,$60
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Inpatient hospital,$400 days 1-6 / $0 days 7-90,$400 days 1-6
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Outpatient surgery (ASC),$0 - $300,$0-$350
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Emergency room,$130,$115
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Urgent care,$50,$40
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Ambulance (ground),$0 - $400,$300
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Lab services,$300,
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Diagnostic radiology,$300,$0-$300
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Rx deductible,"$615 (tiers 1,2,6 exempt)","$700 (Tiers 3, 4, and 5)"
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Rx retail (30-day),,T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Dental - allowance,"$1,500 per year",$0 / OON at 40%
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Vision - eyeglasses,$0,$100 per year
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),OTC allowance,$30 per visit,
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Transportation,$0 - $350,
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Meals,$0,Two per day for 7 days (post-discharge)
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Wellness programs,$0,
+BCBS,H3449-023-004,Blue Medicare Essential Plus (HMO-POS),Service area,,"Anson, Cabarrus, Camden, Carteret, Cherokee, Clay, Craven, Currituck, Dare, Franklin, Granville, Montgomery, Onslow, Pasquotank, Perquimans, Stanly, Vance, Warren, Wilkes"
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Premium,$0.00,$0
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Medical deductible,,$100
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Max out-of-pocket,"$7,450","$9,850"
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),PCP,$0,$5
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Specialist,$40,$60
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Inpatient hospital,$400 days 1-6 / $0 days 7-90,$400 days 1-6
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Outpatient surgery (ASC),$0 - $300,$0-$350
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Emergency room,$115,$115
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Urgent care,$40,$40
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Ambulance (ground),$0 - $400,$300
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Lab services,$300,
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Diagnostic radiology,$300,$0-$300
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Rx deductible,"$615 (tiers 1,2,6 exempt)","$700 (Tiers 3, 4, and 5)"
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Rx retail (30-day),,T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Dental - allowance,"$1,500 per year",$0 / OON at 40%
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Vision - eyeglasses,$0,$65 per year
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),OTC allowance,$25 per visit,
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Transportation,$0 - $350,
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Meals,$0,Two per day for 7 days (post-discharge)
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Wellness programs,$0,
+BCBS,H3449-023-005,Blue Medicare Essential Plus (HMO-POS),Service area,,"Alleghany, Ashe, Avery, Beaufort, Bertie, Bladen, Caldwell, Chowan, Cleveland, Columbus, Duplin, Edgecombe, Gates, Graham, Greene, Halifax, Henderson, Hertford, Hyde, Jackson, Jones, Lee, Lenoir, Lincoln, Martin, Nash, Northampton, Pamlico, Pender, Richmond, Robeson, Rutherford, Sampson, Scotland, Swain, Transylvania, Tyrrell, Washington, Watauga, Wayne, Wilson"
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Premium,$0.00,$0
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Part B giveback,,$36 monthly
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Medical deductible,,$155
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Max out-of-pocket,"$9,250","$9,850"
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),PCP,$5,$5
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Specialist,$45,$50
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Inpatient hospital,$407 days 1-6 / $0 days 7-90,$407 days 1-6
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Outpatient surgery (ASC),$0 - $300,$0-$300
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Emergency room,$115,$115
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Urgent care,$40,$40
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Ambulance (ground),$0 - $335,$275
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Lab services,$275,
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Diagnostic radiology,$275,$0-$300
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Rx deductible,"$615 (tiers 1,2,6 exempt)","$700 (Tiers 3, 4, and 5)"
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Rx retail (30-day),,T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Vision - eyeglasses,$0,
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),OTC allowance,$0,
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Transportation,$0 - $300,
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Meals,$0,Two per day for 7 days (post-discharge)
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Wellness programs,$0,
+BCBS,H3449-027-001,Blue Medicare Essential (HMO),Service area,,"Alamance, Buncombe, Burke, Catawba, Chatham, Davidson, Davie, Forsyth, Gaston, Guilford, Haywood, Iredell, Mecklenburg, New Hanover, Person, Randolph, Rockingham, Stokes, Wilkes, Yadkin"
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Premium,$0.00,$0
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Part B giveback,,$51 monthly
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Medical deductible,,$140
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Max out-of-pocket,"$9,250","$9,850"
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),PCP,$10,$10
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Specialist,$45,$50
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Inpatient hospital,$407 days 1-6 / $0 days 7-90,$407 days 1-6
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Outpatient surgery (ASC),$0 - $300,$0-$300
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Emergency room,$115,$115
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Urgent care,$40,$40
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Ambulance (ground),$0 - $335,$275
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Lab services,$275,
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Diagnostic radiology,$275,$0-$300
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Rx deductible,"$615 (tiers 1,2,6 exempt)","$700 (Tiers 3, 4, and 5)"
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Rx retail (30-day),,T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Vision - eyeglasses,$0,
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Hearing aids,$499 - $999 (2 per year),$499-$999 (1 per ear per year)
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),OTC allowance,$0,
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Transportation,$0 - $300,
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Meals,$0,Two per day for 7 days (post-discharge)
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Wellness programs,$0,
+BCBS,H3449-027-002,Blue Medicare Essential (HMO),Service area,,"Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Cabarrus, Caldwell, Camden, Carteret, Caswell, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Duplin, Durham, Edgecombe, Franklin, Gates, Graham, Granville, Greene, Halifax, Harnett, Henderson, Hertford, Hoke, Hyde, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mitchell, Montgomery, Moore, Nash, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Pitt, Polk, Richmond, Robeson, Rowan, Rutherford, Sampson, Scotland, Stanly, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilson, Yancey"
 Humana,H5216-017-000,HumanaChoice Giveback (PPO),Premium,$0.00,$0
 Humana,H5216-017-000,HumanaChoice Giveback (PPO),Part B giveback,,$79
 Humana,H5216-017-000,HumanaChoice Giveback (PPO),Max out-of-pocket,,"$9,850 INN"
@@ -635,6 +966,198 @@ Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Transportation,$
 Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Wellness programs,,$150 per year
 Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Service area,,"Western North Carolina (Avery, Buncombe, Burke, Cherokee, Clay, Graham, Haywood, Henderson, Jackson, Macon, Madison, McDowell, Mitchell, Polk, Rutherford, Swain, Transylvania, Yancey)"
 Devoted,H5299-018-000,DEVOTED C-SNP ENHANCED 018 NC (HMO C-SNP),Key notes,,"LIS members pay the lower of their LIS cost share or Part D plan copay. To avoid disenrollment, members must submit their portion of the C-SNP form with their enrollment form, and have their provider complete their section within 2 months. The Food & Home Card is only for chronically ill members who meet specific health criteria (see SB/EOC for details). We proactively review health records to check eligibility. Completing an HRA can help speed up this process."
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Premium,$0.00,$0
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Part B giveback,,$0
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Medical deductible,,$0
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Max out-of-pocket,"$5,900.00","$5,900 for in-network services. $6,900 for in- and out-of-network"
+Aetna,H5521-081,Aetna Medicare Signature (PPO),PCP,$0,$0 copay
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Specialist,$0 - $35,$35 copay
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Outpatient surgery (ASC),$0 - $300,$409 copay
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Emergency room,$130,$130 copay
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Urgent care,$50,$50 copay
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Ambulance (ground),$0 - $382,$310 copay
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Diagnostic radiology,20%,
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Rx deductible,"$500 (tiers 1,2 exempt)",
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,250 every year for comprehensive dental services. Aetna Dental PPO Network"
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-081,Aetna Medicare Signature (PPO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Transportation,$0 - $332,
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-081,Aetna Medicare Signature (PPO),Wellness programs,20%,
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Premium,$21.00,$25
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Medical deductible,,$0
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Max out-of-pocket,"$6,750.00","$6,750 for in-network services. $7,750 for in- and out-of-network services"
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Specialist,$0 - $35,$41 copay
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Outpatient surgery (ASC),$0 - $300,$409 copay
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Emergency room,$130,$130 copay
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Urgent care,$50,$50 copay
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Diagnostic radiology,20%,
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. Aetna Dental PPO Network"
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Transportation,$0 - $332,
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-139,Aetna Medicare Enhanced (PPO),Wellness programs,20%,
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Premium,$20.00,$24
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Medical deductible,,$0
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Max out-of-pocket,"$5,900.00","$5,900 for in-network services. $6,900 for in- and out-of-network services"
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Specialist,$0 - $40,$40 copay
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Outpatient surgery (ASC),$0 - $300,$409 copay
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Emergency room,$130,$130 copay
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Urgent care,$50,$50 copay
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Diagnostic radiology,20%,
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,250 every year for comprehensive dental services. Aetna Dental PPO Network"
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Transportation,$0 - $332,
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-169,Aetna Medicare Enhanced (PPO),Wellness programs,20%,
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Premium,$0.00,$0
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Part B giveback,,$0
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Medical deductible,,$0
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Max out-of-pocket,"$5,900.00","$5,900 for in-network services. $6,900 for in- and out-of-network"
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),PCP,$0,$0 copay
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Specialist,$0 - $30,$30 copay
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Outpatient surgery (ASC),$0 - $300,$409 copay
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Emergency room,$130,$130 copay
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Urgent care,$20,$50 copay
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Lab services,$275,$0 - $25 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Diagnostic radiology,20%,
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Rx deductible,"$500 (tiers 1,2 exempt)",
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,750 every year for comprehensive dental services. Aetna Dental PPO Network"
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Transportation,$0 - $332,
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-170,Aetna Medicare Signature Extra (PPO),Wellness programs,20%,
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Premium,$0.00,$0
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Medical deductible,,$0
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Max out-of-pocket,"$6,750.00","$9,850 for in-network services. $10,850 for in- and out-of-network services"
+Aetna,H5521-236,Aetna Medicare Signature (PPO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Specialist,$0 - $50,$56 copay
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Outpatient surgery (ASC),$0 - $300,$358 copay
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Emergency room,$130,$115 copay
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Urgent care,$50,$40 copay
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Lab services,$275,$0 - $50 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Diagnostic radiology,20%,
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Dental - allowance,,$0 for preventive services. Comprehensive services are not covered. Aetna Dental PPO Network
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $40 copay"
+Aetna,H5521-236,Aetna Medicare Signature (PPO),OTC allowance,$30 per visit,Not offered with this plan
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Transportation,$0 - $332,
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-236,Aetna Medicare Signature (PPO),Wellness programs,20%,
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Premium,Not Applicable,$0
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Part B giveback,,$120
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Medical deductible,,$0
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Max out-of-pocket,"$6,750.00","$7,150 for in-network services. $8,150 for in- and out-of-network"
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Specialist,$0 - $35,$35 copay
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Outpatient surgery (ASC),$0 - $300,$409 copay
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Emergency room,$130,$130 copay
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Urgent care,$50,$50 copay
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Lab services,$275,$0 copay
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Diagnostic radiology,20%,
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Dental - allowance,"$2,000 per year","Our plan pays $2,000 every year for in and out-of network preventive and comprehensive dental services combined. Aetna Dental PPO Network"
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Vision - eyeglasses,$0,Our plan pays $250 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $30 copay"
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),OTC allowance,$50 per visit,CVS Over-the-counter
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Transportation,$0 - $282,
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-241,Aetna Medicare Eagle (PPO),Wellness programs,20%,
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Premium,$0.00,$0
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Medical deductible,,$0
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Max out-of-pocket,"$6,750.00","$6,750 for in-network services. $7,750 for in- and out-of-network services"
+Aetna,H5521-243,Aetna Medicare Signature (PPO),PCP,$0,$0 copay In-network PCP selection is required.
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Specialist,$0 - $50,$50 copay
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Outpatient surgery (ASC),$0 - $300,$409 copay
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Emergency room,$130,$130 copay
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Urgent care,$50,$50 copay
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Ambulance (ground),$0 - $382,$315 copay
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Lab services,$275,$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Diagnostic radiology,20%,
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. Aetna Dental PPO Network"
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-243,Aetna Medicare Signature (PPO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Transportation,$0 - $332,
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-243,Aetna Medicare Signature (PPO),Wellness programs,20%,
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Premium,$0.00,$0
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Part B giveback,,$30
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Medical deductible,,$0
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Max out-of-pocket,"$7,500.00","$7,500 for in-network services. $8,500 for in- and out-of-network"
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),PCP,$0,$0 copay
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Specialist,$0 - $50,$56 copay
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Inpatient hospital,$388 days 1-7 / $0 days 8-90,"$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Outpatient surgery (ASC),$0 - $300,$358 copay
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Emergency room,$115,$115 copay
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Urgent care,$40,$40 copay
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Ambulance (ground),$0 - $388,$315 copay
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Lab services,$275,$0 - $50 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Diagnostic radiology,20%,
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Dental - allowance,,"$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. Aetna Dental PPO Network"
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),OTC allowance,$30 per visit,CVS Over-the-counter
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Transportation,$0 - $338,
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-348,Aetna Medicare Signature Giveback (PPO),Wellness programs,20%,
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Premium,$0.00,$0
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Medical deductible,,$0
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Max out-of-pocket,"$6,750.00","$9,850 for in-network services. $10,850 for in- and out-of-network services"
+Aetna,H5521-609,Aetna Medicare Signature (PPO),PCP,$10,$0 copay In-network PCP selection is required.
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Specialist,$0 - $55,$60 copay
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Referrals,,This plan doesn’t require a referral to see a specialist.
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Inpatient hospital,$382 days 1-8 / $0 days 9-90,"$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Outpatient surgery (ASC),$0 - $300,$358 copay
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Emergency room,$130,$115 copay
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Urgent care,$50,$40 copay
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Ambulance (ground),$0 - $382,$300 copay
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Lab services,$275,$0 - $55 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Diagnostic radiology,20%,
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Rx deductible,"$615 (tiers 1,2 exempt)",
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Dental - allowance,,$0 for preventive services. Comprehensive services are not covered. Aetna Dental PPO Network
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Vision - eyeglasses,$0,Our plan pays $100 every year for prescription eyewear. EyeMed Network
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Hearing aids,$0 (2 per year),"Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing®. $35 copay"
+Aetna,H5521-609,Aetna Medicare Signature (PPO),OTC allowance,,Not offered with this plan
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Transportation,$0 - $332,
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Fitness,,Physical fitness program: Basic SilverSneakers® membership.
+Aetna,H5521-609,Aetna Medicare Signature (PPO),Wellness programs,20%,
 Humana,H5525-035-000,HumanaChoice Giveback (PPO),Premium,$0.00,$0
 Humana,H5525-035-000,HumanaChoice Giveback (PPO),Part B giveback,,$110
 Humana,H5525-035-000,HumanaChoice Giveback (PPO),Max out-of-pocket,,"$9,850"
@@ -696,6 +1219,29 @@ Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Transportation,$0 - $375,
 Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Meals,$0,
 Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Wellness programs,$0,
 Humana,H5525-072-000,Humana Dual Select (PPO D-SNP),Service area,,"Statewide (ex. Craven, Carteret, Onslow)"
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Premium,$18.70,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Max out-of-pocket,"$9,250","$9,850"
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),PCP,20%,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Specialist,20%,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Inpatient hospital,,$0 days 1-90
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Outpatient surgery (ASC),20%,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Emergency room,$115,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Urgent care,$40,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Ambulance (ground),20%,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Lab services,20%,
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Diagnostic radiology,20%,$0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Rx deductible,"$615 (tiers 1,2,6 exempt)",No deductible
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Rx retail (30-day),,T1 $0 / T2 $0 / T3 $0-$14.40 / T4 $0-$14.40 / T5 $0-$14.40 / T6 $0
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Dental - allowance,"$3,000 per year","$0; $3,000 combined OON on covered dental services (preventative and comprehensive)"
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Vision - eyeglasses,$0,$400 per year
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Hearing aids,$0 (2 per month),"$0 (1 per ear, every 3 years) - advanced hearing aids"
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),OTC allowance,$250 per lifetime,"$236 per month (OTC/healthy food allowance, no rollover)"
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Transportation,20%,$0 (for 48 one-way rides)
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Meals,$0,Two per day for 14 days (post-discharge)
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Fitness,,$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers).
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Wellness programs,$0,
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Service area,,"Alamance, Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Buncombe, Burke, Cabarrus, Caldwell, Camden, Carteret, Caswell, Catawba, Chatham, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Davidson, Davie, Duplin, Durham, Edgecombe, Forsyth, Franklin, Gaston, Gates, Graham, Granville, Greene, Guilford, Halifax, Harnett, Haywood, Henderson, Hertford, Hoke, Hyde, Iredell, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mecklenburg, Mitchell, Montgomery, Moore, Nash, New Hanover, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Person, Pitt, Polk, Randolph, Richmond, Robeson, Rockingham, Rowan, Rutherford, Sampson, Scotland, Stanly, Stokes, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilkes, Wilson, Yadkin, Yancey"
+BCBS,H9147-001,Healthy Blue + Medicare (HMO-POS D-SNP),Key notes,,"Without Extra Help there is a $700 deductible and 25% coinsurance applied to Tiers 3, 4 and 5. Special Supplemental Benefits for the Chronically Ill (SSBCI) may apply."
 Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Premium,$0.00,
 Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Max out-of-pocket,"$5,400.00",
 Devoted,H9700-001-000,DEVOTED CHOICE 001 NC (PPO),Specialist,$30,
@@ -922,3 +1468,7 @@ Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Transportation,$
 Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Meals,,Included
 Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Fitness,,Included
 Healthspring,H9725-015-001,HealthSpring Preferred Savings (HMO),Service area,,"Alexander, Anson, Cabarrus, Catawba, Cleveland, Gaston, Iredell, Lincoln, Mecklenburg, Rowan, Union"
+Aetna,S5601-016-000,SilverScript Choice (PDP),Premium,$90.20,$143.50
+Aetna,S5601-016-000,SilverScript Choice (PDP),Max out-of-pocket,,"$2,400"
+Aetna,S5601-016-000,SilverScript Choice (PDP),Rx deductible,,$700 (Tiers 1-5)
+Aetna,S5601-016-000,SilverScript Choice (PDP),Key notes,,Plan highlights: solid generic and brand coverage. 90-day supply = 3x retail cost sharing. LIS cost sharing - generic: $0 / $1.65 / $5.80; brand: $0 / $5 / $14.40.

@@ -1066,6 +1066,1766 @@
         {
           "benefit": "Part B giveback",
           "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,500",
+          "y2027": "$5,500"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $40",
+          "y2027": "$30 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$358 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$310 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,500 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-001",
+      "plan_name": "Aetna Medicare Signature (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$36.20",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850 So long as Medicaid continues to pay your Medicare deductible, coinsurance, and copayments, you will not have a maximum out-of-pocket responsibility."
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "20%",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "0% - 20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "Our plan pays $2,000 every year for in-network preventive and comprehensive dental services combined. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $0 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$205 per lifetime",
+          "y2027": "Over-the-Counter (OTC) Wallet $248 benefit amount (allowance) monthly on the Aetna Medicare Extra Benefits Card to help pay for certain OTC health and wellness products."
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Up to 14 home-delivered meals over a 7-day period after being discharged from an Inpatient Acute Hospital, Inpatient Psychiatric Hospital or Skilled Nursing Facility."
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-002",
+      "plan_name": "Aetna Medicare Full Dual (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750",
+          "y2027": "$6,750"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $45",
+          "y2027": "$45 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$358 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$310 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-004",
+      "plan_name": "Aetna Medicare Signature (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,200",
+          "y2027": "$5,200"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $20",
+          "y2027": "$20 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$358 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,500 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-007",
+      "plan_name": "Aetna Medicare Prime (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$28.20",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850 long as Medicaid continues to pay your Medicare deductible, coinsurance, and copayments, you will not have a maximum out-of-pocket responsibility."
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "20%",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "0% - 20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "20%",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "plan pays $500 every year for in-network preventive and comprehensive dental services combined. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $0 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$285 per lifetime",
+          "y2027": "Over-the-Counter (OTC) Wallet benefit amount (allowance) monthly on the Aetna Medicare Extra Card to help pay for certain OTC health and wellness products."
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "to 14 home-delivered meals over a 7-day period after being discharged from an Inpatient Acute Hospital, Inpatient Psychiatric Hospital or Skilled Nursing Facility."
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-022",
+      "plan_name": "Aetna Medicare Full Dual Care (HMO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750",
+          "y2027": "$6,750"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $45",
+          "y2027": "$0 - $35 copay for certain physician specialist visits including: Cardiologists, Endocrinologists, Nephrologists, and Pulmonologists $35 copay for all other physician specialist visits"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "per day, days 1-5; $0 per day, days 6-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$420 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$310 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. pays for preventive dental services and $1,250 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $500 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$40 per lifetime",
+          "y2027": "Over-the-Counter (OTC) Wallet benefit amount (allowance) monthly on the Aetna Medicare Extra Card to help pay for certain OTC health and wellness products."
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-037",
+      "plan_name": "Aetna Medicare Chronic Care (HMO C-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$63.00",
+          "y2027": "$49"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,900",
+          "y2027": "$5,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $10",
+          "y2027": "$10 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$395 days 1-5 / $0 days 6-90",
+          "y2027": "$395 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $20",
+          "y2027": "$345 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$20",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $395",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $10 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $3,000 every year for comprehensive dental services. You must use the Aetna Dental PPO Network."
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $300 every year for prescription eyewear. You must use the EyeMed network."
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids must be purchased through NationsHearing\u00ae. $20 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $295",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H3146-039",
+      "plan_name": "Aetna Medicare Enhanced (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "Not Applicable",
+          "y2027": "$0 (must continue to pay Medicare Part B premium)"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "Up to $912 yearly"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250.00",
+          "y2027": "$6,000-$9,850 with federal retiree benefits; $9,850 without"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "20%",
+          "y2027": "$0 with federal retiree benefits; 20% of cost without"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "20%",
+          "y2027": "$0 with federal retiree benefits; 20% of cost without"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$838 days 1-60",
+          "y2027": "$0 with federal retiree benefits; $2,241 copay per stay up to 90 days without"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "20%",
+          "y2027": "$0 with federal retiree benefits; 20% of cost without"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$0 with federal retiree benefits; $115 copay without"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": ""
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": "$0 with federal retiree benefits; 20% of cost without"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "Covered with federal retiree benefits; not covered without"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Buncombe, Burke, Cabarrus, Caldwell, Camden, Carteret, Caswell, Catawba, Chatham, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Davidson, Davie, Duplin, Durham, Edgecombe, Forsyth, Franklin, Gaston, Gates, Graham, Granville, Greene, Guilford, Halifax, Harnett, Haywood, Henderson, Hertford, Hoke, Hyde, Iredell, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mecklenburg, Mitchell, Montgomery, Moore, Nash, New Hanover, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Person, Pitt, Polk, Randolph, Richmond, Robeson, Rockingham, Rowan, Rutherford, Sampson, Scotland, Stanly, Stokes, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilkes, Wilson, Yadkin, Yancey"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Benefits are illustrative and based on 2026 federal retiree benefits and having Medicare Advantage pay primary. Members pay 40% for most out-of-network services."
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3404-004",
+      "plan_name": "Blue Medicare Freedom+ (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "Not Applicable",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$35 a month"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$3,900",
+          "y2027": "$3,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$25",
+          "y2027": "$25"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$295 days 1-6 / $0 days 7-90",
+          "y2027": "$295 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$225"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$150",
+          "y2027": "$150"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$65",
+          "y2027": "$65"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $275",
+          "y2027": "$250"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$250",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$250",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "No prescription benefits offered with this plan"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "$2,000 combined; OON at 20% and 40%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "$300 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$100 per visit",
+          "y2027": "$100 per quarter (no rollover)"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $225",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "2 per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Buncombe, Burke, Cabarrus, Caldwell, Camden, Carteret, Caswell, Catawba, Chatham, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Davidson, Davie, Duplin, Durham, Edgecombe, Forsyth, Franklin, Gaston, Gates, Graham, Granville, Greene, Guilford, Halifax, Harnett, Haywood, Henderson, Hertford, Hoke, Hyde, Iredell, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mecklenburg, Mitchell, Montgomery, Moore, Nash, New Hanover, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Person, Pitt, Polk, Randolph, Richmond, Robeson, Rockingham, Rowan, Rutherford, Sampson, Scotland, Stanly, Stokes, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilkes, Wilson, Yadkin, Yancey"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-012",
+      "plan_name": "Blue Medicare Medical Only (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$4,900",
+          "y2027": "$5,900"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$20",
+          "y2027": "$30"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$400 days 1-6 / $0 days 7-90",
+          "y2027": "$450 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$350"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $400",
+          "y2027": "$300"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$300",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "$700 (Tiers 3, 4, and 5)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$0 / OON at 40%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "$100 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$49 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Buncombe, Burke, Catawba, Chatham, Davidson, Davie, Forsyth, Guilford, Haywood, Iredell, Mecklenburg, New Hanover, Person, Randolph, Rockingham, Stokes, Yadkin"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-023-001",
+      "plan_name": "Blue Medicare Essential Plus (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$150"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,400",
+          "y2027": "$7,000"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$25",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$400 days 1-6 / $0 days 7-90",
+          "y2027": "$450 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$350"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $400",
+          "y2027": "$300"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$300",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "$700 (Tiers 3, 4, and 5)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$0 / OON at 40%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "$100 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$40 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alexander, Brunswick, Caswell, Cumberland, Durham, Harnett, Hoke, Johnston, Macon, Madison, McDowell, Mitchell, Moore, Orange, Polk, Rowan, Surry, Union, Wake, Yancey"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-023-002",
+      "plan_name": "Blue Medicare Essential Plus (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$90"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750",
+          "y2027": "$8,400"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$5"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$30",
+          "y2027": "$60"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$400 days 1-6 / $0 days 7-90",
+          "y2027": "$400 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$350"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$115"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $400",
+          "y2027": "$300"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$300",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "$700 (Tiers 3, 4, and 5)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$0 / OON at 40%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "$100 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Anson, Cabarrus, Camden, Carteret, Cherokee, Clay, Craven, Currituck, Dare, Franklin, Granville, Montgomery, Onslow, Pasquotank, Perquimans, Stanly, Vance, Warren, Wilkes"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-023-004",
+      "plan_name": "Blue Medicare Essential Plus (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$100"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$7,450",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$5"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$40",
+          "y2027": "$60"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$400 days 1-6 / $0 days 7-90",
+          "y2027": "$400 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$350"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $400",
+          "y2027": "$300"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$300",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "$700 (Tiers 3, 4, and 5)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$1,500 per year",
+          "y2027": "$0 / OON at 40%"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "$65 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$25 per visit",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $350",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alleghany, Ashe, Avery, Beaufort, Bertie, Bladen, Caldwell, Chowan, Cleveland, Columbus, Duplin, Edgecombe, Gates, Graham, Greene, Halifax, Henderson, Hertford, Hyde, Jackson, Jones, Lee, Lenoir, Lincoln, Martin, Nash, Northampton, Pamlico, Pender, Richmond, Robeson, Rutherford, Sampson, Scotland, Swain, Transylvania, Tyrrell, Washington, Watauga, Wayne, Wilson"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-023-005",
+      "plan_name": "Blue Medicare Essential Plus (HMO-POS)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$36 monthly"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$155"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$5",
+          "y2027": "$5"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$407 days 1-6 / $0 days 7-90",
+          "y2027": "$407 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $335",
+          "y2027": "$275"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "$700 (Tiers 3, 4, and 5)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Buncombe, Burke, Catawba, Chatham, Davidson, Davie, Forsyth, Gaston, Guilford, Haywood, Iredell, Mecklenburg, New Hanover, Person, Randolph, Rockingham, Stokes, Wilkes, Yadkin"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-027-001",
+      "plan_name": "Blue Medicare Essential (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$51 monthly"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$140"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$10",
+          "y2027": "$10"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$45",
+          "y2027": "$50"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$407 days 1-6 / $0 days 7-90",
+          "y2027": "$407 days 1-6"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$40"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $335",
+          "y2027": "$275"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "$275",
+          "y2027": "$0-$300"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "$700 (Tiers 3, 4, and 5)"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $4 / T3 21% / T4 26% / T5 25% / T6 $0"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$499 - $999 (2 per year)",
+          "y2027": "$499-$999 (1 per ear per year)"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $300",
+          "y2027": ""
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 7 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Cabarrus, Caldwell, Camden, Carteret, Caswell, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Duplin, Durham, Edgecombe, Franklin, Gates, Graham, Granville, Greene, Halifax, Harnett, Henderson, Hertford, Hoke, Hyde, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mitchell, Montgomery, Moore, Nash, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Pitt, Polk, Richmond, Robeson, Rowan, Rutherford, Sampson, Scotland, Stanly, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilson, Yancey"
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H3449-027-002",
+      "plan_name": "Blue Medicare Essential (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
           "y2027": "$79"
         },
         {
@@ -3389,6 +5149,1029 @@
         {
           "benefit": "Part B giveback",
           "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,900.00",
+          "y2027": "$5,900 for in-network services. $6,900 for in- and out-of-network"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $35",
+          "y2027": "$35 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$409 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$310 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$500 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,250 every year for comprehensive dental services. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-081",
+      "plan_name": "Aetna Medicare Signature (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$21.00",
+          "y2027": "$25"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750.00",
+          "y2027": "$6,750 for in-network services. $7,750 for in- and out-of-network services"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $35",
+          "y2027": "$41 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$409 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-139",
+      "plan_name": "Aetna Medicare Enhanced (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$20.00",
+          "y2027": "$24"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,900.00",
+          "y2027": "$5,900 for in-network services. $6,900 for in- and out-of-network services"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $40",
+          "y2027": "$40 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$409 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,250 every year for comprehensive dental services. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-169",
+      "plan_name": "Aetna Medicare Enhanced (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$5,900.00",
+          "y2027": "$5,900 for in-network services. $6,900 for in- and out-of-network"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $30",
+          "y2027": "$30 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$409 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$20",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $25 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$500 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,750 every year for comprehensive dental services. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-170",
+      "plan_name": "Aetna Medicare Signature Extra (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750.00",
+          "y2027": "$9,850 for in-network services. $10,850 for in- and out-of-network services"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $50",
+          "y2027": "$56 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$358 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$40 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $50 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 for preventive services. Comprehensive services are not covered. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $40 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "Not offered with this plan"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-236",
+      "plan_name": "Aetna Medicare Signature (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "Not Applicable",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$120"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750.00",
+          "y2027": "$7,150 for in-network services. $8,150 for in- and out-of-network"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $35",
+          "y2027": "$35 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$409 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$2,000 per year",
+          "y2027": "Our plan pays $2,000 every year for in and out-of network preventive and comprehensive dental services combined. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $250 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $30 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$50 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $282",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-241",
+      "plan_name": "Aetna Medicare Eagle (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750.00",
+          "y2027": "$6,750 for in-network services. $7,750 for in- and out-of-network services"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$459 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$409 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$130 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$50 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $35 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-243",
+      "plan_name": "Aetna Medicare Signature (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
+          "y2027": "$30"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$7,500.00",
+          "y2027": "$7,500 for in-network services. $8,500 for in- and out-of-network"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$0",
+          "y2027": "$0 copay"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $50",
+          "y2027": "$56 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$388 days 1-7 / $0 days 8-90",
+          "y2027": "$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$358 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$40 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $388",
+          "y2027": "$315 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $50 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 - 50% cost share. Our plan pays for preventive dental services and $1,000 every year for comprehensive dental services. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$30 per visit",
+          "y2027": "CVS Over-the-counter"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $338",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-348",
+      "plan_name": "Aetna Medicare Signature Giveback (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Medical deductible",
+          "y2026": "",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$6,750.00",
+          "y2027": "$9,850 for in-network services. $10,850 for in- and out-of-network services"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "$10",
+          "y2027": "$0 copay In-network PCP selection is required."
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "$0 - $55",
+          "y2027": "$60 copay"
+        },
+        {
+          "benefit": "Referrals",
+          "y2026": "",
+          "y2027": "This plan doesn\u2019t require a referral to see a specialist."
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "$382 days 1-8 / $0 days 9-90",
+          "y2027": "$408 per day, days 1-6; $0 per day, days 7-90; $0 for additional days. Our plan covers unlimited hospital days."
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "$0 - $300",
+          "y2027": "$358 copay"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$130",
+          "y2027": "$115 copay"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$50",
+          "y2027": "$40 copay"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "$0 - $382",
+          "y2027": "$300 copay"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "$275",
+          "y2027": "$0 - $55 copay Lower cost sharing is for services provided by your primary care provider in their office. $0 copay for certain lab services"
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2 exempt)",
+          "y2027": ""
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "",
+          "y2027": "$0 for preventive services. Comprehensive services are not covered. Aetna Dental PPO Network"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "Our plan pays $100 every year for prescription eyewear. EyeMed Network"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per year)",
+          "y2027": "Our plan pays $1,250 per ear every year for hearing aids. Hearing aids should be purchased through NationsHearing\u00ae. $35 copay"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "",
+          "y2027": "Not offered with this plan"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "$0 - $332",
+          "y2027": ""
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "Physical fitness program: Basic SilverSneakers\u00ae membership."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "20%",
+          "y2027": ""
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "H5521-609",
+      "plan_name": "Aetna Medicare Signature (PPO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$0.00",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Part B giveback",
+          "y2026": "",
           "y2027": "$110"
         },
         {
@@ -3704,6 +6487,128 @@
       "carrier": "Humana",
       "cms_code": "H5525-072-000",
       "plan_name": "Humana Dual Select (PPO D-SNP)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$18.70",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "$9,250",
+          "y2027": "$9,850"
+        },
+        {
+          "benefit": "PCP",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Specialist",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Inpatient hospital",
+          "y2026": "",
+          "y2027": "$0 days 1-90"
+        },
+        {
+          "benefit": "Outpatient surgery (ASC)",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Emergency room",
+          "y2026": "$115",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Urgent care",
+          "y2026": "$40",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Ambulance (ground)",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Lab services",
+          "y2026": "20%",
+          "y2027": ""
+        },
+        {
+          "benefit": "Diagnostic radiology",
+          "y2026": "20%",
+          "y2027": "$0"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "$615 (tiers 1,2,6 exempt)",
+          "y2027": "No deductible"
+        },
+        {
+          "benefit": "Rx retail (30-day)",
+          "y2026": "",
+          "y2027": "T1 $0 / T2 $0 / T3 $0-$14.40 / T4 $0-$14.40 / T5 $0-$14.40 / T6 $0"
+        },
+        {
+          "benefit": "Dental - allowance",
+          "y2026": "$3,000 per year",
+          "y2027": "$0; $3,000 combined OON on covered dental services (preventative and comprehensive)"
+        },
+        {
+          "benefit": "Vision - eyeglasses",
+          "y2026": "$0",
+          "y2027": "$400 per year"
+        },
+        {
+          "benefit": "Hearing aids",
+          "y2026": "$0 (2 per month)",
+          "y2027": "$0 (1 per ear, every 3 years) - advanced hearing aids"
+        },
+        {
+          "benefit": "OTC allowance",
+          "y2026": "$250 per lifetime",
+          "y2027": "$236 per month (OTC/healthy food allowance, no rollover)"
+        },
+        {
+          "benefit": "Transportation",
+          "y2026": "20%",
+          "y2027": "$0 (for 48 one-way rides)"
+        },
+        {
+          "benefit": "Meals",
+          "y2026": "$0",
+          "y2027": "Two per day for 14 days (post-discharge)"
+        },
+        {
+          "benefit": "Fitness",
+          "y2026": "",
+          "y2027": "$0. Gym memberships at in-network facilities and unlimited access to the digital platform. Must use designated provider (SilverSneakers)."
+        },
+        {
+          "benefit": "Wellness programs",
+          "y2026": "$0",
+          "y2027": ""
+        },
+        {
+          "benefit": "Service area",
+          "y2026": "",
+          "y2027": "Alamance, Alexander, Alleghany, Anson, Ashe, Avery, Beaufort, Bertie, Bladen, Brunswick, Buncombe, Burke, Cabarrus, Caldwell, Camden, Carteret, Caswell, Catawba, Chatham, Cherokee, Chowan, Clay, Cleveland, Columbus, Craven, Cumberland, Currituck, Dare, Davidson, Davie, Duplin, Durham, Edgecombe, Forsyth, Franklin, Gaston, Gates, Graham, Granville, Greene, Guilford, Halifax, Harnett, Haywood, Henderson, Hertford, Hoke, Hyde, Iredell, Jackson, Johnston, Jones, Lee, Lenoir, Lincoln, Macon, Madison, Martin, McDowell, Mecklenburg, Mitchell, Montgomery, Moore, Nash, New Hanover, Northampton, Onslow, Orange, Pamlico, Pasquotank, Pender, Perquimans, Person, Pitt, Polk, Randolph, Richmond, Robeson, Rockingham, Rowan, Rutherford, Sampson, Scotland, Stanly, Stokes, Surry, Swain, Transylvania, Tyrrell, Union, Vance, Wake, Warren, Washington, Watauga, Wayne, Wilkes, Wilson, Yadkin, Yancey"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Without Extra Help there is a $700 deductible and 25% coinsurance applied to Tiers 3, 4 and 5. Special Supplemental Benefits for the Chronically Ill (SSBCI) may apply."
+        }
+      ],
+      "carrier": "BCBS",
+      "cms_code": "H9147-001",
+      "plan_name": "Healthy Blue + Medicare (HMO-POS D-SNP)"
     },
     {
       "benefits": [
@@ -4918,6 +7823,33 @@
       "carrier": "Healthspring",
       "cms_code": "H9725-015-001",
       "plan_name": "HealthSpring Preferred Savings (HMO)"
+    },
+    {
+      "benefits": [
+        {
+          "benefit": "Premium",
+          "y2026": "$90.20",
+          "y2027": "$143.50"
+        },
+        {
+          "benefit": "Max out-of-pocket",
+          "y2026": "",
+          "y2027": "$2,400"
+        },
+        {
+          "benefit": "Rx deductible",
+          "y2026": "",
+          "y2027": "$700 (Tiers 1-5)"
+        },
+        {
+          "benefit": "Key notes",
+          "y2026": "",
+          "y2027": "Plan highlights: solid generic and brand coverage. 90-day supply = 3x retail cost sharing. LIS cost sharing - generic: $0 / $1.65 / $5.80; brand: $0 / $5 / $14.40."
+        }
+      ],
+      "carrier": "Aetna",
+      "cms_code": "S5601-016-000",
+      "plan_name": "SilverScript Choice (PDP)"
     }
   ]
 }

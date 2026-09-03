@@ -1,0 +1,129 @@
+PLAN CARD TAB - setup instructions
+A 2026 vs 2027 comparison card, like AJ's charts, inside the spreadsheet.
+Pick a carrier and a plan from dropdowns; the card fills itself in.
+
+Takes about 5 minutes. No scripts needed.
+
+-------------------------------------------------------------------
+STEP 1 - make the tab
+-------------------------------------------------------------------
+Add a new tab. Name it exactly:   Plan Card
+
+-------------------------------------------------------------------
+STEP 2 - type these labels
+-------------------------------------------------------------------
+A1:   Carrier
+A2:   Plan
+A4:   Benefit
+B4:   2026
+C4:   2027
+
+Then in A5 going down, type the benefit names in this order.
+These match AJ's chart layout. Skip any you don't care about.
+
+  Premium
+  Part B giveback
+  Medical deductible
+  Max out-of-pocket
+  PCP
+  Specialist
+  Referrals
+  Inpatient hospital
+  Outpatient hospital
+  Outpatient surgery (ASC)
+  Emergency room
+  Urgent care
+  Ambulance (ground)
+  Lab services
+  Rx deductible
+  Rx retail (30-day)
+  Dental - allowance
+  Vision - eyeglasses
+  Hearing aids
+  OTC allowance
+  Fitness
+  Service area
+  Key notes
+
+(That is A5 through A27.)
+
+-------------------------------------------------------------------
+STEP 3 - carrier dropdown in B1
+-------------------------------------------------------------------
+Click B1. Data > Data validation > Add rule.
+  Criteria: "Dropdown (from a range)"
+  Range:    put this in the box, including the quotes-free text:
+
+Aetna,BCBS,Devoted,Healthspring,Humana,UHC
+
+  (Use "Dropdown" and type those six as separate items if the
+  range option is fiddly.)
+
+Pick Aetna to start.
+
+-------------------------------------------------------------------
+STEP 4 - plan dropdown in B2
+-------------------------------------------------------------------
+This one lists only the plans belonging to the carrier in B1.
+
+First, park the plan list somewhere out of the way.
+Click F1 and paste this formula:
+
+=UNIQUE(INDIRECT($B$1&"!B2:B"))
+
+That gives every plan name for the chosen carrier.
+
+Now click B2. Data > Data validation > Add rule.
+  Criteria: Dropdown (from a range)
+  Range:    'Plan Card'!F1:F200
+
+Pick a plan.
+
+-------------------------------------------------------------------
+STEP 5 - the two formulas that do all the work
+-------------------------------------------------------------------
+Click B5 and paste this:
+
+=IFERROR(INDEX(INDIRECT($B$1&"!E:E"),MATCH(1,(INDIRECT($B$1&"!B:B")=$B$2)*(INDIRECT($B$1&"!C:C")=B$4)*(INDIRECT($B$1&"!D:D")=$A5),0)),"")
+
+Press Ctrl+Shift+Enter if it doesn't work on plain Enter.
+
+Then click C5 and paste the SAME formula (it reads C4 = 2027
+automatically because of the B$4 reference):
+
+=IFERROR(INDEX(INDIRECT($B$1&"!E:E"),MATCH(1,(INDIRECT($B$1&"!B:B")=$B$2)*(INDIRECT($B$1&"!C:C")=C$4)*(INDIRECT($B$1&"!D:D")=$A5),0)),"")
+
+Now select B5:C5, copy, and paste down to B27:C27.
+
+Done. Change the dropdowns and the card refills.
+
+-------------------------------------------------------------------
+WHAT THE FORMULA IS DOING
+-------------------------------------------------------------------
+INDIRECT($B$1&"!E:E")  - look in the tab named in B1 (the carrier),
+                         column E, which is Value.
+MATCH(1, (...)*(...)*(...), 0)
+                       - find the row where plan name AND year AND
+                         benefit all match. Multiplying the three
+                         TRUE/FALSE tests together is how you do a
+                         3-condition lookup without a helper column.
+IFERROR(..., "")       - leave the cell blank if there is no such row.
+
+-------------------------------------------------------------------
+READING IT
+-------------------------------------------------------------------
+A blank cell means that benefit is NOT IN that year's source data.
+It does NOT mean $0 and it does NOT mean the benefit was removed.
+2026 came from CMS with deep clinical detail; most 2027 came from
+carrier first look sheets, which are shorter. The benefit lists differ.
+
+Aetna 2027 is CMS-approved. BCBS, Devoted, UHC, Humana and
+Healthspring 2027 are first look and can still change.
+
+-------------------------------------------------------------------
+IF YOU WANT IT PRETTIER
+-------------------------------------------------------------------
+- Bold row 4, freeze rows 1-4 (View > Freeze > Up to row 4)
+- Widen B and C to about 300px, and turn on text wrapping
+- Hide column F (the plan list) - right-click the column > Hide
+- Format > Alternating colours on A4:C27

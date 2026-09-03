@@ -1,0 +1,143 @@
+COMPARE PLANS DASHBOARD - corrected Apps Script
+Based on Gemini's version, with two fixes. See "WHAT CHANGED" at the bottom.
+
+-------------------------------------------------------------------
+STEP 1 - build the Master tab
+-------------------------------------------------------------------
+New tab named exactly:  Master
+
+Row 1 headers, in THIS order:
+  A: CMS Code    B: Carrier    C: Plan Name    D: Year
+  E: Benefit     F: Value      G: Source
+
+Then stack all seven carrier tabs under it. For each of
+Aetna, BCBS, Devoted, Healthspring, Humana, UHC, Wellcare:
+  - select its data rows (NOT the header)
+  - paste onto the first empty row of Master
+  - fill the Carrier column for those rows with the carrier name
+
+Wellcare IS included. This dashboard is internal reference only, and
+knowing what a competitor offers is ordinary business. The Wellcare
+restriction is about MARKETING: we are not appointed with them, so
+their benefits must never appear in anything a beneficiary sees.
+Keep Wellcare out of client-facing charts.
+
+Expected total: about 5,883 data rows.
+Check the count when you are done - a short paste looks identical
+to a complete one.
+
+-------------------------------------------------------------------
+STEP 2 - the script
+-------------------------------------------------------------------
+Extensions > Apps Script. Delete what is there. Paste this. Save.
+Then Run > buildComparisonDashboard, and approve the permission prompt.
+
+function buildComparisonDashboard() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const master = ss.getSheetByName("Master");
+  if (!master) throw new Error('No tab named "Master". Build it first.');
+
+  let dash = ss.getSheetByName("Compare Plans");
+  if (!dash) dash = ss.insertSheet("Compare Plans");
+  dash.clear();
+
+  // Benefit rows, in the order AJ lays out a chart.
+  const benefits = [
+    "Premium", "Part B giveback", "Medical deductible", "Max out-of-pocket",
+    "PCP", "Specialist", "Referrals", "Inpatient hospital",
+    "Outpatient surgery (ASC)", "Emergency room", "Urgent care",
+    "Ambulance (ground)", "Rx deductible", "Rx retail (30-day)",
+    "Dental - allowance", "Vision - eyeglasses", "Hearing aids",
+    "OTC allowance", "Fitness"
+  ];
+
+  const NCOL = 6;                    // how many plan/year columns
+  const firstBenefitRow = 4;
+
+  dash.getRange("A1").setValue("CMS Code ->");
+  dash.getRange("A2").setValue("Plan Name");
+  dash.getRange("A3").setValue("Year ->");
+  dash.getRange("A1:A3").setFontWeight("bold");
+  dash.getRange(firstBenefitRow, 1, benefits.length, 1)
+      .setValues(benefits.map(b => [b]));
+
+  // Seed with a real example: one plan, both years, then blanks.
+  dash.getRange(1, 2, 1, NCOL)
+      .setValues([["H3146-001","H3146-001","","","",""]]);
+  dash.getRange(3, 2, 1, NCOL)
+      .setValues([["2026","2027","","","",""]]);
+
+  // Plan name is looked up FROM the CMS code, so it always agrees.
+  dash.getRange(2, 2, 1, NCOL).setFormulaR1C1(
+    '=IFERROR(INDEX(FILTER(Master!C3, Master!C1=R1C), 1), "")'
+  );
+
+  // The value lookup. Matches on CMS CODE + YEAR + BENEFIT.
+  dash.getRange(firstBenefitRow, 2, benefits.length, NCOL).setFormulaR1C1(
+    '=IFERROR(INDEX(FILTER(Master!C6, Master!C1=R1C, Master!C4=R3C, Master!C5=RC1), 1), "")'
+  );
+
+  // Dropdown of every CMS code, so you pick a plan not a name.
+  const codes = master.getRange("A2:A").getValues()
+                  .map(r => r[0]).filter(String);
+  const rule = SpreadsheetApp.newDataValidation()
+      .requireValueInList([...new Set(codes)].sort(), true)
+      .setAllowInvalid(false).build();
+  dash.getRange(1, 2, 1, NCOL).setDataValidation(rule);
+
+  dash.setColumnWidth(1, 190);
+  dash.setColumnWidths(2, NCOL, 210);
+  dash.getRange(1, 1, 3 + benefits.length, NCOL + 1).setVerticalAlignment("top");
+  dash.getRange(firstBenefitRow, 2, benefits.length, NCOL).setWrap(true);
+  dash.setFrozenRows(3);
+  dash.setFrozenColumns(1);
+}
+
+-------------------------------------------------------------------
+USING IT
+-------------------------------------------------------------------
+Row 1 = pick a CMS code from the dropdown (H3146-001, etc).
+Row 2 = fills in the plan name automatically.
+Row 3 = type the year, 2026 or 2027.
+
+Put the same code in two columns with different years to see a
+year-over-year comparison. Put different codes to compare plans.
+Six columns, so three plans side by side, or one plan vs five others.
+
+-------------------------------------------------------------------
+WHAT CHANGED FROM GEMINI'S VERSION, AND WHY
+-------------------------------------------------------------------
+1. MATCHES ON CMS CODE, NOT PLAN NAME.
+   This is the important one. 12 plan names in your data belong to
+   more than one plan. "Aetna Medicare Signature (HMO)" is FOUR
+   different plans - H3146-001, -004, -048, -049 - with different
+   benefits ($5,500 vs $6,750 MOOP, $30 vs $45 specialist). Every
+   BCBS segmented plan has the same problem, as do both UHC Dual
+   Complete plans.
+   Matching on name returns whichever one happens to be first in the
+   sheet, with nothing to tell you the other three exist. Matching on
+   CMS code is exact.
+
+2. WELLCARE IS INCLUDED, with a caveat.
+   This tab is internal reference, so competitor data is fine here.
+   But Founders is not appointed with Wellcare, so their benefits must
+   not appear in anything customer-facing.
+
+3. Also: benefit list extended to 19 rows, plan name derived from the
+   code so the two can never disagree, and blanks left blank rather
+   than "-" so an absent value is not mistaken for a real one.
+
+-------------------------------------------------------------------
+READING IT
+-------------------------------------------------------------------
+A blank means the benefit is NOT IN that year's source data. It does
+not mean $0 and does not mean the benefit was dropped. 2026 came from
+CMS with deep clinical detail; most 2027 came from shorter carrier
+first look sheets, so the benefit lists differ between years.
+
+Aetna 2027 is CMS-approved. BCBS, Devoted, UHC, Humana and
+Healthspring 2027 are first look and can still change.
+
+THIS TAB IS INTERNAL REFERENCE ONLY. Nothing built from it goes to a
+beneficiary without the usual checks: TPMO disclaimer, carrier filing,
+nothing before Oct 1, and no Wellcare.

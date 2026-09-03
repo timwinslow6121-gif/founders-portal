@@ -47,8 +47,9 @@ BACKUP_DB = os.environ.get("BACKUP_DB", "effdate_check")
 def main(apply):
     app = create_app()
     with app.app_context():
-        url = str(db.engine.url).replace(f"/{db.engine.url.database}", f"/{BACKUP_DB}")
-        backup = create_engine(url)
+        # Rebuild the URL properly — a naive str.replace() of the database name
+        # also corrupts the password when the name appears inside it.
+        backup = create_engine(db.engine.url.set(database=BACKUP_DB))
         with backup.connect() as conn:
             rows = conn.execute(text(
                 "SELECT id, member_id, effective_date, carrier FROM policies "

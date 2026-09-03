@@ -49,6 +49,7 @@ def parse(filepath: str) -> list[dict]:
             "plan_type":      _str(row, "Plan Type"),
             "effective_date": _parse_date(row, "Effective Date"),
             "term_date":      _parse_date(row, "Inactive Date"),
+            "deceased_date":  _parse_date(row, "Deceased Date"),
             "dob":            _parse_date(row, "Birth Date"),
             "phone":          _str(row, "Primary Phone"),
             "county":         _str(row, "Mail Cnty"),

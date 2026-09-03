@@ -74,6 +74,19 @@ def can_edit_shared_data(user):
     return getattr(user, "role", "agent") in ("senior_agent", "admin")
 
 
+def is_contactable(customer) -> bool:
+    """The single suppression seam: may this customer receive outreach?
+
+    A deceased customer stays fully visible in the book — policies, payments,
+    notes and history are never hidden or deleted — but must not appear on a
+    mailing list, campaign or outreach selection. Any future AEP mailer MUST
+    call this rather than testing deceased_date directly.
+    """
+    if customer is None:
+        return False
+    return customer.deceased_date is None
+
+
 class Policy(db.Model):
     """
     Normalized policy record sourced from carrier BOB exports.

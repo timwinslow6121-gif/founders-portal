@@ -41,6 +41,46 @@ def _fill_if_blank(obj, attr, value):
     return False
 
 
+def _is_different_plan(policy, rec):
+    """True when the BOB row names a plan other than the one on file — i.e. this
+    is a NEW enrollment reusing the member_id, not a renewal of the same one."""
+    old = (policy.plan_name or "").strip().lower()
+    new = (rec.get("plan_name") or "").strip().lower()
+    return bool(old) and bool(new) and old != new
+
+
+def _set_effective_date(policy, value, *, new_plan=False):
+    """Set a policy's effective date, refusing to push an existing one FORWARD
+    unless the enrollment itself changed.
+
+    THE SAME-ENROLLMENT RULE. A policy's effective date is when coverage BEGAN,
+    not when the current contract year took over (Tim, 2026-08-28, the Elva
+    Sprouse precedent — one continuous enrollment across a contract renumber).
+    In AEP season carriers pre-load next year's plan data: UHC's September 2026
+    book stamped `2027-01-01` on every member renewing 1 January, and an
+    unconditional assignment rewrote 2,037 real dates, so a member enrolled in
+    2022 read as starting 2027. Restored from backup 2026-09-03. Carrier-agnostic
+    on purpose — any carrier pre-loading a future plan year does the same damage.
+
+    THE EXCEPTION. member_ids are REUSED across a member's successive enrollments
+    (Robbie Belk: Value Plus ended 2025, C-SNP began 2026, same id "6274"), so a
+    later date on a DIFFERENT plan is a new enrollment, not a renewal — and there
+    the newer date is correct. `_route_termed_rec` depends on it: it decides
+    whether an older termed row is history or the current enrollment by comparing
+    effective dates, and freezing the date at the old enrollment's start makes the
+    superseded row look current and wrongly terms the live policy.
+
+    So: a later date is adopted only when the plan changed. Effective date drives
+    commission type (initial vs renewal), the AOR timeline and rapid-disenrollment
+    reporting.
+    """
+    if value is None:
+        return                       # a file without the column must not blank it
+    cur = policy.effective_date
+    if cur is None or value < cur or new_plan:
+        policy.effective_date = value
+
+
 def _close_open_aor_on_term(customer, carrier, term_date):
     """§6b: when a member is termed, close their OPEN AOR interval for that carrier.
     BCBS term_date is a renewal, not a termination → leave its interval open."""
@@ -270,13 +310,16 @@ def _import_bob_row(rec, batch, bulk_agency_id, bulk_agent_id, today, unresolvab
         if existing:
             existing.member_id = rec["member_id"]   # adopt new member_id as authoritative
     if existing:
+        # Decide this BEFORE plan_name is overwritten below — afterwards the old
+        # and new names always compare equal.
+        _changed_plan = _is_different_plan(existing, rec)
         existing.mbi = rec["mbi"] or existing.mbi
         existing.first_name = rec["first_name"]
         existing.last_name = rec["last_name"]
         existing.full_name = rec["full_name"]
         existing.plan_name = rec["plan_name"]
         existing.plan_type = rec["plan_type"]
-        existing.effective_date = rec["effective_date"]
+        _set_effective_date(existing, rec["effective_date"], new_plan=_changed_plan)
         existing.term_date = rec["term_date"]
         _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
         _fill_if_blank(existing, "dob", rec["dob"])
@@ -558,14 +601,16 @@ def process_upload():
         ).first()
 
         if existing:
-            # Update in place
+            # Update in place. Capture the plan change BEFORE plan_name is
+            # overwritten below (see _set_effective_date).
+            _changed_plan = _is_different_plan(existing, rec)
             existing.mbi = rec["mbi"] or existing.mbi
             existing.first_name = rec["first_name"]
             existing.last_name = rec["last_name"]
             existing.full_name = rec["full_name"]
             existing.plan_name = rec["plan_name"]
             existing.plan_type = rec["plan_type"]
-            existing.effective_date = rec["effective_date"]
+            _set_effective_date(existing, rec["effective_date"], new_plan=_changed_plan)
             existing.term_date = rec["term_date"]
             _fill_if_blank(existing, "renewal_date", rec.get("renewal_date"))
             # §6 fill-blanks PII: never overwrite a non-blank value with a BOB value.

@@ -67,6 +67,46 @@ decide the rule: "never overwrite with a future date" vs "keep the EARLIEST"
 (the Elva Sprouse precedent — Tim, 2026-08-28). **2,037 rows — do NOT touch
 without a dry run + backup.**
 
+## 💰 AGENT CONTRACT RATES ARE A SCHEDULE, NOT A NUMBER (Tim, 2026-09-03) — ⏸ AFTER AEP, before FEBRUARY
+
+**Deadline is real:** AJ computes the tiered portion when AEP initial commissions
+for plan swaps are paid in **February**, so this must land after AEP and before
+then.
+
+`AgentCarrierContract.split_rate` is ONE number with no dates. Tim's actual
+contract has three dimensions it cannot express:
+
+1. **Annual step-up** — starts 50% year 1, **+2.5%/yr, capped at 70%**.
+   ⚠ Today the only move is overwriting the number, and `split_breakdown`
+   recomputes payouts from the CURRENT rate — so changing it **silently rewrites
+   every past month**. May's statement would show a different split than when AJ
+   reconciled it. Same class as the effective-date overwrite: a timeline stored
+   as a single value. **Needs effective-dated rates.**
+2. **A decaying 100% tier** — year 1 the first **$30,000** of commission is paid
+   at **100%**, remainder at 50%. Year 2: first **$24,000** at 100%, remainder at
+   52.5%. Continues until the 100% portion reaches zero. This is not a rate at
+   all — it is a piecewise function of **year-to-date commission**, and nothing in
+   the ledger tracks cumulative YTD against a threshold.
+3. **Per-agent contract SHAPES, not variations** — Tim + (probably) Justin, Chris,
+   Rebekah, maybe Mike on the above; **Brian** differs (agent + majority owner);
+   **Betty** on a different contract entirely; **Anjana retired** — no longer
+   actively soliciting but still paid a few hundred a month; **Alex** flat 35%.
+
+⬜ **ASK AJ / check the documents — do NOT infer:** Tim said "I think" and "not
+positive" about Justin/Chris/Rebekah/Mike sharing his terms. Getting one agent's
+schedule wrong misstates their pay for a year. Also needed: **does the increase
+land on the contract anniversary or 1 January?** (decides per-agent-dated vs one
+portfolio-wide event), plus **Alex's** increase schedule and cap.
+
+⬜ 🔴 **OPEN QUESTION THAT CHANGES THE SCOPE: has the 100% tier ever run through
+the portal, or has AJ always computed it by hand and entered only the resulting
+split?** If the latter, the portal has never modelled it and every figure we have
+reconciled is the POST-tier number — right, but incomplete. Answer this before
+treating the recap as authoritative on gross pay. Tim's description of the
+workflow ("we can still compute an agent's gross pay, subtract the threshold
+amount, then apply the contract rate at the beginning of next year") suggests
+hand-computed, but confirm.
+
 ## 🆕 AGENT ONBOARDING + UNKNOWN-AGENT QUARANTINE (Tim, 2026-09-02) — 🔴 both need brainstorm→spec
 
 Surfaced adding **Alex Groves** (user id=19) by hand tonight. Carriers write him

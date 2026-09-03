@@ -414,6 +414,11 @@ def _resolve_commission_match_or_park(fact: MemberFact, agency_id: int,
 
     def _attach(customer, match_path):
         result.customer = customer
+        from app.deceased import death_date_from_uhc_fact, apply_death
+        _died = death_date_from_uhc_fact(fact)
+        if _died:
+            apply_death(customer, _died, f"{fact.carrier}_commission".lower(),
+                        agency_id, carrier=fact.carrier)
         existing = _crosswalk(fact, agency_id)
         if existing is not None:
             existing.customer_id = existing.customer_id or customer.id

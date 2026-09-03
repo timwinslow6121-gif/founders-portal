@@ -11,6 +11,62 @@
 
 _Last updated: 2026-09-02_
 
+## 🔴🔴 INGEST ROBUSTNESS — carriers change formats faster than we can chase them (Tim, 2026-09-02) — TOP OF LIST, spec next
+
+**Tim: "im literally just chasing my tail with this."** Four carriers changed file
+format in four months — UHC 30→34 cols (Aug→Sept, ADDING `policyEffectiveDate`,
+`contract`, `segmentId`, `termReasonCode`), Devoted two brand-new layouts in one
+month (one of them a **Tidewater FMO statement**, not a Devoted file), Aetna
+XLSX→CSV in May, Humana SpreadsheetML named `.xls`. **This is not an AJ-discipline
+problem** — the exports themselves are moving. Even a perfectly consistent
+downloader would hit it.
+
+**ROOT CAUSE: parsers read FIXED COLUMN POSITIONS**, so an added/reordered column
+does not error — it silently reads the wrong field. Third time this has bitten
+(see also `commission-parser-column-drift` memory + the Layer-2 note under PARSER
+ROBUSTNESS below).
+
+- ⬜ 🔴 **Read by HEADER NAME, not index**, every parser. (Done for the new Devoted
+  2026-08 formats tonight; the rest still use indices.)
+- ⬜ 🔴 **Alias layer for renames** — `policyEffectiveDate` today, something else
+  tomorrow, both map to one field; adding an alias is one line, not a rewrite.
+- ⬜ 🔴 **REJECT a file that lacks required columns**, with a message naming what is
+  missing ("missing policyEffectiveDate — did you download the summary export?").
+  Never detect-and-hope.
+- ⬜ 🔴 **Never overwrite a real value with a worse one** — `app/upload.py:279`
+  assigns `existing.effective_date = rec["effective_date"]` UNCONDITIONALLY. This
+  is what let 2,037 real dates be replaced by a future one (below). Biggest single
+  win: protects money/lifecycle fields even when a format change slips through.
+- 📌 **DESIGN QUESTION for the spec — Tim raised mapping-UI (Zoho/HubSpot style)
+  and is torn.** Recommendation: **do NOT make mapping the ingest model.** Mapping
+  solves *column identity*; the recurring pain is *semantics* — the TMG file has 2
+  summary rows worth 67% of the raw sum, `Transaction Type` splits agent vs
+  Founders, negatives are chargebacks that must split at the agent's rate. No
+  mapping UI expresses that. Also: a wrong parser is wrong once, centrally, and
+  gets fixed; a wrong mapping is wrong per-upload, per-person, invisibly, forever.
+  **Middle path:** parsers keep the semantics + read by header name + alias layer,
+  and a small mapping UI exists ONLY as the fallback when a file is rejected, so
+  Tim resolves an unknown column once and it is remembered as an alias.
+
+## ⚠🔴 UHC SEPT BOB OVERWROTE 2,037 REAL EFFECTIVE DATES WITH `2027-01-01` (2026-09-02)
+
+**The 2027 dates are UHC's, not ours — I initially said the opposite, from reading
+the AUGUST file (30 cols, no effective-date column at all).** The **September**
+file (`docs/Carrier BOB DL/Sept 2026 period/UHC/`, 34 cols) genuinely carries
+`policyEffectiveDate = 2027-01-01` on 2,037 rows. That is normal AEP-season
+behaviour: UHC pre-loads the upcoming contract year for everyone whose MA/MAPD
+renews 1 Jan. The **110 exceptions prove the rule** — Medigap (`product = MS`,
+no annual renewal cycle) and recent mid-year MA enrollments keep their real dates.
+
+⬜ 🔴 **THE BUG IS OURS:** `app/upload.py:279` overwrote each policy's real
+effective date with the future one, so a member enrolled in 2022 now reads as
+starting 2027-01-01 and the original is gone from the policy row. Affects
+commission type (initial vs renewal), the AOR timeline, and rapid-disenroll
+reporting. ⬜ Check whether a pre-import backup still holds the originals, then
+decide the rule: "never overwrite with a future date" vs "keep the EARLIEST"
+(the Elva Sprouse precedent — Tim, 2026-08-28). **2,037 rows — do NOT touch
+without a dry run + backup.**
+
 ## 🆕 AGENT ONBOARDING + UNKNOWN-AGENT QUARANTINE (Tim, 2026-09-02) — 🔴 both need brainstorm→spec
 
 Surfaced adding **Alex Groves** (user id=19) by hand tonight. Carriers write him

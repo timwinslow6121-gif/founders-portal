@@ -113,3 +113,98 @@ def test_a_policy_created_by_the_death_row_itself_is_termed(app, agency, db_sess
         assert all(p.status == "termed" for p in pols), (
             "the policy created BY the death row was left active — apply_death ran "
             "before _attach_policy")
+
+
+def test_bob_death_applies_when_resolved_by_exact_id(app, agency, db_session):
+    """A BOB row carrying a Deceased Date DOES mark the customer when
+    resolve_customer found them by an exact unique ID (here: MBI)."""
+    from app.extensions import db
+    from app.models import Customer, Policy
+    from app.upload import _upsert_customer_from_policy
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Linda", last_name="Bost",
+                     full_name="Linda Bost", dob=date(1945, 3, 1),
+                     mbi="6MV0WK0MP06")
+        db.session.add(c); db.session.commit()
+        # An existing policy so this resolves via the "mbi" tier's crosswalk hit
+        # rather than creating a fresh one — either way match_path == "mbi".
+        p = Policy(agency_id=agency.id, carrier="Humana", member_id="6MV0WK0MP06",
+                   mbi="6MV0WK0MP06", status="active", customer_id=c.id,
+                   full_name="Linda Bost")
+        db.session.add(p); db.session.commit()
+
+        rec = {
+            "carrier": "Humana", "first_name": "Linda", "last_name": "Bost",
+            "full_name": "Linda Bost", "mbi": "6MV0WK0MP06", "member_id": "6MV0WK0MP06",
+            "dob": date(1945, 3, 1), "deceased_date": date(2026, 6, 15),
+        }
+        _upsert_customer_from_policy(rec, agent_id=None, batch_id=None, agency_id=agency.id)
+        db.session.commit()
+
+        assert Customer.query.get(c.id).deceased_date == date(2026, 6, 15)
+
+
+def test_bob_death_does_not_apply_when_resolved_only_by_name_and_dob(app, agency, db_session):
+    """Regression: a BOB row must NOT mark someone deceased when resolve_customer
+    only matched them by name+DOB (composite or suggest_link) rather than an
+    exact unique carrier ID. Marking the wrong person deceased silently drops a
+    LIVING customer from their agent's book.
+
+    No MBI, no carrier_member_id anywhere on file — a masked-MBI Humana row
+    (real-world case: all 5 August deceased rows had MBI "XXXXX...") can only
+    resolve here via name+DOB, i.e. the suggest_link tier (it creates a fresh
+    stub customer rather than reusing the name+DOB match) — never an exact ID.
+    We assert against BOTH the pre-existing customer AND every customer the
+    call produced, so the bug can't hide by landing on a different (stub)
+    Customer row than the one this test set up.
+    """
+    from app.extensions import db
+    from app.models import Customer
+    from app.upload import _upsert_customer_from_policy
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Linda", last_name="Bost",
+                     full_name="Linda Bost", dob=date(1945, 3, 1))
+        db.session.add(c); db.session.commit()
+        assert c.deceased_date is None
+
+        rec = {
+            "carrier": "Humana", "first_name": "Linda", "last_name": "Bost",
+            "full_name": "Linda Bost", "mbi": None, "member_id": None,
+            "dob": date(1945, 3, 1), "deceased_date": date(2026, 6, 15),
+        }
+        _upsert_customer_from_policy(rec, agent_id=None, batch_id=None, agency_id=agency.id)
+        db.session.commit()
+
+        marked = Customer.query.filter(
+            Customer.agency_id == agency.id, Customer.deceased_date.isnot(None)
+        ).all()
+        assert marked == [], (
+            "a name+DOB-only resolution must never mark ANY customer deceased "
+            f"(found {[(m.id, m.full_name) for m in marked]}) — the spec requires "
+            "exact unique-ID matching only (MBI or carrier member id), no "
+            "name/DOB fuzzy fallback")
+        assert Customer.query.get(c.id).deceased_date is None
+
+
+def test_bob_row_with_no_deceased_date_is_unaffected(app, agency, db_session):
+    from app.extensions import db
+    from app.models import Customer
+    from app.upload import _upsert_customer_from_policy
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Linda", last_name="Bost",
+                     full_name="Linda Bost", dob=date(1945, 3, 1),
+                     mbi="6MV0WK0MP06")
+        db.session.add(c); db.session.commit()
+
+        rec = {
+            "carrier": "Humana", "first_name": "Linda", "last_name": "Bost",
+            "full_name": "Linda Bost", "mbi": "6MV0WK0MP06", "member_id": "6MV0WK0MP06",
+            "dob": date(1945, 3, 1),
+        }
+        _upsert_customer_from_policy(rec, agent_id=None, batch_id=None, agency_id=agency.id)
+        db.session.commit()
+
+        assert Customer.query.get(c.id).deceased_date is None

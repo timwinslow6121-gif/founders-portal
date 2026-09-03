@@ -63,6 +63,34 @@ Import looks up the rate **as of the statement period**, not "now".
 imported. The schedule decides what a *new* import stamps. This preserves the
 existing immutability rather than replacing it, and fixes the re-import hazard.
 
+### The schedule records what was ACTUALLY PAID, not what the contract says
+
+Tim, 2026-09-03: in what the agents understood to be year 2, Brian **stepped the
+tier down to $24,000 but left the rate at 50%** instead of raising it to 52.5% —
+treating it as another year 1. He acknowledged it after the fact. Tim estimates it
+cost him roughly **$8,000** in commission.
+
+The mechanical lesson matters more than the money here: **the rate schedule and the
+tier schedule moved independently.** A model that assumes "year N implies rate X
+and tier Y" cannot represent what actually happened, and neither can a single
+`split_rate`.
+
+So `AgentContractRate` rows record **applied terms**, not contracted terms. Where
+the two diverge, `note` carries why:
+
+    effective_from 2025-01-01, rate 0.50, tier_amount 24000.00,
+    note: "contract says 52.5% — 50% applied (Brian, acknowledged)"
+
+If the table held contracted terms instead, the portal would show 52.5% for a year
+paid at 50%, and every figure derived from it would be wrong — in the agent's
+favour, which is its own kind of wrong. Recording what was paid makes a discrepancy
+visible and durable instead of living in someone's memory.
+
+⬜ **This also means the historical schedule must be reconstructed from what was
+actually paid**, not assumed from the contract. `CommissionLineItem.split_rate` is
+frozen per row and is therefore the evidence: the rate in force in any past period
+can be read straight off the ledger.
+
 ### Do not infer who shares Tim's terms
 
 Tim said "I think" and "not positive" about Justin, Chris, Rebekah and Mike.

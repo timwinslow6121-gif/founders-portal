@@ -623,7 +623,7 @@ def _humana_name(grp_name):
 from app.commission.ledger import (
     _UHC_SHEET, _UHC_AGENT, _UHC_MEMBER, _UHC_MBI, _UHC_PLANTYPE,
     _UHC_ACTION, _UHC_AMOUNT, _UHC_EFFDATE, _UHC_OVERRIDE, _near,
-    _UHC_WRITING_ID, _uhc_writing_id_map, _UHC_TERMREASON,
+    _UHC_WRITING_ID, _uhc_writing_id_map, _UHC_TERMREASON, _UHC_TERMDATE,
 )
 
 _UHC_CONTRACT = 13
@@ -699,6 +699,8 @@ def normalize_uhc(sheets, writing_id_to_name=None, agency_id=None):
             mbi=str(row[_UHC_MBI] or "").strip() or None,
             effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
             term_reason_raw=term_reason,
+            term_date=(_parse_date(row[_UHC_TERMDATE])
+                       if len(row) > _UHC_TERMDATE else None),
             plan_contract=str(row[_UHC_CONTRACT] or "").strip() or None,
             plan_pbp=str(row[_UHC_PBP] or "").strip() or None,
             plan_type=plan_type,

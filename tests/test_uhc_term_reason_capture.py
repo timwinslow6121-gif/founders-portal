@@ -40,3 +40,43 @@ def test_other_reasons_are_captured_but_are_not_deaths():
     from app.commission.normalizers import normalize_uhc
     facts = normalize_uhc(_uhc_sheet("Enrollment in Another Plan"))
     assert any(f.term_reason_raw == "Enrollment in Another Plan" for f in facts)
+
+
+def test_term_date_is_captured_so_a_death_has_a_date():
+    """normalize_uhc set term_reason_raw but NOT term_date, so
+    death_date_from_uhc_fact — which returns fact.term_date when the reason is
+    "Death" — always returned None on the live import path. The UHC half of the
+    deceased capture was dead code: the reason was read, the date never was.
+
+    Found by Task 9's backfill, which had to bypass the normalizer and read the
+    raw sheet to get a date at all.
+    """
+    from datetime import date
+    from app.commission.normalizers import normalize_uhc
+    sheet = _uhc_sheet("Death")
+    sheet["Commission Transactions"][1][28] = "2026-05-31"
+    facts = normalize_uhc(sheet)
+    assert facts, "no facts produced"
+    assert any(f.term_date == date(2026, 5, 31) for f in facts), \
+        "term_date not captured — a Death row would carry no date of death"
+
+
+def test_a_death_fact_yields_its_date_end_to_end():
+    """The whole point: reason + date together must produce a usable death date."""
+    from datetime import date
+    from app.commission.normalizers import normalize_uhc
+    from app.deceased import death_date_from_uhc_fact
+    sheet = _uhc_sheet("Death")
+    sheet["Commission Transactions"][1][28] = "2026-05-31"
+    facts = normalize_uhc(sheet)
+    assert any(death_date_from_uhc_fact(f) == date(2026, 5, 31) for f in facts)
+
+
+def test_a_non_death_row_still_carries_its_term_date():
+    """term_date is general lifecycle data, not death-specific."""
+    from datetime import date
+    from app.commission.normalizers import normalize_uhc
+    sheet = _uhc_sheet("Member Termination")
+    sheet["Commission Transactions"][1][28] = "2026-06-30"
+    facts = normalize_uhc(sheet)
+    assert any(f.term_date == date(2026, 6, 30) for f in facts)

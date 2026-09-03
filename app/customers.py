@@ -324,7 +324,7 @@ CUSTOMER_COLS = ["Name", "Preferred Name", "MBI", "DOB", "Gender",
                  "Phone", "Phone (alt)", "Email",
                  "Address", "City", "State", "Zip", "County",
                  "Medicaid Level", "Language", "Lead Source",
-                 "Stage", "Agent", "Pharmacy"]
+                 "Stage", "Agent", "Pharmacy", "Deceased"]
 
 PLAN_COLS = ["Carrier", "Plan Name", "CMS Code", "Segment", "Plan Type",
              "Carrier Plan Type", "Member ID", "Effective Date"]
@@ -404,6 +404,7 @@ def _customer_cells(c):
         c.deal_stage or "Active",
         c.primary_agent.display_name if c.primary_agent else "",
         c.pharmacy.name if c.pharmacy else "",
+        c.deceased_date.isoformat() if c.deceased_date else "",
     ]
 
 
@@ -424,7 +425,7 @@ def _plan_cells(p):
 
 
 def _filter_description(*, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid,
-                        f_language, include_former, per_policy, emitted):
+                        f_language, include_former, per_policy, emitted, deceased=0):
     """One human-readable line describing what this export IS.
 
     An exported CSV outlives the screen it came from — it gets emailed to a
@@ -458,8 +459,11 @@ def _filter_description(*, q_str, f_carrier, f_plan_type, f_agent_id, f_medicaid
     scope = "one row per active policy" if per_policy else "one row per customer"
     filters = " · ".join(parts) if parts else "no filters (whole book)"
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-    return (f"# Founders portal export · {stamp} · {emitted} rows · {scope} "
+    line = (f"# Founders portal export · {stamp} · {emitted} rows · {scope} "
             f"· Filters: {filters}")
+    if deceased:
+        line += f" · {deceased} deceased (suppress from mailings)"
+    return line
 
 
 @customers_bp.route("/customers/export")
@@ -509,10 +513,12 @@ def customers_export():
                             ["; ".join(others)])
             emitted += 1
 
+    deceased = sum(1 for c in rows if c.deceased_date)
     note = _filter_description(
         q_str=q_str, f_carrier=f_carrier, f_plan_type=f_plan_type,
         f_agent_id=f_agent_id, f_medicaid=f_medicaid, f_language=f_language,
-        include_former=include_former, per_policy=per_policy, emitted=emitted)
+        include_former=include_former, per_policy=per_policy, emitted=emitted,
+        deceased=deceased)
     output = note + "\n" + buf.getvalue()
     kind = "policies" if per_policy else "customers"
     filename = f"{kind}_export_{datetime.today().strftime('%Y%m%d')}.csv"

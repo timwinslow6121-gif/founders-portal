@@ -452,6 +452,7 @@
               onclick="window.location='{{ url_for('customers.customer_profile', customer_id=c.id) }}'">
             <td class="fw-medium">
               {{ c.display_name }}
+              {% if c.deceased_date %}<span class="badge badge-gray badge-deceased" title="Suppressed from mailings and campaigns">Deceased</span>{% endif %}
               {% if c.is_former %}
                 <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--slate);margin-left:6px;">Former</span>
               {% endif %}

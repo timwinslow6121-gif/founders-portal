@@ -623,7 +623,7 @@ def _humana_name(grp_name):
 from app.commission.ledger import (
     _UHC_SHEET, _UHC_AGENT, _UHC_MEMBER, _UHC_MBI, _UHC_PLANTYPE,
     _UHC_ACTION, _UHC_AMOUNT, _UHC_EFFDATE, _UHC_OVERRIDE, _near,
-    _UHC_WRITING_ID, _uhc_writing_id_map,
+    _UHC_WRITING_ID, _uhc_writing_id_map, _UHC_TERMREASON,
 )
 
 _UHC_CONTRACT = 13
@@ -688,6 +688,8 @@ def normalize_uhc(sheets, writing_id_to_name=None, agency_id=None):
         agent = writing_id_to_name.get(wid) or str(row[_UHC_AGENT] or "").strip()
         plan_type = str(row[_UHC_PLANTYPE] or "").strip() or None
         action = str(row[_UHC_ACTION] or "").strip()
+        term_reason = (str(row[_UHC_TERMREASON] or "").strip()
+                       if len(row) > _UHC_TERMREASON else "")
         first, mi, last, full = normalize_person_name(member)
         out.append(MemberFact(
             carrier="UHC",
@@ -696,6 +698,7 @@ def normalize_uhc(sheets, writing_id_to_name=None, agency_id=None):
             last_name=last,
             mbi=str(row[_UHC_MBI] or "").strip() or None,
             effective_date=_parse_date(row[_UHC_EFFDATE]) if len(row) > _UHC_EFFDATE else None,
+            term_reason_raw=term_reason,
             plan_contract=str(row[_UHC_CONTRACT] or "").strip() or None,
             plan_pbp=str(row[_UHC_PBP] or "").strip() or None,
             plan_type=plan_type,

@@ -72,12 +72,14 @@ without a dry run + backup.**
 Surfaced adding **Alex Groves** (user id=19) by hand tonight. Carriers write him
 as **`GROVES, ZACHARY A`** — his legal name — the same alias situation as Betty
 (`RIDDLE, BETTY B`) and Cyndi. Known: Humana SAN `2018284`, NPN `22204954`, UHC
-agent `6775603`, alex@foundersinsuranceagency.com. **Split rate UNKNOWN** — his
-two `AgentCarrierContract` rows are `is_active=False` with notes marked
-`UNCONFIRMED RATE`. ⚠ `split_rate` is `nullable=False` defaulting to **0.55**, so
-it *displays* 0.55; the inactive flag is what actually holds it. **⬜ ASK AJ: his
-real contract rate + which other carriers he's contracted with** (only UHC and
-Humana have paid him so far).
+agent `6775603`, alex@foundersinsuranceagency.com. **Rate = 0.35** (Tim,
+2026-09-02 — "which in my personal opinion is criminal"); UHC + Humana contracts
+set and ACTIVATED. The other six carrier rows stay `is_active=False` — **⬜ still
+unknown which other carriers he's contracted with** (only UHC and Humana have
+paid him). ⬜ **ASK AJ: year-over-year increase schedule + rate cap** — neither is
+modelled anywhere in the portal today. ⬜ **His ~$327 of August rows still have
+`agent_id=None`** and need resolving now that a rate exists (money change — dry
+run + backup first).
 
 - ⬜ 🔴 **Unknown writing agent must QUARANTINE, not split anyway.** Alex's August
   rows have `agent_id=None` — the matcher correctly refused — **but the Humana row

@@ -363,6 +363,28 @@
         {{ editable_field(customer, "county", "County", customer.county, can_edit, field_conflicts) }}
         {{ editable_field(customer, "medicaid_level", "Medicaid", customer.medicaid_level, can_edit, field_conflicts) }}
         {{ editable_field(customer, "language", "Preferred language", customer.language, can_edit, field_conflicts) }}
+        <div class="detail-row" style="align-items:center;">
+          <span class="detail-label">Deceased</span>
+          <span class="detail-value">
+            {% if customer.deceased_date %}
+              <span class="badge badge-gray badge-deceased" title="Suppressed from mailings and campaigns">
+                Deceased — {{ customer.deceased_date.strftime('%b %-d, %Y') }}
+                {%- if deceased_meta and deceased_meta.source %} &middot; per {{ deceased_meta.source|replace('_', ' ') }}{% endif %}
+              </span>
+              {% if can_edit %}
+              <button type="button" class="btn-secondary" style="padding:3px 10px;font-size:12px;margin-left:8px;"
+                      onclick="clearDeceased({{ customer.id }})">Not deceased — correct this</button>
+              {% endif %}
+            {% else %}
+              {% if can_edit %}
+              <button type="button" class="btn-secondary" style="padding:3px 10px;font-size:12px;"
+                      onclick="markDeceased({{ customer.id }})">Mark deceased</button>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            {% endif %}
+          </span>
+        </div>
         <div class="detail-row"><span class="detail-label">Lead source</span><span class="detail-value">{{ customer.lead_source or '—' }}</span></div>
         <div class="detail-row"><span class="detail-label">Pharmacy</span><span class="detail-value">
           {% if customer.pharmacy %}{{ customer.pharmacy.name }}
@@ -599,6 +621,31 @@ document.querySelectorAll('.editable-field[data-editable="1"]').forEach(function
     input.addEventListener('keydown', function(e){ if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { done = true; span.textContent = current || '—'; } });
   });
 });
+
+// --- Deceased marking / clearing ---
+function markDeceased(customerId) {
+  var when = window.prompt("Date of death (YYYY-MM-DD), or leave blank if unknown:", "");
+  if (when === null) return; // cancelled
+  var note = window.prompt("Note (optional) — e.g. who told you and how:", "") || "";
+  var fd = new FormData();
+  fd.append('deceased_date', when.trim());
+  fd.append('note', note);
+  fetch('{{ url_for("customers.customer_set_deceased", customer_id=customer.id) }}', {method:'POST', body:fd})
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if (j.ok) window.location.reload(); else alert(j.error || 'Could not save.'); });
+}
+
+function clearDeceased(customerId) {
+  var note = window.prompt("Reason for correcting this (required):", "");
+  if (note === null) return; // cancelled
+  if (!note.trim()) { alert("A reason is required to clear a deceased mark."); return; }
+  var fd = new FormData();
+  fd.append('action', 'clear');
+  fd.append('note', note.trim());
+  fetch('{{ url_for("customers.customer_set_deceased", customer_id=customer.id) }}', {method:'POST', body:fd})
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if (j.ok) window.location.reload(); else alert(j.error || 'Could not save.'); });
+}
 
 // --- Conflict resolution buttons ---
 document.querySelectorAll('.resolve-btn').forEach(function(btn) {

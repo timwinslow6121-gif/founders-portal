@@ -699,6 +699,7 @@ def customer_profile(customer_id):
 
     can_edit = current_user.is_admin or _is_current_aor(customer)
     field_conflicts = {c["field"]: c for c in cp.list_conflicts(customer)}
+    deceased_meta = cp.get_field(customer, "deceased_date")
 
     log_event("customer_view", category="data_access",
               detail="viewed customer profile", customer_id=customer.id)
@@ -718,6 +719,7 @@ def customer_profile(customer_id):
         payments=payments,
         can_edit=can_edit,
         field_conflicts=field_conflicts,
+        deceased_meta=deceased_meta,
     )
 
 
@@ -897,6 +899,46 @@ def customer_resolve_conflict(customer_id):
     return jsonify({"ok": True, "field": field,
                     "value": val.isoformat() if isinstance(val, date) else val,
                     "has_unresolved_conflicts": bool(customer.has_unresolved_conflicts)})
+
+
+@customers_bp.route("/customers/<int:customer_id>/deceased", methods=["POST"])
+@login_required
+def customer_set_deceased(customer_id):
+    """Mark or clear a customer's deceased status.
+
+    Agents hear of a death weeks before carriers do, so this is the fast path
+    to suppressing outreach — and the correction path when a carrier's mark is
+    wrong. It NEVER terms a policy: termination follows the carrier.
+    """
+    customer = _customer_query(include_former=True).filter_by(id=customer_id).first_or_404()
+    if not (current_user.is_admin or _is_current_aor(customer)):
+        return jsonify({"ok": False, "error": "not authorized to edit this customer"}), 403
+
+    note = (request.form.get("note") or "").strip()
+
+    if request.form.get("action") == "clear":
+        if not note:
+            return jsonify({"error": "A reason is required to clear a deceased mark."}), 400
+        cp.set_human_value(customer, "deceased_date", None, current_user, note=note)
+        log_event("customer_deceased_cleared", category="admin",
+                  detail=f"cleared deceased mark: {note}", customer_id=customer.id)
+        db.session.commit()
+        return jsonify({"ok": True, "deceased_date": None})
+
+    raw = (request.form.get("deceased_date") or "").strip()
+    try:
+        when = date.fromisoformat(raw) if raw else date.today()
+    except ValueError:
+        return jsonify({"error": "Enter the date as YYYY-MM-DD."}), 400
+
+    # set_human_value writes at agent_entered trust, which outranks a carrier's
+    # mark and cannot be undone by a later import.
+    cp.set_human_value(customer, "deceased_date", when, current_user,
+                       note=note or ("date unknown" if not raw else None))
+    log_event("customer_marked_deceased", category="admin",
+              detail=f"marked deceased {when}: {note}", customer_id=customer.id)
+    db.session.commit()
+    return jsonify({"ok": True, "deceased_date": when.isoformat()})
 
 
 # ---------------------------------------------------------------------------

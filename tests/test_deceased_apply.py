@@ -74,3 +74,42 @@ def test_death_matching_is_case_insensitive():
     from app.deceased import death_date_from_uhc_fact
     f = SimpleNamespace(term_reason_raw="DEATH", term_date=date(2026, 4, 30))
     assert death_date_from_uhc_fact(f) == date(2026, 4, 30)
+
+
+def test_a_policy_created_by_the_death_row_itself_is_termed(app, agency, db_session):
+    """The ordering bug this test exists to catch.
+
+    When a UHC commission row reporting a Death resolves to a customer who has no
+    existing UHC policy, _attach CREATES one via _attach_policy (which always sets
+    status='active'). If apply_death runs BEFORE that creation it terms only the
+    rows already in the database, and the row the death itself produced is left
+    active forever — the customer reads as deceased while their newest policy for
+    the reporting carrier stays live.
+    """
+    from datetime import date
+    from app.extensions import db
+    from app.commission.member_fact import MemberFact, RowClass
+    from app.commission.resolver import resolve_customer
+    from app.models import Customer, Policy
+
+    with app.app_context():
+        c = Customer(agency_id=agency.id, first_name="Linda", last_name="Bost",
+                     full_name="Linda Bost", mbi="6MV0WK0MP06")
+        db.session.add(c); db.session.commit()
+        assert Policy.query.filter_by(agency_id=agency.id, customer_id=c.id).count() == 0
+
+        fact = MemberFact(
+            carrier="UHC", full_name="Linda Bost", first_name="Linda", last_name="Bost",
+            mbi="6MV0WK0MP06", carrier_member_id="6MV0WK0MP06",
+            term_date=date(2026, 5, 31), term_reason_raw="Death",
+            row_class=RowClass.RENEWAL, amount=28.92, source_ref="uhc::0::1")
+        resolve_customer(fact, agency_id=agency.id, agent_id=None,
+                         source="commission_import")
+        db.session.commit()
+
+        assert Customer.query.get(c.id).deceased_date == date(2026, 5, 31)
+        pols = Policy.query.filter_by(agency_id=agency.id, customer_id=c.id).all()
+        assert pols, "the death row should still have produced a policy"
+        assert all(p.status == "termed" for p in pols), (
+            "the policy created BY the death row was left active — apply_death ran "
+            "before _attach_policy")

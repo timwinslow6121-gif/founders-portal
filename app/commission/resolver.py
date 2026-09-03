@@ -414,11 +414,6 @@ def _resolve_commission_match_or_park(fact: MemberFact, agency_id: int,
 
     def _attach(customer, match_path):
         result.customer = customer
-        from app.deceased import death_date_from_uhc_fact, apply_death
-        _died = death_date_from_uhc_fact(fact)
-        if _died:
-            apply_death(customer, _died, f"{fact.carrier}_commission".lower(),
-                        agency_id, carrier=fact.carrier)
         existing = _crosswalk(fact, agency_id)
         if existing is not None:
             existing.customer_id = existing.customer_id or customer.id
@@ -427,6 +422,18 @@ def _resolve_commission_match_or_park(fact: MemberFact, agency_id: int,
             result.policy = _attach_policy(fact, customer, agency_id, agent_id)
             result.created_policy = True
         result.match_path = match_path
+        # AFTER the policy is resolved, never before: a death-reporting row often
+        # CREATES the policy it reports on (_attach_policy always sets
+        # status='active'), so terming ahead of that leaves the reporting carrier's
+        # newest policy live while the person reads as deceased. Terming a policy
+        # created from a death-dated row is correct, not a case to avoid.
+        # Reached only on an exact ID match (crosswalk key / MBI / carrier member
+        # id) — never on a parked row — so no name or DOB matching is involved.
+        from app.deceased import death_date_from_uhc_fact, apply_death
+        _died = death_date_from_uhc_fact(fact)
+        if _died:
+            apply_death(customer, _died, f"{fact.carrier}_commission".lower(),
+                        agency_id, carrier=fact.carrier)
         # Every ID-based resolution (crosswalk_key, mbi, carrier_member_id) is an exact
         # deterministic match — write/refresh the crosswalk so renewals ride it.
         _crosswalk_write(fact, customer, agency_id, "exact_id")

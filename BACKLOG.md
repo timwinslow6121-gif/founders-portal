@@ -9,7 +9,85 @@
 > **Priority:** 🔴 do soon · 🟠 important · 🟢 nice-to-have
 > Add freely; one line each; link a spec/memory if one exists. Don't list speculative ideas here — those go in `docs/superpowers/Ideas/`.
 
-_Last updated: 2026-08-27_
+_Last updated: 2026-09-02_
+
+## 🆕 AGENT ONBOARDING + UNKNOWN-AGENT QUARANTINE (Tim, 2026-09-02) — 🔴 both need brainstorm→spec
+
+Surfaced adding **Alex Groves** (user id=19) by hand tonight. Carriers write him
+as **`GROVES, ZACHARY A`** — his legal name — the same alias situation as Betty
+(`RIDDLE, BETTY B`) and Cyndi. Known: Humana SAN `2018284`, NPN `22204954`, UHC
+agent `6775603`, alex@foundersinsuranceagency.com. **Split rate UNKNOWN** — his
+two `AgentCarrierContract` rows are `is_active=False` with notes marked
+`UNCONFIRMED RATE`. ⚠ `split_rate` is `nullable=False` defaulting to **0.55**, so
+it *displays* 0.55; the inactive flag is what actually holds it. **⬜ ASK AJ: his
+real contract rate + which other carriers he's contracted with** (only UHC and
+Humana have paid him so far).
+
+- ⬜ 🔴 **Unknown writing agent must QUARANTINE, not split anyway.** Alex's August
+  rows have `agent_id=None` — the matcher correctly refused — **but the Humana row
+  was still split at `rate=0.5` and the UHC row at `0.55`**. ~$327 sits in the
+  ledger, split at a fabricated rate, belonging to nobody. Route these to the
+  existing quarantine queue (`/admin/commissions/<id>/quarantine`, built for the
+  UHC "New" cases) instead. Same shape, different trigger.
+- ⬜ 🔴 **Agent onboarding UI.** No way to add an agent without a developer: create
+  user + role + per-carrier writing IDs + splits. Tonight needed a hand-written
+  script.
+- 📌 **`_match_agent_name` fuzzy tier is CORRECT — do not "fix" it.** Audited all 35
+  ledger names: 8 resolve fuzzily and every one is a legitimate word-order/nickname
+  variant (`FOSTER CHRISTOPHER`→Chris, `LAUZURIQUE MICHAEL`→Mike). It returned
+  `None` for Groves, exactly as intended.
+- ⚠ **LESSON (I got this wrong twice tonight): `source_ref` is unique only WITHIN a
+  statement.** `humana::CommissionData_1::209` is row 209 of *some* Humana file and
+  points at a different member every month (Templeton in May, Helms in July, Miller
+  in August). I joined on it and reported Alex's money as landing in Mike's and
+  Justin's books — it hadn't. Already documented in CLAUDE.md; re-learned the hard
+  way. Join on `(statement_id, source_ref)`.
+
+## ☠ MEMBER DECEASED CAPTURE (spec written 2026-09-02) — 🔴 AEP-critical, ready to build
+
+**20 members carriers have told us are deceased are `active` right now** and would
+receive an AEP mailing. Spec: `docs/superpowers/specs/2026-09-02-member-deceased-capture-design.md`.
+15 UHC (commission `Term Reason` = `"Death"`, May+July) + 5 Humana (BOB
+`Deceased Date`, August: Evans 8/11, Golden 8/8, Nesbitt 8/9, Patterson 8/12,
+Walker 8/7). Decisions: suppress from outreach but **never delete or hide**; mark
+the **person** but term only the carrier's own policy; **exact unique-ID matching,
+no name/DOB fallback**; agents can mark manually but manual marking never terms a
+policy. ⚠ Build note: `set_carrier_value()` does not exist — `customer_provenance`
+exposes only `set_human_value()` and isn't wired into upload/resolver at all.
+⬜ Aetna `Term Reason Code` blocked on AJ (codes unlabeled: `92`×79, `13`×41,
+`T014`×8, `8`×5, `T090`×1). BCBS/HealthSpring/Devoted give **no** death signal.
+
+## 📋 BOB FIELD AUDIT — stop discarding columns carriers already send (Tim, 2026-09-02)
+
+Carrier-by-carrier, **largest book first: Humana → UHC → BCBS → Aetna →
+HealthSpring → Devoted.** Every parser emits ~18 fields; the files carry far more.
+
+- ⬜ 🔴 **Humana** (85 cols): `Deceased Date`, **`Status = "Future Active Policy"`**
+  (7 rows — mid-year plan changes; the old policy ends and the successor never
+  imports, which is why 16 members showed an `8/31/2026` term with nothing after),
+  `Contract-PBP-Segment ID` (**the segment layer**), `Low Income Subsidy`,
+  `Veteran`, `Pref Lang`, `PCP`, `Medicaid ID`.
+- ⬜ 🟠 **UHC** (30 cols): `termReasonCode`, `segmentId`. Its commission file also
+  carries `Term Reason` with `"Enrollment in Another Plan"` (22 rows July) — a
+  **switcher signal**, capture but don't act (belongs to the carrier-switch work).
+- ⬜ 🟠 **Aetna** (62 cols): `Term Reason Code`, **`Application Signed Date`** (the
+  AEP same-day tie-break), `Supplement Plans`.
+- ⬜ 🟢 BCBS / HealthSpring / Devoted — thinner files, less to gain.
+
+## ⚠ CARRIER SWITCH NEVER FIRES ON A BOB UPLOAD (found 2026-09-02) — 🔴
+
+`member_fact_from_bob_rec` hardcodes **`row_class=RowClass.RENEWAL`**, and
+`_apply_carrier_switch` returns immediately unless `row_class == ENROLLMENT`. So a
+BOB upload can **never** term a switched-away policy — for anyone, ever. **3
+customers hold two active MA/MAPD plans**: Kathy Rhodes (UHC→Devoted 8/1),
+Deborah Cunningham (UHC→BCBS 6/1), Sandra Elledge (BCBS→Devoted 1/1) — same MBI on
+both rows in each case. ⚠ Don't just flip the row_class: `_apply_carrier_switch`
+blindly terms **every** other-carrier active policy, which would wrongly kill a
+legitimate Medigap/PDP. Route it through `plan_lane` first. Also open: **Eric
+Tillman** (Humana plan change, `Future Active Policy`), **7 unexplained Humana
+enders** (term 8/31, no successor, no deceased date), **5 unpaired Humana rows**,
+**Cheatham + Mullis** (only 2 customer duplicates left; Tim confirmed both are
+genuinely different people).
 
 ## 🗂 CUSTOMER INTERACTION RECORD + TIMELINE + PIPELINE (Tim, 2026-08-27) — ⏸ AFTER AEP, own brainstorm→spec
 _Deliberately deferred so AEP stays focused on coverage tagging. This is the bigger build._

@@ -74,6 +74,19 @@ def can_edit_shared_data(user):
     return getattr(user, "role", "agent") in ("senior_agent", "admin")
 
 
+def is_contactable(customer) -> bool:
+    """The single suppression seam: may this customer receive outreach?
+
+    A deceased customer stays fully visible in the book — policies, payments,
+    notes and history are never hidden or deleted — but must not appear on a
+    mailing list, campaign or outreach selection. Any future AEP mailer MUST
+    call this rather than testing deceased_date directly.
+    """
+    if customer is None:
+        return False
+    return customer.deceased_date is None
+
+
 class Policy(db.Model):
     """
     Normalized policy record sourced from carrier BOB exports.
@@ -120,6 +133,7 @@ class Policy(db.Model):
     # Termination context — set manually by agent when reason is known
     # Values: None=unknown, 'agent_initiated', 'death', 'plan_cancelled', 'involuntary'
     term_reason   = db.Column(db.String(32))
+    term_reason_raw   = db.Column(db.String(64))   # carrier's verbatim wording
     new_carrier   = db.Column(db.String(64))   # carrier they're moving to (if we moved them)
     new_plan_name = db.Column(db.String(256))  # new plan name (if known)
 
@@ -605,6 +619,7 @@ class Customer(db.Model):
     medicaid_level    = db.Column(db.String(32))   # Full / QMB / SLMB / QI / None
     medicaid_id       = db.Column(db.String(64))
     language          = db.Column(db.String(32))   # preferred language: English / Spanish / … (agent-set or carrier-import)
+    deceased_date     = db.Column(db.Date, index=True)   # carrier-reported or agent-marked
 
     # Pipeline
     deal_stage        = db.Column(db.String(32), default="Active")

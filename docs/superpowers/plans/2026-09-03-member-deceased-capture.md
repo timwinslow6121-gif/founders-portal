@@ -1233,11 +1233,194 @@ Verify after: payment and ledger totals unchanged, `/auth/login` returns 200, an
 
 ---
 
+---
+
+### Task 10: Capture Aetna death from `Term Reason Code`
+
+**Files:**
+- Modify: `app/parsers/aetna.py`
+- Create: `app/carrier_term_codes.py`
+- Test: `tests/test_aetna_deceased_capture.py`
+
+**Interfaces:**
+- Consumes: `rec["deceased_date"]` convention from Task 5, `apply_death` wiring from Task 6 (already reads `rec["deceased_date"]` for any carrier — no new wiring needed)
+- Produces: `AETNA_DEATH_CODES` (frozenset), `is_aetna_death(code) -> bool`, and `rec["deceased_date"]` / `rec["term_reason_raw"]` on Aetna records
+
+**The code key** (`docs/Carrier BOB DL/Enrollment_Termination_Codes.xlsx`, "Termination Codes" sheet, last updated 9/8/25). The key states these live in **column T of the member book of business** — which is exactly where `Term Reason Code` sits (idx 19).
+
+The column mixes FOUR vocabularies: bare/`NG` (`08`/`NG08`), zero-padded/`QN` (`090`/`QN090`), `T###` (`T090`), and word codes (`SBT2`). **Four codes mean death:**
+
+| Code | Meaning | Count in the current book |
+|---|---|---:|
+| `08` / `NG08` | REPORT OF DEATH | 5 |
+| `T090` | Deceased | 1 |
+| `090` / `QN090` | Member Date of Death received on the DTRR | 0 |
+| `SBT2` | Deceased | 0 |
+
+⚠ **`92` / `NG92` is NOT death** — it is `RELOCATION OUT OF PLAN SERVICE AREA`, and it is the MOST COMMON code in the book (79 members). Matching on frequency would have suppressed 79 living people. Match only the four codes above.
+
+⚠ Zero-padding is significant: `08` (death) and `090` (death) are different codes, but `92` and `092` are both relocation. Compare the raw string against the explicit set — never strip leading zeros, never cast to int.
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+"""tests/test_aetna_deceased_capture.py"""
+from datetime import date
+
+
+def test_the_four_death_codes_are_recognised():
+    from app.carrier_term_codes import is_aetna_death
+    for code in ("08", "NG08", "T090", "090", "QN090", "SBT2"):
+        assert is_aetna_death(code), f"{code} should be a death code"
+
+
+def test_relocation_is_not_death():
+    """92 is the MOST COMMON code in the book (79 members) and means RELOCATION
+    OUT OF PLAN SERVICE AREA. Treating it as death would suppress 79 living
+    members."""
+    from app.carrier_term_codes import is_aetna_death
+    for code in ("92", "NG92", "092", "QN092"):
+        assert not is_aetna_death(code)
+
+
+def test_other_common_codes_are_not_death():
+    from app.carrier_term_codes import is_aetna_death
+    for code in ("13", "NG13", "T014", "8888", "", None, "11", "T810"):
+        assert not is_aetna_death(code)
+
+
+def test_matching_ignores_surrounding_whitespace_and_case():
+    from app.carrier_term_codes import is_aetna_death
+    assert is_aetna_death(" t090 ")
+    assert is_aetna_death("ng08")
+
+
+def test_the_parser_sets_deceased_date_from_the_term_date(tmp_path):
+    """Aetna gives no separate death date — the Term Date IS the date of death
+    when the reason code says death."""
+    import pandas as pd
+    from app.parsers.aetna import parse
+    p = tmp_path / "aetna.xlsx"
+    pd.DataFrame([{
+        "Member ID": "NG102285989500", "Medicare Number": "6MV0WK0MP06",
+        "First Name": "LINDA", "Last Name": "BOST", "Date of Birth": "1950-03-02",
+        "Coverage Effective Date": "2026-01-01", "Member Status": "T",
+        "Term Date": "2026-04-30", "Term Reason Code": "08",
+        "Plan Name": "Aetna Medicare Value Plus", "CMS Contract Number": "H5521",
+        "PBP Code": "081", "City": "Concord", "State": "NC", "Zip Code": "28025",
+        "Phone Number": "704-555-0134", "Address Line 1": "1 Main St",
+    }]).to_excel(p, index=False)
+    rec = parse(str(p))[0]
+    assert rec["deceased_date"] == date(2026, 4, 30)
+    assert rec["term_reason_raw"] == "08"
+
+
+def test_a_non_death_termination_sets_no_deceased_date(tmp_path):
+    import pandas as pd
+    from app.parsers.aetna import parse
+    p = tmp_path / "aetna.xlsx"
+    pd.DataFrame([{
+        "Member ID": "NG102285989501", "Medicare Number": "6MV0WK0MP07",
+        "First Name": "JOHN", "Last Name": "DOE", "Date of Birth": "1950-03-02",
+        "Coverage Effective Date": "2026-01-01", "Member Status": "T",
+        "Term Date": "2026-04-30", "Term Reason Code": "92",
+        "Plan Name": "Aetna Medicare Value Plus", "CMS Contract Number": "H5521",
+        "PBP Code": "081", "City": "Concord", "State": "NC", "Zip Code": "28025",
+        "Phone Number": "704-555-0135", "Address Line 1": "2 Main St",
+    }]).to_excel(p, index=False)
+    rec = parse(str(p))[0]
+    assert rec["deceased_date"] is None
+    assert rec["term_reason_raw"] == "92"
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `/usr/bin/python3 -m pytest tests/test_aetna_deceased_capture.py -q`
+Expected: FAIL — `ModuleNotFoundError: No module named 'app.carrier_term_codes'`
+
+- [ ] **Step 3: Create the code module**
+
+```python
+"""Carrier termination-reason codes.
+
+Aetna states its termination reason as a code in column T of the member book of
+business. The column mixes FOUR vocabularies — bare/NG (08/NG08), zero-padded/QN
+(090/QN090), T### (T090), and word codes (SBT2) — documented in
+docs/Carrier BOB DL/Enrollment_Termination_Codes.xlsx (updated 9/8/25).
+
+Four codes mean death. `92`/`NG92` does NOT: it is RELOCATION OUT OF PLAN SERVICE
+AREA and is the most common code in the book, so matching on frequency rather
+than meaning would suppress dozens of living members.
+
+Zero-padding is significant — `08` and `090` are distinct death codes, while `92`
+and `092` are both relocation. Compare the raw string; never strip leading zeros.
+"""
+
+AETNA_DEATH_CODES = frozenset({
+    "08", "NG08",      # REPORT OF DEATH
+    "090", "QN090",    # Member Date of Death received on the DTRR
+    "T090",            # Deceased
+    "SBT2",            # Deceased
+})
+
+
+def is_aetna_death(code) -> bool:
+    """True when an Aetna Term Reason Code means the member died."""
+    if not code:
+        return False
+    return str(code).strip().upper() in AETNA_DEATH_CODES
+```
+
+- [ ] **Step 4: Emit the fields from the parser**
+
+In `app/parsers/aetna.py`, in the record dict built for each row, add:
+
+```python
+            "term_reason_raw": _str(row, "Term Reason Code"),
+            "deceased_date": (_parse_date(row, "Term Date")
+                              if is_aetna_death(_str(row, "Term Reason Code"))
+                              else None),
+```
+
+with `from app.carrier_term_codes import is_aetna_death` at the top. Use whatever date/string helpers the file already defines — do not add new ones. Aetna supplies no separate death date, so the Term Date IS the date of death when the reason code says death.
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `/usr/bin/python3 -m pytest tests/test_aetna_deceased_capture.py -q`
+Expected: PASS (6 tests)
+
+Then `/usr/bin/python3 -m pytest -q` — expected PASS, no regressions.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/carrier_term_codes.py app/parsers/aetna.py tests/test_aetna_deceased_capture.py
+git commit -m "feat(deceased): capture Aetna death from Term Reason Code
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+```
+
+**Note:** no wiring is needed — Task 6's `_upsert_customer_from_policy` hook already
+reads `rec["deceased_date"]` for ANY carrier and passes `rec["carrier"]` for
+carrier-scoped termination. Aetna joins by emitting the key.
+
 ## Out of scope
 
-- **Aetna `Term Reason Code`** — codes are unlabeled (`92`×79, `13`×41, `T014`×8, `8`×5, `T090`×1) with no description column; decoding needs AJ or Aetna.
+- ~~Aetna `Term Reason Code`~~ — **RESOLVED 2026-09-03**, now Task 10. Tim located
+  the key at `docs/Carrier BOB DL/Enrollment_Termination_Codes.xlsx`. Death is
+  `08`/`NG08`, `090`/`QN090`, `T090`, `SBT2` — 6 members in the current book.
 - **BCBS / HealthSpring / Devoted** — no death signal in any file we receive.
 - **Acting on `"Enrollment in Another Plan"`** — captured in Task 4, acted on by the separate carrier-switch work.
 - **A review queue** for unmatched death rows and deceased customers still holding another carrier's active policy. The backfill prints both; a UI for them is a follow-up.
 
-After this ships the portal knows about deaths for **UHC and Humana only** — roughly 85% of the book by member count. That is an improvement, not a guarantee, and should be described that way.
+After this ships the portal knows about deaths for **UHC, Humana and Aetna**. BCBS,
+HealthSpring and Devoted still have no death signal we can read, so manual marking
+(Task 7) remains the only mechanism for those ~820 members. That is an improvement,
+not a guarantee, and should be described that way.
+
+The Aetna key also documents two things worth separate work: **carrier-switch codes**
+(`13`/`NG13` "enrollment in another plan", 41 members; `T014`/`T073`/`T100`/`T341`
+"New MCO Disenrollment") which feed the carrier-switch fix, and an **INVOLUNTARY
+column** that drives chargeback math — death is involuntary, and the workbook's
+commission scenarios show involuntary disenrollment takes a PRORATED chargeback
+rather than a full one. Whether the ledger models that is unverified.

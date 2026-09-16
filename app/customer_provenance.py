@@ -25,6 +25,7 @@ PROVENANCE_FIELDS = [
     "phone_primary", "phone_secondary", "email", "address1", "city",
     "state", "zip_code", "county", "medicaid_level", "medicaid_id",
     "preferred_name", "language",
+    "deceased_date",
 ]
 
 TRUST_ORDER = {"carrier_import": 1, "agent_entered": 2, "human_verified": 3}
@@ -32,7 +33,7 @@ TRUST_ORDER = {"carrier_import": 1, "agent_entered": 2, "human_verified": 3}
 __all__ = [
     "PROVENANCE_FIELDS", "TRUST_ORDER",
     "get_field", "trust_of",
-    "set_human_value", "set_import_value",
+    "set_human_value", "set_import_value", "set_carrier_value",
     "list_conflicts", "resolve_conflict",
 ]
 
@@ -78,8 +79,8 @@ def trust_of(customer, field):
 
 
 def _set_column(customer, field, value):
-    """Write the real typed column. dob is the only date field; others are strings."""
-    if field == "dob" and isinstance(value, str) and value:
+    """Write the real typed column. dob/deceased_date are the date fields; others are strings."""
+    if field in ("dob", "deceased_date") and isinstance(value, str) and value:
         try:
             value = date.fromisoformat(value)
         except ValueError:
@@ -116,6 +117,48 @@ def set_human_value(customer, field, value, user, note=None, verify=False):
     }
     _save(customer, data)
     customer.manually_edited = True
+
+
+def set_carrier_value(customer, field, value, source):
+    """Apply a CARRIER-sourced value, respecting the trust ladder.
+
+    Returns True if written, False if refused. Unlike set_human_value this never
+    sets manually_edited — a carrier import is not a human edit.
+
+    Refuses when:
+      - value is None (never-erase: a file that no longer mentions a fact must
+        not undo it), or
+      - the field already holds a value written at a HIGHER trust than
+        carrier_import (an agent's mark outranks a carrier's).
+    """
+    if field not in PROVENANCE_FIELDS:
+        raise ValueError(f"{field} is not a provenance-tracked field")
+    if value is None:
+        return False
+
+    data = _load(customer)
+    meta = data.setdefault("_meta", {})
+    existing = meta.get(field, {})
+    cur_trust = TRUST_ORDER.get(existing.get("trust"), 0)
+    if cur_trust > TRUST_ORDER["carrier_import"]:
+        return False
+
+    _set_column(customer, field, value)
+    scalar = _to_scalar(value)
+    history = existing.get("history", [])
+    history.append({"at": _now(), "by": source,
+                    "from": existing.get("value"), "to": scalar, "note": None})
+    meta[field] = {
+        "value": scalar,
+        "source": source,
+        "trust": "carrier_import",
+        "updated_at": _now(),
+        "updated_by": source,
+        "history": history,
+        "rejected_values": existing.get("rejected_values", []),
+    }
+    _save(customer, data)
+    return True
 
 
 def _is_blank(value):

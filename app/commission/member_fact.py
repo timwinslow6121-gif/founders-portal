@@ -38,6 +38,7 @@ class MemberFact:
     # lifecycle
     effective_date: Optional[date] = None
     term_date: Optional[date] = None
+    term_reason_raw: str = ""             # carrier's verbatim wording, e.g. "Death"
     plan_contract: Optional[str] = None   # "H9725"
     plan_pbp: Optional[str] = None        # "015"
     plan_type: Optional[str] = None       # "MAPD" / "DSNP" ...

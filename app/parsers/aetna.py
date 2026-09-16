@@ -10,6 +10,7 @@ Names → "First MI. Last" via app.names.normalize_person_name.
 import os
 import pandas as pd
 from app.names import normalize_person_name
+from app.carrier_term_codes import is_aetna_death
 
 XLSX_REQUIRED = {"Medicare Number", "Member Name", "Writing Agent Name"}
 CSV_REQUIRED = {"Medicare Number", "First Name", "Writing Agent NPN"}
@@ -127,6 +128,10 @@ def _parse_csv_format(df):
             "status": status,
             "cms_contract_number": _str(row, "CMS Contract Number"),
             "pbp_code": _str(row, "PBP Code"),
+            "term_reason_raw": _str(row, "Term Reason Code"),
+            "deceased_date": (_parse_date(row, "Term Date")
+                              if is_aetna_death(_str(row, "Term Reason Code"))
+                              else None),
         })
     return records
 

@@ -736,6 +736,9 @@ _UHC_ACTION = 19    # Commission Action
 _UHC_AMOUNT = 23    # Commission ($)
 _UHC_EFFDATE = 11   # Original Effective Date (col L) — drives New proration (months remaining)
 _UHC_COMPTYPE = 26  # Comp Type (col AA): 'R' = recurring/renewal portion, 'I' = initial
+_UHC_TERMDATE = 28   # Term Date — the date a Death (see _UHC_TERMREASON) occurred
+_UHC_TERMREASON = 24  # Term Reason — plain English: "Death", "Member Termination",
+                      # "Enrollment in Another Plan", "Star Plan Change"
 
 # UHC per-member money constants (monthly), confirmed with Tim + the data.
 # Two money types only: a "renewal" (SPLITS agent%/Founders%) and a fixed

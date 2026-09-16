@@ -450,6 +450,17 @@ def _upsert_customer_from_policy(rec: dict, agent_id: int, batch_id: int, agency
                 open_aor.end_date = now.date()
         customer.primary_agent_id = agent_id
 
+    # Humana masks the MBI but names a Deceased Date. resolve_customer()'s BOB
+    # branch can land here via a name+DOB guess (composite or suggest_link),
+    # not just an exact ID — gate on match_path so a death is only ever applied
+    # when the customer was resolved by an exact unique ID (crosswalk/mbi/
+    # carrier_member_id). Reached only on an exact ID match — never on a
+    # composite or suggest_link guess — so no name or DOB matching is involved.
+    if rec.get("deceased_date") and result.match_path in ("crosswalk", "mbi", "carrier_member_id"):
+        from app.deceased import apply_death
+        apply_death(customer, rec["deceased_date"], f"{rec.get('carrier','')}_bob".lower(),
+                    agency_id, carrier=rec.get("carrier"))
+
     from app.commission.payments import sweep_parked_payments
     sweep_parked_payments(customer, agency_id)
 

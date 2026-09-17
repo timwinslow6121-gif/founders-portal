@@ -83,9 +83,28 @@ Tier 1 is computed, not guessed:
 Tier 2/3 come from a **per-plan rating entered by a human** (Tim or AJ) after reading
 the ANOC. Unrated plans count as Tier 2 so nobody is silently deprioritised.
 
-⚠ **The portal cannot compute ANOC severity.** There are zero 2027 plan rows, and 2027
-first-look benefit data is not trustworthy (BCBS revises between first look and CMS
-approval — established August 2026). Change descriptions are typed by a human.
+⚠ **The portal cannot compute ANOC severity.** 2027 data now exists — see the
+first-look file below — but it is `Source=FL`, explicitly untrusted, and severity is a
+judgment about whether a customer should come in, not an arithmetic result. Change
+descriptions and tier ratings are typed by a human.
+
+#### The 2027 first-look file (`docs/Medicare 2027 Plan Info/Medicare Plan Data 2026-2027 - MASTER.csv`)
+
+Tim's own compilation, marked by him as incomplete and unverified. Long format:
+`CMS Code, Carrier, Plan Name, Year, Benefit, Value, Source, Verified By, Verified Date, Notes`.
+5,882 rows; 2026 is 4,074 rows all `Source=CMS`, 2027 is 1,809 rows of which **1,273 are
+`FL` and 536 are `CMS`**. 95 distinct plans carry 2027 data.
+
+Measured against the live book: of **5,391 active policies on CMS-coded plans, 4,072 (76%)
+sit on a plan with some 2027 row** — but **4,030 of those 4,072 are covered only by `FL`
+data; just 42 are covered by `CMS`.** The largest uncovered plans are UHC `H5253-184`
+(726 policies), Humana `S5884-187` (228) and UHC `H5253-041` (170) — the D-SNPs and PDPs,
+which is where a quarter of the book sits.
+
+**What it does change:** it makes typing the tier notes materially faster, because the
+2026 and 2027 values sit side by side in one file instead of across two ANOC PDFs.
+
+**What it does not change:** the tier itself, and the SAR seeding below.
 
 Any customer's tier can be overridden by hand, with a required note, and shows an
 asterisk wherever it appears.
@@ -185,6 +204,22 @@ New `PlanAepRating` (migration 044):
 New `PlanServiceReduction` (migration 044): `(plan_id, county, year)` — the SAR rule.
 Seeded by hand from carrier notices; **not** inferred from benefit data.
 
+⚠ **A 2026→2027 county diff is not available, and the first-look file does not supply
+one.** It carries 57 `Service area` benefit rows, **all of them 2027 and all `Source=FL`,
+covering 53 plans — and zero 2026 service-area rows.** There is nothing to diff against
+within the file. The portal's own `plan_service_areas` table (5,019 rows / 120 plans) is
+2026 CMS data and *could* serve as the left-hand side, but joining untrusted 2027
+first-look counties against trusted 2026 CMS counties would manufacture SARs from a
+source that is revised before CMS approval — the exact failure `plan_provenance.py`
+exists to prevent. A false SAR tells a customer their plan is leaving when it is not.
+
+Seeding therefore stays manual. The file's **`Key notes`** rows are the useful part: 759
+rows carry a populated `Notes`, and Humana `H5525-035-000`'s 2027 `Key notes` value reads
+*"EXITS Cherokee, Clay, Swain, Cabarrus, Pender, Gates for 2027"* — which matches Brian's
+Humana 335 / Cabarrus letter. Those notes are a **candidate list for Tim to confirm**, not
+a seed source: they are prose in a free-text column, present on a handful of plans, and
+unverified. Grepping them saves Tim finding the plans; it does not replace his sign-off.
+
 ### 2. Triage resolution
 
 One accessor, the single place a tier is decided:
@@ -247,7 +282,8 @@ per-county SAR variant and a cross-plan state-retiree variant.
 | **Group meetings / webinar capacity** | Betty's binder and the QR signup already work; replacing them mid-AEP is a liability |
 | **Store / location views** | 88 of 5,495 customers have a pharmacy |
 | **D-SNP / LIS segmentation** | `medicaid_level` set on 1 customer |
-| **Automatic ANOC severity** | zero 2027 plan rows; first-look data is unreliable |
+| **Automatic ANOC severity** | 2027 data exists but 99% of covered policies are `FL` (untrusted); severity is a human judgment |
+| **Automatic SAR seeding from the first-look file** | it has 2027 service areas but no 2026 ones — nothing to diff, and an FL-vs-CMS diff would manufacture false SARs |
 | **Carrier enrollment confirmation feeds** | no API; manual, or later via confirmation-email parsing |
 
 ## Build order
@@ -276,14 +312,17 @@ Ordered so that stopping early leaves a coherent product, not a half-wired one.
 
 - **ANOC change notes + tier ratings for the top ~20 plans.** The portal cannot compute
   these. Without them the triage page is empty at demo time.
-  Tim has most 2027 carrier **first-look** material (Google Drive). That makes typing
-  the notes *faster* — comparing real numbers beats reading ANOCs cover to cover — but
-  it does **not** make severity computable. First-look data is explicitly untrusted in
+  Tim's first-look compilation is now in the repo (see above) and covers 76% of the
+  book's active policies. That makes typing the notes *faster* — comparing real numbers
+  beats reading ANOCs cover to cover — but it does **not** make severity computable.
+  Note the gap: the D-SNPs and PDPs holding ~1,300 policies have no 2027 row at all. First-look data is explicitly untrusted in
   this codebase: BCBS revised benefits between first look and CMS approval in 2026 and
   the agency was burned by it, which is why `plan_provenance.py` treats first-look as
   `unverified` and lets CMS overwrite it. A tier is a judgment about whether a customer
   should come in; that judgment stays human.
 - **SAR list** — which plans are leaving which counties (Humana 335 / Cabarrus is known).
+  Grep the first-look file's `Key notes` rows for exit language to produce a candidate
+  list, then have Tim confirm each one against the carrier notice before it is seeded.
 - **State-retiree list** — `is_state_retiree` starts empty; Brian's letter set implies
   the list exists somewhere.
 - **Confirm the SOA timing rule.** The mockup asserts "since Oct 1 2026 there is no

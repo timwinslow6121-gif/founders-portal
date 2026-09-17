@@ -19,18 +19,23 @@ Default pbp-dir: docs/Medicare Landscape Files/pbp-benefits-2026/
 
 Writes report to: scripts/pbp_extended_sync_report.txt
 """
-import sys, os, csv, json
+import sys, os, csv, json, argparse, collections
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db
 from app.models import Plan
+from app.plan_provenance import set_cms_value, make_value
 
-PLAN_YEAR = 2026
+DEFAULT_PLAN_YEAR = 2026
 
-DEFAULT_PBP_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "docs", "Medicare Landscape Files", "pbp-benefits-2026",
-)
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def default_pbp_dir(year):
+    """CMS publishes one PBP release per contract year: pbp-benefits-<year>/."""
+    return os.path.join(
+        _REPO_ROOT, "docs", "Medicare Landscape Files", f"pbp-benefits-{year}",
+    )
 
 REPORT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
@@ -289,26 +294,38 @@ def _extract_tier_copay(tier_row):
 # Merge helper
 # ---------------------------------------------------------------------------
 
-def _merge_details(plan, updates):
-    """Merge updates dict into plan.details_json preserving existing keys."""
-    existing = {}
-    if plan.details_json:
-        try:
-            existing = json.loads(plan.details_json)
-        except (json.JSONDecodeError, TypeError):
-            existing = {}
+def _write_benefits(plan, updates, cms_source, actions):
+    """Write CMS benefit values through the provenance seam.
+
+    Replaces the previous blind `details_json` merge. CLAUDE.md requires that
+    ALL _meta writes go through app/plan_provenance.py: a blind merge silently
+    overwrites an agent-entered or human-verified value, which is exactly the
+    BCBS first-look-vs-CMS incident that engine exists to prevent.
+
+    PBP benefits are compound strings ("$455 days 1-6, $0 days 7-90") with no
+    single numeric amount, so they are stored as unit="text" with the benefit
+    carried in `display`. set_cms_value compares text values on `display`.
+
+    Mutates `actions` (a Counter) with the per-field outcome so the caller can
+    report how many values were written / refreshed / overwrote a first look /
+    flagged a conflict / were skipped because a human had verified them.
+    """
     for key, val in updates.items():
-        if val is not None:
-            existing[key] = val
-    plan.details_json = json.dumps(existing)
+        if val is None:
+            continue
+        action = set_cms_value(
+            plan, key, make_value(amount=None, unit="text", display=val), cms_source
+        )
+        actions[action] += 1
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
-def run(pbp_dir=None):
-    pbp_dir = pbp_dir or DEFAULT_PBP_DIR
+def run(pbp_dir=None, plan_year=DEFAULT_PLAN_YEAR):
+    pbp_dir = pbp_dir or default_pbp_dir(plan_year)
+    cms_source = f"cms_pbp_{plan_year}"
 
     files = {
         "b1a":      os.path.join(pbp_dir, "pbp_b1a_inpat_hosp.txt"),
@@ -344,12 +361,13 @@ def run(pbp_dir=None):
             print("No plans in database. Exiting.")
             return
 
-        db_plans = Plan.query.filter_by(agency_id=agency_id, year=PLAN_YEAR).all()
-        print(f"Plans with year={PLAN_YEAR}: {len(db_plans)}\n")
+        db_plans = Plan.query.filter_by(agency_id=agency_id, year=plan_year).all()
+        print(f"Plans with year={plan_year}: {len(db_plans)}\n")
 
         updated_count = 0
         not_found_per_file = {k: [] for k in files}
         updated_plans_log = []
+        actions = collections.Counter()
 
         for plan in db_plans:
             if not plan.cms_plan_id:
@@ -465,7 +483,7 @@ def run(pbp_dir=None):
                 not_found_per_file["mrx_tier"].append(plan.cms_plan_id)
 
             if benefit_updates:
-                _merge_details(plan, benefit_updates)
+                _write_benefits(plan, benefit_updates, cms_source, actions)
             if fields_written:
                 updated_count += 1
                 updated_plans_log.append((plan.cms_plan_id, plan.plan_name, fields_written))
@@ -477,7 +495,7 @@ def run(pbp_dir=None):
             f.write("PBP Extended Benefits Sync Report\n")
             f.write("=================================\n")
             f.write(f"PBP dir: {pbp_dir}\n")
-            f.write(f"Plan year: {PLAN_YEAR}\n")
+            f.write(f"Plan year: {plan_year}\n")
             f.write(f"Agency ID: {agency_id}\n")
             f.write(f"Plans processed: {len(db_plans)}\n")
             f.write(f"Plans updated: {updated_count}\n\n")
@@ -492,13 +510,41 @@ def run(pbp_dir=None):
                 if missing:
                     f.write(f"  {file_key}: {len(missing)} plans not found: {', '.join(sorted(set(missing)))}\n")
 
+            f.write("\nPROVENANCE OUTCOMES (via set_cms_value)\n")
+            f.write("--------------------------------------\n")
+            if actions:
+                for act, n in sorted(actions.items(), key=lambda kv: -kv[1]):
+                    f.write(f"  {act:<22} {n}\n")
+                if actions.get("conflict_flagged"):
+                    f.write("  ^ conflict_flagged: CMS disagrees with an agent-entered value.\n")
+                    f.write("    The agent value was NOT overwritten. Review at the plan's conflict queue.\n")
+            else:
+                f.write("  (no benefit values written)\n")
+
+            f.write("\nSCALAR COLUMNS WRITTEN DIRECTLY (NOT PROVENANCE-TRACKED)\n")
+            f.write("-------------------------------------------------------\n")
+            f.write("  drug_tier1..drug_tier5 are real DB columns, not details_json keys,\n")
+            f.write("  so set_cms_value() cannot track them - it only writes details_json._meta.\n")
+            f.write("  They are overwritten wholesale by each sync. Known gap; see BACKLOG.md.\n")
+
             f.write("\nMANUAL ENTRY REQUIRED (NO CMS SOURCE)\n")
             f.write("-------------------------------------\n")
             f.write("  otc_allowance, healthy_food_card, transportation, gym\n")
             f.write("  (CMS b13 file has complex VBID structure not cleanly mappable; admin form entry only)\n")
 
+        summary = " \u00b7 ".join(f"{a} {n}" for a, n in sorted(actions.items(), key=lambda kv: -kv[1]))
         print(f"Sync complete. {updated_count} plans updated. Report: {REPORT_PATH}")
+        if summary:
+            print(f"  provenance: {summary}")
+        if actions.get("conflict_flagged"):
+            print(f"  \u26a0 {actions['conflict_flagged']} conflict(s) flagged - agent values preserved, review needed.")
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else None)
+    ap = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
+    ap.add_argument("pbp_dir", nargs="?", default=None,
+                    help="path to the PBP release dir (default: docs/.../pbp-benefits-<year>/)")
+    ap.add_argument("--year", type=int, default=DEFAULT_PLAN_YEAR,
+                    help=f"contract year to sync (default: {DEFAULT_PLAN_YEAR})")
+    args = ap.parse_args()
+    run(args.pbp_dir, plan_year=args.year)

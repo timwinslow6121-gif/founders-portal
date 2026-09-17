@@ -189,6 +189,14 @@ def set_cms_value(plan, field, value, cms_source):
         and _ev.get("period") == value.get("period")
         and _ev.get("unit") == value.get("unit")
     )
+    # Compound benefits ("$455 days 1-6, $0 days 7-90") have no single numeric
+    # amount, so they are stored as unit="text" with amount=None and the whole
+    # benefit carried in `display`. Comparing on amount/period/unit alone would
+    # judge every such value equal to every other, which silently turns a real
+    # change into "refreshed" and an agent conflict into "promoted_verified".
+    # When there is no amount to compare, the display string IS the value.
+    if same and value.get("amount") is None:
+        same = _ev.get("display") == value.get("display")
 
     if trust == "human_verified":
         _save(plan, data)  # persist cms_synced_at bump only

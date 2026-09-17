@@ -16,7 +16,7 @@ WHAT IT REPORTS (scripts/pbp_sync_report.txt):
 
 Run on VPS: ./venv/bin/python3 scripts/sync_pbp_benefit_data.py [optional/path/to/pbp-benefits-dir]
 """
-import sys, os, csv
+import sys, os, csv, argparse
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db
@@ -26,12 +26,21 @@ from app.models import Plan
 # CONFIG
 # ---------------------------------------------------------------------------
 
-PLAN_YEAR = 2026
+DEFAULT_PLAN_YEAR = 2026
 
-DEFAULT_PBP_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "docs", "Medicare Landscape Files", "pbp-benefits-2026",
-)
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def default_pbp_dir(year):
+    """CMS publishes one PBP release per contract year: pbp-benefits-<year>/."""
+    return os.path.join(
+        _REPO_ROOT, "docs", "Medicare Landscape Files", f"pbp-benefits-{year}",
+    )
+
+
+# NOTE: pcp_copay / specialist_copay / er_copay are real DB columns, not
+# details_json keys, so set_cms_value() cannot track them. Overwritten wholesale
+# by each sync. Known gap, logged in BACKLOG.md. See sync_cms_plan_data.py.
 
 # ---------------------------------------------------------------------------
 # Load PBP flat files into dicts keyed by (hnumber, plan_id)
@@ -124,8 +133,8 @@ def _extract_copay(row, yn_col, min_col, max_col, coins_yn_col=None, coins_min_c
 # Main
 # ---------------------------------------------------------------------------
 
-def run(pbp_dir=None):
-    pbp_dir = pbp_dir or DEFAULT_PBP_DIR
+def run(pbp_dir=None, plan_year=DEFAULT_PLAN_YEAR):
+    pbp_dir = pbp_dir or default_pbp_dir(plan_year)
 
     b4_path = os.path.join(pbp_dir, "pbp_b4_emerg_urgent.txt")
     b7_path = os.path.join(pbp_dir, "pbp_b7_health_prof.txt")
@@ -150,8 +159,8 @@ def run(pbp_dir=None):
             print("No plans in database. Exiting.")
             return
 
-        db_plans = Plan.query.filter_by(agency_id=agency_id, year=PLAN_YEAR).all()
-        print(f"Plans with year={PLAN_YEAR}: {len(db_plans)}\n")
+        db_plans = Plan.query.filter_by(agency_id=agency_id, year=plan_year).all()
+        print(f"Plans with year={plan_year}: {len(db_plans)}\n")
 
         updates = {}   # plan.id → {field: (old, new)}
         missing = []   # plans where cms_plan_id not in PBP file (PDP-only or bad ID)
@@ -222,7 +231,7 @@ def run(pbp_dir=None):
 
         # --- Report ---
         lines = [
-            f"PBP Flat File Sync Report — {PLAN_YEAR}",
+            f"PBP Flat File Sync Report — {plan_year}",
             f"Source: {os.path.basename(pbp_dir)}",
             "=" * 65, "",
             f"UPDATED ({len(updates)} plans):",
@@ -257,4 +266,10 @@ def run(pbp_dir=None):
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else None)
+    ap = argparse.ArgumentParser(description="Sync CMS PBP core copays.")
+    ap.add_argument("pbp_dir", nargs="?", default=None,
+                    help="path to the PBP release dir (default: docs/.../pbp-benefits-<year>/)")
+    ap.add_argument("--year", type=int, default=DEFAULT_PLAN_YEAR,
+                    help=f"contract year to sync (default: {DEFAULT_PLAN_YEAR})")
+    args = ap.parse_args()
+    run(args.pbp_dir, plan_year=args.year)

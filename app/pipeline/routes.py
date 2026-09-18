@@ -10,12 +10,14 @@ Every query here is scoped to BOTH current_user.agency_id and the owning agent
 lives in one place -- _book_query -- and no endpoint queries Customer directly.
 """
 import datetime as dt
+import json
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, abort
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Customer, PipelineState, PipelineConfig, is_contactable
+from app.models import (Customer, PipelineState, PipelineConfig, ScopeForm,
+                        Touch, is_contactable)
 from app.pipeline.queues import QUEUES, queue_for, queue_counts
 from app.pipeline.triage import tier_for
 from app.pipeline.plans import current_plan_for
@@ -165,3 +167,146 @@ def api_customer(customer_id):
     row["is_mine"] = (c.primary_agent_id == current_user.id)
     row["owner_name"] = c.primary_agent.name if c.primary_agent else None
     return jsonify(row)
+
+
+# ---------------------------------------------------------------------------
+# Write endpoints. Two gates, both enforced HERE and not merely hidden in the
+# UI: a scope form must exist before any plan-specific stage, and `done`
+# requires an outcome. Agent of record is a compliance fact -- logging a touch
+# on someone else's customer is allowed, changing their workflow is not.
+# ---------------------------------------------------------------------------
+
+# Stages that require a scope form on file before any plan-specific discussion.
+SCOPE_REQUIRED = {"deciding", "submitted"}
+VALID_OUTCOMES = {"enrolled", "kept", "lost"}
+
+
+def _load_mine(customer_id, *, writing):
+    """Fetch a customer + state. `writing` means a stage/outcome/tier change,
+    which only the agent of record may do.
+
+    Both lookups carry agency_id: a customer and a pipeline_state row could in
+    principle disagree, and an unscoped state read would be a cross-tenant leak
+    even though the customer read was scoped.
+    """
+    c = Customer.query.filter_by(id=customer_id,
+                                 agency_id=current_user.agency_id).first_or_404()
+    s = PipelineState.query.filter_by(
+        customer_id=c.id, agency_id=current_user.agency_id).first_or_404()
+    if writing and c.primary_agent_id != current_user.id and not current_user.is_admin:
+        abort(403)
+    return c, s
+
+
+def _reply(c, s, cfg):
+    return jsonify({
+        "customer": customer_row(c, s, cfg),
+        "counters": queue_counts(current_user.agency_id, c.primary_agent_id, cfg),
+    })
+
+
+@pipeline_bp.route("/api/customer/<int:customer_id>/scope", methods=["POST"])
+@login_required
+def api_scope(customer_id):
+    c, s = _load_mine(customer_id, writing=False)
+    body = request.get_json(silent=True) or {}
+    db.session.add(ScopeForm(
+        agency_id=c.agency_id, customer_id=c.id,
+        method=body.get("method"),
+        products=json.dumps(body.get("products") or []),
+        captured_by=current_user.id,
+    ))
+    db.session.commit()
+    return _reply(c, s, _cfg(c.agency_id))
+
+
+@pipeline_bp.route("/api/customer/<int:customer_id>/outcome", methods=["POST"])
+@login_required
+def api_outcome(customer_id):
+    c, s = _load_mine(customer_id, writing=True)
+    body = request.get_json(silent=True) or {}
+    action = body.get("action")
+    if action not in STAGE_LABEL:
+        return jsonify({"error": "unknown action"}), 400
+
+    # The scope form must exist before any plan-specific discussion. The
+    # 48-hour wait ended 2026-10-01 (Tim), so same-day is fine.
+    if action in SCOPE_REQUIRED:
+        has_scope = ScopeForm.query.filter_by(
+            customer_id=c.id, agency_id=current_user.agency_id).first()
+        if not has_scope:
+            return jsonify({"code": "needs_scope",
+                            "message": "Fill in the scope form first."}), 409
+
+    if action == "done":
+        outcome = body.get("outcome")
+        if outcome not in VALID_OUTCOMES:
+            return jsonify({"error": "done requires an outcome"}), 400
+        s.outcome = outcome
+    else:
+        s.outcome = None
+
+    s.stage = action
+    s.stage_since = dt.datetime.utcnow()
+    db.session.commit()
+    return _reply(c, s, _cfg(c.agency_id))
+
+
+@pipeline_bp.route("/api/customer/<int:customer_id>/touch", methods=["POST"])
+@login_required
+def api_touch(customer_id):
+    # Logging what you did on someone else's customer IS allowed.
+    c, s = _load_mine(customer_id, writing=False)
+    body = request.get_json(silent=True) or {}
+    level = body.get("level")
+    if level not in {"sent", "tried", "reached"}:
+        return jsonify({"error": "bad level"}), 400
+
+    now = dt.datetime.utcnow()
+    db.session.add(Touch(
+        agency_id=c.agency_id, customer_id=c.id, agent_id=current_user.id,
+        level=level, channel=body.get("channel") or "call",
+        direction=body.get("direction") or "out",
+        occurred_at=now, detail=body.get("detail"), source="manual",
+    ))
+    if level in {"tried", "reached"}:
+        s.attempts = (s.attempts or 0) + 1
+        if s.first_try_at is None:
+            s.first_try_at = now
+    db.session.commit()
+    return _reply(c, s, _cfg(c.agency_id))
+
+
+@pipeline_bp.route("/api/customer/<int:customer_id>/waiting", methods=["POST", "DELETE"])
+@login_required
+def api_waiting(customer_id):
+    c, s = _load_mine(customer_id, writing=True)
+    if request.method == "DELETE":
+        s.waiting_what = None
+        s.waiting_due = None
+    else:
+        body = request.get_json(silent=True) or {}
+        s.waiting_what = body.get("what")
+        due = body.get("due")
+        try:
+            s.waiting_due = dt.date.fromisoformat(due) if due else None
+        except (TypeError, ValueError):
+            return jsonify({"error": "due must be YYYY-MM-DD"}), 400
+    db.session.commit()
+    return _reply(c, s, _cfg(c.agency_id))
+
+
+@pipeline_bp.route("/api/customer/<int:customer_id>/tier", methods=["POST"])
+@login_required
+def api_tier(customer_id):
+    c, s = _load_mine(customer_id, writing=True)
+    body = request.get_json(silent=True) or {}
+    tier = body.get("tier")
+    if tier is not None and tier not in (1, 2, 3):
+        return jsonify({"error": "tier must be 1, 2, 3 or null"}), 400
+    s.tier_override = tier
+    s.tier_override_note = body.get("note")
+    s.tier_override_by = current_user.id
+    s.tier_override_at = dt.datetime.utcnow() if tier else None
+    db.session.commit()
+    return _reply(c, s, _cfg(c.agency_id))

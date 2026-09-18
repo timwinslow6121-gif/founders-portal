@@ -22,6 +22,12 @@ class Agency(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
     name       = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    # The agency's own National Producer Number. Distinct from User.npn: an
+    # agency NPN identifies the firm, a user NPN the individual producer.
+    # IntegrityCONNECT binds each API credential to ONE NPN, extracted from the
+    # login session and enforced at the gateway, so which NPN a credential is
+    # cut under decides whose book it can see.
+    npn        = db.Column(db.String(16))
 
     def __repr__(self):
         return f"<Agency {self.name}>"

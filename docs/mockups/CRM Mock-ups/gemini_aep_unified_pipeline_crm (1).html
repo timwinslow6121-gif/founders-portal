@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEP Unified Sales Pipeline</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for the board */
+        .board-container::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .board-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .board-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .board-container::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        
+        .column-drop-zone {
+            transition: background-color 0.2s ease;
+        }
+        .column-drop-zone.drag-over {
+            background-color: #e2e8f0;
+            border: 2px dashed #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col hidden md:flex z-10">
+        <div class="h-16 flex items-center px-6 border-b border-gray-200">
+            <i class="ph-fill ph-heartbeat text-brand-600 text-2xl mr-2"></i>
+            <span class="text-lg font-bold text-gray-900 tracking-tight">MediCRM Pro</span>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-1 px-3">
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-brand-600 group">
+                        <i class="ph ph-squares-four text-xl mr-3 text-gray-400 group-hover:text-brand-600"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 bg-brand-50 text-brand-600 rounded-lg group">
+                        <i class="ph ph-kanban text-xl mr-3 text-brand-600"></i>
+                        <span class="font-medium">AEP Pipeline</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-brand-600 group">
+                        <i class="ph ph-users text-xl mr-3 text-gray-400 group-hover:text-brand-600"></i>
+                        <span class="font-medium">Clients</span>
+                        <span class="ml-auto bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-semibold">500+</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-brand-600 group">
+                        <i class="ph ph-lightning text-xl mr-3 text-gray-400 group-hover:text-brand-600"></i>
+                        <span class="font-medium">Automations</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-brand-600 group">
+                        <i class="ph ph-chart-line-up text-xl mr-3 text-gray-400 group-hover:text-brand-600"></i>
+                        <span class="font-medium">Reports</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="mt-8 px-6 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                Saved Views
+            </div>
+            <ul class="mt-2 space-y-1 px-3">
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50">
+                        <span class="w-2 h-2 rounded-full bg-red-500 mr-3"></span>
+                        <span class="font-medium text-sm">Tier 1 Renewals</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-3 py-2 text-gray-600 rounded-lg hover:bg-gray-50">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 mr-3"></span>
+                        <span class="font-medium text-sm">New Leads Only</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="p-4 border-t border-gray-200">
+            <div class="flex items-center">
+                <img src="https://placehold.co/100x100/14b8a6/ffffff?text=AG" alt="Agent" class="w-9 h-9 rounded-full object-cover border border-gray-200">
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-700">Lead Agent</p>
+                    <p class="text-xs text-gray-500">AEP Mode: Active</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        <!-- Header -->
+        <header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm">
+            <div class="flex items-center flex-1">
+                <button class="md:hidden mr-4 text-gray-500 hover:text-gray-700">
+                    <i class="ph ph-list text-2xl"></i>
+                </button>
+                <h1 class="text-xl font-semibold text-gray-800">AEP 2027 Workflow</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="relative hidden sm:block">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" placeholder="Search clients, HICN..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 w-64">
+                </div>
+                
+                <button class="text-gray-400 hover:text-gray-600 relative">
+                    <i class="ph ph-bell text-xl"></i>
+                    <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                </button>
+                
+                <button class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors">
+                    <i class="ph ph-plus mr-2"></i>
+                    New Lead
+                </button>
+            </div>
+        </header>
+
+        <!-- Filter Bar -->
+        <div class="bg-white px-6 py-3 border-b border-gray-200 flex items-center space-x-4 overflow-x-auto whitespace-nowrap z-0">
+            <span class="text-sm font-medium text-gray-500">Filters:</span>
+            <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium hover:bg-gray-200">All Contacts</button>
+            <button class="px-3 py-1 border border-red-200 bg-red-50 text-red-700 rounded-full text-xs font-medium hover:bg-red-100">Tier 1: High Priority</button>
+            <button class="px-3 py-1 border border-yellow-200 bg-yellow-50 text-yellow-700 rounded-full text-xs font-medium hover:bg-yellow-100">Tier 2: Medium</button>
+            <button class="px-3 py-1 border border-purple-200 bg-purple-50 text-purple-700 rounded-full text-xs font-medium hover:bg-purple-100">Renewals Only</button>
+        </div>
+
+        <!-- Board Area -->
+        <div class="flex-1 overflow-x-auto overflow-y-hidden board-container bg-slate-50 relative">
+            <!-- Loading overlay (hidden by default, can be toggled) -->
+            <div id="loadingOverlay" class="absolute inset-0 bg-white/50 backdrop-blur-sm z-20 flex items-center justify-center hidden">
+                <i class="ph ph-spinner animate-spin text-4xl text-brand-600"></i>
+            </div>
+
+            <div class="flex h-full px-6 py-6 space-x-6 w-max" id="kanbanBoard">
+                <!-- Columns will be injected here by JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Data Structure matching the proposed workflow
+        const stages = [
+            { id: 'stage-1', title: 'Incoming / Needs Contact', color: 'border-gray-300', count: 0 },
+            { id: 'stage-2', title: 'Outreach Attempted', color: 'border-blue-300', count: 0 },
+            { id: 'stage-3', title: 'Appointment Scheduled', color: 'border-purple-300', count: 0 },
+            { id: 'stage-4', title: 'Meeting Held - Stalled', color: 'border-orange-300', count: 0 },
+            { id: 'stage-5', title: 'App Submitted - Pending', color: 'border-yellow-300', count: 0 },
+            { id: 'stage-6', title: 'Enrolled - Active', color: 'border-brand-500', count: 0 },
+            { id: 'stage-7', title: 'Closed Lost / No Change', color: 'border-red-300', count: 0 }
+        ];
+
+        const clients = [
+            {
+                id: 'c1',
+                name: 'Eleanor Roosevelt',
+                stageId: 'stage-1',
+                type: 'Renewal',
+                tier: 'Tier 1',
+                tags: ['SAR', 'UHC'],
+                lastAction: 'ANOC Letter Sent 10/01',
+                automation: null,
+                phone: '(704) 555-0192'
+            },
+            {
+                id: 'c2',
+                name: 'John Wayne',
+                stageId: 'stage-1',
+                type: 'New Lead',
+                tier: 'None',
+                tags: ['Pharmacy Walk-in'],
+                lastAction: 'Left info with tech',
+                automation: 'Needs initial call',
+                phone: '(704) 555-3841'
+            },
+            {
+                id: 'c3',
+                name: 'Betty White',
+                stageId: 'stage-2',
+                type: 'Renewal',
+                tier: 'Tier 2',
+                tags: ['Moderate Change', 'Humana'],
+                lastAction: 'Ringless VM Sent 10/05',
+                automation: 'Waiting for reply',
+                phone: '(803) 555-8821'
+            },
+            {
+                id: 'c4',
+                name: 'George Washington',
+                stageId: 'stage-3',
+                type: 'Renewal',
+                tier: 'Tier 1',
+                tags: ['State Retiree', 'Major Change'],
+                lastAction: 'Appt: Oct 18 @ 2pm',
+                automation: 'Automated Reminders Active',
+                phone: '(704) 555-1776'
+            },
+            {
+                id: 'c5',
+                name: 'Abraham Lincoln',
+                stageId: 'stage-4',
+                type: 'New Lead',
+                tier: 'None',
+                tags: ['Referral'],
+                lastAction: 'Meeting 10/12 - Thinking',
+                automation: 'Task: Day 5 Follow-up Call',
+                phone: '(980) 555-1865'
+            },
+            {
+                id: 'c6',
+                name: 'Clara Barton',
+                stageId: 'stage-5',
+                type: 'Renewal',
+                tier: 'Tier 3',
+                tags: ['Minor Change', 'Aetna'],
+                lastAction: 'App Submitted via Sunfire',
+                automation: 'Task: Verify Carrier Portal',
+                phone: '(704) 555-9111'
+            },
+            {
+                id: 'c7',
+                name: 'Thomas Edison',
+                stageId: 'stage-6',
+                type: 'New Lead',
+                tier: 'None',
+                tags: ['Facebook Ad'],
+                lastAction: 'Policy Issued',
+                automation: '30/60/90 Sequence Active',
+                phone: '(803) 555-4321'
+            }
+        ];
+
+        const boardElement = document.getElementById('kanbanBoard');
+
+        // Helper to get badge colors based on content
+        function getBadgeStyles(text) {
+            if (text === 'Renewal') return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+            if (text === 'New Lead') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (text === 'Tier 1') return 'bg-red-50 text-red-700 border-red-200 font-bold';
+            if (text === 'Tier 2') return 'bg-yellow-50 text-yellow-700 border-yellow-200 font-bold';
+            if (text === 'Tier 3') return 'bg-slate-50 text-slate-700 border-slate-200';
+            return 'bg-gray-100 text-gray-600 border-gray-200'; // default tag
+        }
+
+        function renderBoard() {
+            boardElement.innerHTML = ''; // Clear board
+
+            stages.forEach(stage => {
+                // Filter clients for this stage
+                const stageClients = clients.filter(c => c.stageId === stage.id);
+                
+                // Create Column
+                const colWrapper = document.createElement('div');
+                colWrapper.className = 'w-[320px] flex-shrink-0 flex flex-col max-h-full';
+                
+                const colHeader = document.createElement('div');
+                colHeader.className = `flex items-center justify-between mb-3 px-1 border-b-2 ${stage.color} pb-2`;
+                colHeader.innerHTML = `
+                    <h3 class="font-semibold text-gray-700 text-sm uppercase tracking-wider">${stage.title}</h3>
+                    <span class="bg-white border border-gray-200 text-gray-500 text-xs py-0.5 px-2 rounded-full font-medium shadow-sm">${stageClients.length}</span>
+                `;
+
+                const dropZone = document.createElement('div');
+                dropZone.className = 'flex-1 overflow-y-auto space-y-3 column-drop-zone rounded-lg p-1 min-h-[150px]';
+                dropZone.dataset.stageId = stage.id;
+
+                // Add drag/drop listeners to dropZone
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('dragleave', handleDragLeave);
+                dropZone.addEventListener('drop', handleDrop);
+
+                // Render Cards
+                stageClients.forEach(client => {
+                    const card = createCard(client);
+                    dropZone.appendChild(card);
+                });
+
+                colWrapper.appendChild(colHeader);
+                colWrapper.appendChild(dropZone);
+                boardElement.appendChild(colWrapper);
+            });
+        }
+
+        function createCard(client) {
+            const card = document.createElement('div');
+            card.className = 'bg-white p-4 rounded-xl shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow relative group';
+            card.draggable = true;
+            card.dataset.clientId = client.id;
+            
+            // Drag Event Listeners
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+
+            let tagsHtml = '';
+            
+            // Type Badge
+            tagsHtml += `<span class="inline-block px-2 py-0.5 text-[10px] uppercase tracking-wider border rounded-md mb-2 mr-1 ${getBadgeStyles(client.type)}">${client.type}</span>`;
+            
+            // Tier Badge (if applicable)
+            if (client.tier !== 'None') {
+                tagsHtml += `<span class="inline-block px-2 py-0.5 text-[10px] uppercase tracking-wider border rounded-md mb-2 mr-1 ${getBadgeStyles(client.tier)}"><i class="ph-fill ph-warning-circle mr-1"></i>${client.tier}</span>`;
+            }
+
+            // Other Tags
+            client.tags.forEach(tag => {
+                tagsHtml += `<span class="inline-block px-2 py-0.5 text-[10px] uppercase tracking-wider border rounded-md mb-2 mr-1 ${getBadgeStyles(tag)}">${tag}</span>`;
+            });
+
+            // Automation Icon logic
+            let automationHtml = '';
+            if (client.automation) {
+                let iconClass = 'ph-robot';
+                let colorClass = 'text-brand-500 bg-brand-50 border-brand-100';
+                
+                if (client.automation.includes('Task')) {
+                    iconClass = 'ph-check-square';
+                    colorClass = 'text-orange-600 bg-orange-50 border-orange-100';
+                } else if (client.automation.includes('Sequence')) {
+                    iconClass = 'ph-arrows-clockwise';
+                    colorClass = 'text-blue-600 bg-blue-50 border-blue-100';
+                }
+
+                automationHtml = `
+                    <div class="mt-3 pt-3 border-t border-gray-100 flex items-center text-xs border rounded-md px-2 py-1 ${colorClass}">
+                        <i class="ph ${iconClass} mr-1.5 text-sm"></i>
+                        <span class="truncate font-medium">${client.automation}</span>
+                    </div>
+                `;
+            }
+
+            // Client initials for avatar
+            const initials = client.name.split(' ').map(n => n[0]).join('');
+
+            card.innerHTML = `
+                <div class="absolute top-3 right-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="hover:text-brand-600"><i class="ph ph-dots-three text-xl"></i></button>
+                </div>
+                
+                <div class="flex flex-wrap">
+                    ${tagsHtml}
+                </div>
+                
+                <div class="flex items-center mt-1 mb-2">
+                    <div class="w-8 h-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-600 font-bold text-xs mr-3 shrink-0">
+                        ${initials}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-sm leading-tight">${client.name}</h4>
+                        <p class="text-xs text-gray-500 flex items-center mt-0.5">
+                            <i class="ph ph-phone mr-1"></i> ${client.phone}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-gray-600 bg-gray-50 rounded p-2 flex items-start mt-2">
+                    <i class="ph ph-info mr-1.5 text-gray-400 mt-0.5"></i>
+                    <span class="leading-tight">${client.lastAction}</span>
+                </div>
+                
+                ${automationHtml}
+            `;
+            
+            return card;
+        }
+
+        let draggedClient = null;
+        let sourceStageId = null;
+
+        function handleDragStart(e) {
+            draggedClient = e.target;
+            sourceStageId = e.target.closest('.column-drop-zone').dataset.stageId;
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedClient = null;
+            
+            // Cleanup any stuck drag-over classes
+            document.querySelectorAll('.column-drop-zone').forEach(zone => {
+                zone.classList.remove('drag-over');
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault(); // Necessary to allow dropping
+            const dropZone = e.target.closest('.column-drop-zone');
+            if (dropZone && draggedClient) {
+                dropZone.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const dropZone = e.target.closest('.column-drop-zone');
+            if (dropZone) {
+                dropZone.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.column-drop-zone');
+            
+            if (dropZone && draggedClient) {
+                dropZone.classList.remove('drag-over');
+                
+                const targetStageId = dropZone.dataset.stageId;
+                const clientId = draggedClient.dataset.clientId;
+
+                // Update Data Model
+                const clientIndex = clients.findIndex(c => c.id === clientId);
+                if (clientIndex !== -1 && sourceStageId !== targetStageId) {
+                    clients[clientIndex].stageId = targetStageId;
+                    
+                    // Simulate specific automations triggering based on stage movement
+                    simulateAutomations(clients[clientIndex], targetStageId);
+                    
+                    // Re-render board to update counts and layout
+                    renderBoard();
+                }
+            }
+        }
+
+        function simulateAutomations(client, newStageId) {
+            const overlay = document.getElementById('loadingOverlay');
+            
+            // Show a quick visual indicator that an automation is firing
+            overlay.classList.remove('hidden');
+            setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+
+            // Update client data based on pipeline logic discussed
+            switch(newStageId) {
+                case 'stage-2': // Outreach Attempted
+                    client.automation = 'Waiting for reply (Ringless VM)';
+                    client.lastAction = 'Outreach sent today';
+                    break;
+                case 'stage-3': // Appt Scheduled
+                    client.automation = 'Acuity Reminders Active';
+                    client.lastAction = 'Appt scheduled via link';
+                    break;
+                case 'stage-4': // Stalled
+                    client.automation = 'Task: Follow up in 3 days';
+                    client.lastAction = 'Meeting complete, no decision';
+                    break;
+                case 'stage-5': // Pending
+                    client.automation = 'Task: Verify Carrier Portal in 14 days';
+                    client.lastAction = 'App submitted, waiting on carrier';
+                    break;
+                case 'stage-6': // Enrolled
+                    client.automation = '30/60/90 Retention Sequence Started';
+                    client.lastAction = 'Policy Active - Welcome Email Sent';
+                    break;
+            }
+        }
+
+        // Initialize Board
+        document.addEventListener('DOMContentLoaded', () => {
+            renderBoard();
+        });
+
+    </script>
+</body>
+</html>

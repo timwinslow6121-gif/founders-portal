@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AEP workspace, Founders (v7)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#F2F4F6;--surface:#FFFFFF;--sunk:#F6F8FA;--ink:#16212B;--ink-2:#41505E;--ink-3:#5C6976;
+  --line:#DCE2E8;--line-2:#EAEEF2;--accent:#266EA5;--accent-ink:#fff;--accent-soft:#E3EEF7;
+  --red:#A3241B;--red-soft:#FBE9E7;--amber:#7A5200;--amber-soft:#FFF2CE;--green:#166B37;--green-soft:#E3F3E9;--brand-green:#65BB84;
+  --shadow:0 1px 2px rgba(22,33,43,.05),0 8px 20px -14px rgba(22,33,43,.3);
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Verdana","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --ground:#0E141A;--surface:#18222C;--sunk:#131C24;--ink:#E9EFF4;--ink-2:#BCC7D2;--ink-3:#9DAAB6;
+  --line:#2B3744;--line-2:#222D38;--accent:#7BB0E0;--accent-ink:#0A131B;--accent-soft:#1C2E44;
+  --red:#F0897F;--red-soft:#3B1F1C;--amber:#F3C45E;--amber-soft:#3A2E12;--green:#7CCC95;--green-soft:#173121;--brand-green:#65BB84;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 20px -14px rgba(0,0,0,.7);color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --ground:#0E141A;--surface:#18222C;--sunk:#131C24;--ink:#E9EFF4;--ink-2:#BCC7D2;--ink-3:#9DAAB6;
+  --line:#2B3744;--line-2:#222D38;--accent:#7BB0E0;--accent-ink:#0A131B;--accent-soft:#1C2E44;
+  --red:#F0897F;--red-soft:#3B1F1C;--amber:#F3C45E;--amber-soft:#3A2E12;--green:#7CCC95;--green-soft:#173121;--brand-green:#65BB84;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 20px -14px rgba(0,0,0,.7);color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.2}
+p{margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.sm{width:18px;height:18px}
+
+.shell{max-width:780px;margin:0 auto;padding:0 16px 120px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px 0 14px}
+.top h1{font-size:27px;letter-spacing:-.02em}
+.top p{color:var(--ink-2);font-size:16px;margin-top:3px}
+.top-btns{display:flex;gap:8px;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 16px;min-height:48px;font-weight:700;color:var(--ink);text-decoration:none}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.big{min-height:56px;font-size:18px;width:100%}
+.btn.sm{min-height:42px;padding:8px 12px;font-size:16px}
+.btn.quiet{border-color:transparent;background:transparent;color:var(--accent)}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.btn.icon{width:48px;padding:0}
+.btn[disabled]{opacity:.5;cursor:default}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* tabs */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:12}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:transparent;color:var(--ink-3);border-radius:10px;padding:7px 18px;min-width:96px;font-size:14px;font-weight:700}
+.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
+.tabs .badge{position:absolute;transform:translate(18px,-6px);background:var(--red);color:#fff;border-radius:10px;font-size:13px;padding:0 6px;line-height:18px;min-width:18px}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.card>.pad{padding:16px}
+.card h2{font-size:20px}
+.card .sub{color:var(--ink-2);margin-top:4px;font-size:16px}
+.card.urgent{border-color:var(--red);border-width:1.5px}
+.count-pill{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 9px;border-radius:9px;background:var(--sunk);font-family:var(--display);font-weight:700;font-size:18px}
+.card.urgent .count-pill{background:var(--red-soft);color:var(--red)}
+.card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 16px 12px}
+.card-acts{display:flex;gap:8px;padding:0 16px 16px;flex-wrap:wrap}
+.card-acts .btn{flex:1 1 180px}
+.flag{display:inline-block;background:var(--red-soft);color:var(--red);font-weight:700;font-size:14px;border-radius:7px;padding:2px 9px}
+.flag.calm{background:var(--sunk);color:var(--ink-3)}
+.flag.ok{background:var(--green-soft);color:var(--green)}
+.flag.wait{background:var(--amber-soft);color:var(--amber)}
+
+/* person rows */
+.rows{border-top:1px solid var(--line-2)}
+.prow{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line-2);background:transparent;border-left:0;border-right:0;border-top:0;width:100%;text-align:left}
+.prow:last-child{border-bottom:0}
+.prow:hover{background:var(--sunk)}
+.prow .meat{flex:1;min-width:0}
+.prow b{display:block;font-size:17px}
+.prow span{display:block;color:var(--ink-2);font-size:15px}
+.prow .when{font-family:var(--display);font-weight:700;font-size:16px;width:74px;flex:none;color:var(--ink-2)}
+.prow .chev{color:var(--ink-3);flex:none}
+.call{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--accent);color:var(--accent);background:var(--surface);border-radius:10px;min-height:46px;padding:0 14px;font-weight:700;text-decoration:none;flex:none}
+.call:hover{background:var(--accent-soft)}
+.more-link{display:block;width:100%;border:0;border-top:1px solid var(--line-2);background:var(--sunk);padding:13px;font-weight:700;color:var(--accent)}
+.empty-state{text-align:center;padding:46px 16px}
+.empty-state h2{font-size:22px;margin-bottom:6px}
+.empty-state p{color:var(--ink-2)}
+
+/* search + chips */
+.searchbar{position:relative;margin-bottom:12px}
+.searchbar svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-3)}
+.field{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 14px;min-height:50px;width:100%}
+.searchbar input{padding-left:46px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:22px;padding:9px 15px;min-height:44px;white-space:nowrap;font-weight:700;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.chip .n{opacity:.7;margin-left:4px;font-weight:400}
+
+/* focus mode */
+.focus{position:fixed;inset:0;background:var(--ground);z-index:30;display:flex;flex-direction:column;align-items:center;overflow-y:auto}
+.focus[hidden]{display:none}
+.focus-top{width:100%;max-width:560px;display:flex;align-items:center;gap:12px;padding:16px}
+.focus-top .bar{flex:1;height:8px;border-radius:4px;background:var(--line-2);overflow:hidden}
+.focus-top .bar i{display:block;height:100%;background:var(--accent)}
+.focus-top .n{font-weight:700;color:var(--ink-2);font-size:15px}
+.fcard{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:22px;margin:0 16px 24px}
+.fcard h2{font-size:30px;letter-spacing:-.02em;margin:10px 0 2px}
+.fcard .where{color:var(--ink-2);font-size:17px}
+.fcard .why{background:var(--sunk);border-radius:12px;padding:14px;margin:16px 0;font-size:16px}
+.fcard .why b{display:block;margin-bottom:2px}
+.fcard .ask{margin:20px 0 10px;font-weight:700}
+.fbtns{display:grid;gap:10px}
+.fbtns .btn{justify-content:flex-start;padding:14px 18px;min-height:58px;font-size:17px}
+.fbtns .btn.ok{border-color:var(--green);color:var(--green)}
+.focus .skip{margin-top:14px;width:100%}
+
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(12,20,28,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;z-index:21;background:var(--surface);overflow-y:auto;transition:transform .22s ease;box-shadow:0 -6px 30px -12px rgba(0,0,0,.4)}
+@media (min-width:760px){.sheet{top:0;right:0;bottom:0;width:440px;border-left:1px solid var(--line);transform:translateX(102%)}.sheet.on{transform:none}}
+@media (max-width:759px){.sheet{left:0;right:0;bottom:0;max-height:92vh;border-radius:18px 18px 0 0;transform:translateY(102%)}.sheet.on{transform:none}}
+.sheet-head{position:sticky;top:0;background:var(--surface);padding:18px 18px 12px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.sheet-head h2{font-size:24px}
+.sheet-head p{color:var(--ink-2);font-size:16px;margin-top:3px}
+.x{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;width:46px;height:46px;font-size:22px;line-height:1;flex:none}
+.sec{padding:16px 18px;border-bottom:1px solid var(--line-2)}
+.sec h3{font-size:16px;color:var(--ink-3);margin-bottom:10px;font-family:var(--body);letter-spacing:.02em}
+.checkrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-2)}
+.checkrow:first-of-type{border-top:0}
+.checkrow .mark{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;flex:none;font-size:15px}
+.mark.yes{background:var(--green-soft);color:var(--green)}
+.mark.no{background:var(--red-soft);color:var(--red)}
+.mark.meh{background:var(--amber-soft);color:var(--amber)}
+.checkrow .txt{flex:1;min-width:0}
+.checkrow .txt b{display:block}
+.checkrow .txt small{color:var(--ink-3);font-size:15px}
+.stagepick{display:grid;gap:8px}
+.stagepick button{display:flex;align-items:center;gap:10px;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 14px;min-height:50px;text-align:left;font-weight:700}
+.stagepick button[aria-current="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.hist{list-style:none;margin:0;padding:0}
+.hist li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line-2);font-size:16px}
+.hist li:first-child{border-top:0}
+.hist time{color:var(--ink-3);width:62px;flex:none;font-size:15px}
+.note-in{display:flex;gap:8px;margin-top:10px}
+.note-in input{flex:1}
+.list-pick{display:grid;gap:6px}
+.list-pick button{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;min-height:52px;text-align:left;font-weight:700}
+.list-pick button[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.list-pick small{font-weight:400;color:var(--ink-3)}
+
+/* setup page */
+.setup h2{font-size:20px;margin-bottom:4px}
+.setup .lede{color:var(--ink-2);margin-bottom:16px}
+.setup .card>.pad>h2{margin-bottom:2px}
+.planrow{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--line-2);flex-wrap:wrap}
+.planrow .nm{flex:1;min-width:150px}
+.planrow .nm b{display:block}
+.planrow .nm small{color:var(--ink-3);font-size:15px}
+.seg{display:flex;gap:6px}
+.seg button{border:1.5px solid var(--line);background:var(--surface);border-radius:9px;padding:8px 12px;min-height:44px;font-weight:700;font-size:15px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.switch{display:flex;align-items:center;gap:12px;padding:6px 0}
+.switch input{width:24px;height:24px;accent-color:var(--accent)}
+.countygrid{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px}
+.countygrid label{display:flex;gap:8px;align-items:center;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;min-height:46px;background:var(--surface);font-size:16px}
+.countygrid input{width:20px;height:20px;accent-color:var(--accent)}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line-2)}
+.kv b{font-family:var(--display)}
+.back{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--accent);font-weight:700;padding:6px 0;min-height:44px}
+.note{color:var(--ink-3);font-size:15px;margin-top:10px}
+
+/* modal */
+dialog{border:1px solid var(--line);border-radius:16px;padding:0;background:var(--surface);color:var(--ink);width:min(520px,94vw);box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
+dialog::backdrop{background:rgba(12,20,28,.5)}
+.mh{padding:20px 20px 4px}
+.mh h2{font-size:22px}
+.mh p{margin-top:6px;color:var(--ink-2);font-size:16px}
+.mb{padding:12px 20px;display:flex;flex-direction:column;gap:14px}
+.mb .lbl,.lbl{display:block;font-weight:700;margin-bottom:5px;font-size:16px}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;padding:13px 15px;cursor:pointer;min-height:56px}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{margin-top:4px;accent-color:var(--accent);width:20px;height:20px}
+.opt small{display:block;color:var(--ink-3);font-size:15px}
+.chk{display:flex;flex-wrap:wrap;gap:8px}
+.chk label{display:flex;gap:8px;align-items:center;border:1.5px solid var(--line);border-radius:10px;padding:9px 13px;min-height:48px}
+.chk input{accent-color:var(--accent);width:20px;height:20px}
+.callout{background:var(--accent-soft);border-radius:12px;padding:12px 14px;font-size:16px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mf{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px 20px}
+.mf .btn{min-width:110px}
+
+/* v7 bits */
+.cov{display:flex;gap:14px;padding:10px 0;border-top:1px solid var(--line-2);align-items:baseline}
+.cov:first-of-type{border-top:0}
+.cov-k{flex:none;width:76px;color:var(--ink-3);font-size:15px}
+.cov-v{flex:1;min-width:0}
+.cov-v small{display:block;color:var(--ink-3);font-size:15px}
+.owned{background:var(--amber-soft);color:var(--amber);padding:10px 18px;font-weight:700;font-size:15px}
+.seg button.major[aria-pressed="true"]{border-color:var(--red);background:var(--red-soft);color:var(--red)}
+.flag.ok{margin-left:6px}
+/* v6 bits */
+.meter{height:10px;border-radius:5px;background:var(--line-2);overflow:hidden;margin:10px 0 8px}
+.meter i{display:block;height:100%;background:var(--brand-green)}
+#findres{min-height:60px}
+/* toasts */
+.toasts{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:40;width:min(520px,92vw)}
+.toast{background:var(--ink);color:var(--surface);border-radius:12px;padding:13px 16px;font-size:16px;box-shadow:0 12px 30px -12px rgba(0,0,0,.5);animation:rise .22s ease}
+.toast b{display:block}
+.toast.warn{background:var(--red);color:#fff}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:759px){.two{grid-template-columns:1fr}.top h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div><h1 id="title">Today</h1><p id="sub"></p></div>
+    <div class="top-btns">
+      <button class="btn sm" id="find" type="button"><svg class="i sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Find someone</button>
+      <button class="btn icon sm" id="gear" type="button" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H7a1.7 1.7 0 0 0 1-1.5V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 15 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V7c.2.6.8 1 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </header>
+  <main id="view"></main>
+</div>
+<nav class="tabs" id="tabs" aria-label="Main"></nav>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" aria-hidden="true"></section>
+<div class="focus" id="focus" hidden></div>
+<dialog id="modal"></dialog>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* ============ utilities ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const DAY = 864e5;
+const TODAY = new Date(2026, 9, 27);            // demo date, AEP day 13
+const D = (m, d, y = 2026) => new Date(y, m - 1, d);
+const addDays = (d, n) => new Date(d.getTime() + n * DAY);
+const diff = (a, b) => Math.round((b - a) / DAY);
+const fmt = d => d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+const fmtDay = d => d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+const timeOf = d => d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+const sameDay = (a, b) => !!a && !!b && a.toDateString() === b.toDateString();
+const maxDate = (a, b) => a > b ? a : b;
+const dayLabel = d => sameDay(d, TODAY) ? 'Today' : sameDay(d, addDays(TODAY, 1)) ? 'Tomorrow' : fmtDay(d);
+const store = {get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }};
+
+let seed = 20261027;
+function R(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+const pick = a => a[Math.floor(R() * a.length)];
+const int = (a, b) => a + Math.floor(R() * (b - a + 1));
+const wpick = pairs => { const tot = pairs.reduce((s, p) => s + p[1], 0); let r = R() * tot; for (const [v, w] of pairs){ if ((r -= w) < 0) return v; } return pairs[pairs.length - 1][0]; };
+
+const ICON = {
+  today:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  board:'<rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="11" rx="1.5"/>',
+  table:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  after:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  agency:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  rules:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>'
+};
+const svg = (k, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const dots = '<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true" style="fill:currentColor;stroke:none"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+
+/* ============ domain ============ */
+const STAGES = [
+  {id:'contact',   name:'Needs a call',      hint:'No one has reached them yet', c:'var(--s-contact)'},
+  {id:'scheduled', name:'Appointment set',   hint:'Booked in Acuity or Calendly', c:'var(--s-sched)'},
+  {id:'deciding',  name:'Thinking it over',  hint:'You met, they have not decided', c:'var(--s-decide)'},
+  {id:'submitted', name:'Waiting on carrier',hint:'Application sent, not confirmed yet', c:'var(--s-sub)'},
+  {id:'done',      name:'Finished',         hint:'Enrolled, kept their plan, or closed', c:'var(--s-done)'}
+];
+const S = Object.fromEntries(STAGES.map((s, i) => [s.id, {...s, i}]));
+const OUTCOME = {enrolled:'Enrolled', kept:'Kept current plan', lost:'Closed'};
+
+const AGENTS = [
+  {id:'timbo',   name:'Timbo',   office:'Charlotte',   renewals:500,  leads:26, lag:1,    soaGap:0,   me:true},
+  {id:'dana',    name:'Dana',    office:'Kannapolis',  renewals:1440, leads:40, lag:1.45, soaGap:.03},
+  {id:'marcus',  name:'Marcus',  office:'Salisbury',   renewals:885,  leads:25, lag:1.1,  soaGap:.09},
+  {id:'priya',   name:'Priya',   office:'Concord',     renewals:620,  leads:20, lag:.85,  soaGap:0},
+  {id:'luis',    name:'Luis',    office:'Albemarle',   renewals:290,  leads:10, lag:.75,  soaGap:0},
+  {id:'karen',   name:'Karen',   office:'China Grove', renewals:795,  leads:25, lag:1.2,  soaGap:.04},
+  {id:'wes',     name:'Wes',     office:'Mooresville', renewals:685,  leads:20, lag:1,    soaGap:.02},
+  {id:'monique', name:'Monique', office:'Rock Hill',   renewals:572,  leads:18, lag:.95,  soaGap:0}
+];
+const AG = Object.fromEntries(AGENTS.map(a => [a.id, a]));
+const ME = 'timbo';
+
+const FIRST = ['Barbara','Betty','Carol','Dorothy','Frances','Gloria','Helen','Joyce','Judy','Linda','Margaret','Martha','Nancy','Patricia','Peggy','Ruth','Sandra','Shirley','Wanda','Brenda','Donna','Janet','Faye','Evelyn','Charles','Donald','Earl','Frank','Gary','George','Harold','Jerry','Kenneth','Larry','Melvin','Ronald','Roger','Wayne','Willie','Dennis','Ray','Curtis','Billy','Jimmy','Clyde','Vernon','Loretta','Bobby','Glenda','Tommy'];
+const LAST = ['Allen','Barnhardt','Beaver','Blackwelder','Bost','Brown','Cline','Cook','Dayvault','Deal','Earnhardt','Eudy','Fink','Hartsell','Helms','Honeycutt','Ketner','Lefler','Linker','Lyerly','McLaughlin','Misenheimer','Moose','Overcash','Peeler','Plyler','Ritchie','Safrit','Shive','Sides','Smith','Starnes','Thompson','Troutman','Walker','Williams','Yost','Barringer','Cress','Furr','Jackson','Robinson','Little','Graham','Hinson','Mauney'];
+const LOCS = [['Charlotte','Mecklenburg','NC',24],['Concord','Cabarrus','NC',12],['Kannapolis','Cabarrus','NC',12],['Salisbury','Rowan','NC',10],['China Grove','Rowan','NC',6],['Harrisburg','Cabarrus','NC',5],['Huntersville','Mecklenburg','NC',5],['Matthews','Mecklenburg','NC',4],['Mooresville','Iredell','NC',5],['Albemarle','Stanly','NC',5],['Monroe','Union','NC',4],['Rock Hill','York','SC',5],['Fort Mill','York','SC',3]];
+const COUNTIES = [...new Set(LOCS.map(l => `${l[1]}|${l[2]}`))].map(s => s.split('|')).sort((a, b) => a[0].localeCompare(b[0]));
+const CARRIERS = ['Aetna','BCBS NC','Devoted','Humana','UHC','Wellcare'];
+// Humana 335-002 in Cabarrus comes from Timbo. Every other plan ID and change note is a placeholder.
+const PLANS = [
+  {carrier:'Humana',   pid:'335-002', name:'Humana PPO 335-002',         type:'MAPD', change:null, rating:null},
+  {carrier:'Humana',   pid:'101-001', name:'Humana HMO 101-001',         type:'MAPD', change:'PCP copay $0 to $15', rating:2},
+  {carrier:'Humana',   pid:'201-000', name:'Humana PDP 201-000',         type:'PDP',  change:'Drug deductible goes up', rating:2},
+  {carrier:'Humana',   pid:'336-001', name:'Humana MA-only PPO 336-001', type:'MA',   change:'No meaningful changes', rating:3},
+  {carrier:'Humana',   pid:'221-004', name:'Humana Dual 221-004',        type:'DSNP', change:null, rating:null},
+  {carrier:'UHC',      pid:'118-003', name:'UHC PPO 118-003',            type:'MAPD', change:'Dental allowance cut from $2,000 to $500, out-of-pocket max up $1,200', rating:1},
+  {carrier:'UHC',      pid:'120-001', name:'UHC HMO-POS 120-001',        type:'MAPD', change:'Specialist copay up $10', rating:3},
+  {carrier:'UHC',      pid:'119-002', name:'UHC MA-only PPO 119-002',    type:'MA',   change:'Small copay adjustments only', rating:3},
+  {carrier:'UHC',      pid:'220-001', name:'UHC Dual 220-001',           type:'DSNP', change:'OTC allowance reduced', rating:2},
+  {carrier:'Aetna',    pid:'150-002', name:'Aetna PPO 150-002',          type:'MAPD', change:'Out-of-pocket max up $1,200', rating:2},
+  {carrier:'Aetna',    pid:'151-001', name:'Aetna MA-only PPO 151-001',  type:'MA',   change:null, rating:null},
+  {carrier:'Wellcare', pid:'160-004', name:'Wellcare HMO 160-004',       type:'MAPD', change:'Premium up $18 a month', rating:3},
+  {carrier:'Wellcare', pid:'161-000', name:'Wellcare PDP 161-000',       type:'PDP',  change:'A common drug moves from tier 3 to tier 4', rating:2},
+  {carrier:'Devoted',  pid:'170-001', name:'Devoted HMO 170-001',        type:'MAPD', change:'No meaningful changes', rating:3},
+  {carrier:'BCBS NC',  pid:'180-003', name:'Blue Medicare PPO 180-003',  type:'MAPD', change:'Preferred pharmacy list narrowed', rating:null},
+  {carrier:'BCBS NC',  pid:'Supp G',  name:'Blue Med Supp G + PDP',      type:'Supp', change:'Rate notice not out yet', rating:null}
+];
+const INDIV = PLANS.filter(p => ['MAPD', 'PDP', 'Supp'].includes(p.type));
+const MAONLY = PLANS.filter(p => p.type === 'MA');
+const DSNP = PLANS.filter(p => p.type === 'DSNP');
+const RULES = {
+  v:1, status:'final', updated:D(9, 28),
+  sar:[{pid:'335-002', counties:['Cabarrus']}],
+  shp:{on:true, start:D(10, 12), end:D(10, 30)},
+  ratings:Object.fromEntries(PLANS.map(p => [p.pid, p.rating])),
+  sepDays:30          // a lead whose enrollment window closes within this many days is call-first
+};
+const bump = () => { RULES.v++; };
+const planOf = pid => PLANS.find(p => p.pid === pid);
+const isSar = (plan, county) => RULES.sar.some(r => r.pid === plan.pid && r.counties.includes(county));
+const changeOf = c => c.track === 'lead' ? c.situation : isSar(c.plan, c.county) ? `Plan not offered in ${c.county} County for 2027` : (c.plan.change || 'Changes not reviewed yet');
+const shpDaysLeft = () => diff(TODAY, RULES.shp.end);
+const shpOpen = () => RULES.shp.on && shpDaysLeft() >= 0;
+const shpPending = c => !!c.shp && !c.shpDone && RULES.shp.on;
+const LETTERS = {A:'Letter A, staying about the same', B:'Letter B, your plan is changing', C:'Letter C, your plan is ending'};
+const DECIDING_NOTES = ['Talking it over with daughter','Checking if cardiologist is in network','Comparing two plans','Wants to think about it','Checking a drug price at the pharmacy'];
+const PROBLEMS = ['Enrolled by another agent','Member cancelled with carrier','Carrier rejected, address mismatch'];
+const MS_KEYS = [['submitted','Submitted'],['accepted','Carrier confirmed'],['welcome','Welcome sent'],['idcard','ID card check'],['oep','OEP check-in'],['charge','Chargeback window'],['bday','Birthday card']];
+
+function autoTier(c){
+  if (c.track === 'renewal'){
+    if (isSar(c.plan, c.county)) return {tier:1, rank:1, reasons:[{t:'Plan ending in county', k:'red', d:`${c.plan.carrier} ${c.plan.pid} is not offered in ${c.county} County for 2027.`}]};
+    if (shpPending(c)){
+      const left = shpDaysLeft();
+      const t = left < 0 ? 'State opt-out window closed' : left === 0 ? 'State opt-out due today' : `State opt-out, ${left} days left`;
+      return {tier:1, rank: left <= 7 ? 0 : 2, reasons:[{t, k:'red', d:`NC State Health Plan retiree on the 70/30 Plan. Must call the State during open enrollment (${fmt(RULES.shp.start)} to ${fmt(RULES.shp.end)}) to opt out of the Humana group PPO to keep the 70/30 and their MA-only plan.`}]};
+    }
+    const extra = c.shp ? [{t:'State retiree, opt-out confirmed', k:'green'}] : [];
+    const rt = RULES.ratings[c.plan.pid];
+    if (rt === 1) return {tier:1, rank:3, reasons:[{t:'Big changes to their plan', k:'red', d:c.plan.change || 'Marked as a major change in priority setup.'}, ...extra]};
+    if (rt === 3) return {tier:3, rank:6, reasons:[{t:'Little plan change', k:'muted', d:c.plan.change}, ...extra]};
+    if (rt === 2) return {tier:2, rank:4, reasons:[{t:'Plan changes to review', k:'amber', d:c.plan.change}, ...extra]};
+    return {tier:2, rank:5, reasons:[{t:'Plan not rated yet', k:'muted', d:'Counts as Tier 2 until the plan is rated in priority setup.'}, ...extra]};
+  }
+  // new leads: urgency comes from a real deadline, not from the kind of situation
+  if (c.sepEnd){
+    const left = diff(TODAY, c.sepEnd);
+    if (left < 0) return {tier:2, rank:4, reasons:[{t:'Their window has closed', k:'amber', d:`${c.sepReason || 'Enrollment window'} ended ${fmt(c.sepEnd)}. They may have to wait for the next one.`}, {t:c.source, k:'muted'}]};
+    if (left <= RULES.sepDays) return {tier:1, rank: left <= 7 ? 1 : 2, reasons:[{t: left === 0 ? 'Last day to enroll' : `${left} days left to enroll`, k:'red', d:`${c.sepReason || 'Their enrollment window'} closes ${fmt(c.sepEnd)}.`}, {t:c.source, k:'muted'}]};
+    return {tier:2, rank:4, reasons:[{t:`Window closes ${fmt(c.sepEnd)}`, k:'amber', d:`${left} days out, so not urgent yet.`}, {t:c.source, k:'muted'}]};
+  }
+  return {tier:2, rank:5, reasons:[{t:c.situation, k:'muted', d:'No deadline on file. Add one on their page if their window is closing.'}, {t:c.source, k:'muted'}]};
+}
+function tierInfo(c){
+  if (c._tv === RULES.v) return c._ti;
+  const a = autoTier(c);
+  const ti = c.override ? {tier:c.override.tier, rank:a.rank, manual:true, reasons:[{t:`Set to Tier ${c.override.tier} by hand`, k:'blue', d:c.override.note || 'No note'}, ...a.reasons]} : a;
+  c._tv = RULES.v; c._ti = ti;
+  return ti;
+}
+const tierOf = c => tierInfo(c).tier;
+const tierChip = c => { const t = tierInfo(c); return `<span class="tier t${t.tier}" title="${t.manual ? 'Set by hand' : 'Set by triage rules'}">Tier ${t.tier}${t.manual ? '*' : ''}</span>`; };
+const trackTag = c => c.track === 'renewal' ? '<span class="tag renewal">Renewal</span>' : '<span class="tag lead">New lead</span>';
+const topReason = c => { const r = tierInfo(c).reasons[0]; return r ? `<span class="tag ${r.k}">${esc(r.t)}</span>` : ''; };
+const priSort = (a, b) => tierOf(a) - tierOf(b) || tierInfo(a).rank - tierInfo(b).rank;
+const telHref = p => 'tel:+1' + p.replace(/\D/g, '');
+const callLink = c => c.phone ? `<a class="call" href="${telHref(c.phone)}" title="Call with Quo">${svg('phone', 'sm')}${esc(c.phone)}</a>` : '<span class="no">No phone</span>';
+
+/* ============ data generation ============ */
+function viaFor(plan){
+  if (plan.carrier === 'UHC' && R() < .5) return 'Jarvis (UHC)';
+  if (plan.carrier === 'Humana' && R() < .5) return 'Vantage (Humana)';
+  return wpick([['MedicareCenter', 3], ['HealthSherpa', 1]]);
+}
+function locFor(agent){
+  if (R() < .55) return LOCS.find(l => l[0] === agent.office);
+  return wpick(LOCS.map(l => [l, l[3]]));
+}
+function baseRecord(id, agent, track, loc){
+  const [city, county, st] = loc;
+  const area = st === 'SC' ? '803' : pick(['704', '704', '980']);
+  return {id, agent:agent.id, track, name:`${pick(FIRST)} ${pick(LAST)}`, city, county, st,
+    age: track === 'lead' ? int(64, 79) : int(66, 89), bmonth:int(0, 11),
+    phone:`(${area}) ${int(201, 989)}-${String(int(0, 9999)).padStart(4, '0')}`,
+    touches:[], attempts:0, firstTry:null, soa:null, appt:null, app:null, outcome:null, after:null,
+    intake:'Not sent', recordings:0, note:''};
+}
+function makeRenewal(id, agent){
+  const loc = locFor(agent);
+  const lis = R() < .08, shp = !lis && R() < .1;
+  const plan = lis ? pick(DSNP) : shp ? pick(MAONLY) : pick(INDIV);
+  const c = baseRecord(id, agent, 'renewal', loc);
+  const sar = isSar(plan, loc[1]);
+  Object.assign(c, {plan, shp, shpDone:false, sev:'renewal',
+    letter: sar ? 'C' : plan.rating === 3 ? 'A' : 'B',
+    letterDate: R() < .9 ? D(10, int(2, 3)) : null,
+    since0:`Client since ${int(2016, 2025)}${shp ? '. NC State Health Plan retiree on the 70/30 Plan' : ''}`,
+    consent:{rvm:R() < .55, sms:R() < .4, email:R() < .45}, inbound:false});
+  const hot = sar || shp, L = agent.lag;
+  const stage = wpick(hot
+    ? [['contact', 34 * L], ['scheduled', 20], ['deciding', 9], ['submitted', 14], ['done', 20 / L]]
+    : [['contact', 72 * L], ['scheduled', 10], ['deciding', 4], ['submitted', 5], ['done', 8 / L]]);
+  fillStage(c, stage, agent);
+  if (shp && S[c.stage].i >= 2 && R() < .6){
+    c.shpDone = true;
+    c.touches.push({d:c.since, k:'State', t:'Confirmed they called the State Health Plan to opt out of the Humana group PPO'});
+    finish(c);
+  }
+  return c;
+}
+function makeLead(id, agent){
+  const src = wpick([['Referral', 35], ['Pharmacy walk-in', 33], ['Website', 10], ['Billboard', 10], ['Community event', 12]]);
+  let loc = locFor(agent);
+  if (src === 'Billboard') loc = pick([LOCS[2], LOCS[3]]);
+  const sit = wpick([['Shopping for 2027', 45], ['Turning 65', 28], ['Losing employer coverage', 15], ['Moved into the area', 12]]);
+  const c = baseRecord(id, agent, 'lead', loc);
+  const cur = pick(INDIV);
+  const plan = sit === 'Turning 65' ? {carrier:'None', name:'Not on Medicare yet', type:'IEP'}
+    : sit === 'Losing employer coverage' ? {carrier:'Employer', name:'Employer group coverage', type:'Group'}
+    : {...cur, name: cur.name + ' (other agent)'};
+  if (sit === 'Turning 65') c.age = 64;
+  Object.assign(c, {plan, sev:'lead', source:src, situation:sit, change:sit, letter:null, letterDate:null,
+    since0:`Lead from ${src.toLowerCase()}`, consent:{rvm:false, sms:R() < .6, email:R() < .6}, inbound:true});
+  c.touches.push({d:addDays(TODAY, -int(6, 22)), k:'Inbound', t: src === 'Pharmacy walk-in' ? 'Walked in at partner pharmacy office' : src === 'Referral' ? 'Referred by a current client' : `Reached out via ${src.toLowerCase()}`});
+  fillStage(c, wpick([['contact', 45], ['scheduled', 26], ['deciding', 10], ['submitted', 9], ['done', 7]]), agent);
+  return c;
+}
+const SIT_W = {'Losing employer coverage':45, 'Turning 65':35, 'Moved into the area':30, 'Shopping for 2027':10};
+const SRC_W = {'Referral':15, 'Pharmacy walk-in':15, 'Community event':10, 'Website':5, 'Billboard':5};
+function fillStage(c, stage, agent){
+  c.stage = stage;
+  const T = c.touches;
+  if (c.letterDate) T.push({d:c.letterDate, k:'Letter', t:`${LETTERS[c.letter]} mailed`});
+  if (c.track === 'renewal' && c.consent.rvm && R() < .8) T.push({d:D(10, 8), k:'Blast', t:'Ringless voicemail blast'});
+  const phoneFirst = agent.me || c.city === 'Charlotte';
+  const pickMode = () => phoneFirst ? wpick([['Phone', 55], ['In person', 25], ['Zoom', 15], ['Group session', 5]]) : wpick([['In person', 55], ['Phone', 20], ['Zoom', 10], ['Group session', 15]]);
+  const soaAt = (d, m) => ({d, method: m === 'In person' || m === 'Group session' ? 'Paper, scanned to vault' : wpick([['MedicareCenter', 3], ['HealthSherpa', 1]]), scope: c.plan.type === 'PDP' ? ['PDP'] : c.plan.type === 'MA' ? ['MA-only'] : ['MAPD', 'PDP']});
+
+  if (stage === 'contact'){
+    const tried = R() < .5 ? int(1, 3) : 0;
+    c.attempts = tried;
+    if (!tried){ c.since = c.letterDate || D(10, 1); return finish(c); }
+    c.firstTry = addDays(TODAY, -int(0, 9)); c.since = c.firstTry;
+    for (let i = 0; i < tried; i++){
+      const d = addDays(c.firstTry, Math.min(diff(c.firstTry, TODAY), i * 2));
+      const sms = c.consent.sms && i % 2 === 1;
+      T.push({d, k: sms ? 'Text' : 'Call', t: sms ? 'Texted booking link, no reply' : 'Called, no answer, left voicemail'});
+    }
+    return finish(c);
+  }
+  const m = pickMode();
+  if (stage === 'scheduled'){
+    c.since = addDays(TODAY, -int(1, 9));
+    T.push({d:c.since, k: c.track === 'renewal' ? 'Inbound' : 'Call', t: c.track === 'renewal' ? 'Called in after the member letter' : 'Reached and booked'});
+    const r = R();
+    const off = r < .08 ? 0 : r < .14 ? -int(1, 2) : int(1, 14);
+    const d = addDays(TODAY, off); d.setHours(pick([9, 10, 11, 13, 14, 15]), pick([0, 30]));
+    c.appt = {date:d, mode:m, via: R() < .6 ? 'Acuity' : 'Calendly'};
+    c.intake = wpick([['Sent', 45], ['Returned', 25], ['Not sent', 30]]);
+    T.push({d:c.since, k:'Booked', t:`${m} appointment set for ${fmtDay(d)}`});
+    return finish(c);
+  }
+  const met = stage === 'deciding' ? addDays(TODAY, -int(0, 7)) : maxDate(addDays(TODAY, -int(0, 12)), D(10, 15));
+  const gap = (stage === 'deciding' || stage === 'submitted') && R() < agent.soaGap;
+  c.soa = gap ? null : soaAt(met, m);
+  c.intake = 'Returned';
+  c.meetMode = m;
+  if (m === 'Phone' || m === 'Zoom') c.recordings = int(1, 2);
+  T.push({d:addDays(met, -int(2, 8)), k:'Booked', t:`${m} appointment booked`});
+  if (c.soa) T.push({d:met, k:'SOA', t:`Scope of Appointment recorded (${c.soa.method})`});
+
+  if (stage === 'deciding'){
+    c.since = met; c.note = pick(DECIDING_NOTES);
+    T.push({d:met, k:'Met', t:`Appointment held. ${c.note}`});
+    return finish(c);
+  }
+  if (stage === 'submitted' || (stage === 'done' && R() < .5)){
+    const np = pick((c.plan.type === 'DSNP' ? DSNP : c.shp ? MAONLY : INDIV).filter(p => !isSar(p, c.county)));
+    const a = {carrier:np.carrier, plan:np.name, via:viaFor(np), date:met, confirmed:false, problem:null};
+    c.app = a;
+    T.push({d:met, k:'App', t:`Application submitted for ${np.name} via ${a.via}`});
+    if (stage === 'submitted'){
+      c.since = met;
+      a.confirmed = false;
+    } else {
+      a.confirmed = true; c.outcome = 'enrolled';
+      c.since = addDays(met, int(2, 5)) > TODAY ? new Date(TODAY) : addDays(met, int(2, 5));
+      T.push({d:c.since, k:'Carrier', t:'Carrier confirmed enrollment'});
+      if (R() < .07){ a.problem = pick(PROBLEMS); T.push({d:TODAY, k:'Alert', t:a.problem}); }
+    }
+    buildAfter(c);
+    return finish(c);
+  }
+  c.since = maxDate(addDays(TODAY, -int(0, 12)), met);
+  if (c.track === 'renewal' && R() < .82){
+    c.outcome = 'kept';
+    T.push({d:c.since, k:'Met', t:'Reviewed 2027 changes, staying on current plan'});
+  } else {
+    c.outcome = 'lost';
+    T.push({d:c.since, k:'Closed', t: pick(['Not a fit, referred to SHIIP counselor', 'Staying with their current agent', 'Moved out of the NC/SC service area'])});
+  }
+  finish(c);
+}
+function buildAfter(c){
+  const a = c.app, days = diff(a.date, TODAY), m = {};
+  m.submitted = {s:'done', d:a.date};
+  if (a.problem) m.accepted = {s:'problem', note:a.problem};
+  else if (a.confirmed) m.accepted = {s:'done'};
+  else m.accepted = {s: days >= 10 ? 'due' : 'wait', d:addDays(a.date, 10)};
+  m.welcome = a.confirmed && !a.problem ? (R() < .55 ? {s:'done'} : {s:'due'}) : {s:'wait'};
+  m.idcard = {s:'later', d:D(1, 6, 2027)};
+  m.oep = {s:'later', d:D(2, 10, 2027)};
+  m.charge = {s:'later', d:D(4, 1, 2027)};
+  m.bday = {s:'later', d:new Date(c.bmonth >= 10 ? 2026 : 2027, c.bmonth, 12)};
+  c.after = m;
+}
+function finish(c){ c.touches.sort((a, b) => a.d - b.d); }
+
+const book = [];
+let nextId = 1;
+for (const a of AGENTS){
+  for (let i = 0; i < a.renewals; i++) book.push(makeRenewal(nextId++, a));
+  for (let i = 0; i < a.leads; i++) book.push(makeLead(nextId++, a));
+}
+// every agent gets a handful of appointments today
+for (const a of AGENTS){
+  const sched = book.filter(c => c.agent === a.id && c.stage === 'scheduled').sort(priSort);
+  let n = sched.filter(c => sameDay(c.appt.date, TODAY)).length;
+  const want = Math.min(6, Math.round(a.renewals / 110) + 1);
+  for (const c of sched){
+    if (n >= want) break;
+    if (c.appt.date > TODAY && !sameDay(c.appt.date, TODAY)){
+      const d = new Date(TODAY); d.setHours([9, 10, 11, 13, 14, 15][n], n % 2 ? 30 : 0); c.appt.date = d; n++;
+    }
+  }
+}
+const byId = new Map(book.map(c => [c.id, c]));
+
+/* ============ derived status ============ */
+function stallOf(c){
+  const d = diff(c.since, TODAY);
+  switch (c.stage){
+    case 'contact': return c.attempts >= 2 && c.firstTry && diff(c.firstTry, TODAY) >= 5 ? `No reply in ${diff(c.firstTry, TODAY)} days` : null;
+    case 'scheduled': return c.appt && c.appt.date < TODAY && !sameDay(c.appt.date, TODAY) ? 'Outcome not logged' : null;
+    case 'deciding': return d >= 3 ? `Undecided ${d} days` : null;
+    case 'submitted': return c.app && !c.app.confirmed && !c.app.problem && d >= 10 ? `Unconfirmed ${d} days` : null;
+  }
+  return null;
+}
+function statusLine(c){
+  const st = stallOf(c);
+  switch (c.stage){
+    case 'contact':
+      if (st) return `<span class="stall">${st}, ${c.attempts} tries</span>`;
+      if (c.attempts) return `Tried ${c.attempts === 1 ? 'once' : c.attempts + ' times'}, last ${fmt(c.touches[c.touches.length - 1].d)}`;
+      return c.letterDate ? `Letter ${c.letter} mailed ${fmt(c.letterDate)}, not called` : c.track === 'lead' ? 'New, not contacted' : `Letter ${c.letter} not mailed yet`;
+    case 'scheduled':
+      if (st) return `<span class="stall">${fmt(c.appt.date)} ${c.appt.mode.toLowerCase()}, no outcome</span>`;
+      return `${dayLabel(c.appt.date)} ${timeOf(c.appt.date)}, ${c.appt.mode.toLowerCase()}`;
+    case 'deciding':
+      return st ? `<span class="stall">${st}</span>, ${esc(c.note.toLowerCase())}` : `Met ${fmt(c.since)}, ${esc(c.note.toLowerCase())}`;
+    case 'submitted':
+      if (c.app.problem) return `<span class="stall">${esc(c.app.problem)}</span>`;
+      return st ? `<span class="stall">${st}</span>, ${esc(c.app.via)}` : `Sent ${fmt(c.app.date)} via ${esc(c.app.via)}`;
+    case 'done':
+      if (c.app && c.app.problem) return `<span class="stall">${esc(c.app.problem)}</span>`;
+      return `${OUTCOME[c.outcome]}, ${fmt(c.since)}`;
+  }
+}
+function nextAction(c){
+  const st = stallOf(c);
+  if (shpPending(c) && shpOpen()) return `Confirm they called the State by ${fmt(RULES.shp.end)}`;
+  switch (c.stage){
+    case 'contact': return st ? 'Try a text, or close them out' : c.attempts ? 'Waiting to hear back' : tierOf(c) === 1 ? 'Call today' : 'Give the letter a few days, then call';
+    case 'scheduled': return st ? 'Write down how the appointment went' : sameDay(c.appt.date, TODAY) ? 'Get the scope form signed before you talk about plans' : 'Reminders go out on their own';
+    case 'deciding': return st ? 'Follow up today' : 'A follow-up is already set';
+    case 'submitted': return c.app.problem ? 'Call them, something is wrong' : st ? 'Check the carrier website' : 'Waiting on carrier';
+    case 'done': return c.app && c.app.problem ? 'Call them, something is wrong' : c.outcome === 'enrolled' ? 'Check-ins are already set' : c.outcome === 'kept' ? 'Birthday card, then next year\u2019s review' : 'Nothing until next AEP';
+  }
+}
+
+/* Needs-you buckets: the metrics bar and Today sections share these */
+const FOCUS = [
+  {id:'shp', get label(){ return `State retirees to call, ${shpDaysLeft()} days left`; }, when:shpOpen, test:c => shpPending(c), sort:(a, b) => S[a.stage].i - S[b.stage].i, hot:true},
+  {id:'catchup', label:'Write down what happened', test:c => !!c.needsNote || (c.stage === 'scheduled' && !!stallOf(c)), sort:(a, b) => (b.needsNote ? 1 : 0) - (a.needsNote ? 1 : 0), hot:true},
+  {id:'today', label:'Appointments today', test:c => c.stage === 'scheduled' && sameDay(c.appt.date, TODAY), sort:(a, b) => a.appt.date - b.appt.date, hot:false},
+  {id:'waiting', label:'Things you are waiting on', test:c => !!c.waitingOn && c.waitingOn.due <= TODAY, sort:(a, b) => a.waitingOn.due - b.waitingOn.due, hot:true},
+  {id:'callfirst', label:'Call first', test:c => c.stage === 'contact' && c.attempts === 0 && tierOf(c) === 1 && !c.needsNote && !(shpOpen() && shpPending(c)), sort:priSort, hot:true},
+  {id:'undecided', label:'Thinking it over', test:c => c.stage === 'deciding' && !!stallOf(c) && !c.waitingOn, sort:(a, b) => a.since - b.since, hot:true},
+  {id:'noreply', label:'No reply', test:c => c.stage === 'contact' && !!stallOf(c) && !c.needsNote && !(shpOpen() && shpPending(c)), sort:priSort, hot:false}
+];
+
+const FX = Object.fromEntries(FOCUS.map(f => [f.id, f]));
+const activeFocus = () => FOCUS.filter(f => !f.when || f.when());
+
+
+/* ============ actions, moves, gates ============ */
+function log(c, k, t){ c.touches.push({d:new Date(TODAY), k, t}); }
+function toast(msg, title, warn){
+  const el = document.createElement('div');
+  el.className = 'toast' + (warn ? ' warn' : '');
+  el.innerHTML = (title ? `<b>${esc(title)}</b>` : '') + esc(msg);
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 5200);
+}
+function move(c, to, detail){
+  c.stage = to; c.since = new Date(TODAY);
+  const auto = {
+    contact:'Back in Needs contact. Follow-up suggested in 2 days.',
+    scheduled:`${c.appt ? c.appt.via : 'Acuity'} reminders attached. ${c.consent.email || c.consent.sms ? 'Meds and doctors form sent.' : 'No written consent to send the meds form, so it\u2019s added to your prep list.'}`,
+    deciding:`Follow-up set for ${fmt(addDays(TODAY, 2))}. Flags as undecided after 3 days.`,
+    submitted:`Carrier check set for ${fmt(addDays(TODAY, 10))}. After-sale track started.`,
+    done: c.outcome === 'enrolled' ? 'Welcome message queued. ID card check Jan 6, OEP check-in Feb 10, chargeback window clears Apr 1.'
+      : c.outcome === 'kept' ? 'Marked reviewed for 2027. Birthday card and next ANOC review scheduled.'
+      : 'Out of the AEP queue. Kept on file for next ANOC cycle.'
+  }[to];
+  toast(auto, `${c.name}: ${detail || S[to].name}`);
+  renderAll();
+}
+function requestMove(c, to){
+  if (!c || to === c.stage) return;
+  if (to === 'scheduled') return apptModal(c);
+  if ((to === 'deciding' || to === 'submitted') && !c.soa) return soaModal(c, () => requestMove(c, to));
+  if (to === 'deciding'){ c.note = c.note || 'Wants time to think'; log(c, 'Met', 'Appointment held, customer is deciding'); return move(c, 'deciding', 'Met, deciding'); }
+  if (to === 'submitted') return appModal(c);
+  if (to === 'done') return outcomeModal(c);
+  if (to === 'contact'){ log(c, 'Moved', 'Moved back to Needs contact'); return move(c, 'contact'); }
+}
+function tryContact(c, kind){
+  c.attempts++;
+  if (c.attempts === 1 || !c.firstTry){ c.firstTry = new Date(TODAY); c.since = new Date(TODAY); }
+  if (kind === 'text') log(c, 'Text', 'Texted a booking link');
+  else log(c, 'Call', 'Called, no answer, left voicemail');
+}
+const ACTS = {
+  noanswer(c){ tryContact(c, 'call'); toast(`Try ${c.attempts} logged. Next try suggested ${fmt(addDays(TODAY, 2))}.`, `${c.name}: no answer`); renderAll(); },
+  text(c){
+    if (!c.consent.sms){ toast('No written consent to text is on file. Call instead, or record consent first.', `Can't text ${c.name}`, true); return; }
+    tryContact(c, 'text'); toast('Booking link sent. Replies land in Quo and on this record.', `${c.name}: texted`); renderAll();
+  },
+  book(c){ apptModal(c); },
+  reschedule(c){ apptModal(c, true); },
+  outcome(c){ apptOutcomeModal(c); },
+  decision(c){ outcomeModal(c); },
+  noshow(c){
+    log(c, 'No-show', `Missed ${c.appt.mode.toLowerCase()} appointment`);
+    c.appt = null; c.attempts = Math.max(c.attempts, 1); c.firstTry = c.firstTry || new Date(TODAY);
+    move(c, 'contact', c.consent.sms ? 'No-show, reschedule link texted' : 'No-show, call to reschedule');
+  },
+  still(c){ log(c, 'Call', 'Checked in, still deciding'); c.since = new Date(TODAY); toast(`Next check-in set for ${fmt(addDays(TODAY, 2))}.`, `${c.name}: still deciding`); renderAll(); },
+  confirm(c){
+    c.app.confirmed = true; c.after.accepted = {s:'done', d:new Date(TODAY)}; c.after.welcome = {s:'due'};
+    c.outcome = 'enrolled'; log(c, 'Carrier', 'Confirmed in carrier portal');
+    move(c, 'done', 'Enrollment confirmed');
+  },
+  problem(c){ problemModal(c); },
+  calledproblem(c){ log(c, 'Call', `Called about: ${c.app.problem}`); toast('Call logged. Use the menu to resolve it once you know what happened.', c.name); renderAll(); },
+  resolved(c){ c.app.problem = null; c.app.resolved = true; c.app.confirmed = true; c.after.accepted = {s:'done', d:new Date(TODAY)}; log(c, 'Carrier', 'Problem resolved, enrollment active'); if (c.stage !== 'done'){ c.outcome = 'enrolled'; move(c, 'done', 'Resolved, enrolled'); } else { toast('Enrollment is active again.', `${c.name}: resolved`); renderAll(); } },
+  lostproblem(c){ c.app.resolved = true; c.outcome = 'lost'; log(c, 'Closed', `Lost: ${c.app.problem}`); if (c.stage !== 'done') move(c, 'done', 'Closed'); else { toast('Closed as lost. Chargeback risk noted.', c.name); renderAll(); } },
+  shpdone(c){ c.shpDone = true; bump(); log(c, 'State', 'Confirmed they called the State Health Plan to opt out of the Humana group PPO'); toast('They are off the call-first list now.', `${c.name}: State call done`); renderAll(); },
+  shpremind(c){ log(c, 'Call', 'Reminded them to call the State Health Plan before the deadline'); toast(`Reminder logged. The State's open enrollment closes ${fmt(RULES.shp.end)}.`, c.name); renderAll(); },
+  closeout(c){ c.outcome = 'lost'; log(c, 'Closed', c.attempts ? `Closed after ${c.attempts} tries` : 'Closed for this AEP'); move(c, 'done', 'Closed for this AEP'); }
+};
+
+/* ============ modals ============ */
+const modal = $('#modal');
+function openModal(html, onSubmit){
+  closePop();
+  modal.innerHTML = `<form method="dialog" id="mform">${html}</form>`;
+  const f = $('#mform');
+  f.addEventListener('submit', e => {
+    const btn = e.submitter;
+    if (!btn || btn.value === 'cancel') return;
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(f)); data._all = new FormData(f);
+    if (onSubmit(data, f) !== false) modal.close();
+  });
+  modal.showModal();
+}
+const foot = ok => `<div class="mf"><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">${ok}</button></div>`;
+const radios = (name, opts) => `<div class="opts">${opts.map(([v, l, s], i) => `<label class="opt"><input type="radio" name="${name}" value="${v}" ${i === 0 ? 'checked' : ''}><span>${l}${s ? `<small>${s}</small>` : ''}</span></label>`).join('')}</div>`;
+
+function soaModal(c, next){
+  const mode = c.appt ? c.appt.mode : c.meetMode;
+  const inPerson = mode === 'In person' || mode === 'Group session';
+  const methods = [['Paper, scanned to vault', 'Scan it with your phone. Shred the paper once the scan is verified.'], ['MedicareCenter', 'E-signature link, stored with the quote'], ['HealthSherpa', 'E-signature link'], ['Carrier platform', 'Jarvis, Vantage, or another carrier tool']];
+  if (!inPerson) methods.push(methods.shift());
+  openModal(`
+    <div class="mh"><h2>Scope form</h2><p>${esc(c.name)} needs a signed scope form before you talk about specific plans.</p></div>
+    <div class="mb">
+      <div class="callout">There is no 48-hour wait anymore, so same day is fine. The form still has to come first, and on paper or e-signature for in-person visits.${inPerson ? ' This one is in person.' : ''}</div>
+      <div><span class="lbl">How did you get it?</span>${radios('method', methods)}</div>
+      <div><span class="lbl">What can you talk about?</span><div class="chk">${['MAPD', 'PDP', 'Med Supp', 'DSNP', 'Dental / vision'].map((p, i) => `<label><input type="checkbox" name="scope" value="${p}" ${i < 2 ? 'checked' : ''}>${p}</label>`).join('')}</div></div>
+    </div>${foot('Record SOA')}`, d => {
+    const scope = d._all.getAll('scope');
+    if (!scope.length){ toast('Pick at least one product for the scope.', 'SOA not saved', true); return false; }
+    c.soa = {d:new Date(TODAY), method:d.method, scope};
+    log(c, 'SOA', `Scope form saved (${d.method})`);
+    toast(`Saved with ${c.name}. You can talk about: ${scope.join(', ')}.`, 'Scope form saved');
+    setTimeout(next, 0);
+  });
+}
+function apptModal(c, resched){
+  const days = [];
+  for (let i = 0; days.length < 8; i++){ const d = addDays(TODAY, i); if (d.getDay() !== 0) days.push(d); }
+  openModal(`
+    <div class="mh"><h2>${resched ? 'Reschedule' : 'Book'} ${esc(c.name)}</h2><p>Normally this fills in by itself when they book through your Acuity or Calendly link.</p></div>
+    <div class="mb">
+      <div class="two">
+        <div><label class="lbl" for="aday">Day</label><select class="field" id="aday" name="day">${days.map((d, i) => `<option value="${i}">${fmtDay(d)}</option>`).join('')}</select></div>
+        <div><label class="lbl" for="atime">Time</label><select class="field" id="atime" name="time">${['9:00', '10:00', '11:00', '13:00', '14:00', '15:30'].map(t => `<option value="${t}">${timeOf(new Date(2026, 0, 1, +t.split(':')[0], +t.split(':')[1]))}</option>`).join('')}</select></div>
+      </div>
+      <div><span class="lbl">Meeting type</span><div class="chk">${['Phone', 'In person', 'Zoom', 'Group session'].map((m, i) => `<label><input type="radio" name="mode" value="${m}" ${(c.appt ? c.appt.mode === m : i === (c.agent === ME ? 0 : 1)) ? 'checked' : ''}>${m}</label>`).join('')}</div></div>
+    </div>${foot(resched ? 'Reschedule' : 'Book appointment')}`, d => {
+    const dt = new Date(days[+d.day]); const [h, m] = d.time.split(':'); dt.setHours(+h, +m);
+    c.appt = {date:dt, mode:d.mode, via:'Acuity'};
+    if ((c.consent.email || c.consent.sms) && c.intake === 'Not sent') c.intake = 'Sent';
+    log(c, 'Booked', `${d.mode} appointment set for ${fmtDay(dt)}`);
+    setTimeout(() => move(c, 'scheduled', `${resched ? 'Rescheduled' : 'Booked'} for ${fmtDay(dt)}`), 0);
+  });
+}
+function apptOutcomeModal(c){
+  const opts = [['deciding', 'Met, still deciding', 'Sets a follow-up in 2 days'], ['submitted', 'Enrolled, log the application', 'Starts the carrier check and after-sale track']];
+  if (c.track === 'renewal') opts.push(['kept', 'Reviewed, keeping current plan', 'Counts as a completed renewal']);
+  opts.push(['closed', 'Not moving forward', 'Closes them for this AEP'], ['noshow', 'No-show', 'Back to Needs contact']);
+  openModal(`<div class="mh"><h2>How did it go?</h2><p>${esc(c.name)}, ${fmtDay(c.appt.date)} ${c.appt.mode.toLowerCase()}</p></div>
+    <div class="mb">${radios('o', opts)}</div>${foot('Save')}`, d => {
+    setTimeout(() => {
+      if (d.o === 'noshow') ACTS.noshow(c);
+      else if (d.o === 'kept') keepPlan(c);
+      else if (d.o === 'closed') withSoa(c, () => ACTS.closeout(c), true);
+      else requestMove(c, d.o);
+    }, 0);
+  });
+}
+function keepPlan(c){
+  const go = () => { c.outcome = 'kept'; log(c, 'Met', 'Reviewed 2027 changes, keeping current plan'); move(c, 'done', 'Kept current plan'); };
+  withSoa(c, go);
+}
+function withSoa(c, fn, optional){ (c.soa || optional) ? fn() : soaModal(c, fn); }
+function appModal(c){
+  const opts = (c.plan.type === 'DSNP' ? DSNP : c.shp ? MAONLY : PLANS).filter(p => !isSar(p, c.county));
+  openModal(`
+    <div class="mh"><h2>Which plan did they take?</h2><p>${esc(c.name)}. Coverage starts Jan 1, 2027.</p></div>
+    <div class="mb">
+      <div><label class="lbl" for="pplan">New plan</label><select class="field" id="pplan" name="plan">${opts.map((p, i) => `<option value="${i}">${p.name}</option>`).join('')}<option value="dental">Standalone dental plan</option></select></div>
+      <div><label class="lbl" for="pvia">Submitted through</label><select class="field" id="pvia" name="via">${['MedicareCenter', 'HealthSherpa', 'Jarvis (UHC)', 'Vantage (Humana)', 'Carrier paper app'].map(v => `<option>${v}</option>`).join('')}</select></div>
+      <div class="callout">Plans leaving ${esc(c.county)} County are left off this list.${c.shp ? ' State retiree: showing MA-only plans.' : ''}</div>
+    </div>${foot('Log application')}`, d => {
+    const p = d.plan === 'dental' ? {carrier:'Dental', name:'Standalone dental plan'} : opts[+d.plan];
+    c.app = {carrier:p.carrier, plan:p.name, via:d.via, date:new Date(TODAY), confirmed:false, problem:null};
+    c.outcome = null; buildAfter(c);
+    log(c, 'App', `Application submitted for ${p.name} via ${d.via}`);
+    setTimeout(() => move(c, 'submitted', 'Application submitted'), 0);
+  });
+}
+function outcomeModal(c){
+  const opts = [];
+  if (c.app && !c.app.problem) opts.push(['enrolled', 'Carrier confirmed the enrollment', 'Starts welcome and retention check-ins']);
+  if (!c.app) opts.push(['submit', 'Enrolled, log the application', 'Moves to Submitted']);
+  if (c.track === 'renewal') opts.push(['kept', 'Reviewed, keeping current plan', 'A completed renewal, not a loss']);
+  opts.push(['lost', 'Closed for this AEP', 'Unreachable, not a fit, or went elsewhere']);
+  openModal(`<div class="mh"><h2>What did they decide?</h2><p>${esc(c.name)}</p></div><div class="mb">${radios('out', opts)}</div>${foot('Save')}`, d => {
+    setTimeout(() => {
+      if (d.out === 'submit') return requestMove(c, 'submitted');
+      if (d.out === 'kept') return keepPlan(c);
+      if (d.out === 'lost') return ACTS.closeout(c);
+      c.outcome = 'enrolled'; c.app.confirmed = true; c.after.accepted = {s:'done', d:new Date(TODAY)}; c.after.welcome = {s:'due'};
+      log(c, 'Carrier', 'Enrollment confirmed'); move(c, 'done', 'Enrolled');
+    }, 0);
+  });
+}
+function problemModal(c){
+  openModal(`<div class="mh"><h2>What does the carrier show?</h2><p>${esc(c.name)}, ${esc(c.app.plan)}</p></div>
+    <div class="mb">${radios('p', PROBLEMS.map(p => [p, p]))}</div>${foot('Flag it')}`, d => {
+    c.app.problem = d.p; c.app.resolved = false; c.after.accepted = {s:'problem', note:d.p};
+    log(c, 'Alert', d.p);
+    toast('It stays under Check with carrier until you resolve it.', `${c.name}: flagged`, true);
+    renderAll();
+  });
+}
+function consentModal(c){
+  openModal(`<div class="mh"><h2>How can you contact them?</h2><p>${esc(c.name)}. Only checked options get emails or texts.</p></div>
+    <div class="mb"><div class="opts">${[['email', 'Email', 'AEP email and the meds form'], ['sms', 'Text messages', 'Booking links and reminders'], ['rvm', 'Prerecorded voicemail', 'Ringless voicemail blasts']].map(([k, l, s]) => `<label class="opt"><input type="checkbox" name="${k}" ${c.consent[k] ? 'checked' : ''}><span>${l}<small>${s}</small></span></label>`).join('')}</div>
+    <div class="callout">Note how consent was given (signed form, recorded call) in the activity log.</div></div>${foot('Save consent')}`, d => {
+    ['email', 'sms', 'rvm'].forEach(k => c.consent[k] = !!d[k]);
+    log(c, 'Consent', 'Contact consent updated'); toast('Consent saved.', c.name); renderAll();
+  });
+}
+
+
+
+/* ============ plain language ============ */
+/* ============ extra bits for the real-world cases ============ */
+const HELPER_RELS = ['daughter', 'son', 'wife', 'husband', 'niece', 'neighbor'];
+const WAITING_WHAT = ['Checking if their doctor is in network', 'Checking a drug price at the pharmacy', 'Waiting on a callback from the carrier', 'Need their Medicare number', 'Waiting on them to send something', 'Waiting on their spouse to decide'];
+const TOUCHES = [
+  ['theycalled', 'They called me', 'reached'],
+  ['icalled', 'I called and talked to them', 'reached'],
+  ['walkin', 'They walked in', 'reached'],
+  ['metthem', 'We met in person', 'reached'],
+  ['noanswer2', 'I called, no answer', 'tried'],
+  ['itexted', 'I texted them', 'tried']
+];
+// three different questions, three different measures
+// handled  = their 2027 coverage is settled. This is the one that has to reach 100% by Dec 7.
+// reached  = you have actually spoken with them. Leading indicator, not the finish line.
+// untouched= nobody has even tried. The group that quietly runs out of days.
+const handledOf = c => c.stage === 'done';
+const reachedOf = c => S[c.stage].i >= 1 || c.touches.some(t => ['Inbound', 'Met', 'Walk-in'].includes(t.k));
+const untouchedOf = c => c.stage === 'contact' && c.attempts === 0;
+
+// What they are on NOW is a different fact from what they decided FOR 2027.
+// Kept apart because triage reads the current plan and the finish line reads the decision.
+function coverageNow(c){
+  if (c.track === 'lead') return {line: c.plan.name, sub: c.plan.carrier === 'Not known' ? 'Not confirmed yet' : ''};
+  return {line: c.plan.name, sub: changeOf(c)};
+}
+function decision2027(c){
+  if (c.stage === 'done'){
+    if (c.outcome === 'enrolled') return {state:'done', line:c.app ? c.app.plan : 'Enrolled', sub:`Enrolled ${fmt(c.since)}${c.app && c.app.problem ? '. ' + c.app.problem : ''}`};
+    if (c.outcome === 'kept') return {state:'done', line:'Staying on their current plan', sub:`Reviewed ${fmt(c.since)}`};
+    return {state:'closed', line:'Closed for this year', sub:`${fmt(c.since)}`};
+  }
+  if (c.stage === 'submitted') return {state:'pending', line:c.app.plan, sub:`Sent ${fmt(c.app.date)}, ${c.app.problem ? c.app.problem : 'waiting on the carrier'}`};
+  if (c.stage === 'deciding') return {state:'open', line:'Not decided yet', sub:c.waitingOn ? `Waiting on: ${c.waitingOn.what.toLowerCase()}` : c.note};
+  if (c.stage === 'scheduled') return {state:'open', line:'Not decided yet', sub:`Appointment ${dayLabel(c.appt.date)}`};
+  return {state:'open', line:'Not decided yet', sub:'No appointment yet'};
+}
+const decisionChip = c => { const d = decision2027(c);
+  return d.state === 'done' ? '<span class="flag ok">2027 settled</span>'
+    : d.state === 'pending' ? '<span class="flag wait">Waiting on carrier</span>'
+    : d.state === 'closed' ? '<span class="flag calm">Closed</span>' : ''; };
+
+// seed a few of today's Quo calls and appointments with nothing written down, plus helpers and blockers
+(function seedExtras(){
+  let s = 4242;
+  const r = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  for (const a of AGENTS){
+    const mine = book.filter(c => c.agent === a.id);
+    const pool = mine.filter(c => ['contact', 'scheduled', 'deciding'].includes(c.stage));
+    const want = Math.max(3, Math.round(mine.length / 90));
+    for (let i = 0; i < want && pool.length; i++){
+      const c = pool[Math.floor(r() * pool.length)];
+      if (c.needsNote) continue;
+      const mins = 3 + Math.floor(r() * 16);
+      const hour = 9 + Math.floor(r() * 7);
+      const at = new Date(TODAY); at.setHours(hour, r() < .5 ? 10 : 40);
+      c.needsNote = {mins, at, how: r() < .55 ? 'They called you' : 'You called them'};
+      c.touches.push({d:at, k:'Call', t:`${c.needsNote.how}, ${mins} minutes. From Quo, no outcome written down.`});
+      c.touches.sort((x, y) => x.d - y.d);
+    }
+    // someone is waiting on an answer
+    for (const c of mine.filter(x => ['deciding', 'submitted'].includes(x.stage))){
+      if (r() < .18){
+        c.waitingOn = {what:WAITING_WHAT[Math.floor(r() * WAITING_WHAT.length)], due:addDays(TODAY, Math.floor(r() * 5) - 2)};
+        c.touches.push({d:c.since, k:'Note', t:`Waiting: ${c.waitingOn.what}`});
+      }
+    }
+    // some leads have a real enrollment deadline
+    for (const c of mine.filter(x => x.track === 'lead')){
+      if (c.situation === 'Losing employer coverage' || c.situation === 'Moved into the area' || (c.situation === 'Turning 65' && r() < .7)){
+        c.sepEnd = addDays(TODAY, Math.floor(r() * 70) - 5);
+        c.sepReason = c.situation;
+      }
+    }
+    // a child or spouse handles it for some customers
+    for (const c of mine){
+      if (c.track === 'renewal' && r() < .16){
+        const rel = HELPER_RELS[Math.floor(r() * HELPER_RELS.length)];
+        const male = ['Charles','Donald','Frank','Gary','George','Jerry','Kenneth','Larry','Roger','Wayne','Dennis','Curtis','Jimmy','Tommy','Bobby','Scott','Brian','Keith'];
+        const female = ['Angela','Carol','Dawn','Gloria','Joyce','Judy','Linda','Michelle','Nancy','Patricia','Ruth','Sandra','Wanda','Brenda','Donna','Janet','Kim','Tracy'];
+        const pool = rel === 'son' || rel === 'husband' ? male : rel === 'neighbor' ? (r() < .5 ? male : female) : female;
+        c.helper = {name:`${pool[Math.floor(r() * pool.length)]} ${c.name.split(' ')[1]}`, rel, phone:c.phone.replace(/\d{4}$/, String(1000 + Math.floor(r() * 8999))), ok:r() < .75, alsoClient:r() < .3};
+      }
+    }
+  }
+})();
+
+function closePop(){}
+const PLAIN_STAGE = {contact:'Needs a call', scheduled:'Appointment set', deciding:'Thinking it over', submitted:'Waiting on carrier', done:'Finished'};
+const urgent = c => tierOf(c) === 1;
+function plainStatus(c){
+  const st = stallOf(c);
+  if (c.needsNote) return `${c.needsNote.how} today at ${timeOf(c.needsNote.at)}, ${c.needsNote.mins} minutes, nothing written down`;
+  if (c.waitingOn) return `Waiting on: ${c.waitingOn.what.toLowerCase()}${c.waitingOn.due <= TODAY ? ', check now' : `, check back ${fmt(c.waitingOn.due)}`}`;
+  switch (c.stage){
+    case 'contact':
+      if (!c.attempts) return c.letterDate ? `Letter mailed ${fmt(c.letterDate)}, no call yet` : 'Not contacted yet';
+      return st ? `No answer after ${c.attempts} tries` : `Tried ${c.attempts === 1 ? 'once' : c.attempts + ' times'}, waiting to hear back`;
+    case 'scheduled':
+      return st ? `Appointment was ${fmt(c.appt.date)}, needs an outcome` : `${dayLabel(c.appt.date)} at ${timeOf(c.appt.date)}, ${c.appt.mode.toLowerCase()}`;
+    case 'deciding':
+      return st ? `Thinking it over for ${diff(c.since, TODAY)} days` : `Met ${fmt(c.since)}, thinking it over`;
+    case 'submitted':
+      if (c.app.problem) return c.app.problem;
+      return st ? `Sent ${fmt(c.app.date)}, carrier has not confirmed` : `Sent ${fmt(c.app.date)}, waiting on the carrier`;
+    case 'done':
+      return `${{enrolled:'Enrolled', kept:'Keeping their plan', lost:'Closed for this year'}[c.outcome]}, ${fmt(c.since)}`;
+  }
+}
+function whyUrgent(c){ const r = tierInfo(c).reasons[0]; return r ? (r.d || r.t) : ''; }
+const digits = p => (p || '').replace(/\D/g, '');
+const callBtn = (c, cls = 'call') => c.phone ? `<a class="${cls}" href="tel:+1${digits(c.phone)}"><svg class="i sm" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>${esc(c.phone)}</a>` : '';
+
+/* ============ the six jobs, in plain words ============ */
+const MODES = {
+  shp: {
+    get title(){ return `State retirees to call, ${shpDaysLeft()} days left`; },
+    blurb:'They are on the State Health Plan 70/30 and have to call the State themselves to stay off the Humana group plan.',
+    start:'Start calling', ask:'What happened?',
+    acts:[['shpdone', 'They called the State', 'ok'], ['shpremind', 'Left them a reminder'], ['noanswer', 'No answer'], ['book', 'Booked an appointment']]
+  },
+  catchup: {title:'Write down what happened', blurb:'Calls and appointments with nothing written down yet. Quo and your calendar found these.', start:'Catch up', ask:'What came of it?',
+    acts:[['met', 'They are thinking it over'], ['submit', 'They enrolled', 'ok'], ['kept', 'Keeping their plan', 'ok'], ['book', 'Booked another appointment'], ['waitfor', 'Waiting on something first'], ['nothing', 'Nothing to write down']]},
+  today: {title:'Appointments today', blurb:'Reminders already went out. Get the scope form signed before you talk about plans.', start:'Work through them', ask:'How did it go?',
+    acts:[['met', 'Met, still thinking'], ['submit', 'They enrolled', 'ok'], ['kept', 'Keeping their plan', 'ok'], ['waitfor', 'Waiting on something first'], ['noshow', 'They did not show']]},
+  waiting: {title:'Things you are waiting on', blurb:'You could not finish these until something came back.', start:'Check on them', ask:'Any answer yet?',
+    acts:[['gotit', 'Got the answer', 'ok'], ['submit', 'All set, they enrolled', 'ok'], ['stillwaiting', 'Still waiting, check back later'], ['closeout', 'Not moving forward']]},
+  callfirst: {title:'People to call first', blurb:'Their plan is ending or they have a deadline. Nobody has tried them yet.', start:'Start calling', ask:'What happened?',
+    acts:[['noanswer', 'No answer, left a voicemail'], ['book', 'Booked an appointment', 'ok'], ['text', 'Sent them a text'], ['closeout', 'Not interested']]},
+  undecided: {title:'Thinking it over', blurb:'You met 3 or more days ago and they still have not decided.', start:'Check in on them', ask:'What did they say?',
+    acts:[['still', 'Still thinking about it'], ['submit', 'They enrolled', 'ok'], ['kept', 'Keeping their plan', 'ok'], ['waitfor', 'Waiting on something first'], ['closeout', 'Not moving forward']]},
+  noreply: {title:'People who have not called back', blurb:'Two or more tries with no answer. Try another way or close them out.', start:'Work the list', ask:'What happened?',
+    acts:[['text', 'Sent them a text'], ['noanswer', 'Tried again, no answer'], ['book', 'Booked an appointment', 'ok'], ['closeout', 'Close them out']]}
+};
+
+ACTS.met = c => requestMove(c, 'deciding');
+ACTS.nothing = c => { log(c, 'Note', 'Nothing to write down from that call'); toast('Cleared off your list.', c.name); renderAll(); };
+ACTS.gotit = c => { const w = c.waitingOn; c.waitingOn = null; log(c, 'Note', `Got the answer: ${w ? w.what.toLowerCase() : 'what you were waiting on'}`); toast('Back on your list to finish.', c.name); renderAll(); };
+ACTS.stillwaiting = c => { c.waitingOn.due = addDays(TODAY, 3); log(c, 'Note', `Still waiting: ${c.waitingOn.what.toLowerCase()}`); toast(`You will see them again ${fmt(addDays(TODAY, 3))}.`, c.name); renderAll(); };
+ACTS.waitfor = c => waitForModal(c);
+ACTS.noanswer2 = c => ACTS.noanswer(c);
+ACTS.submit = c => requestMove(c, 'submitted');
+ACTS.kept = c => keepPlan(c);
+
+/* ============ state ============ */
+const state = {view:'today', agent:ME, person:null, sheet:null, mode:null, modeTotal:0, skip:new Set(),
+  q:'', chip:'all', shown:15, ruleCarrier:'Humana', open:{today:true}};
+const TABS = [['today', 'Today'], ['people', 'My people'], ['follow', 'Follow-ups']];
+const inBook = c => c.agent === state.agent;
+const jobs = () => activeFocus().map(f => ({f, m:MODES[f.id], items:book.filter(c => inBook(c) && f.test(c)).sort(f.sort)}));
+const followList = () => book.filter(c => inBook(c) && c.after);
+const dueNow = c => c.after.accepted.s === 'problem' ? 'Call them, the carrier shows a problem'
+  : c.after.accepted.s === 'due' ? 'Check the carrier website'
+  : c.after.welcome.s === 'due' ? 'Send a welcome message' : null;
+
+/* ============ Today ============ */
+function renderToday(){
+  const all = jobs().filter(j => j.items.length);
+  const total = all.reduce((n, j) => n + j.items.length, 0);
+  $('#title').textContent = `Hi ${AG[state.agent].name}`;
+  $('#sub').textContent = `${fmtDay(TODAY)}, ${diff(TODAY, D(12, 7))} days left in AEP`;
+  if (!all.length){
+    $('#view').innerHTML = `<div class="card"><div class="empty-state"><h2>You are all caught up</h2><p>Nothing needs you right now. New appointments and replies will show up here.</p></div></div>`;
+    return;
+  }
+  const mine = book.filter(inBook);
+  const handled = mine.filter(handledOf).length, left = mine.length - handled;
+  const untouched = mine.filter(untouchedOf).length;
+  const days = Math.max(1, diff(TODAY, D(12, 7)));
+  $('#view').innerHTML = `
+    <p class="card-sub" style="margin:2px 0 12px;color:var(--ink-2)">${total} ${total === 1 ? 'person needs' : 'people need'} something from you. Everyone else is waiting on a reply or on the carrier.</p>
+    <section class="card"><div class="pad">
+      <b>${handled} of ${mine.length} settled for 2027.</b>
+      <div class="meter"><i style="width:${handled / mine.length * 100}%"></i></div>
+      <p class="sub">${left} to go, ${days} days left. That is about ${Math.ceil(left / days)} a day.</p>
+      ${untouched ? `<p class="sub" style="margin-top:6px"><button type="button" class="btn quiet" style="padding:0;min-height:auto" data-chipjump="untouched">${untouched} of them have not been contacted at all.</button></p>` : ''}
+    </div></section>
+    ${all.map(({f, m, items}) => {
+      const open = !!state.open[f.id];
+      const show = open ? items.slice(0, 12) : [];
+      return `<section class="card ${f.hot ? 'urgent' : ''}">
+        <div class="card-head"><div><h2>${esc(m.title)}</h2><p class="sub">${esc(m.blurb)}</p></div><span class="count-pill">${items.length}</span></div>
+        <div class="card-acts">
+          <button type="button" class="btn primary" data-start="${f.id}">${esc(m.start)}</button>
+          <button type="button" class="btn" data-toggle="${f.id}">${open ? 'Hide the list' : 'See the list'}</button>
+        </div>
+        ${show.length ? `<div class="rows">${show.map(c => personRow(c, f.id)).join('')}
+          ${items.length > show.length ? `<button type="button" class="more-link" data-start="${f.id}">Work through all ${items.length}</button>` : ''}</div>` : ''}
+      </section>`;
+    }).join('')}`;
+}
+function personRow(c, modeId){
+  const when = modeId === 'today' ? `<span class="when">${timeOf(c.appt.date)}</span>` : '';
+  const line = modeId === 'today' ? `${c.appt.mode}, ${c.intake === 'Returned' ? 'you have their medicines list' : 'no medicines list yet'}` : plainStatus(c);
+  return `<button type="button" class="prow" data-person="${c.id}">
+    ${when}<span class="meat"><b>${esc(c.name)}</b><span>${line}</span></span>
+    <svg class="i chev" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>`;
+}
+
+/* ============ My people ============ */
+const CHIPS = [['all', 'Everyone'], ['urgent', 'Call first'], ['untouched', 'Not contacted'], ['contact', 'Needs a call'], ['scheduled', 'Appointment set'], ['deciding', 'Thinking it over'], ['submitted', 'Waiting on carrier'], ['done', 'Settled for 2027']];
+function peopleList(){
+  let L = book.filter(inBook);
+  if (state.chip === 'urgent') L = L.filter(urgent);
+  else if (state.chip === 'untouched') L = L.filter(untouchedOf);
+  else if (state.chip !== 'all') L = L.filter(c => c.stage === state.chip);
+  if (state.q){
+    const q = state.q.toLowerCase(), dg = digits(state.q);
+    L = L.filter(c => `${c.name} ${c.city} ${c.plan.name}`.toLowerCase().includes(q) || (dg.length >= 3 && digits(c.phone).includes(dg)));
+  }
+  return L.sort((a, b) => priSort(a, b) || a.name.localeCompare(b.name));
+}
+function renderPeople(){
+  $('#title').textContent = 'My people';
+  $('#sub').textContent = `${book.filter(inBook).length.toLocaleString()} customers and leads`;
+  const n = id => id === 'all' ? book.filter(inBook).length
+    : id === 'urgent' ? book.filter(c => inBook(c) && urgent(c)).length
+    : id === 'untouched' ? book.filter(c => inBook(c) && untouchedOf(c)).length
+    : book.filter(c => inBook(c) && c.stage === id).length;
+  $('#view').innerHTML = `
+    <div class="searchbar"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <label class="sr" for="q">Search</label><input class="field" id="q" type="search" placeholder="Search a name or phone number" value="${esc(state.q)}"></div>
+    <div class="chips">${CHIPS.map(([id, l]) => `<button type="button" class="chip" data-chip="${id}" aria-pressed="${state.chip === id}">${l}<span class="n">${n(id)}</span></button>`).join('')}</div>
+    <div class="card" id="peopleCard">${peopleCard()}</div>`;
+}
+function peopleCard(){
+  const L = peopleList(), shown = L.slice(0, state.shown);
+  return `${shown.length ? `<div class="rows">${shown.map(c => `
+      <div style="display:flex;align-items:center;gap:10px;padding-right:12px;border-bottom:1px solid var(--line-2)">
+        <button type="button" class="prow" style="border-bottom:0" data-person="${c.id}">
+          <span class="meat"><b>${esc(c.name)}${urgent(c) ? ' <span class="flag">Call first</span>' : ''}${decisionChip(c)}</b>
+          <span>On now: ${esc(c.plan.carrier)}${c.plan.pid ? ' ' + esc(c.plan.pid) : ''}</span><span>${plainStatus(c)}</span></span>
+        </button>${callBtn(c)}
+      </div>`).join('')}
+      ${L.length > shown.length ? `<button type="button" class="more-link" data-more>Show 15 more of ${L.length.toLocaleString()}</button>` : ''}</div>`
+      : `<div class="empty-state"><h2>Nobody here</h2><p>Try a different search or pick another group above.</p></div>`}`;
+}
+
+/* ============ Follow-ups ============ */
+function renderFollow(){
+  $('#title').textContent = 'Follow-ups';
+  $('#sub').textContent = 'After someone enrolls';
+  const L = followList();
+  const due = L.filter(c => dueNow(c));
+  const later = L.filter(c => !dueNow(c));
+  $('#view').innerHTML = `
+    <section class="card ${due.length ? 'urgent' : ''}">
+      <div class="card-head"><div><h2>Do these now</h2><p class="sub">Applications to check on and welcome messages to send.</p></div><span class="count-pill">${due.length}</span></div>
+      ${due.length ? `<div class="rows">${due.slice(0, 25).map(c => `<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line-2);flex-wrap:wrap">
+        <button type="button" class="prow" style="flex:1;padding:0;border:0" data-person="${c.id}"><span class="meat"><b>${esc(c.name)}</b><span>${esc(dueNow(c))}</span></span></button>
+        <button type="button" class="btn sm" data-followdone="${c.id}">${c.after.accepted.s === 'problem' ? 'Open' : 'Mark done'}</button></div>`).join('')}</div>`
+        : `<div class="empty-state" style="padding:26px"><p>Nothing due today.</p></div>`}
+    </section>
+    <section class="card">
+      <div class="card-head"><div><h2>Coming up</h2><p class="sub">Automatic check-ins for the ${later.length} people you enrolled. Nothing to do yet.</p></div></div>
+      <div class="rows">
+        ${[['idcard', 'ID card check', 'Early January'], ['oep', 'New year check-in', 'February'], ['charge', 'Three months in', 'April 1'], ['bday', 'Birthday card', 'On their birthday']].map(([k, l, when]) =>
+          `<div style="padding:12px 16px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;gap:10px"><span><b>${l}</b><br><small style="color:var(--ink-3)">${when}</small></span><span class="count-pill">${L.filter(c => c.after[k] && c.after[k].s === 'later').length}</span></div>`).join('')}
+      </div>
+    </section>`;
+}
+
+/* ============ focus mode ============ */
+function modeList(id){ return book.filter(c => inBook(c) && FX[id].test(c) && !state.skip.has(c.id)).sort(FX[id].sort); }
+function startMode(id){
+  state.mode = id; state.skip = new Set();
+  state.modeTotal = modeList(id).length;
+  renderFocus();
+}
+function endMode(){ state.mode = null; $('#focus').hidden = true; document.body.style.overflow = ''; renderAll(); }
+function renderFocus(){
+  if (!state.mode) return;
+  const m = MODES[state.mode], L = modeList(state.mode), c = L[0], f = $('#focus');
+  f.hidden = false; document.body.style.overflow = 'hidden';
+  const done = state.modeTotal - L.length;
+  if (!c){
+    f.innerHTML = `<div class="focus-top"><button type="button" class="btn sm" data-endmode>Close</button></div>
+      <div class="fcard"><div class="empty-state"><h2>That's the whole list</h2><p>You went through ${state.modeTotal} ${state.modeTotal === 1 ? 'person' : 'people'}.</p>
+      <button type="button" class="btn primary big" style="margin-top:18px" data-endmode>Back to Today</button></div></div>`;
+    return;
+  }
+  f.innerHTML = `
+    <div class="focus-top">
+      <button type="button" class="btn icon sm" data-endmode aria-label="Close">&times;</button>
+      <span class="bar"><i style="width:${state.modeTotal ? done / state.modeTotal * 100 : 0}%"></i></span>
+      <span class="n">${done} of ${state.modeTotal} done</span>
+    </div>
+    <div class="fcard">
+      ${urgent(c) ? '<span class="flag">Call first</span>' : `<span class="flag calm">${PLAIN_STAGE[c.stage]}</span>`}
+      <h2>${esc(c.name)}</h2>
+      <p class="where">On now: ${esc(c.plan.name)}. ${esc(c.city)}, ${c.st}</p>
+      <div class="why"><b>Why they are on this list</b>${esc(whyUrgent(c) || plainStatus(c))}</div>
+      ${c.appt && c.stage === 'scheduled' ? `<div class="why"><b>Appointment</b>${dayLabel(c.appt.date)} at ${timeOf(c.appt.date)}, ${esc(c.appt.mode.toLowerCase())}</div>` : ''}
+      ${callBtn(c, 'btn primary big')}
+      <p class="ask">${esc(m.ask)}</p>
+      <div class="fbtns">${m.acts.map(([a, l, k]) => `<button type="button" class="btn ${k === 'ok' ? 'ok' : ''}" data-act="${a}" data-id="${c.id}" data-inmode="1">${esc(l)}</button>`).join('')}</div>
+      <button type="button" class="btn quiet skip" data-skip="${c.id}">Skip for now</button>
+      <button type="button" class="btn quiet skip" data-person="${c.id}">See everything about ${esc(c.name.split(' ')[0])}</button>
+    </div>`;
+}
+
+/* ============ person sheet ============ */
+function openSheet(kind, id){
+  state.sheet = kind; state.person = id != null ? +id : null;
+  renderSheet(); $('#sheet').classList.add('on'); $('#scrim').classList.add('on'); $('#sheet').setAttribute('aria-hidden', 'false');
+  setTimeout(() => $('#sheet .x')?.focus(), 60);
+}
+function closeSheet(){ state.sheet = null; state.person = null; $('#sheet').classList.remove('on'); $('#scrim').classList.remove('on'); $('#sheet').setAttribute('aria-hidden', 'true'); }
+function renderSheet(){
+  if (!state.sheet) return;
+  $('#sheet').innerHTML = state.sheet === 'person' ? personSheet(byId.get(state.person)) : settingsSheet();
+}
+function personSheet(c){
+  const consent = ['email', 'sms'].filter(k => c.consent[k]).map(k => k === 'email' ? 'email' : 'text').join(' and ');
+  const needSoa = ['deciding', 'submitted'].includes(c.stage);
+  return `
+  <div class="sheet-head"><div><h2>${esc(c.name)}</h2><p>${esc(c.city)}, ${c.st}${c.track === 'lead' ? '. New lead' : ''}</p></div>
+    <button type="button" class="x" data-closesheet aria-label="Close">&times;</button></div>
+  ${c.agent !== state.agent ? `<div class="owned">${esc(AG[c.agent].name)}'s customer. You can look, and log what you did, but the follow-up stays on their list.</div>` : ''}
+  <div class="sec">
+    ${callBtn(c, 'btn primary big')}
+    <div class="why" style="background:var(--sunk);border-radius:12px;padding:14px;margin-top:14px"><b>What to do next</b><br>${esc(nextAction(c))}</div>
+    ${c.waitingOn ? `<div class="checkrow" style="margin-top:10px"><span class="mark meh">\u2026</span><span class="txt"><b>Waiting on something</b><small>${esc(c.waitingOn.what)}, check ${fmt(c.waitingOn.due)}</small></span><button type="button" class="btn sm" data-act="gotit" data-id="${c.id}">Got it</button></div>` : ''}
+    <div class="row-btns" style="margin-top:12px">
+      <button type="button" class="btn" data-logtouch="${c.id}">Log a call or visit</button>
+      <button type="button" class="btn" data-waitfor="${c.id}">${c.waitingOn ? 'Change that' : 'Waiting on something'}</button>
+    </div>
+  </div>
+  <div class="sec"><h3>Who helps them</h3>
+    ${c.helper ? `<div class="checkrow"><span class="mark ${c.helper.ok ? 'yes' : 'meh'}">${c.helper.ok ? '\u2713' : '?'}</span>
+      <span class="txt"><b>${esc(c.helper.name)}, their ${esc(c.helper.rel)}</b><small>${c.helper.ok ? 'Said it is OK to talk about coverage' : 'Not marked OK to talk about coverage'}${c.helper.alsoClient ? '. Has a plan with you too' : ''}</small></span>
+      ${c.helper.phone ? `<a class="call" href="tel:+1${digits(c.helper.phone)}">${esc(c.helper.phone)}</a>` : ''}</div>
+      <button type="button" class="btn sm" style="margin-top:10px" data-helper="${c.id}">Change</button>`
+      : `<p style="color:var(--ink-2)">Nobody on file. Add the child or spouse who handles this for them.</p><button type="button" class="btn sm" style="margin-top:10px" data-helper="${c.id}">Add someone</button>`}
+  </div>
+  <div class="sec"><h3>Where they stand</h3>
+    <div class="stagepick">${STAGES.map(s => `<button type="button" data-move="${s.id}" data-id="${c.id}" aria-current="${s.id === c.stage}">${PLAIN_STAGE[s.id]}${s.id === c.stage ? ` &mdash; ${plainStatus(c)}` : ''}</button>`).join('')}</div>
+  </div>
+  <div class="sec"><h3>Before you talk about plans</h3>
+    ${c.shp ? `<div class="checkrow"><span class="mark ${c.shpDone ? 'yes' : 'no'}">${c.shpDone ? '\u2713' : '!'}</span><span class="txt"><b>State Health Plan call</b><small>${c.shpDone ? 'They called the State' : `Not done. The State's window closes ${fmt(RULES.shp.end)}`}</small></span>${c.shpDone ? '' : `<button type="button" class="btn sm" data-act="shpdone" data-id="${c.id}">Done</button>`}</div>` : ''}
+    <div class="checkrow"><span class="mark ${c.soa ? 'yes' : needSoa ? 'no' : 'meh'}">${c.soa ? '\u2713' : '!'}</span>
+      <span class="txt"><b>Scope form</b><small>${c.soa ? `${esc(c.soa.method)}, ${fmt(c.soa.d)}` : 'Not signed yet'}</small></span>
+      ${c.soa ? '' : `<button type="button" class="btn sm" data-soa="${c.id}">Add</button>`}</div>
+    <div class="checkrow"><span class="mark ${c.intake === 'Returned' ? 'yes' : 'meh'}">${c.intake === 'Returned' ? '\u2713' : '\u2026'}</span>
+      <span class="txt"><b>Their medicines and doctors</b><small>${c.intake === 'Returned' ? 'You have their list' : c.intake === 'Sent' ? 'Form sent, waiting on them' : 'Not asked for yet'}</small></span>
+      ${c.intake === 'Returned' ? '' : `<button type="button" class="btn sm" data-intake="${c.id}">${c.intake === 'Sent' ? 'Got it' : 'Send form'}</button>`}</div>
+    <div class="checkrow"><span class="mark ${consent ? 'yes' : 'meh'}">${consent ? '\u2713' : '\u2026'}</span>
+      <span class="txt"><b>How you can reach them</b><small>${consent ? `Phone, plus ${consent}` : 'Phone only, no written OK to email or text'}</small></span>
+      <button type="button" class="btn sm" data-consent="${c.id}">Change</button></div>
+  </div>
+  <div class="sec"><h3>Coverage</h3>
+    <div class="cov"><span class="cov-k">On now</span><span class="cov-v"><b>${esc(coverageNow(c).line)}</b>${coverageNow(c).sub ? `<small>${esc(coverageNow(c).sub)}</small>` : ''}</span></div>
+    <div class="cov"><span class="cov-k">For 2027</span><span class="cov-v"><b>${esc(decision2027(c).line)}</b>${decision2027(c).sub ? `<small>${esc(decision2027(c).sub)}</small>` : ''}</span></div>
+    ${c.track === 'renewal' && c.letter ? `<p class="note">Letter ${c.letter} ${c.letterDate ? `mailed ${fmt(c.letterDate)}` : 'not mailed yet'}.</p>` : ''}
+    ${c.sepEnd ? `<p class="note">Enrollment window closes ${fmt(c.sepEnd)}.</p>` : ''}
+    ${c.track === 'lead' ? `<button type="button" class="btn sm" style="margin-top:8px" data-sep="${c.id}">${c.sepEnd ? 'Change the deadline' : 'Add an enrollment deadline'}</button>` : ''}
+  </div>
+  <div class="sec"><h3>History</h3>
+    <ul class="hist">${c.touches.slice().reverse().slice(0, state.open.hist ? 99 : 5).map(t => `<li><time>${fmt(t.d)}</time><span>${esc(t.t)}</span></li>`).join('')}</ul>
+    ${c.touches.length > 5 ? `<button type="button" class="btn quiet" data-toggle="hist" style="margin-top:6px">${state.open.hist ? 'Show less' : `Show all ${c.touches.length}`}</button>` : ''}
+    <form class="note-in" data-note="${c.id}"><label class="sr" for="noteText">Add a note</label><input class="field" id="noteText" placeholder="Add a note"><button class="btn" type="submit">Add</button></form>
+  </div>`;
+}
+function settingsSheet(){
+  return `
+  <div class="sheet-head"><div><h2>Settings</h2></div><button type="button" class="x" data-closesheet aria-label="Close">&times;</button></div>
+  <div class="sec"><h3>Whose customers am I looking at?</h3>
+    <div class="list-pick">${AGENTS.map(a => `<button type="button" data-book="${a.id}" aria-current="${state.agent === a.id}">${a.name}${a.me ? ' (me)' : ''}<small>${book.filter(c => c.agent === a.id).length.toLocaleString()} people</small></button>`).join('')}</div>
+  </div>
+  <div class="sec"><h3>Who gets called first</h3>
+    <p style="color:var(--ink-2);margin-bottom:12px">Right now ${book.filter(c => inBook(c) && urgent(c)).length} of your people are marked "call first". You decide which plans and situations count.</p>
+    <button type="button" class="btn big" data-setup>Open priority setup</button>
+  </div>
+  <div class="sec"><h3>About</h3><p class="note">Practice data only. The demo date is ${fmtDay(TODAY)} and nothing is saved when you reload.</p></div>`;
+}
+
+/* ============ priority setup ============ */
+function renderSetup(){
+  $('#title').textContent = 'Priority setup';
+  $('#sub').textContent = 'Who gets called first';
+  const mine = book.filter(inBook);
+  const shpAll = mine.filter(c => c.shp), shpLeft = shpAll.filter(c => !c.shpDone).length;
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const carrierPlans = PLANS.filter(p => p.carrier === state.ruleCarrier);
+  const rated = PLANS.filter(p => RULES.ratings[p.pid] != null).length;
+  const manual = mine.filter(c => c.override);
+  $('#view').innerHTML = `<div class="setup">
+    <button type="button" class="back" data-view="today"><svg class="i sm" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Back to Today</button>
+    <p class="lede">Three things put someone on the call-first list: their plan is ending, they are a state retiree with a deadline, or you set it by hand.</p>
+
+    <section class="card"><div class="pad">
+      <h2>1. Plans that are ending</h2>
+      <p class="sub">Everyone on these plans in these counties gets called first.</p></div>
+      ${RULES.sar.map((r, i) => { const p = planOf(r.pid); const hit = mine.filter(c => c.plan.pid === r.pid && r.counties.includes(c.county)).length; return `
+        <div class="planrow"><span class="nm"><b>${esc(p.carrier)} ${esc(p.pid)}</b><small>Leaving ${r.counties.join(', ')}. ${hit} of your people.</small></span>
+        <button type="button" class="btn sm danger" data-delsar="${i}">Remove</button></div>`; }).join('') || '<div class="planrow"><span class="nm">No plans added yet.</span></div>'}
+      <div class="pad" style="border-top:1px solid var(--line-2);background:var(--sunk)">
+        <label class="lbl" for="rCarrier">Carrier</label>
+        <select class="field" id="rCarrier" style="margin-bottom:12px">${CARRIERS.map(c => `<option ${c === state.ruleCarrier ? 'selected' : ''}>${c}</option>`).join('')}</select>
+        <label class="lbl" for="rPlan">Plan</label>
+        <select class="field" id="rPlan" style="margin-bottom:12px">${carrierPlans.map(p => `<option value="${esc(p.pid)}">${esc(p.pid)}, ${esc(p.type === 'MA' ? 'MA only' : p.type)}</option>`).join('')}</select>
+        <span class="lbl">Counties it is leaving</span>
+        <div class="countygrid">${COUNTIES.map(([c, st]) => `<label><input type="checkbox" name="rCounty" value="${c}">${c}, ${st}</label>`).join('')}</div>
+        <button type="button" class="btn primary big" data-addsar>Add this plan</button>
+      </div>
+    </section>
+
+    <section class="card"><div class="pad">
+      <h2>2. State retirees</h2>
+      <p class="sub">Retirees on the 70/30 Plan have to call the State themselves during its open enrollment to stay off the Humana group plan. They stay on the call-first list until you mark that call done.</p>
+      <label class="switch"><input type="checkbox" id="rShpOn" ${RULES.shp.on ? 'checked' : ''}> <span>Use this rule</span></label>
+      <div class="two" style="margin:10px 0">
+        <div><label class="lbl" for="rShpStart">State window opens</label><input class="field" type="date" id="rShpStart" value="${iso(RULES.shp.start)}"></div>
+        <div><label class="lbl" for="rShpEnd">Closes</label><input class="field" type="date" id="rShpEnd" value="${iso(RULES.shp.end)}"></div>
+      </div>
+      <div class="kv"><span>State retirees in your book</span><b>${shpAll.length}</b></div>
+      <div class="kv"><span>Still need to call the State</span><b style="color:${shpLeft ? 'var(--red)' : 'inherit'}">${shpLeft}</b></div>
+      <p class="note">Dates come from the State Health Plan's 2027 open enrollment page (Oct 12 to 30, 2026). Change them if the State moves the window.</p>
+    </div></section>
+
+    <section class="card"><div class="pad">
+      <h2>3. Everyone else, by plan</h2>
+      <p class="sub">Mark how much each plan is changing for 2027. <b>Major</b> puts everyone on that plan on the call-first list, so use it sparingly. Plans you have not marked count as "some changes" so nobody gets skipped. ${rated} of ${PLANS.length} marked.</p></div>
+      ${PLANS.map((p, i) => { const r = RULES.ratings[p.pid]; const n = mine.filter(c => c.plan.pid === p.pid).length; return `
+        <div class="planrow"><span class="nm"><b>${esc(p.carrier)} ${esc(p.pid)}</b><small>${esc(p.change || 'No notes yet')}. ${n} of your people.</small></span>
+          <span class="seg">
+            <button type="button" class="major" data-rate="${esc(p.pid)}" data-val="1" aria-pressed="${r === 1}">Major</button>
+            <button type="button" data-rate="${esc(p.pid)}" data-val="2" aria-pressed="${r === 2}">Some changes</button>
+            <button type="button" data-rate="${esc(p.pid)}" data-val="3" aria-pressed="${r === 3}">Little change</button>
+          </span></div>`; }).join('')}
+      <div class="pad" style="border-top:1px solid var(--line-2)"><p class="note">Humana 335-002 in Cabarrus came from you. Every other plan number and note here is made up for the demo.</p></div>
+    </section>
+
+    <section class="card"><div class="pad">
+      <h2>4. New leads with a deadline</h2>
+      <p class="sub">A lead goes on the call-first list when their enrollment window is closing, not because of why they called. Set how much warning you want.</p>
+      <label class="lbl" for="rSep" style="margin-top:10px">Call first when their window closes within</label>
+      <select class="field" id="rSep">${[14, 21, 30, 45, 60].map(n => `<option value="${n}" ${RULES.sepDays === n ? 'selected' : ''}>${n} days</option>`).join('')}</select>
+      <div class="kv" style="margin-top:10px"><span>Leads with a deadline on file</span><b>${mine.filter(c => c.sepEnd).length}</b></div>
+      <div class="kv"><span>Leads with no deadline on file</span><b>${mine.filter(c => c.track === 'lead' && !c.sepEnd).length}</b></div>
+    </div></section>
+
+    <section class="card"><div class="pad">
+      <h2>5. Set by hand</h2>
+      <p class="sub">${manual.length ? `${manual.length} of your people have a priority you set yourself.` : 'You can put anyone on the call-first list from their page.'}</p>
+      ${manual.slice(0, 20).map(c => `<div class="kv"><span><b>${esc(c.name)}</b><br><small style="color:var(--ink-3)">${esc(c.override.note || 'No reason written down')}</small></span><button type="button" class="btn sm" data-clearovr="${c.id}">Undo</button></div>`).join('')}
+    </div></section>
+  </div>`;
+}
+
+/* ============ quick logging, blockers, helpers, find ============ */
+function waitForModal(c){
+  openModal(`
+    <div class="mh"><h2>What are you waiting on?</h2><p>${esc(c.name)}. They stay off your list until the day you pick.</p></div>
+    <div class="mb">
+      <div>${radios('what', WAITING_WHAT.map(x => [x, x]))}</div>
+      <div><label class="lbl" for="wdue">Check back</label><select class="field" id="wdue" name="due"><option value="1">Tomorrow</option><option value="2">In 2 days</option><option value="3" selected>In 3 days</option><option value="7">Next week</option></select></div>
+    </div>${foot('Save')}`, d => {
+    c.waitingOn = {what:d.what, due:addDays(TODAY, +d.due)};
+    log(c, 'Note', `Waiting: ${d.what.toLowerCase()}`);
+    toast(`You will see them again ${fmt(c.waitingOn.due)}.`, `${c.name}: waiting`);
+    renderAll();
+  });
+}
+function logTouchModal(c){
+  openModal(`
+    <div class="mh"><h2>What happened?</h2><p>${esc(c.name)}</p></div>
+    <div class="mb">${radios('how', TOUCHES.map(([id, l]) => [id, l]))}</div>${foot('Next')}`, d => {
+    const t = TOUCHES.find(x => x[0] === d.how);
+    if (t[2] === 'tried'){ tryContact(c, d.how === 'itexted' ? 'text' : 'call'); toast('Logged.', c.name); renderAll(); return; }
+    log(c, d.how === 'walkin' ? 'Walk-in' : d.how === 'metthem' ? 'Met' : 'Inbound', t[1]);
+    setTimeout(() => quickOutcome(c), 0);
+  });
+}
+function quickOutcome(c){
+  const opts = [['deciding', 'They are thinking it over', 'Sets a follow-up in 2 days'], ['submitted', 'They enrolled', 'Log which plan they took']];
+  if (c.track === 'renewal') opts.push(['kept', 'Keeping their plan', 'Counts as done for this year']);
+  opts.push(['waitfor', 'Waiting on something first', 'Doctor, drug price, callback'], ['nothing', 'Nothing decided yet', 'Leave them where they are'], ['lost', 'Not moving forward', 'Closes them for this year']);
+  openModal(`<div class="mh"><h2>What came of it?</h2><p>${esc(c.name)}</p></div><div class="mb">${radios('o', opts)}</div>${foot('Save')}`, d => {
+    setTimeout(() => {
+      if (d.o === 'kept') return keepPlan(c);
+      if (d.o === 'lost') return ACTS.closeout(c);
+      if (d.o === 'waitfor') return waitForModal(c);
+      if (d.o === 'nothing'){ toast('Logged.', c.name); return renderAll(); }
+      requestMove(c, d.o);
+    }, 0);
+  });
+}
+function helperModal(c){
+  const h = c.helper || {name:'', rel:'daughter', phone:'', ok:false, alsoClient:false};
+  openModal(`
+    <div class="mh"><h2>Who helps ${esc(c.name.split(' ')[0])}?</h2><p>The child, spouse or friend who handles their Medicare.</p></div>
+    <div class="mb">
+      <div class="two">
+        <div><label class="lbl" for="hname">Their name</label><input class="field" id="hname" name="name" value="${esc(h.name)}"></div>
+        <div><label class="lbl" for="hrel">Relationship</label><select class="field" id="hrel" name="rel">${HELPER_RELS.concat(['other']).map(r => `<option ${r === h.rel ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+      </div>
+      <div><label class="lbl" for="hphone">Phone</label><input class="field" id="hphone" name="phone" inputmode="tel" value="${esc(h.phone)}"></div>
+      <div class="chk"><label><input type="checkbox" name="ok" ${h.ok ? 'checked' : ''}>${esc(c.name.split(' ')[0])} said it is OK to talk with them about coverage</label>
+      <label><input type="checkbox" name="alsoClient" ${h.alsoClient ? 'checked' : ''}>They have a plan with you too</label></div>
+      <div class="callout">If they are on Medicare themselves, add them as their own person too so they get their own review.</div>
+    </div>${foot('Save')}`, d => {
+    if (!d.name.trim()){ c.helper = null; log(c, 'Note', 'Removed the person who helps them'); }
+    else { c.helper = {name:d.name.trim(), rel:d.rel, phone:d.phone.trim(), ok:!!d.ok, alsoClient:!!d.alsoClient};
+      log(c, 'Note', `${d.name.trim()} (${d.rel}) helps them${d.ok ? ', OK to discuss coverage' : ''}`); }
+    toast('Saved.', c.name); renderAll();
+  });
+}
+function findModal(){
+  modal.innerHTML = `
+    <div class="mh"><h2>Find someone</h2><p>Someone at the counter, or calling you out of the blue. Searches every agent's customers.</p></div>
+    <div class="mb"><label class="sr" for="findq">Search</label><input class="field" id="findq" placeholder="Name or phone number" autocomplete="off"><div id="findres"></div></div>
+    <div class="mf"><button type="button" class="btn" data-closemodal>Close</button><button type="button" class="btn primary" id="findAdd">Add someone new</button></div>`;
+  modal.showModal();
+  renderFind();
+  setTimeout(() => $('#findq')?.focus(), 60);
+}
+function renderFind(){
+  const el = $('#findres'); if (!el) return;
+  const q = ($('#findq')?.value || '').trim().toLowerCase(), dg = digits(q);
+  if (q.length < 2){ el.innerHTML = '<p class="note">Type at least two letters, or part of a phone number.</p>'; return; }
+  const hit = c => c.name.toLowerCase().includes(q) || (dg.length >= 3 && digits(c.phone).includes(dg))
+    || (c.helper && (c.helper.name.toLowerCase().includes(q) || (dg.length >= 3 && digits(c.helper.phone).includes(dg))));
+  // Your own customers first, but always keep room for other agents' — the walk-in who turns
+  // out to be Dana's client is the whole reason this search is agency-wide.
+  const own = book.filter(c => inBook(c) && hit(c));
+  const others = book.filter(c => !inBook(c) && hit(c));
+  const L = own.slice(0, 6).concat(others.slice(0, 4));
+  const cut = (own.length - Math.min(own.length, 6)) + (others.length - Math.min(others.length, 4));
+  el.innerHTML = L.length
+    ? `<div class="list-pick">${L.map(c => { const viaHelper = c.helper && !c.name.toLowerCase().includes(q) && (c.helper.name.toLowerCase().includes(q) || (dg.length >= 3 && digits(c.helper.phone).includes(dg)));
+        return `<button type="button" data-person="${c.id}" data-closemodal>${esc(c.name)}${inBook(c) ? '' : ` <span class="flag calm">${esc(AG[c.agent].name)}</span>`}<small>${viaHelper ? `Their ${esc(c.helper.rel)} ${esc(c.helper.name)}` : plainStatus(c)}</small></button>`; }).join('')}</div>${cut ? `<p class="note">${cut} more ${cut === 1 ? 'match' : 'matches'}. Type more of the name to narrow it down.</p>` : ''}`
+    : '<p class="note">Nobody matches. If they are new to you, use "Add someone new".</p>';
+}
+
+function sepModal(c){
+  const iso = d => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+  openModal(`
+    <div class="mh"><h2>When does their window close?</h2><p>${esc(c.name)}. The date is what makes them urgent, not the reason.</p></div>
+    <div class="mb">
+      <div><label class="lbl" for="sepd">Last day they can enroll</label><input class="field" type="date" id="sepd" name="sep" value="${iso(c.sepEnd)}"></div>
+      <div><label class="lbl" for="sepr">Why</label><select class="field" id="sepr" name="why">${['Losing employer coverage', 'Turning 65', 'Moved into the area', 'Other special enrollment period'].map(x => `<option ${c.sepReason === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+      <div class="callout">Leave the date blank to clear it. Anyone inside ${RULES.sepDays} days of their deadline goes on the call-first list.</div>
+    </div>${foot('Save')}`, d => {
+    if (!d.sep){ c.sepEnd = null; c.sepReason = null; bump(); log(c, 'Note', 'Cleared their enrollment deadline'); toast('Cleared.', c.name); return renderAll(); }
+    const [y, m, dd] = d.sep.split('-').map(Number);
+    c.sepEnd = new Date(y, m - 1, dd); c.sepReason = d.why; bump();
+    log(c, 'Note', `${d.why}, window closes ${fmt(c.sepEnd)}`);
+    toast(urgent(c) ? 'They are on the call-first list.' : `Not urgent until ${fmt(addDays(c.sepEnd, -RULES.sepDays))}.`, c.name);
+    renderAll();
+  });
+}
+
+/* ============ add a lead ============ */
+let leadForce = false;
+// Duplicate check runs against EVERY agent's book, not just yours. The case that actually
+// happens is a referral reaching two agents, or a walk-in who is already someone's client.
+// Each hit says WHY it matched, because "same phone" and "same last name" mean very
+// different things. One is probably a duplicate; the other is probably their spouse.
+function findDupes(name, phone){
+  const dg = digits(phone), n = name.toLowerCase().trim();
+  const last = n.split(/\s+/).pop();
+  const out = [];
+  for (const c of book){
+    let why = null;
+    if (dg.length >= 10 && digits(c.phone) === dg) why = 'Same phone number';
+    else if (dg.length >= 10 && c.helper && digits(c.helper.phone) === dg) why = `That is ${c.helper.name}'s number, their ${c.helper.rel}`;
+    else if (c.name.toLowerCase() === n) why = 'Same name';
+    else if (last && last.length > 2 && c.name.toLowerCase().endsWith(' ' + last)) why = 'Same last name, could be family';
+    if (why) out.push({c, why});
+  }
+  const rank = x => x.why.startsWith('Same phone') ? 0 : x.why.startsWith('That is') ? 1 : x.why === 'Same name' ? 2 : 3;
+  return out.sort((a, b) => rank(a) - rank(b)).slice(0, 5);
+}
+function dupeModal(dupes, proceed){
+  openModal(`
+    <div class="mh"><h2>You may already have them</h2><p>Adding a second copy of the same person splits their history. If one of these is them, open it instead.</p></div>
+    <div class="mb"><div class="list-pick">${dupes.map(({c, why}) => `<button type="button" data-person="${c.id}" data-closemodal><span>${esc(c.name)}${inBook(c) ? '' : ` <span class="flag calm">${esc(AG[c.agent].name)}</span>`}<small>${esc(why)} &middot; ${esc(c.phone || 'No phone')} &middot; ${esc(c.city)}</small></span></button>`).join('')}</div></div>
+    <div class="mf"><button type="button" class="btn" data-closemodal>Go back</button><button type="button" class="btn primary" id="dupeAnyway">No, this is someone new</button></div>`, () => {});
+  $('#dupeAnyway').addEventListener('click', () => { modal.close(); setTimeout(proceed, 0); });
+}
+function leadModal(pre){
+  const v = pre || {};
+  openModal(`
+    <div class="mh"><h2>Add a lead</h2><p>Someone who called you, walked in, or was referred.</p></div>
+    <div class="mb">
+      <div class="two">
+        <div><label class="lbl" for="lname">Their name</label><input class="field" id="lname" name="name" value="${esc(v.name || '')}"></div>
+        <div><label class="lbl" for="lphone">Phone</label><input class="field" id="lphone" name="phone" inputmode="tel" placeholder="(704) 555-0100" value="${esc(v.phone || '')}"></div>
+      </div>
+      <div><label class="lbl" for="lcounty">County they live in</label>
+        <select class="field" id="lcounty" name="county">${COUNTIES.map(([c, st]) => `<option value="${c}|${st}" ${v.county === c + '|' + st ? 'selected' : ''}>${c}, ${st}</option>`).join('')}<option value="other" ${v.county === 'other' ? 'selected' : ''}>Somewhere else</option></select></div>
+      <div><label class="lbl" for="lsit">Why did they reach out?</label>
+        <select class="field" id="lsit" name="sit">${['Shopping for 2027', 'Turning 65', 'Losing employer coverage', 'Moved into the area'].map(x => `<option>${x}</option>`).join('')}</select></div>
+      <div><label class="lbl" for="lsep">Last day they can enroll, if there is one</label>
+        <input class="field" type="date" id="lsep" name="sep" value="${esc(v.sep || '')}">
+        <p class="note">Leave blank for AEP. Fill it in when their employer coverage ends, they turn 65, or they just moved. That date is what puts them on the call-first list, not the reason.</p></div>
+      <div><label class="lbl" for="lsrc">How did they find you?</label>
+        <select class="field" id="lsrc" name="src">${['Referral', 'Pharmacy walk-in', 'Website', 'Billboard', 'Community event'].map(x => `<option>${x}</option>`).join('')}</select></div>
+      <div><span class="lbl">Did they say it is OK to</span><div class="chk"><label><input type="checkbox" name="email">Email them</label><label><input type="checkbox" name="sms">Text them</label></div></div>
+    </div>${foot('Add them')}`, d => {
+    if (!d.name.trim()){ toast('Add their name first.', 'Not saved', true); return false; }
+    if (d.county === 'other'){ toast('You are only licensed in NC and SC. Send them to an agent in their state.', 'Outside your area', true); return false; }
+    const dupes = findDupes(d.name.trim(), d.phone.trim());
+    if (dupes.length && !leadForce){ dupeModal(dupes, () => { leadForce = true; leadModal(d); }); return false; }
+    leadForce = false;
+    const [county, st] = d.county.split('|');
+    const c = {id:nextId++, agent:state.agent, track:'lead', name:d.name.trim(), city:county, county, st, age:'', bmonth:0,
+      phone:d.phone.trim(), touches:[{d:new Date(TODAY), k:'Inbound', t:`New lead from ${d.src.toLowerCase()}`}], attempts:0, firstTry:null,
+      soa:null, appt:null, app:null, outcome:null, after:null, intake:'Not sent', recordings:0, note:'',
+      plan:{carrier:'Not known', name: d.sit === 'Turning 65' ? 'Not on Medicare yet' : 'Unknown', type:''},
+      sev:'lead', source:d.src, situation:d.sit, change:d.sit, letter:null, letterDate:null, since0:`Lead from ${d.src.toLowerCase()}`,
+      consent:{rvm:false, sms:!!d.sms, email:!!d.email}, inbound:true, stage:'contact', since:new Date(TODAY),
+      sepEnd: d.sep ? (([y, m, dd]) => new Date(+y, +m - 1, +dd))(d.sep.split('-')) : null,
+      sepReason: d.sep ? d.sit : null};
+    book.push(c); byId.set(c.id, c);
+    toast(urgent(c) ? 'They are on your call-first list.' : 'They are in Needs a call.', `${c.name} added`);
+    renderAll(); openSheet('person', c.id);
+  });
+}
+
+/* ============ render + events ============ */
+function renderTabs(){
+  const n = book.filter(c => inBook(c) && activeFocus().some(f => f.test(c))).length;
+  const f = followList().filter(dueNow).length;
+  const badge = {today:n, follow:f};
+  $('#tabs').innerHTML = TABS.map(([id, l]) => `<button type="button" data-view="${id}" ${state.view === id ? 'aria-current="page"' : ''}>
+    ${badge[id] ? `<span class="badge">${badge[id] > 99 ? '99+' : badge[id]}</span>` : ''}${l}</button>`).join('');
+}
+function renderView(){ ({today:renderToday, people:renderPeople, follow:renderFollow, setup:renderSetup})[state.view](); }
+function renderAll(){
+  renderTabs(); renderView();
+  if (state.sheet) renderSheet();
+  if (state.mode) renderFocus();
+}
+function setView(v){ state.view = v; state.shown = 15; renderAll(); try { window.scrollTo({top:0}); } catch(e){} }
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const ds = t.dataset;
+  if ('closemodal' in ds) modal.close();
+  if (ds.logtouch) return logTouchModal(byId.get(+ds.logtouch));
+  if (ds.waitfor) return waitForModal(byId.get(+ds.waitfor));
+  if (ds.helper) return helperModal(byId.get(+ds.helper));
+  if (ds.sep) return sepModal(byId.get(+ds.sep));
+  if (ds.chipjump){ state.chip = ds.chipjump; return setView('people'); }
+  if (t.id === 'find') return findModal();
+  if (t.id === 'findAdd'){ modal.close(); return leadModal(); }
+  if (ds.view) { closeSheet(); return setView(ds.view); }
+  if (ds.start){ closeSheet(); return startMode(ds.start); }
+  if ('endmode' in ds) return endMode();
+  if (ds.toggle){ state.open[ds.toggle] = !state.open[ds.toggle]; return state.sheet ? renderSheet() : renderView(); }
+  if (ds.person) return openSheet('person', ds.person);
+  if ('closesheet' in ds) return closeSheet();
+  if (ds.skip){ state.skip.add(+ds.skip); return renderFocus(); }
+  if (ds.chip){ state.chip = ds.chip; state.shown = 15; return renderView(); }
+  if ('more' in ds){ state.shown += 15; return renderView(); }
+  if (ds.act){
+    const c = byId.get(+ds.id);
+    if (ds.inmode) state.skip.add(c.id);
+    if (c.needsNote) delete c.needsNote;
+    return ACTS[ds.act](c);
+  }
+  if (ds.move) return requestMove(byId.get(+ds.id), ds.move);
+  if (ds.soa) return soaModal(byId.get(+ds.soa), renderAll);
+  if (ds.consent) return consentModal(byId.get(+ds.consent));
+  if (ds.intake){
+    const c = byId.get(+ds.intake);
+    if (c.intake === 'Sent'){ c.intake = 'Returned'; log(c, 'Form', 'Got their medicines and doctors list'); toast('Saved with their record.', c.name); }
+    else if (c.consent.email || c.consent.sms){ c.intake = 'Sent'; log(c, 'Form', 'Sent the medicines and doctors form'); toast(`Sent by ${c.consent.email ? 'email' : 'text'}.`, c.name); }
+    else return toast('They have not said it is OK to email or text. Bring a paper copy instead.', `Cannot send to ${c.name}`, true);
+    return renderAll();
+  }
+  if (ds.followdone){
+    const c = byId.get(+ds.followdone);
+    if (c.after.accepted.s === 'problem') return openSheet('person', c.id);
+    if (c.after.accepted.s === 'due') return ACTS.confirm(c);
+    c.after.welcome = {s:'done', d:new Date(TODAY)}; log(c, 'Follow-up', 'Welcome message sent');
+    toast('Marked done.', c.name); return renderAll();
+  }
+  if (t.id === 'gear') return openSheet('settings');
+  if (t.id === 'newLead') return leadModal();
+  if (ds.book){ state.agent = ds.book; closeSheet(); return setView('today'); }
+  if ('setup' in ds){ closeSheet(); return setView('setup'); }
+  if ('addsar' in ds){
+    const pid = $('#rPlan').value;
+    const counties = [...document.querySelectorAll('input[name=rCounty]:checked')].map(i => i.value);
+    if (!counties.length) return toast('Check at least one county.', 'Not added', true);
+    const before = book.filter(c => inBook(c) && urgent(c)).length;
+    const ex = RULES.sar.find(r => r.pid === pid);
+    if (ex) ex.counties = [...new Set(ex.counties.concat(counties))]; else RULES.sar.push({pid, counties});
+    bump();
+    const moved = book.filter(c => inBook(c) && urgent(c)).length - before;
+    toast(`${moved} of your people moved to the call-first list.`, `${planOf(pid).carrier} ${pid} added`);
+    return renderAll();
+  }
+  if (ds.delsar){ const r = RULES.sar.splice(+ds.delsar, 1)[0]; bump(); toast('Those people go back to their plan\u2019s setting.', `${planOf(r.pid).carrier} ${r.pid} removed`); return renderAll(); }
+  if (ds.rate){
+    const cur = RULES.ratings[ds.rate], val = +ds.val;
+    RULES.ratings[ds.rate] = cur === val ? null : val; bump();
+    const n = book.filter(c => inBook(c) && c.plan.pid === ds.rate).length;
+    toast(RULES.ratings[ds.rate] == null ? 'Back to "not marked", which counts as some changes.'
+      : val === 1 ? `${n} of your people moved to the call-first list.`
+      : val === 3 ? 'These people move down the list.' : 'Saved.', `${planOf(ds.rate).carrier} ${ds.rate}`);
+    return renderAll();
+  }
+  if (ds.clearovr){ const c = byId.get(+ds.clearovr); c.override = null; bump(); log(c, 'Priority', 'Back to automatic'); return renderAll(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'rShpOn'){ RULES.shp.on = t.checked; bump(); return renderAll(); }
+  if (t.id === 'rCarrier'){ state.ruleCarrier = t.value; return renderView(); }
+  if (t.id === 'rSep'){ RULES.sepDays = +t.value; bump(); return renderAll(); }
+  if (t.id === 'rShpStart' || t.id === 'rShpEnd'){
+    if (!t.value) return;
+    const [y, m, d] = t.value.split('-').map(Number);
+    RULES.shp[t.id === 'rShpStart' ? 'start' : 'end'] = new Date(y, m - 1, d);
+    bump(); return renderAll();
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'findq') return renderFind();
+  if (e.target.id !== 'q') return;
+  clearTimeout(window._qt);
+  window._qt = setTimeout(() => { state.q = e.target.value.trim(); state.shown = 15; const el = $('#peopleCard'); if (el) el.innerHTML = peopleCard(); }, 200);
+});
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.dataset.note){ e.preventDefault(); const c = byId.get(+f.dataset.note), v = f.querySelector('input').value.trim(); if (v){ log(c, 'Note', v); renderSheet(); } }
+});
+$('#scrim').addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || modal.open) return;
+  if (state.mode) return endMode();
+  if (state.sheet) return closeSheet();
+});
+
+renderAll();
+</script>
+</body>
+</html>

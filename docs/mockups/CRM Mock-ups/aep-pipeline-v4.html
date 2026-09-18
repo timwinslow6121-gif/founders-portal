@@ -1,0 +1,1607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AEP workspace v4, retiree.report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#ECEFF3;--surface:#FFFFFF;--sunk:#F4F6F8;--ink:#14202C;--ink-2:#3F4D5B;--ink-3:#56636F;
+  --line:#D3DAE1;--line-2:#E4E9EE;--accent:#1B5DA8;--accent-ink:#FFFFFF;--accent-soft:#E1ECF8;
+  --red:#A8261C;--red-soft:#FBE8E6;--amber:#7A5200;--amber-soft:#FFF1CC;--green:#1F6B3A;--green-soft:#E1F2E6;
+  --renewal:#4A3F8C;--renewal-soft:#ECE9F7;--lead:#0D6B6B;--lead-soft:#DFF2F1;
+  --side:#14202C;--side-ink:#C9D3DD;--side-hi:#FFFFFF;--side-act:#24384D;
+  --s-contact:#3C7BC6;--s-sched:#5A4CA8;--s-decide:#B07D00;--s-sub:#13807F;--s-done:#2E7A48;
+  --shadow:0 1px 0 rgba(20,32,44,.05),0 4px 12px -8px rgba(20,32,44,.3);
+  --display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Verdana","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F151C;--surface:#172029;--sunk:#121A22;--ink:#E7EDF3;--ink-2:#B6C2CE;--ink-3:#9AA7B3;
+    --line:#2A3643;--line-2:#212C37;--accent:#6FA8EA;--accent-ink:#0B1520;--accent-soft:#1B2E45;
+    --red:#F08A80;--red-soft:#3A1E1C;--amber:#F2C25B;--amber-soft:#3A2E12;--green:#7ACB94;--green-soft:#16301F;
+    --renewal:#B7ACF0;--renewal-soft:#28233F;--lead:#6FD1CD;--lead-soft:#123332;
+    --side:#0B1117;--side-ink:#A9B6C2;--side-hi:#FFFFFF;--side-act:#1D2C3B;
+    --s-contact:#5A95DB;--s-sched:#8A7BDB;--s-decide:#D9A42A;--s-sub:#2FA3A1;--s-done:#4FA36C;
+    --shadow:0 1px 0 rgba(0,0,0,.3),0 6px 16px -10px rgba(0,0,0,.6);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F151C;--surface:#172029;--sunk:#121A22;--ink:#E7EDF3;--ink-2:#B6C2CE;--ink-3:#9AA7B3;
+  --line:#2A3643;--line-2:#212C37;--accent:#6FA8EA;--accent-ink:#0B1520;--accent-soft:#1B2E45;
+  --red:#F08A80;--red-soft:#3A1E1C;--amber:#F2C25B;--amber-soft:#3A2E12;--green:#7ACB94;--green-soft:#16301F;
+  --renewal:#B7ACF0;--renewal-soft:#28233F;--lead:#6FD1CD;--lead-soft:#123332;
+  --side:#0B1117;--side-ink:#A9B6C2;--side-hi:#FFFFFF;--side-act:#1D2C3B;
+  --s-contact:#5A95DB;--s-sched:#8A7BDB;--s-decide:#D9A42A;--s-sub:#2FA3A1;--s-done:#4FA36C;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 6px 16px -10px rgba(0,0,0,.6);color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;overflow-x:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.15}
+small{color:var(--ink-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+svg.i.sm{width:15px;height:15px}
+
+/* shell */
+.app{display:flex;min-height:100vh}
+.side{width:216px;flex:none;background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;transition:width .18s ease}
+.side .brand{display:flex;align-items:center;gap:10px;padding:16px 16px 18px;color:var(--side-hi)}
+.mark{width:32px;height:32px;border-radius:8px;background:#2F74C4;flex:none;position:relative}
+.mark::after{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:3px;border-radius:2px;background:#fff;box-shadow:0 -6px 0 #fff,0 -12px 0 #fff}
+.brand b{font-family:var(--display);font-size:18px;display:block;white-space:nowrap}
+.brand small{display:block;font-size:12px;color:var(--side-ink);white-space:nowrap}
+.nav{display:flex;flex-direction:column;gap:2px;padding:0 10px;flex:1}
+.nav button{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:var(--side-ink);padding:10px 10px;border-radius:8px;text-align:left;min-height:44px;white-space:nowrap}
+.nav button:hover{color:var(--side-hi);background:rgba(255,255,255,.06)}
+.nav button[aria-current="page"]{background:var(--side-act);color:var(--side-hi);font-weight:700}
+.nav .cnt{margin-left:auto;font-size:12px;background:rgba(255,255,255,.12);border-radius:10px;padding:1px 8px}
+.side-foot{padding:12px 10px 16px}
+.collapse{display:flex;align-items:center;gap:12px;border:0;background:transparent;color:var(--side-ink);padding:10px;border-radius:8px;width:100%;min-height:44px;white-space:nowrap}
+.collapse:hover{color:var(--side-hi)}
+.app.slim .side{width:64px}
+.app.slim .side .lbl,.app.slim .brand div,.app.slim .nav .cnt{display:none}
+.app.slim .collapse svg{transform:rotate(180deg)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+
+/* header */
+.head{background:var(--surface);border-bottom:1px solid var(--line)}
+.row-a{display:flex;align-items:center;gap:14px;padding:12px 20px;flex-wrap:wrap}
+.menu-btn{display:none;border:1px solid var(--line);background:var(--surface);border-radius:8px;width:40px;height:40px;align-items:center;justify-content:center}
+.title h1{font-size:21px;letter-spacing:-.01em}
+.season{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);margin-top:3px}
+.season .bar{width:150px;height:5px;border-radius:3px;background:var(--line-2);overflow:hidden}
+.season .bar i{display:block;height:100%;background:var(--accent)}
+.search{position:relative;margin-left:auto;flex:0 1 330px;min-width:200px}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-3)}
+.search input{width:100%;padding-left:36px}
+.field{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;min-height:40px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 13px;min-height:40px;font-weight:700;color:var(--ink-2);white-space:nowrap;text-decoration:none}
+.btn:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:5px 10px;min-height:34px;font-size:14px}
+.btn.ghost{background:transparent}
+.btn.warn{color:var(--red);border-color:var(--red)}
+.btn.icon{width:34px;padding:0;justify-content:center}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line-2);border-top:1px solid var(--line-2)}
+.metric{border:0;background:var(--surface);text-align:left;padding:10px 16px 11px;position:relative;min-height:62px}
+.metric b{font-family:var(--display);font-size:26px;line-height:1;display:block;letter-spacing:-.02em}
+.metric span{display:block;font-size:13px;color:var(--ink-2);margin-top:3px}
+.metric.hot b{color:var(--red)}
+.metric.zero b{color:var(--ink-3)}
+.metric:hover{background:var(--sunk)}
+.metric[aria-pressed="true"]{background:var(--accent-soft)}
+.metric[aria-pressed="true"]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--accent)}
+
+/* filters */
+.row-c{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 20px;border-top:1px solid var(--line-2)}
+.row-c .field{min-height:36px;padding:5px 8px;font-size:14px}
+.check{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--ink-2);padding:0 4px}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.chip{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:20px;padding:4px 11px;font-size:13px;font-weight:700}
+.reset{margin-left:auto}
+
+/* inline lead form */
+.leadform{display:none;border-top:1px solid var(--line-2);background:var(--sunk);padding:14px 20px}
+.leadform.on{display:block}
+.lf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.lf-grid label span,.lbl{display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:3px}
+.lf-grid .field{width:100%}
+.lf-foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px}
+.lf-err{color:var(--red);font-weight:700;font-size:14px}
+
+.content{padding:16px 20px 48px}
+
+/* chips & shared */
+.tier{display:inline-flex;align-items:center;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:700;white-space:nowrap;line-height:1.6}
+.tier.t1{background:var(--red-soft);color:var(--red)}
+.tier.t2{background:var(--amber-soft);color:var(--amber)}
+.tier.t3{background:var(--sunk);color:var(--ink-3);border:1px solid var(--line-2)}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:5px;padding:1px 7px;line-height:1.6;white-space:nowrap}
+.tag.renewal{background:var(--renewal-soft);color:var(--renewal)}
+.tag.lead{background:var(--lead-soft);color:var(--lead)}
+.tag.red{background:var(--red-soft);color:var(--red)}
+.tag.amber{background:var(--amber-soft);color:var(--amber)}
+.tag.green{background:var(--green-soft);color:var(--green)}
+.tag.muted{background:var(--sunk);color:var(--ink-3)}
+.tag.blue{background:var(--accent-soft);color:var(--accent)}
+.carrier{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.01em}
+.stall{color:var(--red);font-weight:700}
+.call{display:inline-flex;align-items:center;gap:5px;color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap;border-radius:6px;padding:2px 4px;margin-left:-4px}
+.call:hover{background:var(--accent-soft)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:1px}
+.empty{padding:16px;color:var(--ink-3);font-size:14px}
+.agent{font-size:12px;font-weight:700;color:var(--ink-3)}
+
+/* today */
+.today-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.today-head h2{font-size:26px;letter-spacing:-.02em}
+.today-head p{margin:3px 0 0;color:var(--ink-2)}
+.secs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr));gap:14px;align-items:start}
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sec>header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line-2)}
+.sec>header h3{font-size:16px}
+.sec>header p{margin:2px 0 0;font-size:13px;color:var(--ink-3)}
+.sec>header b{font-family:var(--display);font-size:22px}
+.sec>header b.hot{color:var(--red)}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line-2)}
+.qrow:first-of-type{border-top:0}
+.q-l{min-width:0}
+.q-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.q-name{border:0;background:none;padding:0;font-weight:700;font-size:15px;text-align:left}
+.q-name:hover{color:var(--accent);text-decoration:underline}
+.q-sub{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:14px;color:var(--ink-2);margin-top:2px}
+.q-acts{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+.more{display:block;width:100%;border:0;border-top:1px solid var(--line-2);background:var(--sunk);padding:9px;font-weight:700;color:var(--accent)}
+details.camp{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+details.camp summary{padding:12px 14px;cursor:pointer;font-weight:700;font-family:var(--display);font-size:16px}
+.camp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:4px 24px;padding:0 14px 14px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line-2);font-size:14px}
+.kv b{font-family:var(--display)}
+.meter{height:6px;border-radius:3px;background:var(--line-2);overflow:hidden;margin:2px 0 8px}
+.meter i{display:block;height:100%;background:var(--accent)}
+
+/* board */
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(236px,1fr);gap:10px;overflow-x:auto;padding-bottom:8px;align-items:start}
+.col{background:var(--sunk);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:280px}
+.col.over{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.col>header{padding:10px 12px;border-bottom:1px solid var(--line);border-top:4px solid var(--c);border-radius:11px 11px 0 0;background:var(--surface)}
+.col>header .t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.col>header h3{font-size:15px}
+.col>header .n{font-family:var(--display);font-size:20px;font-weight:700}
+.col>header small{display:block;font-size:13px;margin-top:1px}
+.cards{padding:7px;display:flex;flex-direction:column;gap:7px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 10px 9px;box-shadow:var(--shadow);cursor:grab}
+.card:hover{border-color:var(--ink-3)}
+.card.dragging{opacity:.4}
+.card.is-stalled{box-shadow:inset 3px 0 0 var(--red),var(--shadow)}
+.c-top{display:flex;align-items:center;gap:6px}
+.c-top .kebab{margin-left:auto}
+.kebab{border:0;background:transparent;width:30px;height:30px;border-radius:6px;display:grid;place-items:center;color:var(--ink-3)}
+.kebab:hover{background:var(--sunk);color:var(--ink)}
+.c-name{display:block;border:0;background:none;padding:0;font-weight:700;font-size:15px;text-align:left;margin-top:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-name:hover{color:var(--accent);text-decoration:underline}
+.c-why{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.c-status{font-size:13px;color:var(--ink-2);margin-top:5px}
+.c-foot{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:5px;font-size:13px}
+.colfoot{margin:auto 7px 7px;border:1px dashed var(--line);background:transparent;border-radius:8px;padding:8px;color:var(--accent);font-weight:700;font-size:14px}
+.note{margin:0 0 10px;color:var(--ink-2);font-size:14px}
+
+/* table */
+.tablewrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap;vertical-align:middle}
+th{font-size:13px;color:var(--ink-3);font-weight:700;background:var(--sunk)}
+th button{background:none;border:0;padding:0;font-weight:700;color:inherit}
+th button[data-dir]::after{content:attr(data-dir);margin-left:4px}
+tbody tr:hover{background:var(--sunk)}
+td input[type=checkbox],th input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+td .wrap{white-space:normal;min-width:190px;display:block}
+.bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:9px 12px;background:var(--accent-soft);border-bottom:1px solid var(--line)}
+.bulk .field{min-height:34px;padding:4px 8px;font-size:14px}
+.tfoot{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-size:14px;color:var(--ink-2);gap:10px;flex-wrap:wrap}
+.yes{color:var(--green);font-weight:700}
+.no{color:var(--ink-3)}
+
+/* after sale */
+.ms{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:2px 10px 2px 6px;font-size:12px;font-weight:700;min-height:28px}
+.ms i{width:12px;height:12px;border-radius:50%;display:inline-block;background:var(--line)}
+.ms.done{color:var(--green);border-color:transparent;background:var(--green-soft)}.ms.done i{background:var(--green)}
+.ms.due{color:var(--amber);background:var(--amber-soft);border-color:var(--amber)}.ms.due i{background:var(--amber)}
+.ms.problem{color:var(--red);background:var(--red-soft);border-color:var(--red)}.ms.problem i{background:var(--red)}
+.ms.wait{color:var(--ink-3)}.ms.wait i{background:transparent;border:2px dashed var(--ink-3)}
+.ms.later{color:var(--ink-3)}.ms.later i{background:transparent;border:2px solid var(--line)}
+button.ms:hover{filter:brightness(.96)}
+.lede{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+.stat b{font-family:var(--display);font-size:26px;display:block;line-height:1.1}
+.stat span{font-size:13px;color:var(--ink-2)}
+.stat.alert b{color:var(--red)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--ink-2);padding:10px 12px}
+.stack{display:flex;height:20px;border-radius:5px;overflow:hidden;min-width:240px;background:var(--line-2)}
+.stack i{display:block;height:100%;background:var(--c)}
+tr.clickable{cursor:pointer}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,16,22,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:19}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--surface);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .22s ease;overflow-y:auto;z-index:20;box-shadow:-10px 0 30px -18px rgba(0,0,0,.4)}
+.drawer.on{transform:none}
+.dh{position:sticky;top:0;background:var(--surface);padding:14px 18px 12px;border-bottom:1px solid var(--line);z-index:1}
+.dh .r1{display:flex;justify-content:space-between;align-items:start;gap:10px}
+.dh h2{font-size:24px;margin-top:4px}
+.dh p{margin:3px 0 0;font-size:14px;color:var(--ink-2)}
+.x{width:40px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:22px;line-height:1;flex:none}
+.dsec{padding:13px 18px;border-bottom:1px solid var(--line-2)}
+.dsec h3{font-size:15px;margin-bottom:8px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.step{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:6px 3px;font-size:12px;font-weight:700;color:var(--ink-3);text-align:center;min-height:44px;line-height:1.2}
+.step.past{background:var(--sunk)}
+.step.cur{background:var(--c);border-color:var(--c);color:#fff}
+.step:not(.cur):hover{border-color:var(--c);color:var(--ink)}
+.reason{display:flex;justify-content:space-between;font-size:14px;padding:3px 0}
+.reason span:last-child{font-family:var(--display);font-weight:700;color:var(--ink-3)}
+.gate{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line-2);font-size:14px}
+.gate:first-of-type{border-top:0}
+.gate .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700}
+.ic.ok{background:var(--green-soft);color:var(--green)}
+.ic.bad{background:var(--red-soft);color:var(--red)}
+.ic.mid{background:var(--amber-soft);color:var(--amber)}
+.gate small{display:block}
+.facts{display:grid;grid-template-columns:118px 1fr;gap:4px 10px;font-size:14px;margin:0}
+.facts dt{color:var(--ink-3)}
+.facts dd{margin:0}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:56px 1fr;gap:10px;padding:6px 0;font-size:14px;border-top:1px solid var(--line-2)}
+.tl li:first-child{border-top:0}
+.tl time{color:var(--ink-3);font-size:13px}
+.tl .k{font-size:12px;font-weight:700;color:var(--ink-3);display:block}
+.note-in{display:flex;gap:6px;margin-top:8px}
+.note-in input{flex:1}
+
+/* popover menu */
+.pop{position:fixed;z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 16px 36px -14px rgba(0,0,0,.4);padding:5px;min-width:200px;display:none}
+.pop.on{display:block}
+.pop .hd{font-size:12px;font-weight:700;color:var(--ink-3);padding:6px 10px 3px}
+.pop button{display:flex;width:100%;align-items:center;gap:8px;border:0;background:transparent;text-align:left;padding:8px 10px;border-radius:7px;min-height:38px}
+.pop button:hover,.pop button:focus-visible{background:var(--sunk)}
+.pop button[disabled]{color:var(--ink-3);cursor:default;background:transparent}
+.pop hr{border:0;border-top:1px solid var(--line-2);margin:4px 0}
+
+/* modal */
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;background:var(--surface);color:var(--ink);width:min(520px,94vw);box-shadow:0 30px 60px -20px rgba(0,0,0,.45)}
+dialog::backdrop{background:rgba(10,16,22,.45)}
+.mh{padding:18px 20px 4px}
+.mh h2{font-size:21px}
+.mh p{margin:5px 0 0;color:var(--ink-2);font-size:14px}
+.mb{padding:10px 20px;display:flex;flex-direction:column;gap:12px}
+.mb .field{width:100%}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:9px;padding:9px 11px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{margin-top:3px;accent-color:var(--accent);width:17px;height:17px}
+.opt small{display:block}
+.chk{display:flex;flex-wrap:wrap;gap:8px}
+.chk label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-size:14px}
+.chk input{accent-color:var(--accent)}
+.callout{background:var(--accent-soft);border-radius:9px;padding:9px 11px;font-size:14px;color:var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mf{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 18px}
+
+/* triage rules */
+.rules{max-width:1180px}
+.rhead{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap;margin-bottom:12px}
+.rhead h2{font-size:26px;letter-spacing:-.02em}
+.rhead p{margin:3px 0 0;color:var(--ink-2);max-width:70ch}
+.rstat{display:flex;flex-direction:column;gap:3px}
+.rcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.rcard>header{padding:12px 14px;border-bottom:1px solid var(--line-2)}
+.rcard>header h3{font-size:17px}
+.rcard>header p{margin:3px 0 0;font-size:14px;color:var(--ink-2);max-width:80ch}
+.rbody{padding:12px 14px}
+.addrow{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:12px 14px;background:var(--sunk);border-top:1px solid var(--line-2)}
+.counties{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;max-width:600px}
+.counties legend{padding:0;margin-bottom:3px}
+.counties label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:4px 9px;font-size:14px}
+.counties input{accent-color:var(--accent)}
+.shp-grid{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-bottom:10px}
+.src{font-size:13px;color:var(--ink-3);margin:10px 0}
+select.unrated{border-color:var(--amber);color:var(--amber)}
+.banner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:700}
+.why{display:flex;flex-direction:column;gap:2px;padding:4px 0}
+.why small{font-size:13px}
+.ovr{margin-top:10px;padding-top:10px;border-top:1px solid var(--line-2)}
+.ovr-row{display:flex;gap:6px;flex-wrap:wrap}
+.ovr-row .field{flex:1 1 150px}
+
+/* toasts */
+.toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:40;width:min(520px,92vw)}
+.toast{background:var(--ink);color:var(--surface);border-radius:10px;padding:10px 14px;font-size:14px;box-shadow:0 12px 30px -12px rgba(0,0,0,.5);animation:rise .25s ease}
+.toast b{display:block}
+.toast.warn{background:var(--red);color:#fff}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+@media (max-width:1180px){
+}
+@media (max-width:860px){
+  .side{position:fixed;left:0;z-index:25;transform:translateX(-100%);transition:transform .2s;width:240px}
+  .app.nav-open .side{transform:none}
+  .app.slim .side{width:240px}
+  .app.slim .side .lbl,.app.slim .brand div,.app.slim .nav .cnt{display:revert}
+  .collapse{display:none}
+  .menu-btn{display:inline-flex}
+  .row-a,.row-c,.leadform{padding-left:14px;padding-right:14px}
+  .content{padding:14px 14px 48px}
+  .search{flex:1 1 100%;order:5}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .qrow{grid-template-columns:1fr}
+  .q-acts{justify-content:flex-start}
+  .two{grid-template-columns:1fr}
+  .reset{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="side" id="side" aria-label="Main">
+    <div class="brand"><span class="mark" aria-hidden="true"></span><div><b>retiree.report</b><small>Founders Insurance Agency</small></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot"><button type="button" class="collapse" id="collapse" aria-label="Collapse sidebar"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg><span class="lbl">Collapse</span></button></div>
+  </aside>
+
+  <div class="main">
+    <header class="head">
+      <div class="row-a">
+        <button type="button" class="menu-btn" id="menuBtn" aria-label="Open menu"><svg class="i" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+        <div class="title"><h1 id="viewTitle">Today</h1><div class="season" id="season"></div></div>
+        <div class="search"><svg class="i sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><label class="sr" for="q">Search</label><input class="field" id="q" type="search" placeholder="Name, phone, city, plan"></div>
+        <label class="sr" for="agent">Book</label>
+        <select class="field" id="agent"></select>
+        <button class="btn primary" id="addLead" type="button" aria-expanded="false"><svg class="i sm" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New lead</button>
+      </div>
+      <form class="leadform" id="leadform" novalidate></form>
+      <div class="metrics" id="metrics" aria-label="Needs you today. Select one to filter."></div>
+      <div class="row-c" id="filters"></div>
+    </header>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Customer detail" aria-hidden="true"></aside>
+<div class="pop" id="pop" role="menu"></div>
+<dialog id="modal"></dialog>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* ============ utilities ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const DAY = 864e5;
+const TODAY = new Date(2026, 9, 27);            // demo date, AEP day 13
+const D = (m, d, y = 2026) => new Date(y, m - 1, d);
+const addDays = (d, n) => new Date(d.getTime() + n * DAY);
+const diff = (a, b) => Math.round((b - a) / DAY);
+const fmt = d => d ? d.toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+const fmtDay = d => d.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+const timeOf = d => d.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'});
+const sameDay = (a, b) => !!a && !!b && a.toDateString() === b.toDateString();
+const maxDate = (a, b) => a > b ? a : b;
+const dayLabel = d => sameDay(d, TODAY) ? 'Today' : sameDay(d, addDays(TODAY, 1)) ? 'Tomorrow' : fmtDay(d);
+const store = {get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }};
+
+let seed = 20261027;
+function R(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+const pick = a => a[Math.floor(R() * a.length)];
+const int = (a, b) => a + Math.floor(R() * (b - a + 1));
+const wpick = pairs => { const tot = pairs.reduce((s, p) => s + p[1], 0); let r = R() * tot; for (const [v, w] of pairs){ if ((r -= w) < 0) return v; } return pairs[pairs.length - 1][0]; };
+
+const ICON = {
+  today:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  board:'<rect x="3" y="3" width="7" height="18" rx="1.5"/><rect x="14" y="3" width="7" height="11" rx="1.5"/>',
+  table:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  after:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  agency:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  rules:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>'
+};
+const svg = (k, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const dots = '<svg class="i sm" viewBox="0 0 24 24" aria-hidden="true" style="fill:currentColor;stroke:none"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
+
+/* ============ domain ============ */
+const STAGES = [
+  {id:'contact',   name:'Needs contact',  hint:'Letter or blast sent, or tried by phone or text', c:'var(--s-contact)'},
+  {id:'scheduled', name:'Scheduled',      hint:'Booked in Acuity or Calendly', c:'var(--s-sched)'},
+  {id:'deciding',  name:'Met, deciding',  hint:'SOA on file, no decision yet', c:'var(--s-decide)'},
+  {id:'submitted', name:'Submitted',      hint:'Waiting on carrier confirmation', c:'var(--s-sub)'},
+  {id:'done',      name:'Done for 2027',  hint:'Enrolled, kept plan, or closed', c:'var(--s-done)'}
+];
+const S = Object.fromEntries(STAGES.map((s, i) => [s.id, {...s, i}]));
+const OUTCOME = {enrolled:'Enrolled', kept:'Kept current plan', lost:'Closed'};
+
+const AGENTS = [
+  {id:'timbo',   name:'Timbo',   office:'Charlotte',   renewals:500,  leads:26, lag:1,    soaGap:0,   me:true},
+  {id:'dana',    name:'Dana',    office:'Kannapolis',  renewals:1440, leads:40, lag:1.45, soaGap:.03},
+  {id:'marcus',  name:'Marcus',  office:'Salisbury',   renewals:885,  leads:25, lag:1.1,  soaGap:.09},
+  {id:'priya',   name:'Priya',   office:'Concord',     renewals:620,  leads:20, lag:.85,  soaGap:0},
+  {id:'luis',    name:'Luis',    office:'Albemarle',   renewals:290,  leads:10, lag:.75,  soaGap:0},
+  {id:'karen',   name:'Karen',   office:'China Grove', renewals:795,  leads:25, lag:1.2,  soaGap:.04},
+  {id:'wes',     name:'Wes',     office:'Mooresville', renewals:685,  leads:20, lag:1,    soaGap:.02},
+  {id:'monique', name:'Monique', office:'Rock Hill',   renewals:572,  leads:18, lag:.95,  soaGap:0}
+];
+const AG = Object.fromEntries(AGENTS.map(a => [a.id, a]));
+const ME = 'timbo';
+
+const FIRST = ['Barbara','Betty','Carol','Dorothy','Frances','Gloria','Helen','Joyce','Judy','Linda','Margaret','Martha','Nancy','Patricia','Peggy','Ruth','Sandra','Shirley','Wanda','Brenda','Donna','Janet','Faye','Evelyn','Charles','Donald','Earl','Frank','Gary','George','Harold','Jerry','Kenneth','Larry','Melvin','Ronald','Roger','Wayne','Willie','Dennis','Ray','Curtis','Billy','Jimmy','Clyde','Vernon','Loretta','Bobby','Glenda','Tommy'];
+const LAST = ['Allen','Barnhardt','Beaver','Blackwelder','Bost','Brown','Cline','Cook','Dayvault','Deal','Earnhardt','Eudy','Fink','Hartsell','Helms','Honeycutt','Ketner','Lefler','Linker','Lyerly','McLaughlin','Misenheimer','Moose','Overcash','Peeler','Plyler','Ritchie','Safrit','Shive','Sides','Smith','Starnes','Thompson','Troutman','Walker','Williams','Yost','Barringer','Cress','Furr','Jackson','Robinson','Little','Graham','Hinson','Mauney'];
+const LOCS = [['Charlotte','Mecklenburg','NC',24],['Concord','Cabarrus','NC',12],['Kannapolis','Cabarrus','NC',12],['Salisbury','Rowan','NC',10],['China Grove','Rowan','NC',6],['Harrisburg','Cabarrus','NC',5],['Huntersville','Mecklenburg','NC',5],['Matthews','Mecklenburg','NC',4],['Mooresville','Iredell','NC',5],['Albemarle','Stanly','NC',5],['Monroe','Union','NC',4],['Rock Hill','York','SC',5],['Fort Mill','York','SC',3]];
+const COUNTIES = [...new Set(LOCS.map(l => `${l[1]}|${l[2]}`))].map(s => s.split('|')).sort((a, b) => a[0].localeCompare(b[0]));
+const CARRIERS = ['Aetna','BCBS NC','Devoted','Humana','UHC','Wellcare'];
+// Humana 335-002 in Cabarrus comes from Timbo. Every other plan ID and change note is a placeholder.
+const PLANS = [
+  {carrier:'Humana',   pid:'335-002', name:'Humana PPO 335-002',         type:'MAPD', change:null, rating:null},
+  {carrier:'Humana',   pid:'101-001', name:'Humana HMO 101-001',         type:'MAPD', change:'PCP copay $0 to $15', rating:2},
+  {carrier:'Humana',   pid:'201-000', name:'Humana PDP 201-000',         type:'PDP',  change:'Drug deductible goes up', rating:2},
+  {carrier:'Humana',   pid:'336-001', name:'Humana MA-only PPO 336-001', type:'MA',   change:'No meaningful changes', rating:3},
+  {carrier:'Humana',   pid:'221-004', name:'Humana Dual 221-004',        type:'DSNP', change:null, rating:null},
+  {carrier:'UHC',      pid:'118-003', name:'UHC PPO 118-003',            type:'MAPD', change:'Dental allowance cut from $2,000 to $500', rating:2},
+  {carrier:'UHC',      pid:'120-001', name:'UHC HMO-POS 120-001',        type:'MAPD', change:'Specialist copay up $10', rating:3},
+  {carrier:'UHC',      pid:'119-002', name:'UHC MA-only PPO 119-002',    type:'MA',   change:'Small copay adjustments only', rating:3},
+  {carrier:'UHC',      pid:'220-001', name:'UHC Dual 220-001',           type:'DSNP', change:'OTC allowance reduced', rating:2},
+  {carrier:'Aetna',    pid:'150-002', name:'Aetna PPO 150-002',          type:'MAPD', change:'Out-of-pocket max up $1,200', rating:2},
+  {carrier:'Aetna',    pid:'151-001', name:'Aetna MA-only PPO 151-001',  type:'MA',   change:null, rating:null},
+  {carrier:'Wellcare', pid:'160-004', name:'Wellcare HMO 160-004',       type:'MAPD', change:'Premium up $18 a month', rating:3},
+  {carrier:'Wellcare', pid:'161-000', name:'Wellcare PDP 161-000',       type:'PDP',  change:'A common drug moves from tier 3 to tier 4', rating:2},
+  {carrier:'Devoted',  pid:'170-001', name:'Devoted HMO 170-001',        type:'MAPD', change:'No meaningful changes', rating:3},
+  {carrier:'BCBS NC',  pid:'180-003', name:'Blue Medicare PPO 180-003',  type:'MAPD', change:'Preferred pharmacy list narrowed', rating:null},
+  {carrier:'BCBS NC',  pid:'Supp G',  name:'Blue Med Supp G + PDP',      type:'Supp', change:'Rate notice not out yet', rating:null}
+];
+const INDIV = PLANS.filter(p => ['MAPD', 'PDP', 'Supp'].includes(p.type));
+const MAONLY = PLANS.filter(p => p.type === 'MA');
+const DSNP = PLANS.filter(p => p.type === 'DSNP');
+const RULES = {
+  v:1, status:'final', updated:D(9, 28),
+  sar:[{pid:'335-002', counties:['Cabarrus']}],
+  shp:{on:true, start:D(10, 12), end:D(10, 30)},
+  ratings:Object.fromEntries(PLANS.map(p => [p.pid, p.rating])),
+  leadSep:false
+};
+const bump = () => { RULES.v++; };
+const planOf = pid => PLANS.find(p => p.pid === pid);
+const isSar = (plan, county) => RULES.sar.some(r => r.pid === plan.pid && r.counties.includes(county));
+const changeOf = c => c.track === 'lead' ? c.situation : isSar(c.plan, c.county) ? `Plan not offered in ${c.county} County for 2027` : (c.plan.change || 'Changes not reviewed yet');
+const shpDaysLeft = () => diff(TODAY, RULES.shp.end);
+const shpOpen = () => RULES.shp.on && shpDaysLeft() >= 0;
+const shpPending = c => !!c.shp && !c.shpDone && RULES.shp.on;
+const LETTERS = {A:'Letter A, staying about the same', B:'Letter B, your plan is changing', C:'Letter C, your plan is ending'};
+const DECIDING_NOTES = ['Talking it over with daughter','Checking if cardiologist is in network','Comparing two plans','Wants to think about it','Checking a drug price at the pharmacy'];
+const PROBLEMS = ['Enrolled by another agent','Member cancelled with carrier','Carrier rejected, address mismatch'];
+const MS_KEYS = [['submitted','Submitted'],['accepted','Carrier confirmed'],['welcome','Welcome sent'],['idcard','ID card check'],['oep','OEP check-in'],['charge','Chargeback window'],['bday','Birthday card']];
+
+function autoTier(c){
+  if (c.track === 'renewal'){
+    if (isSar(c.plan, c.county)) return {tier:1, rank:1, reasons:[{t:'Plan ending in county', k:'red', d:`${c.plan.carrier} ${c.plan.pid} is not offered in ${c.county} County for 2027.`}]};
+    if (shpPending(c)){
+      const left = shpDaysLeft();
+      const t = left < 0 ? 'State opt-out window closed' : left === 0 ? 'State opt-out due today' : `State opt-out, ${left} days left`;
+      return {tier:1, rank: left <= 7 ? 0 : 2, reasons:[{t, k:'red', d:`NC State Health Plan retiree on the 70/30 Plan. Must call the State during open enrollment (${fmt(RULES.shp.start)} to ${fmt(RULES.shp.end)}) to opt out of the Humana group PPO to keep the 70/30 and their MA-only plan.`}]};
+    }
+    const extra = c.shp ? [{t:'State retiree, opt-out confirmed', k:'green'}] : [];
+    const rt = RULES.ratings[c.plan.pid];
+    if (rt === 3) return {tier:3, rank:6, reasons:[{t:'Little plan change', k:'muted', d:c.plan.change}, ...extra]};
+    if (rt === 2) return {tier:2, rank:4, reasons:[{t:'Plan changes to review', k:'amber', d:c.plan.change}, ...extra]};
+    return {tier:2, rank:5, reasons:[{t:'Plan not rated yet', k:'muted', d:'Counts as Tier 2 until the plan is rated in Triage rules.'}, ...extra]};
+  }
+  const sep = c.situation === 'Losing employer coverage' || c.situation === 'Moved into the area';
+  if (sep && RULES.leadSep) return {tier:1, rank:3, reasons:[{t:c.situation, k:'red', d:'Special Enrollment Period lead'}, {t:c.source, k:'muted'}]};
+  return {tier:2, rank:5, reasons:[{t:c.situation, k: sep ? 'amber' : 'muted'}, {t:c.source, k:'muted'}]};
+}
+function tierInfo(c){
+  if (c._tv === RULES.v) return c._ti;
+  const a = autoTier(c);
+  const ti = c.override ? {tier:c.override.tier, rank:a.rank, manual:true, reasons:[{t:`Set to Tier ${c.override.tier} by hand`, k:'blue', d:c.override.note || 'No note'}, ...a.reasons]} : a;
+  c._tv = RULES.v; c._ti = ti;
+  return ti;
+}
+const tierOf = c => tierInfo(c).tier;
+const tierChip = c => { const t = tierInfo(c); return `<span class="tier t${t.tier}" title="${t.manual ? 'Set by hand' : 'Set by triage rules'}">Tier ${t.tier}${t.manual ? '*' : ''}</span>`; };
+const trackTag = c => c.track === 'renewal' ? '<span class="tag renewal">Renewal</span>' : '<span class="tag lead">New lead</span>';
+const topReason = c => { const r = tierInfo(c).reasons[0]; return r ? `<span class="tag ${r.k}">${esc(r.t)}</span>` : ''; };
+const priSort = (a, b) => tierOf(a) - tierOf(b) || tierInfo(a).rank - tierInfo(b).rank;
+const telHref = p => 'tel:+1' + p.replace(/\D/g, '');
+const callLink = c => c.phone ? `<a class="call" href="${telHref(c.phone)}" title="Call with Quo">${svg('phone', 'sm')}${esc(c.phone)}</a>` : '<span class="no">No phone</span>';
+
+/* ============ data generation ============ */
+function viaFor(plan){
+  if (plan.carrier === 'UHC' && R() < .5) return 'Jarvis (UHC)';
+  if (plan.carrier === 'Humana' && R() < .5) return 'Vantage (Humana)';
+  return wpick([['MedicareCenter', 3], ['HealthSherpa', 1]]);
+}
+function locFor(agent){
+  if (R() < .55) return LOCS.find(l => l[0] === agent.office);
+  return wpick(LOCS.map(l => [l, l[3]]));
+}
+function baseRecord(id, agent, track, loc){
+  const [city, county, st] = loc;
+  const area = st === 'SC' ? '803' : pick(['704', '704', '980']);
+  return {id, agent:agent.id, track, name:`${pick(FIRST)} ${pick(LAST)}`, city, county, st,
+    age: track === 'lead' ? int(64, 79) : int(66, 89), bmonth:int(0, 11),
+    phone:`(${area}) ${int(201, 989)}-${String(int(0, 9999)).padStart(4, '0')}`,
+    touches:[], attempts:0, firstTry:null, soa:null, appt:null, app:null, outcome:null, after:null,
+    intake:'Not sent', recordings:0, note:''};
+}
+function makeRenewal(id, agent){
+  const loc = locFor(agent);
+  const lis = R() < .08, shp = !lis && R() < .1;
+  const plan = lis ? pick(DSNP) : shp ? pick(MAONLY) : pick(INDIV);
+  const c = baseRecord(id, agent, 'renewal', loc);
+  const sar = isSar(plan, loc[1]);
+  Object.assign(c, {plan, shp, shpDone:false, sev:'renewal',
+    letter: sar ? 'C' : plan.rating === 3 ? 'A' : 'B',
+    letterDate: R() < .9 ? D(10, int(2, 3)) : null,
+    since0:`Client since ${int(2016, 2025)}${shp ? '. NC State Health Plan retiree on the 70/30 Plan' : ''}`,
+    consent:{rvm:R() < .55, sms:R() < .4, email:R() < .45}, inbound:false});
+  const hot = sar || shp, L = agent.lag;
+  const stage = wpick(hot
+    ? [['contact', 34 * L], ['scheduled', 20], ['deciding', 9], ['submitted', 14], ['done', 20 / L]]
+    : [['contact', 72 * L], ['scheduled', 10], ['deciding', 4], ['submitted', 5], ['done', 8 / L]]);
+  fillStage(c, stage, agent);
+  if (shp && S[c.stage].i >= 2 && R() < .6){
+    c.shpDone = true;
+    c.touches.push({d:c.since, k:'State', t:'Confirmed they called the State Health Plan to opt out of the Humana group PPO'});
+    finish(c);
+  }
+  return c;
+}
+function makeLead(id, agent){
+  const src = wpick([['Referral', 35], ['Pharmacy walk-in', 33], ['Website', 10], ['Billboard', 10], ['Community event', 12]]);
+  let loc = locFor(agent);
+  if (src === 'Billboard') loc = pick([LOCS[2], LOCS[3]]);
+  const sit = wpick([['Shopping for 2027', 45], ['Turning 65', 28], ['Losing employer coverage', 15], ['Moved into the area', 12]]);
+  const c = baseRecord(id, agent, 'lead', loc);
+  const cur = pick(INDIV);
+  const plan = sit === 'Turning 65' ? {carrier:'None', name:'Not on Medicare yet', type:'IEP'}
+    : sit === 'Losing employer coverage' ? {carrier:'Employer', name:'Employer group coverage', type:'Group'}
+    : {...cur, name: cur.name + ' (other agent)'};
+  if (sit === 'Turning 65') c.age = 64;
+  Object.assign(c, {plan, sev:'lead', source:src, situation:sit, change:sit, letter:null, letterDate:null,
+    since0:`Lead from ${src.toLowerCase()}`, consent:{rvm:false, sms:R() < .6, email:R() < .6}, inbound:true});
+  c.touches.push({d:addDays(TODAY, -int(6, 22)), k:'Inbound', t: src === 'Pharmacy walk-in' ? 'Walked in at partner pharmacy office' : src === 'Referral' ? 'Referred by a current client' : `Reached out via ${src.toLowerCase()}`});
+  fillStage(c, wpick([['contact', 45], ['scheduled', 26], ['deciding', 10], ['submitted', 9], ['done', 7]]), agent);
+  return c;
+}
+const SIT_W = {'Losing employer coverage':45, 'Turning 65':35, 'Moved into the area':30, 'Shopping for 2027':10};
+const SRC_W = {'Referral':15, 'Pharmacy walk-in':15, 'Community event':10, 'Website':5, 'Billboard':5};
+function fillStage(c, stage, agent){
+  c.stage = stage;
+  const T = c.touches;
+  if (c.letterDate) T.push({d:c.letterDate, k:'Letter', t:`${LETTERS[c.letter]} mailed`});
+  if (c.track === 'renewal' && c.consent.rvm && R() < .8) T.push({d:D(10, 8), k:'Blast', t:'Ringless voicemail blast'});
+  const phoneFirst = agent.me || c.city === 'Charlotte';
+  const pickMode = () => phoneFirst ? wpick([['Phone', 55], ['In person', 25], ['Zoom', 15], ['Group session', 5]]) : wpick([['In person', 55], ['Phone', 20], ['Zoom', 10], ['Group session', 15]]);
+  const soaAt = (d, m) => ({d, method: m === 'In person' || m === 'Group session' ? 'Paper, scanned to vault' : wpick([['MedicareCenter', 3], ['HealthSherpa', 1]]), scope: c.plan.type === 'PDP' ? ['PDP'] : c.plan.type === 'MA' ? ['MA-only'] : ['MAPD', 'PDP']});
+
+  if (stage === 'contact'){
+    const tried = R() < .5 ? int(1, 3) : 0;
+    c.attempts = tried;
+    if (!tried){ c.since = c.letterDate || D(10, 1); return finish(c); }
+    c.firstTry = addDays(TODAY, -int(0, 9)); c.since = c.firstTry;
+    for (let i = 0; i < tried; i++){
+      const d = addDays(c.firstTry, Math.min(diff(c.firstTry, TODAY), i * 2));
+      const sms = c.consent.sms && i % 2 === 1;
+      T.push({d, k: sms ? 'Text' : 'Call', t: sms ? 'Texted booking link, no reply' : 'Called, no answer, left voicemail'});
+    }
+    return finish(c);
+  }
+  const m = pickMode();
+  if (stage === 'scheduled'){
+    c.since = addDays(TODAY, -int(1, 9));
+    T.push({d:c.since, k: c.track === 'renewal' ? 'Inbound' : 'Call', t: c.track === 'renewal' ? 'Called in after the member letter' : 'Reached and booked'});
+    const r = R();
+    const off = r < .08 ? 0 : r < .14 ? -int(1, 2) : int(1, 14);
+    const d = addDays(TODAY, off); d.setHours(pick([9, 10, 11, 13, 14, 15]), pick([0, 30]));
+    c.appt = {date:d, mode:m, via: R() < .6 ? 'Acuity' : 'Calendly'};
+    c.intake = wpick([['Sent', 45], ['Returned', 25], ['Not sent', 30]]);
+    T.push({d:c.since, k:'Booked', t:`${m} appointment set for ${fmtDay(d)}`});
+    return finish(c);
+  }
+  const met = stage === 'deciding' ? addDays(TODAY, -int(0, 7)) : maxDate(addDays(TODAY, -int(0, 12)), D(10, 15));
+  const gap = (stage === 'deciding' || stage === 'submitted') && R() < agent.soaGap;
+  c.soa = gap ? null : soaAt(met, m);
+  c.intake = 'Returned';
+  c.meetMode = m;
+  if (m === 'Phone' || m === 'Zoom') c.recordings = int(1, 2);
+  T.push({d:addDays(met, -int(2, 8)), k:'Booked', t:`${m} appointment booked`});
+  if (c.soa) T.push({d:met, k:'SOA', t:`Scope of Appointment recorded (${c.soa.method})`});
+
+  if (stage === 'deciding'){
+    c.since = met; c.note = pick(DECIDING_NOTES);
+    T.push({d:met, k:'Met', t:`Appointment held. ${c.note}`});
+    return finish(c);
+  }
+  if (stage === 'submitted' || (stage === 'done' && R() < .5)){
+    const np = pick((c.plan.type === 'DSNP' ? DSNP : c.shp ? MAONLY : INDIV).filter(p => !isSar(p, c.county)));
+    const a = {carrier:np.carrier, plan:np.name, via:viaFor(np), date:met, confirmed:false, problem:null};
+    c.app = a;
+    T.push({d:met, k:'App', t:`Application submitted for ${np.name} via ${a.via}`});
+    if (stage === 'submitted'){
+      c.since = met;
+      a.confirmed = false;
+    } else {
+      a.confirmed = true; c.outcome = 'enrolled';
+      c.since = addDays(met, int(2, 5)) > TODAY ? new Date(TODAY) : addDays(met, int(2, 5));
+      T.push({d:c.since, k:'Carrier', t:'Carrier confirmed enrollment'});
+      if (R() < .07){ a.problem = pick(PROBLEMS); T.push({d:TODAY, k:'Alert', t:a.problem}); }
+    }
+    buildAfter(c);
+    return finish(c);
+  }
+  c.since = maxDate(addDays(TODAY, -int(0, 12)), met);
+  if (c.track === 'renewal' && R() < .82){
+    c.outcome = 'kept';
+    T.push({d:c.since, k:'Met', t:'Reviewed 2027 changes, staying on current plan'});
+  } else {
+    c.outcome = 'lost';
+    T.push({d:c.since, k:'Closed', t: pick(['Not a fit, referred to SHIIP counselor', 'Staying with their current agent', 'Moved out of the NC/SC service area'])});
+  }
+  finish(c);
+}
+function buildAfter(c){
+  const a = c.app, days = diff(a.date, TODAY), m = {};
+  m.submitted = {s:'done', d:a.date};
+  if (a.problem) m.accepted = {s:'problem', note:a.problem};
+  else if (a.confirmed) m.accepted = {s:'done'};
+  else m.accepted = {s: days >= 10 ? 'due' : 'wait', d:addDays(a.date, 10)};
+  m.welcome = a.confirmed && !a.problem ? (R() < .55 ? {s:'done'} : {s:'due'}) : {s:'wait'};
+  m.idcard = {s:'later', d:D(1, 6, 2027)};
+  m.oep = {s:'later', d:D(2, 10, 2027)};
+  m.charge = {s:'later', d:D(4, 1, 2027)};
+  m.bday = {s:'later', d:new Date(c.bmonth >= 10 ? 2026 : 2027, c.bmonth, 12)};
+  c.after = m;
+}
+function finish(c){ c.touches.sort((a, b) => a.d - b.d); }
+
+const book = [];
+let nextId = 1;
+for (const a of AGENTS){
+  for (let i = 0; i < a.renewals; i++) book.push(makeRenewal(nextId++, a));
+  for (let i = 0; i < a.leads; i++) book.push(makeLead(nextId++, a));
+}
+// every agent gets a handful of appointments today
+for (const a of AGENTS){
+  const sched = book.filter(c => c.agent === a.id && c.stage === 'scheduled').sort(priSort);
+  let n = sched.filter(c => sameDay(c.appt.date, TODAY)).length;
+  const want = Math.min(6, Math.round(a.renewals / 110) + 1);
+  for (const c of sched){
+    if (n >= want) break;
+    if (c.appt.date > TODAY && !sameDay(c.appt.date, TODAY)){
+      const d = new Date(TODAY); d.setHours([9, 10, 11, 13, 14, 15][n], n % 2 ? 30 : 0); c.appt.date = d; n++;
+    }
+  }
+}
+const byId = new Map(book.map(c => [c.id, c]));
+
+/* ============ derived status ============ */
+function stallOf(c){
+  const d = diff(c.since, TODAY);
+  switch (c.stage){
+    case 'contact': return c.attempts >= 2 && c.firstTry && diff(c.firstTry, TODAY) >= 5 ? `No reply in ${diff(c.firstTry, TODAY)} days` : null;
+    case 'scheduled': return c.appt && c.appt.date < TODAY && !sameDay(c.appt.date, TODAY) ? 'Outcome not logged' : null;
+    case 'deciding': return d >= 3 ? `Undecided ${d} days` : null;
+    case 'submitted': return c.app && !c.app.confirmed && !c.app.problem && d >= 10 ? `Unconfirmed ${d} days` : null;
+  }
+  return null;
+}
+function statusLine(c){
+  const st = stallOf(c);
+  switch (c.stage){
+    case 'contact':
+      if (st) return `<span class="stall">${st}, ${c.attempts} tries</span>`;
+      if (c.attempts) return `Tried ${c.attempts === 1 ? 'once' : c.attempts + ' times'}, last ${fmt(c.touches[c.touches.length - 1].d)}`;
+      return c.letterDate ? `Letter ${c.letter} mailed ${fmt(c.letterDate)}, not called` : c.track === 'lead' ? 'New, not contacted' : `Letter ${c.letter} not mailed yet`;
+    case 'scheduled':
+      if (st) return `<span class="stall">${fmt(c.appt.date)} ${c.appt.mode.toLowerCase()}, no outcome</span>`;
+      return `${dayLabel(c.appt.date)} ${timeOf(c.appt.date)}, ${c.appt.mode.toLowerCase()}`;
+    case 'deciding':
+      return st ? `<span class="stall">${st}</span>, ${esc(c.note.toLowerCase())}` : `Met ${fmt(c.since)}, ${esc(c.note.toLowerCase())}`;
+    case 'submitted':
+      if (c.app.problem) return `<span class="stall">${esc(c.app.problem)}</span>`;
+      return st ? `<span class="stall">${st}</span>, ${esc(c.app.via)}` : `Sent ${fmt(c.app.date)} via ${esc(c.app.via)}`;
+    case 'done':
+      if (c.app && c.app.problem) return `<span class="stall">${esc(c.app.problem)}</span>`;
+      return `${OUTCOME[c.outcome]}, ${fmt(c.since)}`;
+  }
+}
+function nextAction(c){
+  const st = stallOf(c);
+  if (shpPending(c) && shpOpen()) return `Confirm they called the State by ${fmt(RULES.shp.end)}`;
+  switch (c.stage){
+    case 'contact': return st ? 'Switch channels or close out' : c.attempts ? 'Waiting on a reply' : tierOf(c) === 1 ? 'Call today' : 'Wait for a reply to the letter, then call';
+    case 'scheduled': return st ? 'Log how the appointment went' : sameDay(c.appt.date, TODAY) ? 'Record the SOA before talking plans' : 'Reminders are automated';
+    case 'deciding': return st ? 'Follow up today' : 'Follow-up is scheduled';
+    case 'submitted': return c.app.problem ? 'Call the member' : st ? 'Check the carrier portal' : 'Waiting on carrier';
+    case 'done': return c.app && c.app.problem ? 'Call the member' : c.outcome === 'enrolled' ? 'After-sale check-ins are scheduled' : c.outcome === 'kept' ? 'Birthday card and next ANOC review' : 'Nothing until next AEP';
+  }
+}
+
+/* Needs-you buckets: the metrics bar and Today sections share these */
+const FOCUS = [
+  {id:'shp',      get label(){ return `State opt-outs, ${shpDaysLeft()} days left`; }, blurb:'State retirees who haven\u2019t confirmed their opt-out call. The State\u2019s open enrollment closes soon.', when:shpOpen, test:c => shpPending(c), sort:(a, b) => S[a.stage].i - S[b.stage].i, hot:true},
+  {id:'today',    label:'Appointments today',  blurb:'Reminders already went out. Record the SOA before talking plans.', test:c => c.stage === 'scheduled' && sameDay(c.appt.date, TODAY), sort:(a, b) => a.appt.date - b.appt.date, hot:false},
+  {id:'nooutcome',label:'Outcome not logged',  blurb:'Past appointments with nothing recorded.', test:c => c.stage === 'scheduled' && !!stallOf(c), sort:(a, b) => a.appt.date - b.appt.date, hot:true},
+  {id:'callfirst',label:'Call first',          blurb:'Tier 1 and nobody has tried them yet.', test:c => c.stage === 'contact' && c.attempts === 0 && tierOf(c) === 1 && !(shpOpen() && shpPending(c)), sort:priSort, hot:true},
+  {id:'undecided',label:'Undecided 3+ days',   blurb:'Oldest first. Everyone newer has an automatic follow-up.', test:c => c.stage === 'deciding' && !!stallOf(c), sort:(a, b) => a.since - b.since, hot:true},
+  {id:'verify',   label:'Check with carrier',  blurb:'No confirmation after 10 days, or a problem was found.', test:c => (c.stage === 'submitted' && !!stallOf(c)) || (!!c.app && !!c.app.problem && !c.app.resolved), sort:(a, b) => (!!b.app.problem - !!a.app.problem) || a.app.date - b.app.date, hot:true},
+  {id:'noreply',  label:'No reply',            blurb:'Two or more tries over 5+ days. Switch channels or close out.', test:c => c.stage === 'contact' && !!stallOf(c) && !(shpOpen() && shpPending(c)), sort:priSort, hot:false}
+];
+const FX = Object.fromEntries(FOCUS.map(f => [f.id, f]));
+const activeFocus = () => FOCUS.filter(f => !f.when || f.when());
+
+/* ============ state ============ */
+const state = {view:'today', agent:ME, focus:null, stage:'all', carrier:'all', county:'all', tier:'all', track:'all', stalled:false, q:'',
+  sort:{key:'tier', dir:1}, page:0, special:null, ruleCarrier:'Humana', sel:new Set(), open:null, expand:{}};
+const VIEWS = [['today', 'Today'], ['board', 'Board'], ['table', 'Table'], ['after', 'After the sale'], ['agency', 'Agency'], ['rules', 'Triage rules']];
+
+function inScope(c){ return state.agent === 'all' || c.agent === state.agent; }
+function passes(c, {skipFocus = false, skipStage = false} = {}){
+  if (!inScope(c)) return false;
+  if (state.carrier !== 'all' && c.plan.carrier !== state.carrier) return false;
+  if (state.county !== 'all' && c.county !== state.county) return false;
+  if (state.tier !== 'all' && tierOf(c) !== +state.tier) return false;
+  if (state.track !== 'all' && c.track !== state.track) return false;
+  if (state.stalled && !stallOf(c) && !(c.app && c.app.problem)) return false;
+  if (!skipStage && state.stage !== 'all' && c.stage !== state.stage) return false;
+  if (state.special === 'shp' && !shpPending(c)) return false;
+  if (!skipFocus && state.focus && !FX[state.focus].test(c)) return false;
+  if (state.q){
+    const q = state.q.toLowerCase(), digits = q.replace(/\D/g, '');
+    const hay = `${c.name} ${c.city} ${c.county} ${c.st} ${c.plan.name} ${c.plan.carrier} ${c.plan.pid || ''} ${changeOf(c)}`.toLowerCase();
+    if (!hay.includes(q) && !(digits.length >= 3 && c.phone.replace(/\D/g, '').includes(digits))) return false;
+  }
+  return true;
+}
+const list = opts => book.filter(c => passes(c, opts));
+const filtersActive = () => state.focus || state.special || state.stage !== 'all' || state.carrier !== 'all' || state.county !== 'all' || state.tier !== 'all' || state.track !== 'all' || state.stalled || state.q;
+
+/* ============ header pieces ============ */
+function renderNav(){
+  const counts = {today: book.filter(c => inScope(c) && activeFocus().some(f => f.test(c))).length};
+  $('#nav').innerHTML = VIEWS.map(([id, l]) => `<button type="button" data-view="${id}" ${state.view === id ? 'aria-current="page"' : ''} title="${l}">${svg(id)}<span class="lbl">${l}</span>${counts[id] ? `<span class="cnt">${counts[id]}</span>` : ''}</button>`).join('');
+  $('#viewTitle').textContent = VIEWS.find(v => v[0] === state.view)[1];
+}
+function renderSeason(){
+  const s = D(10, 15), e = D(12, 7);
+  const day = diff(s, TODAY) + 1, total = diff(s, e) + 1, left = diff(TODAY, e);
+  $('#season').innerHTML = `<span>${fmtDay(TODAY)}</span><span class="bar" role="img" aria-label="AEP ${Math.round(day / total * 100)} percent elapsed"><i style="width:${day / total * 100}%"></i></span><span>AEP day ${day} of ${total}, <b>${left} days left</b></span>`;
+}
+function renderAgentSelect(){
+  $('#agent').innerHTML = `<option value="${ME}">My book (${AG[ME].name})</option><option value="all">All agents</option>` +
+    AGENTS.filter(a => !a.me).map(a => `<option value="${a.id}">${a.name}'s book</option>`).join('');
+  $('#agent').value = state.agent;
+}
+function renderMetrics(){
+  const base = list({skipFocus:true, skipStage:true});
+  if (state.focus && !activeFocus().includes(FX[state.focus])) state.focus = null;
+  $('#metrics').innerHTML = activeFocus().map(f => {
+    const n = base.filter(f.test).length;
+    return `<button type="button" class="metric ${n && f.hot ? 'hot' : ''} ${n ? '' : 'zero'}" data-focus="${f.id}" aria-pressed="${state.focus === f.id}"><b>${n}</b><span>${f.label}</span></button>`;
+  }).join('');
+}
+function renderFilters(){
+  const opt = (v, l, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
+  $('#filters').innerHTML = `
+    <label class="sr" for="fCarrier">Carrier</label>
+    <select class="field" id="fCarrier" data-f="carrier">${opt('all', 'All carriers', state.carrier)}${CARRIERS.map(c => opt(c, c, state.carrier)).join('')}</select>
+    <label class="sr" for="fCounty">County</label>
+    <select class="field" id="fCounty" data-f="county">${opt('all', 'All counties', state.county)}${COUNTIES.map(([c, st]) => opt(c, `${c}, ${st}`, state.county)).join('')}</select>
+    <label class="sr" for="fTier">Priority</label>
+    <select class="field" id="fTier" data-f="tier">${opt('all', 'Any tier', state.tier)}${opt(1, 'Tier 1', state.tier)}${opt(2, 'Tier 2', state.tier)}${opt(3, 'Tier 3', state.tier)}</select>
+    <label class="sr" for="fTrack">Track</label>
+    <select class="field" id="fTrack" data-f="track">${opt('all', 'Renewals and leads', state.track)}${opt('renewal', 'Renewals', state.track)}${opt('lead', 'New leads', state.track)}</select>
+    <label class="sr" for="fStage">Stage</label>
+    <select class="field" id="fStage" data-f="stage" ${state.view === 'board' ? 'disabled title="The board already shows every stage"' : ''}>${opt('all', 'Any stage', state.stage)}${STAGES.map(s => opt(s.id, s.name, state.stage)).join('')}</select>
+    <label class="check"><input type="checkbox" id="fStalled" ${state.stalled ? 'checked' : ''}> Stalled only</label>
+    ${state.focus ? `<button type="button" class="chip" data-focus="${state.focus}">${FX[state.focus].label} &times;</button>` : ''}
+    ${state.special === 'shp' ? `<button type="button" class="chip" data-clearspecial>State opt-out not confirmed &times;</button>` : ''}
+    ${filtersActive() ? `<button type="button" class="btn sm ghost reset" id="resetF">Clear filters</button>` : ''}`;
+}
+
+/* ============ Today ============ */
+function actionsFor(c, fid){
+  // [primary buttons], [menu items]
+  const id = c.id;
+  const shpItem = shpPending(c) ? [['shpdone', 'State opt-out confirmed']] : [];
+  switch (fid){
+    case 'shp':
+      return [[['shpdone', 'Opt-out confirmed', 'primary'], ['shpremind', 'Left a reminder']], c.stage === 'contact' ? [['book', 'Book appointment'], ['text', 'Text a reminder']] : [['text', 'Text a reminder']]];
+    case 'today': case 'nooutcome':
+      return [[['outcome', 'Record outcome', 'primary']], [['noshow', 'No-show'], ['reschedule', 'Reschedule']]];
+    case 'callfirst':
+      return [[['noanswer', 'No answer'], ['book', 'Booked']], [['text', 'Text a booking link'], ...shpItem, ['closeout', 'Close out']]];
+    case 'undecided':
+      return [[['still', 'Checked in'], ['decision', 'Record decision', 'primary']], [...shpItem, ['closeout', 'Close out']]];
+    case 'verify':
+      return c.app.problem
+        ? [[['calledproblem', 'Called member']], [['resolved', 'Resolved, still enrolled'], ['lostproblem', 'Close as lost']]]
+        : [[['confirm', 'Confirmed', 'primary'], ['problem', 'Found a problem']], []];
+    case 'noreply':
+      return [[['text', 'Text'], ['book', 'Booked']], [['noanswer', 'Called again, no answer'], ['closeout', 'Close out']]];
+  }
+  return [[], []];
+}
+function qrow(c, fid){
+  const [prim, menu] = actionsFor(c, fid);
+  return `<div class="qrow">
+    <div class="q-l">
+      <div class="q-top"><span class="carrier">${esc(c.plan.carrier)}</span>${tierChip(c)}<button type="button" class="q-name" data-open="${c.id}">${esc(c.name)}</button>${state.agent === 'all' ? `<span class="agent">${AG[c.agent].name}</span>` : ''}</div>
+      <div class="q-sub"><span>${statusLine(c)}</span><span>${topReason(c)}</span>${callLink(c)}</div>
+    </div>
+    <div class="q-acts">
+      ${prim.map(([a, l, cls]) => `<button type="button" class="btn sm ${cls || ''}" data-act="${a}" data-id="${c.id}">${l}</button>`).join('')}
+      ${menu.length ? `<button type="button" class="btn sm icon" data-menu="${esc(JSON.stringify(menu))}" data-id="${c.id}" aria-label="More actions for ${esc(c.name)}" aria-haspopup="menu">${dots}</button>` : ''}
+    </div>
+  </div>`;
+}
+function renderToday(){
+  const base = list({skipFocus:true});
+  const secs = (state.focus ? [FX[state.focus]] : activeFocus()).map(f => ({f, items: base.filter(f.test).sort(f.sort)}));
+  const total = base.filter(c => activeFocus().some(f => f.test(c))).length;
+  const limit = state.focus ? 50 : 5;
+  const scope = list({skipFocus:true, skipStage:true});
+  const ren = scope.filter(c => c.track === 'renewal');
+  const letterResp = k => { const arr = ren.filter(c => c.letter === k && c.letterDate); return [arr.length, arr.length ? Math.round(arr.filter(c => S[c.stage].i >= 1).length / arr.length * 100) : 0]; };
+  const reached = ren.filter(c => c.stage !== 'contact' || c.attempts > 0).length;
+  const cons = k => ren.length ? Math.round(ren.filter(c => c.consent[k]).length / ren.length * 100) : 0;
+  $('#view').innerHTML = `
+    ${RULES.status === 'draft' ? `<div class="banner"><span>Tiers are a draft until the final 2027 plan data is in (expected Sept 28).</span><button type="button" class="btn sm" data-view="rules">Review triage rules</button></div>` : ''}
+    <div class="today-head"><div><h2>${total} ${total === 1 ? 'thing needs' : 'things need'} you</h2><p>Everything else is waiting on the customer or on an automation.</p></div></div>
+    <div class="secs">${secs.map(({f, items}) => {
+      const open = state.expand[f.id] || state.focus;
+      const shown = open ? items.slice(0, 50) : items.slice(0, limit);
+      return `<section class="sec" aria-label="${f.label}">
+        <header><div><h3>${f.label}</h3><p>${f.blurb}</p></div><b class="${f.hot && items.length ? 'hot' : ''}">${items.length}</b></header>
+        ${shown.length ? shown.map(c => qrow(c, f.id)).join('') : '<p class="empty">Nothing here right now.</p>'}
+        ${items.length > shown.length ? `<button type="button" class="more" data-expand="${f.id}">Show ${Math.min(50, items.length) - shown.length} more</button>` : ''}
+        ${state.expand[f.id] && !state.focus && items.length > limit ? `<button type="button" class="more" data-expand="${f.id}">Show fewer</button>` : ''}
+        ${items.length > 50 && open ? `<button type="button" class="more" data-tableFocus="${f.id}">See all ${items.length} in Table</button>` : ''}
+      </section>`;
+    }).join('')}</div>
+    <details class="camp"><summary>Letters and consent coverage</summary>
+      <div class="camp-grid">
+        <div>${['C', 'B', 'A'].map(k => { const [n, p] = letterResp(k); return `<div class="kv"><span>${LETTERS[k]}<small style="display:block">${n} mailed, share booked or further</small></span><b>${p}%</b></div>`; }).join('')}</div>
+        <div><div class="kv"><span>Renewals reached one-on-one</span><b>${reached} / ${ren.length}</b></div><div class="meter"><i style="width:${ren.length ? reached / ren.length * 100 : 0}%"></i></div>
+          <div class="kv"><span>Written email consent</span><b>${cons('email')}%</b></div>
+          <div class="kv"><span>Written text consent</span><b>${cons('sms')}%</b></div>
+          <div class="kv"><span>Prerecorded voicemail consent</span><b>${cons('rvm')}%</b></div></div>
+      </div>
+    </details>`;
+}
+
+/* ============ Board ============ */
+function card(c){
+  const st = stallOf(c) || (c.app && c.app.problem);
+  const needSoa = (c.stage === 'deciding' || c.stage === 'submitted') && !c.soa;
+  const soaOk = c.soa && (c.stage === 'scheduled' || c.stage === 'deciding' || c.stage === 'submitted');
+  return `<article class="card ${st ? 'is-stalled' : ''}" draggable="true" data-card="${c.id}">
+    <div class="c-top"><span class="carrier">${esc(c.plan.carrier)}</span>${tierChip(c)}${state.agent === 'all' ? `<span class="agent">${AG[c.agent].name}</span>` : ''}
+      <button type="button" class="kebab" data-cardmenu="${c.id}" aria-label="Move or open ${esc(c.name)}" aria-haspopup="menu">${dots}</button></div>
+    <button type="button" class="c-name" data-open="${c.id}">${esc(c.name)}</button>
+    <div class="c-why">${topReason(c)}${c.track === 'lead' ? trackTag(c) : ''}</div>
+    <div class="c-status">${statusLine(c)}</div>
+    <div class="c-foot">${callLink(c)}${needSoa ? '<span class="tag red">No SOA</span>' : soaOk ? '<span class="tag green">SOA</span>' : ''}</div>
+  </article>`;
+}
+function renderBoard(){
+  const L = list({skipStage:true});
+  const PER = 12;
+  $('#view').innerHTML = `
+    <p class="note">Drag a card, or use its menu, to move it. Each column shows stalled cards first, then by tier. Use the column link to see everyone.</p>
+    <div class="board">${STAGES.map(s => {
+      const items = L.filter(c => c.stage === s.id).sort((a, b) => (!!stallOf(b) - !!stallOf(a)) || priSort(a, b));
+      const st = items.filter(stallOf).length;
+      let sub = st ? `<span class="stall">${st} stalled</span>` : esc(s.hint);
+      if (s.id === 'done'){ const k = o => items.filter(c => c.outcome === o).length; sub = `${k('enrolled')} enrolled, ${k('kept')} kept, ${k('lost')} closed`; }
+      return `<section class="col" style="--c:${s.c}" data-drop="${s.id}" aria-label="${s.name}">
+        <header><div class="t"><h3>${s.name}</h3><span class="n">${items.length.toLocaleString()}</span></div><small>${sub}</small></header>
+        <div class="cards">${items.slice(0, PER).map(card).join('') || '<p class="empty">Empty</p>'}</div>
+        ${items.length > PER ? `<button type="button" class="colfoot" data-seeall="${s.id}">See all ${items.length.toLocaleString()} in Table</button>` : ''}
+      </section>`;
+    }).join('')}</div>`;
+}
+
+/* ============ Table ============ */
+const COLS = [
+  ['name', 'Name', c => c.name],
+  ['carrier', 'Carrier', c => c.plan.carrier],
+  ['tier', 'Priority', c => tierOf(c) * 10 + tierInfo(c).rank],
+  ['change', 'What changed', c => changeOf(c)],
+  ['stage', 'Stage', c => S[c.stage].i],
+  ['days', 'Days in stage', c => diff(c.since, TODAY)],
+  ['phone', 'Phone', c => c.phone],
+  ['letter', 'Letter', c => c.letter || 'Z'],
+  ['consent', 'Email / text OK', c => (c.consent.email ? 2 : 0) + (c.consent.sms ? 1 : 0)],
+  ['soa', 'SOA', c => c.soa ? 1 : 0],
+  ['agent', 'Agent', c => AG[c.agent].name]
+];
+function sorted(L){
+  const col = COLS.find(c => c[0] === state.sort.key);
+  return L.sort((a, b) => { const x = col[2](a), y = col[2](b); return (x > y ? 1 : x < y ? -1 : 0) * state.sort.dir; });
+}
+function renderTable(){
+  const L = sorted(list());
+  const PER = 40, pages = Math.max(1, Math.ceil(L.length / PER));
+  state.page = Math.min(state.page, pages - 1);
+  const rows = L.slice(state.page * PER, (state.page + 1) * PER);
+  const allOnPage = rows.length && rows.every(c => state.sel.has(c.id));
+  const cols = COLS.filter(c => c[0] !== 'agent' || state.agent === 'all');
+  $('#view').innerHTML = `
+  <div class="tablewrap">
+    ${state.sel.size ? `<div class="bulk"><b>${state.sel.size.toLocaleString()} selected</b>
+      <label class="sr" for="bulkLetter">Log member letter</label>
+      <select class="field" id="bulkLetter"><option value="">Log letter mailed</option>${Object.entries(LETTERS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+      <button type="button" class="btn sm" data-bulk="email">Send AEP email</button>
+      <button type="button" class="btn sm" data-bulk="rvm">Queue voicemail blast</button>
+      <label class="sr" for="bulkTier">Set tier</label>
+      <select class="field" id="bulkTier"><option value="">Set tier by hand</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="auto">Back to automatic</option></select>
+      <button type="button" class="btn sm ghost" data-bulk="clear">Clear selection</button>
+    </div>` : ''}
+    <div class="tscroll"><table>
+      <thead><tr><th><input type="checkbox" id="selPage" aria-label="Select all on this page" ${allOnPage ? 'checked' : ''}></th>
+      ${cols.map(([k, l]) => `<th><button type="button" data-sort="${k}" ${state.sort.key === k ? `data-dir="${state.sort.dir > 0 ? '\u2191' : '\u2193'}"` : ''}>${l}</button></th>`).join('')}</tr></thead>
+      <tbody>${rows.map(c => `<tr>
+        <td><input type="checkbox" data-sel="${c.id}" aria-label="Select ${esc(c.name)}" ${state.sel.has(c.id) ? 'checked' : ''}></td>
+        <td><button type="button" class="q-name" data-open="${c.id}">${esc(c.name)}</button><br><small>${esc(c.city)}, ${esc(c.county)} Co. ${c.st}</small></td>
+        <td><span class="carrier">${esc(c.plan.carrier)}</span><br><small>${esc(c.plan.type)}</small></td>
+        <td>${tierChip(c)} ${topReason(c)}</td>
+        <td><span class="wrap">${esc(changeOf(c))}</span></td>
+        <td><span class="dot" style="--c:${S[c.stage].c}"></span>${S[c.stage].name}<br><small>${statusLine(c)}</small></td>
+        <td>${stallOf(c) ? `<span class="stall">${diff(c.since, TODAY)}</span>` : diff(c.since, TODAY)}</td>
+        <td>${callLink(c)}</td>
+        <td>${c.letter ? (c.letterDate ? `${c.letter}, ${fmt(c.letterDate)}` : `<span class="stall">${c.letter}, not mailed</span>`) : '<span class="no">n/a</span>'}</td>
+        <td>${c.consent.email ? '<span class="yes">Email</span>' : '<span class="no">Email</span>'} / ${c.consent.sms ? '<span class="yes">Text</span>' : '<span class="no">Text</span>'}</td>
+        <td>${c.soa ? '<span class="yes">On file</span>' : (c.stage === 'deciding' || c.stage === 'submitted') ? '<span class="stall">Missing</span>' : '<span class="no">None</span>'}</td>
+        ${state.agent === 'all' ? `<td>${AG[c.agent].name}</td>` : ''}
+      </tr>`).join('') || `<tr><td colspan="${cols.length + 1}" class="empty">No customers match. Clear a filter or search for something else.</td></tr>`}</tbody>
+    </table></div>
+    <div class="tfoot"><span>${L.length.toLocaleString()} customers ${L.length > rows.length ? `<button type="button" class="btn sm ghost" data-selall>Select all ${L.length.toLocaleString()} matching</button>` : ''}</span>
+      <span><button type="button" class="btn sm" data-page="-1" ${state.page === 0 ? 'disabled' : ''}>Previous</button> Page ${state.page + 1} of ${pages} <button type="button" class="btn sm" data-page="1" ${state.page >= pages - 1 ? 'disabled' : ''}>Next</button></span></div>
+  </div>`;
+}
+
+/* ============ After the sale ============ */
+function renderAfter(){
+  const L = list({skipStage:true, skipFocus:true}).filter(c => c.after);
+  const n = (k, s) => L.filter(c => c.after[k].s === s).length;
+  const rank = c => c.after.accepted.s === 'problem' ? 0 : c.after.accepted.s === 'due' ? 1 : c.after.welcome.s === 'due' ? 2 : 3;
+  L.sort((a, b) => rank(a) - rank(b) || b.app.date - a.app.date);
+  const shown = L.slice(0, 150);
+  $('#view').innerHTML = `
+  <div class="lede">
+    <div class="stat"><b>${L.length.toLocaleString()}</b><span>Applications this AEP</span></div>
+    <div class="stat ${n('accepted', 'due') ? 'alert' : ''}"><b>${n('accepted', 'due')}</b><span>Carrier portal check due (10+ days)</span></div>
+    <div class="stat"><b>${n('accepted', 'wait')}</b><span>Waiting on carrier, not due yet</span></div>
+    <div class="stat ${n('accepted', 'problem') ? 'alert' : ''}"><b>${n('accepted', 'problem')}</b><span>Cancelled or taken by another agent</span></div>
+    <div class="stat"><b>${n('welcome', 'due')}</b><span>Welcome messages to send</span></div>
+  </div>
+  <div class="tablewrap"><div class="tscroll"><table>
+    <thead><tr><th>Customer</th><th>New plan</th>${MS_KEYS.map(([, l]) => `<th>${l}</th>`).join('')}</tr></thead>
+    <tbody>${shown.map(c => `<tr>
+      <td><button type="button" class="q-name" data-open="${c.id}">${esc(c.name)}</button><br><small>${state.agent === 'all' ? AG[c.agent].name + ', ' : ''}${c.track === 'renewal' ? 'Renewal' : 'New lead'}</small></td>
+      <td><span class="carrier">${esc(c.app.carrier)}</span> ${esc(c.app.plan)}<br><small>${esc(c.app.via)}, ${fmt(c.app.date)}</small></td>
+      ${MS_KEYS.map(([k]) => msCell(c, k)).join('')}</tr>`).join('') || `<tr><td colspan="9" class="empty">No applications match these filters.</td></tr>`}</tbody>
+  </table></div>
+  <div class="legend"><span class="ms done"><i></i>Done</span><span class="ms due"><i></i>Due now, select to mark done</span><span class="ms wait"><i></i>Waiting</span><span class="ms later"><i></i>Scheduled</span><span class="ms problem"><i></i>Problem</span>${L.length > shown.length ? `<span>Showing the first ${shown.length} by urgency.</span>` : ''}</div>
+  </div>`;
+}
+function msCell(c, k){
+  const m = c.after[k];
+  const label = m.s === 'done' ? (m.d ? fmt(m.d) : 'Done') : m.s === 'due' ? 'Mark done' : m.s === 'problem' ? esc(m.note) : m.s === 'wait' ? (m.d ? `Check ${fmt(m.d)}` : 'Waiting') : fmt(m.d);
+  return (m.s === 'due' || m.s === 'problem')
+    ? `<td><button type="button" class="ms ${m.s}" data-ms="${k}" data-id="${c.id}"><i></i>${label}</button></td>`
+    : `<td><span class="ms ${m.s}"><i></i>${label}</span></td>`;
+}
+
+/* ============ Agency ============ */
+function renderAgency(){
+  const rows = AGENTS.map(a => {
+    const L = book.filter(c => c.agent === a.id);
+    return {a, size:L.length, parts:STAGES.map(s => L.filter(c => c.stage === s.id).length),
+      reached:L.filter(c => c.stage !== 'contact' || c.attempts > 0).length,
+      needs:L.filter(c => activeFocus().some(f => f.test(c))).length,
+      stalled:L.filter(c => stallOf(c)).length,
+      nosoa:L.filter(c => (c.stage === 'deciding' || c.stage === 'submitted') && !c.soa).length,
+      verify:L.filter(FX.verify.test).length};
+  });
+  const tot = k => rows.reduce((s, r) => s + r[k], 0);
+  $('#view').innerHTML = `
+  <div class="lede">
+    <div class="stat"><b>${tot('size').toLocaleString()}</b><span>Customers across ${AGENTS.length} agents</span></div>
+    <div class="stat"><b>${Math.round(tot('reached') / tot('size') * 100)}%</b><span>Reached one-on-one so far</span></div>
+    <div class="stat alert"><b>${tot('stalled')}</b><span>Stalled across the agency</span></div>
+    <div class="stat ${tot('nosoa') ? 'alert' : ''}"><b>${tot('nosoa')}</b><span>Met or submitted with no SOA on file</span></div>
+    <div class="stat"><b>${tot('verify')}</b><span>Apps needing a carrier check</span></div>
+  </div>
+  <div class="tablewrap"><div class="tscroll"><table>
+    <thead><tr><th>Agent</th><th>Book</th><th>Where the book stands</th><th>Reached</th><th>Needs them today</th><th>Stalled</th><th>No SOA</th><th>Carrier checks</th></tr></thead>
+    <tbody>${rows.map(r => `<tr class="clickable" data-agentrow="${r.a.id}">
+      <td><button type="button" class="q-name" data-agentrow="${r.a.id}">${r.a.name}</button>${r.a.me ? ' <span class="tag blue">You</span>' : ''}<br><small>${r.a.office}</small></td>
+      <td>${r.size.toLocaleString()}</td>
+      <td><div class="stack" role="img" aria-label="${STAGES.map((s, i) => `${s.name} ${r.parts[i]}`).join(', ')}">${STAGES.map((s, i) => `<i style="--c:${s.c};width:${r.parts[i] / r.size * 100}%" title="${s.name}: ${r.parts[i]}"></i>`).join('')}</div></td>
+      <td>${Math.round(r.reached / r.size * 100)}%</td>
+      <td>${r.needs}</td>
+      <td>${r.stalled ? `<span class="stall">${r.stalled}</span>` : 0}</td>
+      <td>${r.nosoa ? `<span class="stall">${r.nosoa}</span>` : 0}</td>
+      <td>${r.verify}</td></tr>`).join('')}</tbody>
+  </table></div>
+  <div class="legend">${STAGES.map(s => `<span><span class="dot" style="--c:${s.c}"></span>${s.name}</span>`).join('')}<span>Select an agent to open their book.</span></div></div>
+  <p class="note" style="margin-top:12px">All eight books are simulated data.</p>`;
+}
+
+/* ============ Triage rules ============ */
+function renderRules(){
+  const scoped = book.filter(inScope);
+  const scopeLbl = state.agent === 'all' ? 'the agency' : state.agent === ME ? 'your book' : `${AG[state.agent].name}'s book`;
+  const n = [1, 2, 3].map(k => scoped.filter(c => tierOf(c) === k).length);
+  const manual = scoped.filter(c => c.override);
+  const onPlan = pid => scoped.filter(c => c.track === 'renewal' && c.plan.pid === pid).length;
+  const shpAll = scoped.filter(c => c.shp);
+  const shpLeft = shpAll.filter(c => !c.shpDone).length;
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const carrierPlans = PLANS.filter(p => p.carrier === state.ruleCarrier);
+  const rated = PLANS.filter(p => RULES.ratings[p.pid] != null).length;
+  $('#view').innerHTML = `
+  <div class="rules">
+    <div class="rhead">
+      <div><h2>Triage rules</h2><p>Tiers come from these rules. Change one and every customer re-sorts right away. Counts are for ${scopeLbl}.</p></div>
+      <div class="rstat"><label class="lbl" for="rStatus">Rules status</label>
+        <select class="field" id="rStatus"><option value="draft" ${RULES.status === 'draft' ? 'selected' : ''}>Draft</option><option value="final" ${RULES.status === 'final' ? 'selected' : ''}>Final</option></select>
+        <small>${RULES.status === 'final' ? `Marked final ${fmt(RULES.updated)}` : 'Final 2027 plan data expected Sept 28'}</small></div>
+    </div>
+    <div class="lede">
+      <div class="stat alert"><b>${n[0]}</b><span>Tier 1</span></div>
+      <div class="stat"><b>${n[1]}</b><span>Tier 2</span></div>
+      <div class="stat"><b>${n[2]}</b><span>Tier 3</span></div>
+      <div class="stat"><b>${manual.length}</b><span>Set by hand</span></div>
+    </div>
+
+    <section class="rcard">
+      <header><h3>Tier 1: plan ending in a county</h3><p>Service area reductions. Anyone on a listed plan who lives in a listed county is Tier 1.</p></header>
+      <div class="tscroll"><table>
+        <thead><tr><th>Plan</th><th>Counties</th><th>Customers</th><th><span class="sr">Actions</span></th></tr></thead>
+        <tbody>${RULES.sar.map((r, i) => { const p = planOf(r.pid); const hit = scoped.filter(c => c.track === 'renewal' && c.plan.pid === r.pid && r.counties.includes(c.county)).length; return `<tr>
+          <td><span class="carrier">${esc(p.carrier)}</span> ${esc(p.pid)}<br><small>${esc(p.name)}</small></td>
+          <td>${r.counties.map(x => `<span class="tag red">${esc(x)}</span>`).join(' ')}</td>
+          <td>${hit}</td>
+          <td><button type="button" class="btn sm ghost" data-delsar="${i}">Remove</button></td></tr>`; }).join('') || '<tr><td colspan="4" class="empty">No plans ending yet.</td></tr>'}</tbody>
+      </table></div>
+      <div class="addrow">
+        <div><label class="lbl" for="rCarrier">Carrier</label><select class="field" id="rCarrier">${CARRIERS.map(c => `<option ${c === state.ruleCarrier ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+        <div><label class="lbl" for="rPlan">Plan</label><select class="field" id="rPlan">${carrierPlans.map(p => `<option value="${esc(p.pid)}">${esc(p.pid)}, ${esc(p.type === 'MA' ? 'MA-only' : p.type)}</option>`).join('')}</select></div>
+        <fieldset class="counties"><legend class="lbl">Leaving these counties</legend>${COUNTIES.map(([c, st]) => `<label><input type="checkbox" name="rCounty" value="${c}">${c}, ${st}</label>`).join('')}</fieldset>
+        <button type="button" class="btn primary" data-addsar>Add rule</button>
+      </div>
+    </section>
+
+    <section class="rcard">
+      <header><h3>Tier 1: NC State Health Plan retirees</h3><p>Retirees on the 70/30 Plan with an MA-only plan must call the State during its open enrollment to opt out of the Humana group PPO. They stay Tier 1 until you confirm the call, then take their plan's rating.</p></header>
+      <div class="rbody">
+        <div class="shp-grid">
+          <label class="check"><input type="checkbox" id="rShpOn" ${RULES.shp.on ? 'checked' : ''}> Rule is on</label>
+          <div><label class="lbl" for="rShpStart">State open enrollment starts</label><input class="field" type="date" id="rShpStart" value="${iso(RULES.shp.start)}"></div>
+          <div><label class="lbl" for="rShpEnd">Ends</label><input class="field" type="date" id="rShpEnd" value="${iso(RULES.shp.end)}"></div>
+        </div>
+        <div class="kv"><span>State retirees flagged</span><b>${shpAll.length}</b></div>
+        <div class="kv"><span>Opt-out call confirmed</span><b>${shpAll.length - shpLeft}</b></div>
+        <div class="kv"><span>Not confirmed${shpOpen() ? `, ${shpDaysLeft()} days left` : ''}</span><b class="${shpLeft ? 'stall' : ''}">${shpLeft}</b></div>
+        <p class="src">Dates are from the State Health Plan's 2027 open enrollment page (Oct 12 to 30, 2026). Change them here if the State moves the window.</p>
+        ${shpLeft ? `<button type="button" class="btn sm" data-shpfilter>Show the ${shpLeft} not confirmed</button>` : ''}
+      </div>
+    </section>
+
+    <section class="rcard">
+      <header><h3>Tier 2 or 3: rate each plan's 2027 changes</h3><p>Everyone else takes their tier from their plan. Plans you haven't rated count as Tier 2 so nobody slips through. ${rated} of ${PLANS.length} plans rated.</p></header>
+      <div class="tscroll"><table>
+        <thead><tr><th>Plan</th><th>Type</th><th>2027 changes</th><th>Customers</th><th>Rating</th></tr></thead>
+        <tbody>${PLANS.map((p, i) => { const r = RULES.ratings[p.pid]; const sr = RULES.sar.find(x => x.pid === p.pid); return `<tr>
+          <td><span class="carrier">${esc(p.carrier)}</span> ${esc(p.pid)}${sr ? ` <span class="tag red">Ending in ${sr.counties.length} ${sr.counties.length === 1 ? 'county' : 'counties'}</span>` : ''}</td>
+          <td>${esc(p.type === 'MA' ? 'MA-only' : p.type)}</td>
+          <td><span class="wrap">${esc(p.change || 'Not reviewed yet')}</span></td>
+          <td>${onPlan(p.pid)}</td>
+          <td><label class="sr" for="rate-${i}">Rating for ${esc(p.pid)}</label><select class="field ${r == null ? 'unrated' : ''}" id="rate-${i}" data-rate="${esc(p.pid)}"><option value="none" ${r == null ? 'selected' : ''}>Not rated (Tier 2)</option><option value="2" ${r === 2 ? 'selected' : ''}>Tier 2, real changes</option><option value="3" ${r === 3 ? 'selected' : ''}>Tier 3, little change</option></select></td></tr>`; }).join('')}</tbody>
+      </table></div>
+      <p class="src" style="padding:0 14px 4px">Humana 335-002 in Cabarrus is your example. The other plan IDs and change notes are placeholders.</p>
+    </section>
+
+    <section class="rcard">
+      <header><h3>New leads</h3><p>Leads count as Tier 2 unless you turn this on.</p></header>
+      <div class="rbody"><label class="check"><input type="checkbox" id="rLeadSep" ${RULES.leadSep ? 'checked' : ''}> Make "losing employer coverage" and "moved into the area" leads Tier 1, since their enrollment windows are time-limited</label></div>
+    </section>
+
+    <section class="rcard">
+      <header><h3>Set by hand</h3><p>${manual.length ? `${manual.length} customers. Hand-set tiers show an asterisk everywhere.` : 'Nobody yet. Set a tier from a customer\u2019s detail panel, or in bulk from Table.'}</p></header>
+      ${manual.length ? `<div class="tscroll"><table><tbody>${manual.slice(0, 30).map(c => `<tr><td><button type="button" class="q-name" data-open="${c.id}">${esc(c.name)}</button></td><td>${tierChip(c)}</td><td><span class="wrap">${esc(c.override.note || 'No note')}</span></td><td>Rules say Tier ${autoTier(c).tier}</td><td><button type="button" class="btn sm ghost" data-clearovr="${c.id}">Back to automatic</button></td></tr>`).join('')}</tbody></table></div>` : ''}
+    </section>
+  </div>`;
+}
+
+/* ============ drawer ============ */
+function openDrawer(id){ state.open = id; renderDrawer(); $('#drawer').classList.add('on'); $('#scrim').classList.add('on'); $('#drawer').setAttribute('aria-hidden', 'false'); setTimeout(() => $('#drawer .x')?.focus(), 60); }
+function closeDrawer(){ state.open = null; $('#drawer').classList.remove('on'); $('#scrim').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true'); }
+function renderDrawer(){
+  const c = byId.get(state.open); if (!c) return;
+  const cur = S[c.stage].i, cc = c.consent, ti = tierInfo(c);
+  const consentList = ['email', 'sms', 'rvm'].filter(k => cc[k]).map(k => ({email:'email', sms:'text', rvm:'prerecorded voicemail'})[k]).join(', ') || 'none on file';
+  $('#drawer').innerHTML = `
+  <div class="dh"><div class="r1"><div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="carrier">${esc(c.plan.carrier)}</span>${tierChip(c)}${trackTag(c)}</div>
+      <h2>${esc(c.name)}</h2>
+      <p>${c.age}, ${esc(c.city)}, ${esc(c.county)} County, ${c.st}. Agent: ${AG[c.agent].name}</p>
+      <p style="margin-top:6px">${callLink(c)}</p></div>
+    <button type="button" class="x" data-close aria-label="Close">&times;</button></div></div>
+  <div class="dsec"><h3>Stage</h3>
+    <div class="steps">${STAGES.map((s, i) => `<button type="button" class="step ${i === cur ? 'cur' : i < cur ? 'past' : ''}" style="--c:${s.c}" data-move="${s.id}" data-id="${c.id}" ${i === cur ? 'aria-current="step"' : ''}>${s.name}</button>`).join('')}</div>
+    <p style="font-size:14px;color:var(--ink-2);margin:8px 0 0">${statusLine(c)}. Next: <b style="color:var(--ink)">${esc(nextAction(c))}</b></p>
+  </div>
+  <div class="dsec"><h3>Priority: Tier ${ti.tier}</h3>
+    ${ti.reasons.map(r => `<div class="why"><span><span class="tag ${r.k}">${esc(r.t)}</span></span>${r.d ? `<small>${esc(r.d)}</small>` : ''}</div>`).join('')}
+    <div class="ovr"><label class="lbl" for="ovrSel">Tier for this customer</label>
+      <div class="ovr-row"><label class="sr" for="ovrNote">Reason</label><input class="field" id="ovrNote" placeholder="Reason, if setting by hand" value="${esc(c.override?.note || '')}">
+      <select class="field" id="ovrSel" data-override="${c.id}"><option value="auto" ${c.override ? '' : 'selected'}>Automatic (Tier ${autoTier(c).tier})</option>${[1, 2, 3].map(n => `<option value="${n}" ${c.override && c.override.tier === n ? 'selected' : ''}>Tier ${n}, set by hand</option>`).join('')}</select></div></div>
+  </div>
+  <div class="dsec"><h3>${c.track === 'renewal' ? '2027 picture' : 'Situation'}</h3>
+    <dl class="facts">
+      <dt>Current plan</dt><dd>${esc(c.plan.name)}</dd>
+      <dt>${c.track === 'renewal' ? 'What changed' : 'Situation'}</dt><dd>${esc(changeOf(c))}</dd>
+      ${c.track === 'renewal' ? `<dt>Member letter</dt><dd>${LETTERS[c.letter]}${c.letterDate ? `, mailed ${fmt(c.letterDate)}` : ', <span class="stall">not mailed</span>'}</dd>` : `<dt>Source</dt><dd>${esc(c.source)}</dd>`}
+      ${c.appt ? `<dt>Appointment</dt><dd>${fmtDay(c.appt.date)}, ${timeOf(c.appt.date)}, ${c.appt.mode} (${c.appt.via})</dd>` : ''}
+      ${c.app ? `<dt>Application</dt><dd>${esc(c.app.plan)} via ${esc(c.app.via)}, ${fmt(c.app.date)}. ${c.app.problem ? `<span class="stall">${esc(c.app.problem)}</span>` : c.app.confirmed ? '<span class="yes">Carrier confirmed</span>' : 'Awaiting carrier'}</dd>` : ''}
+      <dt>Record</dt><dd>${esc(c.since0)}</dd>
+    </dl>
+  </div>
+  <div class="dsec"><h3>Ready to talk plans?</h3>
+    ${c.shp ? `<div class="gate"><span class="ic ${c.shpDone ? 'ok' : 'bad'}">${c.shpDone ? '\u2713' : '!'}</span><span>State Health Plan opt-out<small>${c.shpDone ? 'Confirmed they called the State' : `Not confirmed. State open enrollment ${fmt(RULES.shp.start)} to ${fmt(RULES.shp.end)}`}</small></span>${c.shpDone ? '<span></span>' : `<button type="button" class="btn sm" data-act="shpdone" data-id="${c.id}">Mark confirmed</button>`}</div>` : ''}
+    <div class="gate"><span class="ic ok">\u2713</span><span>Permission to contact<small>${c.inbound ? 'Customer reached out first' : 'Existing client'}. Written consent: ${consentList}</small></span><button type="button" class="btn sm ghost" data-consent="${c.id}">Update</button></div>
+    <div class="gate"><span class="ic ${c.soa ? 'ok' : cur >= 2 ? 'bad' : 'mid'}">${c.soa ? '\u2713' : '!'}</span><span>Scope of Appointment<small>${c.soa ? `${esc(c.soa.method)}, ${fmt(c.soa.d)}. Scope: ${c.soa.scope.join(', ')}` : 'Not recorded. Required before any plan-specific discussion.'}</small></span>${c.soa ? '<span></span>' : `<button type="button" class="btn sm" data-soa="${c.id}">Record SOA</button>`}</div>
+    <div class="gate"><span class="ic ${c.intake === 'Returned' ? 'ok' : 'mid'}">${c.intake === 'Returned' ? '\u2713' : '\u2026'}</span><span>Meds, pharmacy and doctors form<small>${c.intake}</small></span>${c.intake === 'Returned' ? '<span></span>' : `<button type="button" class="btn sm ghost" data-intake="${c.id}">${c.intake === 'Sent' ? 'Mark returned' : 'Send form'}</button>`}</div>
+    <div class="gate"><span class="ic ${c.recordings ? 'ok' : 'mid'}">${c.recordings || 0}</span><span>Call recordings from Quo<small>${c.recordings ? 'Linked to this record for 10-year retention' : 'None linked yet'}</small></span><span></span></div>
+  </div>
+  ${c.after ? `<div class="dsec"><h3>After the sale</h3><div style="display:flex;flex-wrap:wrap;gap:6px">${MS_KEYS.map(([k, l]) => { const m = c.after[k]; return `<span class="ms ${m.s}"><i></i>${l}${m.d && m.s !== 'done' ? ` ${fmt(m.d)}` : ''}</span>`; }).join('')}</div></div>` : ''}
+  <div class="dsec"><h3>Activity</h3>
+    <ol class="tl">${c.touches.slice().reverse().map(t => `<li><time>${fmt(t.d)}</time><span><span class="k">${esc(t.k)}</span>${esc(t.t)}</span></li>`).join('')}</ol>
+    <form class="note-in" data-note="${c.id}"><label class="sr" for="noteText">Add a note</label><input class="field" id="noteText" placeholder="Add a note"><button class="btn sm" type="submit">Add</button></form>
+  </div>`;
+}
+
+/* ============ popover menu ============ */
+const pop = $('#pop');
+let popFor = null;
+function openPop(anchor, html){
+  if (popFor === anchor){ closePop(); return; }
+  pop.innerHTML = html; pop.classList.add('on'); popFor = anchor;
+  const r = anchor.getBoundingClientRect();
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  let left = Math.min(r.right - w, window.innerWidth - w - 8); left = Math.max(8, left);
+  let top = r.bottom + 4; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  pop.querySelector('button:not([disabled])')?.focus();
+}
+function closePop(){ pop.classList.remove('on'); popFor = null; }
+
+/* ============ actions, moves, gates ============ */
+function log(c, k, t){ c.touches.push({d:new Date(TODAY), k, t}); }
+function toast(msg, title, warn){
+  const el = document.createElement('div');
+  el.className = 'toast' + (warn ? ' warn' : '');
+  el.innerHTML = (title ? `<b>${esc(title)}</b>` : '') + esc(msg);
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 5200);
+}
+function move(c, to, detail){
+  c.stage = to; c.since = new Date(TODAY);
+  const auto = {
+    contact:'Back in Needs contact. Follow-up suggested in 2 days.',
+    scheduled:`${c.appt ? c.appt.via : 'Acuity'} reminders attached. ${c.consent.email || c.consent.sms ? 'Meds and doctors form sent.' : 'No written consent to send the meds form, so it\u2019s added to your prep list.'}`,
+    deciding:`Follow-up set for ${fmt(addDays(TODAY, 2))}. Flags as undecided after 3 days.`,
+    submitted:`Carrier check set for ${fmt(addDays(TODAY, 10))}. After-sale track started.`,
+    done: c.outcome === 'enrolled' ? 'Welcome message queued. ID card check Jan 6, OEP check-in Feb 10, chargeback window clears Apr 1.'
+      : c.outcome === 'kept' ? 'Marked reviewed for 2027. Birthday card and next ANOC review scheduled.'
+      : 'Out of the AEP queue. Kept on file for next ANOC cycle.'
+  }[to];
+  toast(auto, `${c.name}: ${detail || S[to].name}`);
+  renderAll();
+}
+function requestMove(c, to){
+  if (!c || to === c.stage) return;
+  if (to === 'scheduled') return apptModal(c);
+  if ((to === 'deciding' || to === 'submitted') && !c.soa) return soaModal(c, () => requestMove(c, to));
+  if (to === 'deciding'){ c.note = c.note || 'Wants time to think'; log(c, 'Met', 'Appointment held, customer is deciding'); return move(c, 'deciding', 'Met, deciding'); }
+  if (to === 'submitted') return appModal(c);
+  if (to === 'done') return outcomeModal(c);
+  if (to === 'contact'){ log(c, 'Moved', 'Moved back to Needs contact'); return move(c, 'contact'); }
+}
+function tryContact(c, kind){
+  c.attempts++;
+  if (c.attempts === 1 || !c.firstTry){ c.firstTry = new Date(TODAY); c.since = new Date(TODAY); }
+  if (kind === 'text') log(c, 'Text', 'Texted a booking link');
+  else log(c, 'Call', 'Called, no answer, left voicemail');
+}
+const ACTS = {
+  noanswer(c){ tryContact(c, 'call'); toast(`Try ${c.attempts} logged. Next try suggested ${fmt(addDays(TODAY, 2))}.`, `${c.name}: no answer`); renderAll(); },
+  text(c){
+    if (!c.consent.sms){ toast('No written consent to text is on file. Call instead, or record consent first.', `Can't text ${c.name}`, true); return; }
+    tryContact(c, 'text'); toast('Booking link sent. Replies land in Quo and on this record.', `${c.name}: texted`); renderAll();
+  },
+  book(c){ apptModal(c); },
+  reschedule(c){ apptModal(c, true); },
+  outcome(c){ apptOutcomeModal(c); },
+  decision(c){ outcomeModal(c); },
+  noshow(c){
+    log(c, 'No-show', `Missed ${c.appt.mode.toLowerCase()} appointment`);
+    c.appt = null; c.attempts = Math.max(c.attempts, 1); c.firstTry = c.firstTry || new Date(TODAY);
+    move(c, 'contact', c.consent.sms ? 'No-show, reschedule link texted' : 'No-show, call to reschedule');
+  },
+  still(c){ log(c, 'Call', 'Checked in, still deciding'); c.since = new Date(TODAY); toast(`Next check-in set for ${fmt(addDays(TODAY, 2))}.`, `${c.name}: still deciding`); renderAll(); },
+  confirm(c){
+    c.app.confirmed = true; c.after.accepted = {s:'done', d:new Date(TODAY)}; c.after.welcome = {s:'due'};
+    c.outcome = 'enrolled'; log(c, 'Carrier', 'Confirmed in carrier portal');
+    move(c, 'done', 'Enrollment confirmed');
+  },
+  problem(c){ problemModal(c); },
+  calledproblem(c){ log(c, 'Call', `Called about: ${c.app.problem}`); toast('Call logged. Use the menu to resolve it once you know what happened.', c.name); renderAll(); },
+  resolved(c){ c.app.problem = null; c.app.resolved = true; c.app.confirmed = true; c.after.accepted = {s:'done', d:new Date(TODAY)}; log(c, 'Carrier', 'Problem resolved, enrollment active'); if (c.stage !== 'done'){ c.outcome = 'enrolled'; move(c, 'done', 'Resolved, enrolled'); } else { toast('Enrollment is active again.', `${c.name}: resolved`); renderAll(); } },
+  lostproblem(c){ c.app.resolved = true; c.outcome = 'lost'; log(c, 'Closed', `Lost: ${c.app.problem}`); if (c.stage !== 'done') move(c, 'done', 'Closed'); else { toast('Closed as lost. Chargeback risk noted.', c.name); renderAll(); } },
+  shpdone(c){ c.shpDone = true; bump(); log(c, 'State', 'Confirmed they called the State Health Plan to opt out of the Humana group PPO'); toast(`Tier now comes from their plan rating (Tier ${tierOf(c)}).`, `${c.name}: opt-out confirmed`); renderAll(); },
+  shpremind(c){ log(c, 'Call', 'Reminded them to call the State Health Plan before the deadline'); toast(`Reminder logged. The State's open enrollment closes ${fmt(RULES.shp.end)}.`, c.name); renderAll(); },
+  closeout(c){ c.outcome = 'lost'; log(c, 'Closed', c.attempts ? `Closed after ${c.attempts} tries` : 'Closed for this AEP'); move(c, 'done', 'Closed for this AEP'); }
+};
+
+/* ============ modals ============ */
+const modal = $('#modal');
+function openModal(html, onSubmit){
+  closePop();
+  modal.innerHTML = `<form method="dialog" id="mform">${html}</form>`;
+  const f = $('#mform');
+  f.addEventListener('submit', e => {
+    const btn = e.submitter;
+    if (!btn || btn.value === 'cancel') return;
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(f)); data._all = new FormData(f);
+    if (onSubmit(data, f) !== false) modal.close();
+  });
+  modal.showModal();
+}
+const foot = ok => `<div class="mf"><button class="btn ghost" value="cancel" formnovalidate>Cancel</button><button class="btn primary" value="ok">${ok}</button></div>`;
+const radios = (name, opts) => `<div class="opts">${opts.map(([v, l, s], i) => `<label class="opt"><input type="radio" name="${name}" value="${v}" ${i === 0 ? 'checked' : ''}><span>${l}${s ? `<small>${s}</small>` : ''}</span></label>`).join('')}</div>`;
+
+function soaModal(c, next){
+  const mode = c.appt ? c.appt.mode : c.meetMode;
+  const inPerson = mode === 'In person' || mode === 'Group session';
+  const methods = [['Paper, scanned to vault', 'Scan it with your phone. Shred the paper once the scan is verified.'], ['MedicareCenter', 'E-signature link, stored with the quote'], ['HealthSherpa', 'E-signature link'], ['Carrier platform', 'Jarvis, Vantage, or another carrier tool']];
+  if (!inPerson) methods.push(methods.shift());
+  openModal(`
+    <div class="mh"><h2>Record the Scope of Appointment</h2><p>${esc(c.name)} needs an SOA on file before you discuss specific plans.</p></div>
+    <div class="mb">
+      <div class="callout">Since Oct 1, 2026 there's no 48-hour wait, so same-day is fine. The SOA still comes first, and in writing for in-person meetings.${inPerson ? ' This one is in person.' : ''}</div>
+      <div><span class="lbl">How it was captured</span>${radios('method', methods)}</div>
+      <div><span class="lbl">Products in scope</span><div class="chk">${['MAPD', 'PDP', 'Med Supp', 'DSNP', 'Dental / vision'].map((p, i) => `<label><input type="checkbox" name="scope" value="${p}" ${i < 2 ? 'checked' : ''}>${p}</label>`).join('')}</div></div>
+    </div>${foot('Record SOA')}`, d => {
+    const scope = d._all.getAll('scope');
+    if (!scope.length){ toast('Pick at least one product for the scope.', 'SOA not saved', true); return false; }
+    c.soa = {d:new Date(TODAY), method:d.method, scope};
+    log(c, 'SOA', `Scope of Appointment recorded (${d.method})`);
+    toast(`Stored with this record. Scope: ${scope.join(', ')}.`, 'SOA recorded');
+    setTimeout(next, 0);
+  });
+}
+function apptModal(c, resched){
+  const days = [];
+  for (let i = 0; days.length < 8; i++){ const d = addDays(TODAY, i); if (d.getDay() !== 0) days.push(d); }
+  openModal(`
+    <div class="mh"><h2>${resched ? 'Reschedule' : 'Book'} ${esc(c.name)}</h2><p>In the real build this happens on its own when they book through your Acuity or Calendly link.</p></div>
+    <div class="mb">
+      <div class="two">
+        <div><label class="lbl" for="aday">Day</label><select class="field" id="aday" name="day">${days.map((d, i) => `<option value="${i}">${fmtDay(d)}</option>`).join('')}</select></div>
+        <div><label class="lbl" for="atime">Time</label><select class="field" id="atime" name="time">${['9:00', '10:00', '11:00', '13:00', '14:00', '15:30'].map(t => `<option value="${t}">${timeOf(new Date(2026, 0, 1, +t.split(':')[0], +t.split(':')[1]))}</option>`).join('')}</select></div>
+      </div>
+      <div><span class="lbl">Meeting type</span><div class="chk">${['Phone', 'In person', 'Zoom', 'Group session'].map((m, i) => `<label><input type="radio" name="mode" value="${m}" ${(c.appt ? c.appt.mode === m : i === (c.agent === ME ? 0 : 1)) ? 'checked' : ''}>${m}</label>`).join('')}</div></div>
+    </div>${foot(resched ? 'Reschedule' : 'Book appointment')}`, d => {
+    const dt = new Date(days[+d.day]); const [h, m] = d.time.split(':'); dt.setHours(+h, +m);
+    c.appt = {date:dt, mode:d.mode, via:'Acuity'};
+    if ((c.consent.email || c.consent.sms) && c.intake === 'Not sent') c.intake = 'Sent';
+    log(c, 'Booked', `${d.mode} appointment set for ${fmtDay(dt)}`);
+    setTimeout(() => move(c, 'scheduled', `${resched ? 'Rescheduled' : 'Booked'} for ${fmtDay(dt)}`), 0);
+  });
+}
+function apptOutcomeModal(c){
+  const opts = [['deciding', 'Met, still deciding', 'Sets a follow-up in 2 days'], ['submitted', 'Enrolled, log the application', 'Starts the carrier check and after-sale track']];
+  if (c.track === 'renewal') opts.push(['kept', 'Reviewed, keeping current plan', 'Counts as a completed renewal']);
+  opts.push(['closed', 'Not moving forward', 'Closes them for this AEP'], ['noshow', 'No-show', 'Back to Needs contact']);
+  openModal(`<div class="mh"><h2>How did it go?</h2><p>${esc(c.name)}, ${fmtDay(c.appt.date)} ${c.appt.mode.toLowerCase()}</p></div>
+    <div class="mb">${radios('o', opts)}</div>${foot('Save')}`, d => {
+    setTimeout(() => {
+      if (d.o === 'noshow') ACTS.noshow(c);
+      else if (d.o === 'kept') keepPlan(c);
+      else if (d.o === 'closed') withSoa(c, () => ACTS.closeout(c), true);
+      else requestMove(c, d.o);
+    }, 0);
+  });
+}
+function keepPlan(c){
+  const go = () => { c.outcome = 'kept'; log(c, 'Met', 'Reviewed 2027 changes, keeping current plan'); move(c, 'done', 'Kept current plan'); };
+  withSoa(c, go);
+}
+function withSoa(c, fn, optional){ (c.soa || optional) ? fn() : soaModal(c, fn); }
+function appModal(c){
+  const opts = (c.plan.type === 'DSNP' ? DSNP : c.shp ? MAONLY : PLANS).filter(p => !isSar(p, c.county));
+  openModal(`
+    <div class="mh"><h2>Log the application</h2><p>${esc(c.name)}. Coverage starts Jan 1, 2027.</p></div>
+    <div class="mb">
+      <div><label class="lbl" for="pplan">New plan</label><select class="field" id="pplan" name="plan">${opts.map((p, i) => `<option value="${i}">${p.name}</option>`).join('')}<option value="dental">Standalone dental plan</option></select></div>
+      <div><label class="lbl" for="pvia">Submitted through</label><select class="field" id="pvia" name="via">${['MedicareCenter', 'HealthSherpa', 'Jarvis (UHC)', 'Vantage (Humana)', 'Carrier paper app'].map(v => `<option>${v}</option>`).join('')}</select></div>
+      <div class="callout">Plans leaving ${esc(c.county)} County are left off this list.${c.shp ? ' State retiree: showing MA-only plans.' : ''}</div>
+    </div>${foot('Log application')}`, d => {
+    const p = d.plan === 'dental' ? {carrier:'Dental', name:'Standalone dental plan'} : opts[+d.plan];
+    c.app = {carrier:p.carrier, plan:p.name, via:d.via, date:new Date(TODAY), confirmed:false, problem:null};
+    c.outcome = null; buildAfter(c);
+    log(c, 'App', `Application submitted for ${p.name} via ${d.via}`);
+    setTimeout(() => move(c, 'submitted', 'Application submitted'), 0);
+  });
+}
+function outcomeModal(c){
+  const opts = [];
+  if (c.app && !c.app.problem) opts.push(['enrolled', 'Carrier confirmed the enrollment', 'Starts welcome and retention check-ins']);
+  if (!c.app) opts.push(['submit', 'Enrolled, log the application', 'Moves to Submitted']);
+  if (c.track === 'renewal') opts.push(['kept', 'Reviewed, keeping current plan', 'A completed renewal, not a loss']);
+  opts.push(['lost', 'Closed for this AEP', 'Unreachable, not a fit, or went elsewhere']);
+  openModal(`<div class="mh"><h2>Record the decision</h2><p>${esc(c.name)}</p></div><div class="mb">${radios('out', opts)}</div>${foot('Save')}`, d => {
+    setTimeout(() => {
+      if (d.out === 'submit') return requestMove(c, 'submitted');
+      if (d.out === 'kept') return keepPlan(c);
+      if (d.out === 'lost') return ACTS.closeout(c);
+      c.outcome = 'enrolled'; c.app.confirmed = true; c.after.accepted = {s:'done', d:new Date(TODAY)}; c.after.welcome = {s:'due'};
+      log(c, 'Carrier', 'Enrollment confirmed'); move(c, 'done', 'Enrolled');
+    }, 0);
+  });
+}
+function problemModal(c){
+  openModal(`<div class="mh"><h2>What did the carrier portal show?</h2><p>${esc(c.name)}, ${esc(c.app.plan)}</p></div>
+    <div class="mb">${radios('p', PROBLEMS.map(p => [p, p]))}</div>${foot('Flag it')}`, d => {
+    c.app.problem = d.p; c.app.resolved = false; c.after.accepted = {s:'problem', note:d.p};
+    log(c, 'Alert', d.p);
+    toast('It stays under Check with carrier until you resolve it.', `${c.name}: flagged`, true);
+    renderAll();
+  });
+}
+function consentModal(c){
+  openModal(`<div class="mh"><h2>Contact consent</h2><p>${esc(c.name)}. Bulk sends only go to channels checked here.</p></div>
+    <div class="mb"><div class="opts">${[['email', 'Email', 'AEP email and the meds form'], ['sms', 'Text messages', 'Booking links and reminders'], ['rvm', 'Prerecorded voicemail', 'Ringless voicemail blasts']].map(([k, l, s]) => `<label class="opt"><input type="checkbox" name="${k}" ${c.consent[k] ? 'checked' : ''}><span>${l}<small>${s}</small></span></label>`).join('')}</div>
+    <div class="callout">Note how consent was given (signed form, recorded call) in the activity log.</div></div>${foot('Save consent')}`, d => {
+    ['email', 'sms', 'rvm'].forEach(k => c.consent[k] = !!d[k]);
+    log(c, 'Consent', 'Contact consent updated'); toast('Consent saved.', c.name); renderAll();
+  });
+}
+
+/* ============ inline new-lead form ============ */
+function renderLeadForm(){
+  const f = $('#leadform');
+  f.innerHTML = `
+    <div class="lf-grid">
+      <label><span>Name</span><input class="field" name="name" autocomplete="off"></label>
+      <label><span>Phone</span><input class="field" name="phone" inputmode="tel" placeholder="(704) 555-0100"></label>
+      <label><span>City</span><input class="field" name="city"></label>
+      <label><span>County</span><select class="field" name="county">${COUNTIES.map(([c, st]) => `<option value="${c}|${st}">${c}, ${st}</option>`).join('')}<option value="other">Outside NC or SC</option></select></label>
+      <label><span>Source</span><select class="field" name="src">${Object.keys(SRC_W).map(s => `<option>${s}</option>`).join('')}</select></label>
+      <label><span>Situation</span><select class="field" name="sit">${Object.keys(SIT_W).map(s => `<option>${s}</option>`).join('')}</select></label>
+      <label><span>Current carrier</span><select class="field" name="carrier"><option>None</option>${CARRIERS.map(c => `<option>${c}</option>`).join('')}</select></label>
+      <label><span>Agent</span><select class="field" name="agent">${AGENTS.map(a => `<option value="${a.id}" ${a.id === (state.agent === 'all' ? ME : state.agent) ? 'selected' : ''}>${a.name}</option>`).join('')}</select></label>
+    </div>
+    <div class="lf-foot">
+      <span class="lbl" style="margin:0">They contacted us first. Written consent for:</span>
+      <label class="check"><input type="checkbox" name="email"> Email</label>
+      <label class="check"><input type="checkbox" name="sms"> Text</label>
+      <span class="lf-err" id="lfErr" role="alert"></span>
+      <span style="margin-left:auto;display:flex;gap:8px"><button type="button" class="btn ghost" id="lfCancel">Cancel</button><button type="submit" class="btn primary">Add lead</button></span>
+    </div>`;
+}
+function toggleLead(on){
+  const f = $('#leadform');
+  on = on ?? !f.classList.contains('on');
+  if (on){ renderLeadForm(); f.classList.add('on'); f.querySelector('[name=name]').focus(); }
+  else f.classList.remove('on');
+  $('#addLead').setAttribute('aria-expanded', on);
+}
+$('#leadform').addEventListener('submit', e => {
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target));
+  const err = $('#lfErr');
+  if (!d.name.trim()){ err.textContent = 'Add a name.'; return; }
+  if (d.county === 'other'){ err.textContent = 'Outside the NC and SC service area. Refer them to an agent licensed in their state.'; return; }
+  const [county, st] = d.county.split('|');
+  const agent = AG[d.agent];
+  const c = {id:nextId++, agent:agent.id, track:'lead', name:d.name.trim(), city:d.city.trim() || county, county, st, age:'Age not set', bmonth:0,
+    phone:d.phone.trim(), touches:[{d:new Date(TODAY), k:'Inbound', t:`New lead from ${d.src.toLowerCase()}`}], attempts:0, firstTry:null,
+    soa:null, appt:null, app:null, outcome:null, after:null, intake:'Not sent', recordings:0, note:'',
+    plan:{carrier:d.carrier, name: d.sit === 'Turning 65' ? 'Not on Medicare yet' : d.carrier === 'None' ? 'Unknown' : `${d.carrier} plan (other agent)`, type:''},
+    sev:'lead', source:d.src, situation:d.sit, change:d.sit, letter:null, letterDate:null, since0:`Lead from ${d.src.toLowerCase()}`,
+    consent:{rvm:false, sms:!!d.sms, email:!!d.email}, inbound:true, stage:'contact', since:new Date(TODAY)};
+  book.push(c); byId.set(c.id, c);
+  toggleLead(false);
+  toast(tierOf(c) === 1 ? 'Tier 1. It\u2019s under Call first on Today.' : `Tier ${tierOf(c)}. Added to Needs contact.`, `${c.name} added for ${agent.name}`);
+  renderAll(); openDrawer(c.id);
+});
+
+/* ============ bulk ============ */
+function bulk(kind, value){
+  const ids = [...state.sel].map(id => byId.get(id));
+  if (kind === 'letter'){
+    const ok = ids.filter(c => c.track === 'renewal');
+    ok.forEach(c => { c.letter = value; c.letterDate = new Date(TODAY); log(c, 'Letter', `${LETTERS[value]} mailed`); });
+    toast(`${ok.length} renewals marked.${ids.length - ok.length ? ` ${ids.length - ok.length} new leads skipped.` : ''}`, `${LETTERS[value]} logged`);
+  }
+  if (kind === 'email' || kind === 'rvm'){
+    const ok = ids.filter(c => c.consent[kind]);
+    ok.forEach(c => log(c, kind === 'email' ? 'Email' : 'Blast', kind === 'email' ? 'AEP review email sent' : 'Ringless voicemail blast queued'));
+    toast(`Sent to ${ok.length}. Skipped ${ids.length - ok.length} with no written ${kind === 'email' ? 'email' : 'prerecorded voicemail'} consent.`, kind === 'email' ? 'AEP email' : 'Voicemail blast', !ok.length);
+  }
+  if (kind === 'tier'){
+    ids.forEach(c => { c.override = value === 'auto' ? null : {tier:+value, note:'Set in bulk', d:new Date(TODAY)}; });
+    bump();
+    toast(value === 'auto' ? `${ids.length} customers back on automatic tiers.` : `${ids.length} customers set to Tier ${value}. Hand-set tiers show an asterisk.`, 'Tier updated');
+  }
+  state.sel.clear();
+  renderAll();
+}
+
+/* ============ render + events ============ */
+function renderView(){ ({today:renderToday, board:renderBoard, table:renderTable, after:renderAfter, agency:renderAgency, rules:renderRules})[state.view](); }
+function renderAll(){
+  renderNav(); renderMetrics(); renderFilters(); renderView();
+  if (state.open) renderDrawer();
+}
+function setView(v){ state.view = v; state.page = 0; if (v !== 'table') state.sel.clear(); $('#app').classList.remove('nav-open'); renderAll(); try { window.scrollTo({top:0}); } catch(e){} }
+
+document.addEventListener('click', e => {
+  if (pop.classList.contains('on') && !e.target.closest('#pop') && !e.target.closest('[data-menu],[data-cardmenu]')) closePop();
+  const t = e.target.closest('button, [data-agentrow]');
+  if (!t) return;
+  const ds = t.dataset;
+  if (ds.view) return setView(ds.view);
+  if (ds.focus){ state.focus = state.focus === ds.focus ? null : ds.focus; if (state.view === 'after' || state.view === 'agency') state.view = 'today'; state.page = 0; return renderAll(); }
+  if (t.id === 'resetF'){ Object.assign(state, {focus:null, special:null, stage:'all', carrier:'all', county:'all', tier:'all', track:'all', stalled:false, q:'', page:0}); $('#q').value = ''; return renderAll(); }
+  if (ds.seeall){ state.stage = ds.seeall; return setView('table'); }
+  if (ds.tablefocus){ state.focus = ds.tablefocus; return setView('table'); }
+  if (ds.expand){ state.expand[ds.expand] = !state.expand[ds.expand]; return renderView(); }
+  if (ds.agentrow){ Object.assign(state, {agent:ds.agentrow, focus:null, special:null, stage:'all', carrier:'all', county:'all', tier:'all', track:'all', stalled:false, q:''}); $('#q').value = ''; renderAgentSelect(); return setView('today'); }
+  if (ds.menu){
+    const items = JSON.parse(ds.menu);
+    return openPop(t, items.map(([a, l]) => `<button type="button" role="menuitem" data-act="${a}" data-id="${ds.id}">${l}</button>`).join(''));
+  }
+  if (ds.cardmenu){
+    const c = byId.get(+ds.cardmenu);
+    return openPop(t, `<div class="hd">Move to</div>${STAGES.map(s => `<button type="button" role="menuitem" data-move="${s.id}" data-id="${c.id}" ${s.id === c.stage ? 'disabled' : ''}><span class="dot" style="--c:${s.c}"></span>${s.name}${s.id === c.stage ? ' (current)' : ''}</button>`).join('')}<hr><button type="button" role="menuitem" data-open="${c.id}">Open details</button>`);
+  }
+  if (ds.act){ closePop(); return ACTS[ds.act](byId.get(+ds.id)); }
+  if (ds.move){ closePop(); return requestMove(byId.get(+ds.id), ds.move); }
+  if (ds.soa){ const c = byId.get(+ds.soa); return soaModal(c, renderAll); }
+  if (ds.consent) return consentModal(byId.get(+ds.consent));
+  if (ds.intake){
+    const c = byId.get(+ds.intake);
+    if (c.intake === 'Sent'){ c.intake = 'Returned'; log(c, 'Form', 'Meds and doctors form returned'); toast('Meds, pharmacy and doctors saved to the record.', c.name); }
+    else if (c.consent.email || c.consent.sms){ c.intake = 'Sent'; log(c, 'Form', 'Meds and doctors form sent'); toast(`Form sent by ${c.consent.email ? 'email' : 'text'}.`, c.name); }
+    else return toast('No written email or text consent. Hand them the paper form at the appointment, or record consent first.', `Can't send to ${c.name}`, true);
+    return renderAll();
+  }
+  if (ds.ms){
+    const c = byId.get(+ds.id), k = ds.ms;
+    if (c.after[k].s === 'problem') return openDrawer(c.id);
+    if (k === 'accepted') return ACTS.confirm(c);
+    c.after[k] = {s:'done', d:new Date(TODAY)};
+    log(c, 'After-sale', `${MS_KEYS.find(x => x[0] === k)[1]} done`);
+    toast('Marked done.', c.name); return renderAll();
+  }
+  if (ds.sort){ const k = ds.sort; state.sort = state.sort.key === k ? {key:k, dir:-state.sort.dir} : {key:k, dir: ['days', 'consent', 'soa'].includes(k) ? -1 : 1}; return renderView(); }
+  if (ds.page){ state.page += +ds.page; return renderView(); }
+  if ('selall' in ds){ list().forEach(c => state.sel.add(c.id)); return renderView(); }
+  if (ds.bulk){ if (ds.bulk === 'clear'){ state.sel.clear(); return renderView(); } return bulk(ds.bulk); }
+  if ('close' in ds) return closeDrawer();
+  if (ds.open){ closePop(); return openDrawer(+ds.open); }
+  if (t.id === 'lfCancel') return toggleLead(false);
+  if ('clearspecial' in ds){ state.special = null; return renderAll(); }
+  if ('shpfilter' in ds){ Object.assign(state, {special:'shp', focus:null, stage:'all'}); return setView('table'); }
+  if ('addsar' in ds){
+    const pid = $('#rPlan').value;
+    const counties = [...document.querySelectorAll('input[name=rCounty]:checked')].map(i => i.value);
+    if (!counties.length) return toast('Pick at least one county.', 'Rule not added', true);
+    const before = book.filter(c => tierOf(c) === 1).length;
+    const ex = RULES.sar.find(r => r.pid === pid);
+    if (ex) ex.counties = [...new Set(ex.counties.concat(counties))]; else RULES.sar.push({pid, counties});
+    bump();
+    const moved = book.filter(c => tierOf(c) === 1).length - before;
+    toast(`${moved} more customers across the agency are now Tier 1. They should get Letter C.`, `${planOf(pid).name} ending in ${counties.join(', ')}`);
+    return renderAll();
+  }
+  if (ds.delsar){ const r = RULES.sar.splice(+ds.delsar, 1)[0]; bump(); toast('Those customers now take their plan rating.', `Rule removed: ${planOf(r.pid).name}`); return renderAll(); }
+  if (ds.clearovr){ const c = byId.get(+ds.clearovr); c.override = null; bump(); log(c, 'Tier', 'Tier set back to automatic'); return renderAll(); }
+
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.f){ state[t.dataset.f] = t.value; state.page = 0; return renderAll(); }
+  if (t.id === 'fStalled'){ state.stalled = t.checked; state.page = 0; return renderAll(); }
+  if (t.id === 'agent'){ state.agent = t.value; state.sel.clear(); state.page = 0; return renderAll(); }
+  if (t.dataset.override){
+    const c = byId.get(+t.dataset.override), note = ($('#ovrNote')?.value || '').trim();
+    c.override = t.value === 'auto' ? null : {tier:+t.value, note, d:new Date(TODAY)};
+    bump();
+    log(c, 'Tier', t.value === 'auto' ? 'Tier set back to automatic' : `Tier set to ${t.value} by hand${note ? `: ${note}` : ''}`);
+    toast(t.value === 'auto' ? `Back to Tier ${tierOf(c)} from the rules.` : `Tier ${t.value} until you set it back to automatic.`, c.name);
+    return renderAll();
+  }
+  if (t.id === 'rStatus'){ RULES.status = t.value; RULES.updated = new Date(TODAY); return renderAll(); }
+  if (t.id === 'rCarrier'){ state.ruleCarrier = t.value; return renderView(); }
+  if (t.id === 'rShpOn'){ RULES.shp.on = t.checked; bump(); return renderAll(); }
+  if (t.id === 'rShpStart' || t.id === 'rShpEnd'){
+    if (!t.value) return;
+    const [y, m, d] = t.value.split('-').map(Number);
+    RULES.shp[t.id === 'rShpStart' ? 'start' : 'end'] = new Date(y, m - 1, d);
+    bump(); return renderAll();
+  }
+  if (t.dataset.rate){
+    RULES.ratings[t.dataset.rate] = t.value === 'none' ? null : +t.value; bump();
+    toast('Customers on this plan re-sorted. Tier 1 rules still take priority.', `${planOf(t.dataset.rate).name}: ${t.value === '3' ? 'Tier 3' : 'Tier 2'}`);
+    return renderAll();
+  }
+  if (t.id === 'rLeadSep'){ RULES.leadSep = t.checked; bump(); return renderAll(); }
+
+  if (t.dataset.sel){ const id = +t.dataset.sel; t.checked ? state.sel.add(id) : state.sel.delete(id); return renderView(); }
+  if (t.id === 'selPage'){ const L = sorted(list()); L.slice(state.page * 40, (state.page + 1) * 40).forEach(c => t.checked ? state.sel.add(c.id) : state.sel.delete(c.id)); return renderView(); }
+  if (t.id === 'bulkLetter' && t.value) return bulk('letter', t.value);
+  if (t.id === 'bulkTier' && t.value) return bulk('tier', t.value);
+});
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.dataset.note){ e.preventDefault(); const c = byId.get(+f.dataset.note), v = f.querySelector('input').value.trim(); if (v){ log(c, 'Note', v); renderDrawer(); } }
+});
+let qTimer;
+$('#q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value.trim(); state.page = 0; renderAll(); }, 160); });
+$('#scrim').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || modal.open) return;
+  if (pop.classList.contains('on')){ const a = popFor; closePop(); a?.focus(); return; }
+  if (state.open) closeDrawer();
+});
+window.addEventListener('scroll', closePop, {passive:true});
+window.addEventListener('resize', closePop);
+$('#addLead').addEventListener('click', () => toggleLead());
+$('#menuBtn').addEventListener('click', () => $('#app').classList.toggle('nav-open'));
+$('#collapse').addEventListener('click', () => { const s = $('#app').classList.toggle('slim'); store.set('rr-slim', s ? '1' : '0'); $('#collapse').setAttribute('aria-label', s ? 'Expand sidebar' : 'Collapse sidebar'); });
+if (store.get('rr-slim') === '1') $('#app').classList.add('slim');
+
+/* drag and drop */
+let dragId = null;
+document.addEventListener('dragstart', e => { const c = e.target.closest?.('[data-card]'); if (!c) return; closePop(); dragId = +c.dataset.card; c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragId)); });
+document.addEventListener('dragend', e => { e.target.classList?.remove('dragging'); document.querySelectorAll('.col.over').forEach(x => x.classList.remove('over')); });
+document.addEventListener('dragover', e => { const col = e.target.closest?.('[data-drop]'); if (!col || dragId == null) return; e.preventDefault(); document.querySelectorAll('.col.over').forEach(x => x !== col && x.classList.remove('over')); col.classList.add('over'); });
+document.addEventListener('drop', e => { const col = e.target.closest?.('[data-drop]'); if (!col || dragId == null) return; e.preventDefault(); col.classList.remove('over'); const c = byId.get(dragId); dragId = null; requestMove(c, col.dataset.drop); });
+
+renderSeason();
+renderAgentSelect();
+renderAll();
+</script>
+</body>
+</html>

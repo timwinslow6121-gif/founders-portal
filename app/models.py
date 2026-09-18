@@ -1360,3 +1360,193 @@ class CustomerSavedView(db.Model):
 
     def __repr__(self):
         return f"<CustomerSavedView {self.name!r} agency_id={self.agency_id} shared={self.is_shared}>"
+
+
+# ---------------------------------------------------------------------------
+# AEP pipeline (migration 046)
+#
+# A seasonal work queue over the existing customer book. Nothing here owns
+# customer identity -- every table FKs to customers.id and carries agency_id.
+# ---------------------------------------------------------------------------
+
+class PipelineState(db.Model):
+    """One row per customer. The workflow state the pipeline owns."""
+    __tablename__ = "pipeline_state"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False,
+                            unique=True, index=True)
+
+    # renewal = already on our book; lead = new prospect. The portal has no
+    # lead record type (deal_stage is 'Active' on all 5,495 rows), so the
+    # distinction lives here rather than overloading Customer.deal_stage.
+    track       = db.Column(db.String(16), nullable=False, default="renewal")
+
+    # contact | scheduled | deciding | submitted | done
+    stage       = db.Column(db.String(16), nullable=False, default="contact")
+    # enrolled | kept | lost -- required when stage='done'
+    outcome     = db.Column(db.String(16))
+    stage_since = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+
+    attempts     = db.Column(db.Integer, nullable=False, default=0)
+    first_try_at = db.Column(db.DateTime)
+
+    intake_status = db.Column(db.String(24))
+    waiting_what  = db.Column(db.String(256))
+    waiting_due   = db.Column(db.Date, index=True)
+
+    sep_end    = db.Column(db.Date, index=True)
+    sep_reason = db.Column(db.String(128))
+
+    shp_flag         = db.Column(db.Boolean, nullable=False, default=False)
+    shp_confirmed_at = db.Column(db.DateTime)
+
+    tier_override      = db.Column(db.Integer)
+    tier_override_note = db.Column(db.Text)
+    tier_override_by   = db.Column(db.Integer, db.ForeignKey("users.id"))
+    tier_override_at   = db.Column(db.DateTime)
+
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    customer = db.relationship("Customer", foreign_keys=[customer_id])
+
+    __table_args__ = (db.Index("ix_pipeline_state_stage_since", "stage", "stage_since"),)
+
+
+class Touch(db.Model):
+    """Append-only contact log. Never updated, never deleted."""
+    __tablename__ = "touch"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    agent_id    = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+    # sent = they may not know you exist | tried = no answer | reached = two-way
+    level     = db.Column(db.String(8), nullable=False)
+    channel   = db.Column(db.String(24), nullable=False)
+    direction = db.Column(db.String(8))
+    occurred_at = db.Column(db.DateTime, nullable=False, index=True)
+    detail      = db.Column(db.Text)
+    source      = db.Column(db.String(16), nullable=False, default="manual")
+    # Quo delivers the same event more than once; this is the idempotency key.
+    external_id = db.Column(db.String(128), unique=True)
+    duration_s  = db.Column(db.Integer)
+    outcome_recorded_at = db.Column(db.DateTime)
+
+    __table_args__ = (db.Index("ix_touch_customer_occurred", "customer_id", "occurred_at"),)
+
+
+class Appointment(db.Model):
+    __tablename__ = "appointment"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    agent_id    = db.Column(db.Integer, db.ForeignKey("users.id"), index=True)
+    starts_at   = db.Column(db.DateTime, nullable=False)
+    mode        = db.Column(db.String(24))
+    source      = db.Column(db.String(24))
+    external_id = db.Column(db.String(128))
+    outcome_recorded_at = db.Column(db.DateTime)
+
+    __table_args__ = (db.Index("ix_appointment_agent_starts", "agent_id", "starts_at"),)
+
+
+class Application(db.Model):
+    __tablename__ = "application"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    agent_id    = db.Column(db.Integer, db.ForeignKey("users.id"))
+    plan_id     = db.Column(db.Integer, db.ForeignKey("plans.id"))
+    submitted_at = db.Column(db.DateTime)
+    via          = db.Column(db.String(32))
+    confirmed_at = db.Column(db.DateTime)
+    problem      = db.Column(db.String(128))
+    problem_at   = db.Column(db.DateTime)
+    resolved_at  = db.Column(db.DateTime)
+
+
+class ScopeForm(db.Model):
+    """Scope of appointment. The 48-hour wait ended 2026-10-01 (Tim), but the
+    form must still exist before any plan-specific discussion."""
+    __tablename__ = "scope_form"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    captured_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    method      = db.Column(db.String(24))
+    products    = db.Column(db.Text)          # JSON list
+    captured_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+
+class AuthorizedContact(db.Model):
+    """The daughter who handles her mother's Medicare -- and who may be a
+    client herself, hence linked_customer_id."""
+    __tablename__ = "authorized_contact"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    agency_id   = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False, index=True)
+    name         = db.Column(db.String(256), nullable=False)
+    relationship_= db.Column("relationship", db.String(64))
+    phone        = db.Column(db.String(32), index=True)
+    may_discuss_coverage = db.Column(db.Boolean, nullable=False, default=False)
+    linked_customer_id   = db.Column(db.Integer, db.ForeignKey("customers.id"))
+
+
+class PlanRating(db.Model):
+    """Timbo's read of how much a plan changed. NULL until rated -- an unrated
+    plan is Tier 2 so nobody is skipped."""
+    __tablename__ = "plan_rating"
+
+    id        = db.Column(db.Integer, primary_key=True)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    plan_id   = db.Column(db.Integer, db.ForeignKey("plans.id"), nullable=False, index=True)
+    rating    = db.Column(db.Integer)          # 1 major | 2 some | 3 little | NULL unrated
+    note      = db.Column(db.Text)
+    updated_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    __table_args__ = (db.UniqueConstraint("agency_id", "plan_id", name="uq_plan_rating"),)
+
+
+class SarRule(db.Model):
+    """Service area reduction: this plan is not offered in this county."""
+    __tablename__ = "sar_rule"
+
+    id        = db.Column(db.Integer, primary_key=True)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False, index=True)
+    plan_id   = db.Column(db.Integer, db.ForeignKey("plans.id"), nullable=False, index=True)
+    county    = db.Column(db.String(128), nullable=False)
+    state     = db.Column(db.String(8), default="NC")
+    created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    __table_args__ = (db.UniqueConstraint("agency_id", "plan_id", "county", name="uq_sar_rule"),)
+
+
+class PipelineConfig(db.Model):
+    """One row per agency. The knobs Timbo turns."""
+    __tablename__ = "pipeline_config"
+
+    id        = db.Column(db.Integer, primary_key=True)
+    agency_id = db.Column(db.Integer, db.ForeignKey("agencies.id"), nullable=False,
+                          unique=True, index=True)
+    season_start = db.Column(db.Date)
+    season_end   = db.Column(db.Date)
+    shp_enabled  = db.Column(db.Boolean, nullable=False, default=True)
+    shp_start    = db.Column(db.Date)
+    shp_end      = db.Column(db.Date)
+    sep_days             = db.Column(db.Integer, nullable=False, default=30)
+    stall_contact_days   = db.Column(db.Integer, nullable=False, default=5)
+    stall_deciding_days  = db.Column(db.Integer, nullable=False, default=3)
+    stall_submitted_days = db.Column(db.Integer, nullable=False, default=10)
+    rules_status = db.Column(db.String(8), nullable=False, default="draft")
+    updated_by = db.Column(db.Integer, db.ForeignKey("users.id"))
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())

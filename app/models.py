@@ -22,6 +22,12 @@ class Agency(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
     name       = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    # The agency's own National Producer Number. Distinct from User.npn: an
+    # agency NPN identifies the firm, a user NPN the individual producer.
+    # IntegrityCONNECT binds each API credential to ONE NPN, extracted from the
+    # login session and enforced at the gateway, so which NPN a credential is
+    # cut under decides whose book it can see.
+    npn        = db.Column(db.String(16))
 
     def __repr__(self):
         return f"<Agency {self.name}>"
@@ -42,6 +48,13 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     last_login = db.Column(db.DateTime)
     quo_user_id = db.Column(db.String(64))
+    # National Producer Number. A per-PERSON national identifier, NOT per-carrier:
+    # it lived only in agent_carrier_contracts.id_value keyed by id_type, which meant
+    # 8 copies per agent that could silently disagree -- and did (Alex Groves' rows
+    # labelled "NPN" actually held his Humana SAN and UHC agent number). Carrier-issued
+    # identifiers (writing_number, agent_code, SAN) stay in agent_carrier_contracts.
+    # Scopes IntegrityCONNECT Leads Partner API credentials, which bind to one NPN.
+    npn = db.Column(db.String(16), index=True)
     # Quo userId (pattern "US...") — maps webhook data.object.userId to portal User
     # Set by admin in agent settings; NULL for unmapped agents
     policies = db.relationship("Policy", back_populates="agent", lazy="dynamic")

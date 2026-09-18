@@ -30,7 +30,14 @@ from sqlalchemy import text
 
 # Values Tim supplied directly. Alex's stored "NPN" rows are NOT his NPN.
 KNOWN_CORRECTIONS = {
+    # Alex's stored "NPN" rows hold his Humana SAN and UHC agent number.
     "alex@foundersinsuranceagency.com": "22204954",
+    # Mike: GTL/NPN/0118BK08 is a GTL writing number mislabelled as an NPN;
+    # the other four carriers agree on 18052208. Confirmed by Tim 2026-09-18.
+    "michael@foundersinsuranceagency.com": "18052208",
+    # Anjana: 21041582 is correct, but it also appears under Humana/writing_number,
+    # which trips the "suspect" gate. Confirmed by Tim 2026-09-18.
+    "anjana@foundersinsuranceagency.com": "21041582",
 }
 
 

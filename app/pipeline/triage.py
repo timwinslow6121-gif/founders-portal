@@ -12,6 +12,7 @@ strings.
 import datetime as dt
 from typing import NamedTuple, Optional
 
+from app.extensions import db
 from app.models import PlanRating, SarRule
 from app.pipeline.plans import current_plan_for
 
@@ -47,10 +48,21 @@ def _renewal_tier(customer, state, cfg, today):
     county = cp["county"] if cp else None
 
     # 1. Plan is ending in their county.
+    #
+    # Case-INSENSITIVE on purpose. Production county values are inconsistent
+    # with themselves -- 'CABARRUS' (2,332) alongside 'ROWAN' (1,449) and
+    # 'Rowan' (25) -- because they arrive from different carrier BOB exports.
+    # An exact match silently returned ZERO for the one real SAR case we have
+    # (Humana H5525-035 exiting Cabarrus: 14 customers, all missed), and a
+    # missed SAR is the highest-severity failure this feature has: the member
+    # loses coverage or is auto-assigned without ever being called.
     if plan_id and county:
-        sar = SarRule.query.filter_by(
-            agency_id=customer.agency_id, plan_id=plan_id, county=county
-        ).first()
+        sar = (SarRule.query
+               .filter(SarRule.agency_id == customer.agency_id,
+                       SarRule.plan_id == plan_id,
+                       db.func.upper(db.func.trim(SarRule.county))
+                       == county.strip().upper())
+               .first())
         if sar:
             return Tier(1, 1, "sar", plan_id, county)
 

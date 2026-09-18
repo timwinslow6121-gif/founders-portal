@@ -307,3 +307,64 @@ def test_list_conflicts_include_resolved(plan, agent_user, admin_user):
     resolve_conflict(plan, "dental_allowance", make_value(1500, "yr", "usd"), user=admin_user)
     assert list_conflicts(plan, unresolved_only=True) == []
     assert len(list_conflicts(plan, unresolved_only=False)) == 1  # history preserved
+
+
+# ---------------------------------------------------------------------------
+# Compound text benefits (CMS PBP)
+#
+# Benefits like inpatient hospital arrive from the PBP files as irreducible
+# strings ("$455 days 1-6, $0 days 7-90") with no single numeric amount. They
+# are stored as unit="text"/amount=None with the benefit in `display`. The
+# equality check must fall back to `display`, or every text value compares
+# equal to every other.
+# ---------------------------------------------------------------------------
+
+def _text(display):
+    from app.plan_provenance import make_value
+    return make_value(amount=None, period=None, unit="text", display=display)
+
+
+def test_text_benefit_change_is_not_mistaken_for_no_change(plan):
+    from app.plan_provenance import set_cms_value, get_field
+    set_cms_value(plan, "inpatient_hospital", _text("$455 days 1-6, $0 days 7-90"), "cms_pbp_2026")
+    action = set_cms_value(plan, "inpatient_hospital", _text("$295 days 1-5, $0 days 6-90"), "cms_pbp_2027")
+    assert action == "refreshed"
+    assert get_field(plan, "inpatient_hospital")["value"]["display"] == "$295 days 1-5, $0 days 6-90"
+
+
+def test_identical_text_benefit_still_compares_equal(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value
+    set_human_value(plan, "inpatient_hospital", _text("$455 days 1-6, $0 days 7-90"), user=agent_user)
+    # CMS confirms the agent verbatim -> promotion, not a conflict
+    action = set_cms_value(plan, "inpatient_hospital", _text("$455 days 1-6, $0 days 7-90"), "cms_pbp_2027")
+    assert action == "promoted_verified"
+
+
+def test_differing_text_benefit_flags_conflict_against_agent(plan, agent_user):
+    from app.plan_provenance import set_cms_value, set_human_value, get_field, list_conflicts
+    set_human_value(plan, "inpatient_hospital", _text("$455 days 1-6, $0 days 7-90"), user=agent_user)
+    action = set_cms_value(plan, "inpatient_hospital", _text("$295 days 1-5, $0 days 6-90"), "cms_pbp_2027")
+    assert action == "conflict_flagged"
+    assert len(list_conflicts(plan)) == 1
+    # the agent's value must NOT have been overwritten
+    assert get_field(plan, "inpatient_hospital")["value"]["display"] == "$455 days 1-6, $0 days 7-90"
+
+
+def test_text_first_look_is_overwritten_by_cms(plan):
+    from app.plan_provenance import set_cms_value, get_field, _load, _save
+    # simulate a first-look value (trust="unverified")
+    set_cms_value(plan, "inpatient_hospital", _text("$400 days 1-5"), "carrier_first_look")
+    data = _load(plan)
+    data["_meta"]["inpatient_hospital"]["trust"] = "unverified"
+    _save(plan, data)
+    action = set_cms_value(plan, "inpatient_hospital", _text("$295 days 1-5, $0 days 6-90"), "cms_pbp_2027")
+    assert action == "overwrote_firstlook"
+    assert get_field(plan, "inpatient_hospital")["trust"] == "cms_authoritative"
+
+
+def test_offered_sentinel_values_still_compare_equal(plan):
+    from app.plan_provenance import set_cms_value, make_value
+    # amount=None with a derived "Offered" display must not be broken by the fallback
+    set_cms_value(plan, "gym", make_value(None, None, "usd"), "cms_pbp_2026")
+    action = set_cms_value(plan, "gym", make_value(None, None, "usd"), "cms_pbp_2027")
+    assert action == "refreshed"

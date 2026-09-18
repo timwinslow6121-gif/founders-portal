@@ -21,7 +21,7 @@ WHAT IT REPORTS (scripts/cms_sync_report.txt):
 
 Run on VPS: ./venv/bin/python3 scripts/sync_cms_plan_data.py [optional/path/to/file.csv]
 """
-import sys, os, csv, re
+import sys, os, csv, glob, argparse, re
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app, db
@@ -33,13 +33,32 @@ from app.models import Plan
 
 SERVICE_AREA_STATES = {"NC", "SC"}
 
-PLAN_YEAR = 2026
+DEFAULT_PLAN_YEAR = 2026
 
-DEFAULT_CSV = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "docs", "Medicare Landscape Files",
-    "CY2026_Landscape_202603", "CY2026_Landscape_202603.csv",
-)
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def default_csv(year):
+    """Locate the CY<year> Landscape CSV.
+
+    The directory carries a publication stamp that differs per release
+    (CY2026_Landscape_202603), so glob rather than hardcode it. Returns the
+    newest match, or None when that year's release is not on disk yet.
+    """
+    pattern = os.path.join(
+        _REPO_ROOT, "docs", "Medicare Landscape Files",
+        f"CY{year}_Landscape_*", f"CY{year}_Landscape_*.csv",
+    )
+    matches = sorted(glob.glob(pattern))
+    return matches[-1] if matches else None
+
+
+# NOTE: monthly_premium / annual_oopm / star_rating are real DB columns, not
+# details_json keys, so set_cms_value() cannot track them - it only writes
+# details_json._meta. They are overwritten wholesale by each sync. Known gap,
+# logged in BACKLOG.md; routing them through the provenance seam means moving
+# them into details_json, which touches plan_form/plan_detail/plan_list and
+# kpis_for(). Deliberately not done mid-AEP.
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -87,8 +106,13 @@ def _parse_star(val):
 # Main
 # ---------------------------------------------------------------------------
 
-def run(csv_path=None):
-    csv_path = csv_path or DEFAULT_CSV
+def run(csv_path=None, plan_year=DEFAULT_PLAN_YEAR):
+    csv_path = csv_path or default_csv(plan_year)
+    if not csv_path:
+        print(f"ERROR: no CY{plan_year} Landscape CSV found under "
+              f"docs/Medicare Landscape Files/CY{plan_year}_Landscape_*/")
+        print("CMS publishes the Landscape with the Oct 1 marketing release.")
+        return
 
     if not os.path.exists(csv_path):
         print(f"❌  File not found: {csv_path}")
@@ -107,11 +131,11 @@ def run(csv_path=None):
             return
 
         # Build lookup: "H5253-117" → Plan row
-        db_plans = Plan.query.filter_by(agency_id=agency_id, year=PLAN_YEAR).all()
+        db_plans = Plan.query.filter_by(agency_id=agency_id, year=plan_year).all()
         plan_map = {p.cms_plan_id.strip().upper(): p
                     for p in db_plans if p.cms_plan_id}
 
-        print(f"DB plans with CMS IDs ({PLAN_YEAR}): {len(plan_map)}")
+        print(f"DB plans with CMS IDs ({plan_year}): {len(plan_map)}")
         print(f"Reading: {csv_path}\n")
 
         # One CMS plan appears once per county — deduplicate, take first NC/SC row
@@ -175,7 +199,7 @@ def run(csv_path=None):
 
         # --- Report ---
         lines = [
-            f"CMS Landscape Sync Report — {PLAN_YEAR}",
+            f"CMS Landscape Sync Report — {plan_year}",
             f"Source: {os.path.basename(csv_path)}",
             "=" * 65, "",
         ]
@@ -219,4 +243,10 @@ def run(csv_path=None):
 
 
 if __name__ == "__main__":
-    run(sys.argv[1] if len(sys.argv) > 1 else None)
+    ap = argparse.ArgumentParser(description="Sync CMS Landscape plan data.")
+    ap.add_argument("csv_path", nargs="?", default=None,
+                    help="path to the Landscape CSV (default: newest CY<year>_Landscape_*)")
+    ap.add_argument("--year", type=int, default=DEFAULT_PLAN_YEAR,
+                    help=f"contract year to sync (default: {DEFAULT_PLAN_YEAR})")
+    args = ap.parse_args()
+    run(args.csv_path, plan_year=args.year)

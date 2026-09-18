@@ -28,6 +28,7 @@ def create_app():
     from app.notices import notices_bp
     from app.updates import updates_bp
     from app.providers import providers_bp
+    from app.pipeline.routes import pipeline_bp
     app.register_blueprint(main)
     app.register_blueprint(auth)
     app.register_blueprint(upload_bp)
@@ -42,6 +43,7 @@ def create_app():
     app.register_blueprint(notices_bp)
     app.register_blueprint(updates_bp)
     app.register_blueprint(providers_bp)
+    app.register_blueprint(pipeline_bp)
 
     from app.security import init_security
     init_security(app)

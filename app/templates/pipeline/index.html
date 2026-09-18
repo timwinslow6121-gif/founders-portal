@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}AEP{% endblock %}
+
+{% block styles %}
+<style>
+  /* Founders Green (--green, #65BB84) is 2.34:1 on white -- fill only, never
+     text. Text that must read as "good" uses --green-dim, the portal's existing
+     darkened green (#13612E light / #3E8E63 dark), so it stays readable in both
+     themes. Do not hardcode a hex here: a fixed dark green vanishes on the dark
+     card, and a fixed light one vanishes on the white one. */
+  .pl { --pl-good: var(--green-dim); font-size: 17px; }
+  .pl-head { padding: 20px 0 8px; }
+  .pl-big { font-size: 28px; font-weight: 700; color: var(--ivory-bright); }
+  .pl-sub { color: var(--slate); font-size: 15px; margin-top: 4px; }
+  .pl-card { background: var(--surface); border: 1px solid var(--border);
+             border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .pl-card h3 { margin: 0 0 4px; font-size: 18px; color: var(--ivory-bright); }
+  .pl-card.urgent { border-left: 4px solid var(--gold); }
+  .pl-row { display: flex; justify-content: space-between; align-items: center;
+            min-height: 46px; padding: 8px 0; border-top: 1px solid var(--border);
+            color: var(--ivory); }
+  .pl-btn { min-height: 46px; padding: 0 18px; font-size: 16px;
+            border-radius: var(--radius-sm); background: var(--gold);
+            color: var(--on-gold); border: 0; cursor: pointer; }
+  .pl-empty { color: var(--slate); padding: 28px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pl">
+  <div class="pl-head">
+    <div class="pl-big" id="pl-settled">Loading&hellip;</div>
+    <div class="pl-sub" id="pl-pace"></div>
+  </div>
+  <main id="pl-main"></main>
+</div>
+<script src="{{ url_for('static', filename='js/pipeline.js') }}"></script>
+{% endblock %}

@@ -23,6 +23,35 @@
             border-radius: var(--radius-sm); background: var(--gold);
             color: var(--on-gold); border: 0; cursor: pointer; }
   .pl-empty { color: var(--slate); padding: 28px 0; }
+
+  /* Rows painted by pipeline.js. The row wraps to a stack on a phone so the
+     call button never falls off the right edge. */
+  .pl-row { flex-wrap: wrap; gap: 10px 16px; }
+  .pl-who { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1 1 240px; }
+  .pl-name { font-size: 17px; font-weight: 600; color: var(--ivory-bright);
+             text-decoration: none; min-height: 24px; }
+  .pl-name:hover, .pl-name:focus { text-decoration: underline; }
+  .pl-reason { font-size: 15px; color: var(--ivory); }
+  .pl-meta { font-size: 13px; color: var(--slate); }
+  .pl-do { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  .pl-tel { display: inline-flex; align-items: center; min-height: 46px;
+            padding: 0 16px; font-size: 17px; font-weight: 600;
+            border-radius: var(--radius-sm); background: var(--surface-low);
+            color: var(--gold); text-decoration: none; }
+  .pl-tel:hover, .pl-tel:focus { text-decoration: underline; }
+  .pl-nophone { font-size: 15px; color: var(--slate); }
+  .pl-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pl-act { min-height: 46px; padding: 0 14px; font-size: 15px;
+            border-radius: var(--radius-sm); background: var(--surface-low);
+            color: var(--ivory); border: 1px solid var(--border); cursor: pointer; }
+  .pl-act:hover:not(:disabled) { border-color: var(--gold); }
+  .pl-act:disabled { opacity: .55; cursor: default; }
+  .pl-act.pl-on { background: var(--gold); color: var(--on-gold); border-color: var(--gold); }
+  .pl-act.pl-done.pl-on, .pl-settled-row .pl-act.pl-done { color: var(--pl-good); }
+  .pl-say { flex-basis: 100%; margin: 0; font-size: 13px; color: var(--slate); }
+  .pl-say:empty { display: none; }
+  .pl-more { margin: 10px 0 0; }
+  .pl-settled-row .pl-name { color: var(--pl-good); }
 </style>
 {% endblock %}
 

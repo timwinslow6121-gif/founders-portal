@@ -7,8 +7,9 @@ Humana group PPO. Inaction enrolls them automatically. That deadline closes five
 weeks before Medicare AEP ends, which is why the pipeline treats an unconfirmed
 retiree as Tier 1.
 
-MATCHING -- exact MBI, corroborated, never fuzzy:
+MATCHING -- two tiers, both exact, neither fuzzy.
 
+TIER 1, MBI (confidence 'mbi'):
   1. MBI must resolve to exactly ONE portal customer. 0 or 2+ -> refused.
   2. DOB must agree where both sides have one. A disagreement -> refused
      outright: same MBI + different DOB means one of the two records is wrong,
@@ -16,10 +17,22 @@ MATCHING -- exact MBI, corroborated, never fuzzy:
   3. Surname must agree. First name must agree OR be a known short form
      (Phillip/Phil). Anything else -> refused to the review list.
 
-Name-only matching is deliberately NOT a fallback. It produced the documented
-COUCHELL -> Andrea Horstmann mis-link in this codebase. A wrong shp_flag puts a
-customer in Tier 1 under a deadline that is not theirs and implies their
-retiree status was verified when it was not.
+TIER 2, NAME + DOB (confidence 'name_dob'), only for rows tier 1 could not
+resolve. Cannon does not hold an MBI for every patient and neither does the
+portal, so a shared gap on one side should not lose a real retiree.
+  4. (first, last, dob) must resolve to exactly ONE portal customer. Measured
+     2026-09-18: 5,263 distinct such keys across the whole book with ZERO
+     collisions -- which is what makes this safe. It is a property of the data,
+     not a law, so the script RE-CHECKS uniqueness at match time and refuses on
+     any collision rather than assuming it holds.
+  5. If BOTH sides carry an MBI and they differ, refuse. Name+DOB must never
+     overrule a hard identifier. (Measured: 0 such cases today.)
+
+Name-only matching is deliberately NOT a fallback at either tier. Name alone
+produced the documented COUCHELL -> Andrea Horstmann mis-link in this codebase.
+DOB is not unique on its own either; it is the COMBINATION that discriminates.
+A wrong shp_flag puts a customer in Tier 1 under a deadline that is not theirs
+and implies their retiree status was verified when it was not.
 
 SCOPE, stated honestly: this list is Cannon Pharmacy Main's patients only, so it
 finds mostly Brian's book and almost nobody else's. It is a floor, not a census.
@@ -65,32 +78,79 @@ def _first_agrees(a, b):
     return a == b or (a, b) in SHORT_FORMS
 
 
+def _match_name_dob(name, dob_cell, by_name_dob, file_mbi, refused):
+    """Exactly one customer on (first, last, dob), or None.
+
+    Refuses on a collision, and refuses when both sides hold an MBI that
+    disagrees -- name+DOB must never overrule a hard identifier.
+    """
+    fdob = dob_cell.date() if hasattr(dob_cell, "date") else None
+    if not fdob:
+        return None
+    ffirst, flast = _file_name_parts(name)
+    if not (ffirst and flast):
+        return None
+
+    hits = by_name_dob.get((ffirst, flast, fdob), [])
+    if len(hits) > 1:
+        refused.append((name, "name+DOB matches %d customers" % len(hits)))
+        return None
+    if not hits:
+        return None
+
+    c = hits[0]
+    if file_mbi and c.mbi and str(c.mbi).strip().upper() != file_mbi:
+        refused.append((name, "name+DOB agree but MBIs differ -- not overruling the ID"))
+        return None
+    return c
+
+
 def run(apply=False, agency_id=1, path=None):
     path = path or DEFAULT_FILE
     ws = openpyxl.load_workbook(path, read_only=True, data_only=True)["Sheet1"]
     rows = [r for r in list(ws.iter_rows(values_only=True))[1:] if r and r[0]]
 
+    customers = Customer.query.filter_by(agency_id=agency_id).all()
+
     by_mbi = {}
-    for c in Customer.query.filter(Customer.agency_id == agency_id,
-                                   Customer.mbi.isnot(None)).all():
-        by_mbi.setdefault(str(c.mbi).strip().upper(), []).append(c)
+    for c in customers:
+        if c.mbi:
+            by_mbi.setdefault(str(c.mbi).strip().upper(), []).append(c)
+
+    # (first, last, dob) -> customers. Uniqueness is re-checked per match below,
+    # never assumed: a collision refuses rather than picking one.
+    by_name_dob = {}
+    for c in customers:
+        cf, cl = _norm(c.first_name).split(), _norm(c.last_name).split()
+        if cf and cl and c.dob:
+            by_name_dob.setdefault((cf[0], cl[0], c.dob), []).append(c)
 
     setting, already, refused = [], [], []
     no_mbi = not_in_portal = 0
 
     for r in rows:
         name, dob_cell, plan, mbi_cell = r[0], r[1], r[2], r[7]
-        if not mbi_cell or not str(mbi_cell).strip():
-            no_mbi += 1
-            continue
-        mbi = str(mbi_cell).strip().upper()
-        cands = by_mbi.get(mbi, [])
-        if not cands:
-            not_in_portal += 1
-            continue
+        # A row with no MBI is NOT skipped: Cannon does not hold an MBI for
+        # every patient, and that is exactly the shared-gap case tier 2 exists
+        # for. It only counts as no_mbi if tier 2 also fails to place it.
+        mbi = str(mbi_cell).strip().upper() if mbi_cell and str(mbi_cell).strip() else None
+        cands = by_mbi.get(mbi, []) if mbi else []
         if len(cands) > 1:
             refused.append((name, "MBI matches %d customers" % len(cands)))
             continue
+
+        confidence = "mbi"
+        if not cands:
+            # Tier 2 -- name + DOB, for the shared-gap case.
+            c2 = _match_name_dob(name, dob_cell, by_name_dob, mbi, refused)
+            if c2 is None:
+                if mbi:
+                    not_in_portal += 1
+                else:
+                    no_mbi += 1
+                continue
+            cands = [c2]
+            confidence = "name_dob"
 
         c = cands[0]
         fdob = dob_cell.date() if hasattr(dob_cell, "date") else None
@@ -111,22 +171,23 @@ def run(apply=False, agency_id=1, path=None):
         if state.shp_flag:
             already.append((name, c.full_name))
             continue
-        setting.append((name, c, state, plan))
+        setting.append((name, c, state, plan, confidence))
 
     print("%s -- shp_flag from the Cannon SHP list (agency %d)\n"
           % ("APPLY" if apply else "DRY RUN", agency_id))
     print("  file rows                     : %d" % len(rows))
-    print("  no MBI in the file            : %d  (not Medicare / not on file)" % no_mbi)
+    print("  unplaceable (no MBI, no name+DOB): %d  (not Medicare / not a customer)" % no_mbi)
     print("  MBI not in the portal         : %d" % not_in_portal)
     print("  already flagged               : %d" % len(already))
     print("  WILL SET shp_flag             : %d" % len(setting))
     print("  refused                       : %d" % len(refused))
     if setting:
         print("\n  by plan: %s" % dict(collections.Counter(s[3] for s in setting)))
+        print("  by match: %s" % dict(collections.Counter(s[4] for s in setting)))
         print("\n  setting:")
-        for nm, c, _, plan in setting[:40]:
-            print("     %-26s -> %-24s %-12s %s"
-                  % (nm, c.full_name, c.county or "-", plan))
+        for nm, c, _, plan, conf in setting[:40]:
+            print("     %-26s -> %-24s %-12s %-22s [%s]"
+                  % (nm, c.full_name, c.county or "-", plan[:22], conf))
         if len(setting) > 40:
             print("     ... and %d more" % (len(setting) - 40))
     if refused:
@@ -135,7 +196,7 @@ def run(apply=False, agency_id=1, path=None):
             print("     %-26s %s" % (nm, why))
 
     if apply:
-        for _, _, state, _ in setting:
+        for _, _, state, _, _ in setting:
             state.shp_flag = True
         db.session.commit()
         print("\n  Applied: %d flagged." % len(setting))

@@ -393,11 +393,36 @@
 </div>
 
 {# Stats strip #}
+<style>
+  .stat-chip-link { text-decoration: none; color: inherit; cursor: pointer; }
+  .stat-chip-link:hover { border-color: var(--gold); }
+</style>
 <div class="stats-strip">
-  <div class="stat-chip"><strong>{{ stats.total }}</strong> shown</div>
+  <div class="stat-chip"><strong>{{ stats.living if not show_deceased else stats.total }}</strong> shown</div>
   <div class="stat-chip"><strong>{{ stats.active }}</strong> active</div>
-  <div class="stat-chip"><strong>{{ stats.termed }}</strong> termed</div>
+  {% if stats.termed %}<div class="stat-chip"><strong>{{ stats.termed }}</strong> termed</div>{% endif %}
   <div class="stat-chip"><strong>{{ stats.medicaid }}</strong> on medicaid</div>
+  {#
+    Deceased customers are set aside, never hidden. The count is always visible
+    and one click brings them back. A wrongly-marked living customer must stay
+    discoverable -- an absence nobody notices is the failure this avoids.
+  #}
+  {% if stats.deceased %}
+    {% set args = request.args.to_dict() %}
+    {% if show_deceased %}
+      {% set _ = args.pop('deceased', None) %}
+      <a class="stat-chip stat-chip-link" href="{{ url_for('customers.customers_list', **args) }}"
+         title="Set deceased customers aside again">
+        <strong>{{ stats.deceased }}</strong> deceased shown &middot; hide
+      </a>
+    {% else %}
+      {% set _ = args.update({'deceased': '1'}) %}
+      <a class="stat-chip stat-chip-link" href="{{ url_for('customers.customers_list', **args) }}"
+         title="{{ stats.deceased }} deceased customer{{ 's' if stats.deceased != 1 }} not shown">
+        <strong>{{ stats.deceased }}</strong> deceased &middot; show
+      </a>
+    {% endif %}
+  {% endif %}
 </div>
 
 <div id="search-results"></div>

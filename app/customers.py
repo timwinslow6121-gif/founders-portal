@@ -217,6 +217,12 @@ def customers_list():
     f_agent_id  = request.args.get("agent_id", type=int)
     f_medicaid  = request.args.get("medicaid", "").strip()
     f_language  = request.args.get("language", "").strip()
+    # Deceased customers are EXCLUDED by default but never hidden: the count is
+    # always shown and one click reveals them. The deceased design is explicit
+    # that suppression must stay visible -- 15 of the 20 marks came from carrier
+    # Term Reason data, which is wrong sometimes, and a living customer wrongly
+    # marked must not silently vanish from their agent's book.
+    show_deceased = request.args.get("deceased") == "1"
 
     query = _customer_query(include_former=include_former)
 
@@ -232,17 +238,26 @@ def customers_list():
     if dir_ == "desc":
         order_cols = [c.desc() for c in order_cols]
 
-    customer_page = query.order_by(*order_cols).paginate(
-        page=page, per_page=50, error_out=False
-    )
-
-    # Summary stats — computed on full filtered set (not just current page)
+    # Summary stats — computed on the full filtered set (not just this page),
+    # and BEFORE the deceased filter, so the strip can always say how many were
+    # set aside rather than silently under-reporting.
     total_count    = query.count()
     active_count   = query.filter(Customer.deal_stage == "Active").count()
     termed_count   = query.filter(Customer.deal_stage == "Termed").count()
+    deceased_count = query.filter(Customer.deceased_date.isnot(None)).count()
+    # living_count is the number the AEP pipeline works from, so the two modules
+    # reconcile: is_contactable() excludes exactly these rows.
+    living_count   = total_count - deceased_count
     medicaid_count = query.filter(
         Customer.medicaid_level.isnot(None), Customer.medicaid_level != ""
     ).count()
+
+    if not show_deceased:
+        query = query.filter(Customer.deceased_date.is_(None))
+
+    customer_page = query.order_by(*order_cols).paginate(
+        page=page, per_page=50, error_out=False
+    )
 
     # Dropdown options for filter bar
     carriers = [r[0] for r in
@@ -311,9 +326,10 @@ def customers_list():
         q=q, sort=sort, dir=dir_, include_former=include_former,
         f_carrier=f_carrier, f_plan_type=f_plan_type,
         f_agent_id=str(f_agent_id) if f_agent_id else "", f_medicaid=f_medicaid,
-        f_language=f_language,
+        f_language=f_language, show_deceased=show_deceased,
         stats={"total": total_count, "active": active_count,
-               "termed": termed_count, "medicaid": medicaid_count},
+               "termed": termed_count, "medicaid": medicaid_count,
+               "deceased": deceased_count, "living": living_count},
         carriers=carriers, agents=agents, languages=languages,
         shared_views=shared_views,
         policy_info=policy_info,

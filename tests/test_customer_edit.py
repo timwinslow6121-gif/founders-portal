@@ -171,3 +171,42 @@ def test_save_field_valid_dob_ok(client, app, agency, agent_user, db_session):
     assert r.status_code == 200
     with app.app_context():
         assert Customer.query.get(cid).dob == date(1956, 8, 28)
+
+
+def test_deceased_customers_are_set_aside_but_counted(db_session, app, client, agency, admin_user):
+    """The customers list excludes deceased rows by default but ALWAYS reports
+    how many were set aside, and one click brings them back.
+
+    This is the reconciliation between the customers module and the AEP
+    pipeline: pipeline counts exclude the deceased via is_contactable(), so the
+    list must say so rather than silently differing by N.
+    """
+    import datetime as dt
+    from app.extensions import db
+    from app.models import Customer
+
+    with app.app_context():
+        for i in range(3):
+            db.session.add(Customer(
+                first_name=f"Liv{i}", last_name="Ing", full_name=f"Liv{i} Ing",
+                agency_id=agency.id, primary_agent_id=admin_user.id, source="test"))
+        db.session.add(Customer(
+            first_name="Gone", last_name="Departed", full_name="Gone Departed",
+            agency_id=agency.id, primary_agent_id=admin_user.id, source="test",
+            deceased_date=dt.date(2026, 7, 31)))
+        db.session.commit()
+
+    with client.session_transaction() as sess:
+        sess["_user_id"] = str(admin_user.id)
+        sess["_fresh"] = True
+
+    r = client.get("/customers")
+    body = r.get_data(as_text=True)
+    assert r.status_code == 200
+    assert "Gone Departed" not in body, "deceased customer must not be listed by default"
+    assert "deceased" in body.lower(), "the count of set-aside customers must be visible"
+
+    r2 = client.get("/customers?deceased=1")
+    body2 = r2.get_data(as_text=True)
+    assert r2.status_code == 200
+    assert "Gone Departed" in body2, "one click must bring them back"

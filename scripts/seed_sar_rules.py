@@ -26,17 +26,39 @@ from app.extensions import db
 from app.models import Plan, Policy, Customer, SarRule
 from sqlalchemy import func
 
+# VERIFIED 2026-09-18 against Humana's own "2027 Market Product Guide -- North
+# Carolina" (docs/mockups/CRM Mock-ups/North Carolina.pdf), the Service area
+# overview pages 12-18. That document lists, per county, every plan Humana will
+# offer in 2027. It is authoritative -- unlike the first-look CSV, which is
+# Source=FL and lists only segment -001.
+#
+#   Cabarrus  MA-PD: H1036-308-000, H1036-318-000, H1036-343-000, H7617-122-000
+#             -> NO 335, NO 137, NO 5525-035.  All three genuinely exit.  (p12)
+#   Rowan     MA-PD: ... H1036-137-000, H1036-335-002 ...  -> KEEPS both  (p17)
+#   Iredell   MA-PD: ... H1036-137-000, H1036-335-002 ...  -> KEEPS both  (p15)
+#   Mecklenburg ... H1036-137-000, H1036-335-002 ...       -> KEEPS both  (p15)
+#
+# So the exit is CABARRUS-SPECIFIC. The 525 Rowan + 148 Iredell + 92 Mecklenburg
+# customers on 335 are NOT affected and must not be told their plan is ending.
+#
+# The first-look CSV's "H1036-335-001 serves Brunswick, Davidson, Davie, Forsyth,
+# New Hanover, Stokes, Yadkin" is NOT a reduction -- that is simply the -001
+# segment's footprint, which Tim confirms was the same in 2026. Founders' members
+# are on -002. Reading it as a SAR would have wrongly flagged ~1,636 customers.
+#
 # (cms_plan_id, county, why). Confirmed by Tim 2026-09-18.
 CONFIRMED = [
     ("H5525-035", "Cabarrus",
      "HumanaChoice Giveback exits Cabarrus for 2027 (first-look Key notes + "
      "Brian's Humana letter)"),
     ("H1036-335", "Cabarrus",
-     "Humana Gold Plus 335 SAR in Cabarrus (Tim). NOTE: portal stores 335 at "
-     "2-part grain, so this cannot be scoped to segment -002"),
+     "Humana Gold Plus 335 exits Cabarrus for 2027 -- Humana 2027 NC product "
+     "guide p12 lists no 335 for Cabarrus. Rowan/Iredell/Mecklenburg KEEP "
+     "335-002 (pp15,17), so this is deliberately Cabarrus-only"),
     ("H1036-137", "Cabarrus",
-     "Humana Gold Plus 137 SAR in Cabarrus (Tim). Mostly crosswalked away, but "
-     "not entirely -- see the review section"),
+     "Humana Gold Plus 137 exits Cabarrus -- guide p12 lists no 137 for "
+     "Cabarrus. Mostly crosswalked away years ago, but Kelley Haskins enrolled "
+     "2026-08-01 and is still active"),
     ("H2001-084", "Cabarrus",
      "UHC Access NC-23 -- the only UHC SAR needing an active plan choice (IMO "
      "AEP rollout notes)"),

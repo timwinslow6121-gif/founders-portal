@@ -11,6 +11,13 @@
 
 _Last updated: 2026-09-02_
 
+## 💵 AGENTS SEE FOUNDERS' OVERRIDES IN A CUSTOMER'S PAYMENT HISTORY (Tim, 2026-09-18) — 🔴 fix before agents use the pipeline
+**Found on Lisia Hurlocker's profile.** She has three UHC rows for one enrollment: `$125.00` `founders_override` (`split_rate=NULL`), `$86.75` `agent_commission` @0.50, `$607.25` `agent_commission` @0.50. **The money is correct** — a NULL split rate means the whole amount is Founders' keep, so Brian's payout on the $125 is `$0`, and the `agent_id` on that row is provenance (whose book it came from), not who was paid.
+- 🔴 **The DISPLAY is the problem.** The profile's payment history shows all three rows undifferentiated, so Brian reads it as "I was paid three times for this customer." He wasn't. A wrong impression about pay is the fastest way to lose an agent's trust in the portal — and this sits on the customer profile, which is the screen the AEP pipeline drives agents to constantly.
+- ⬜ **Rule Tim wants:** an agent must NOT see `founders_override` rows in a per-customer payment history. Admins/Founders see everything. If Founders is to be treated as an agent (so the agency can see its own commission + override per customer), that is an explicit admin/Founders view, not the default agent view.
+- ⬜ **Scope the audit properly — this is display logic, not money.** Find every surface that lists per-customer payments (customer profile payment history, `/commissions/ledger`, the recap drill-down, CSV exports) and decide per surface what an `agent` role sees vs `admin`. ⚠ Do NOT "fix" it by changing classification or `agent_id` on the ledger rows — the ledger is the source of truth and it is already right; `split_breakdown()` derives payout correctly. This is a filter at the read layer.
+- 📌 Related, already correct and worth not breaking: `classification` is the label and `split_rate` drives the math (`founders_override` + NULL rate = Founders keeps it all). The `::r` suffix on `uhc::0::556::r` shows the parser correctly decomposed the UHC agent-commission / Founders-override pair rather than lumping them.
+
 ## 🔌 INTEGRITYCONNECT / MEDICARE CENTER REST API (Tim, 2026-09-18) — ⏸ PARKED, spike before any build
 **Integrity opened an NPN-scoped machine-to-machine REST API over Medicare Center** — "leads, addresses, contact information, and health profiles". This removes the weakest dependency in the AEP pipeline design: the plan to have every agent set up a Gmail forwarding rule for carrier confirmation emails and never break it. **Full design section is in `docs/superpowers/specs/2026-09-17-aep-pipeline-design.md` → "IntegrityCONNECT Leads Partner API".**
 

@@ -249,12 +249,7 @@ from flask import current_app
 
 _URLFOR_RE = re.compile(r"url_for\(\s*['\"]([a-zA-Z0-9_.]+)['\"]")
 _ROUTE_PREFIX_EXEMPT = ("auth.", "comms.", "static")   # webhooks/oauth/static unlinked-ok
-_ORPHAN_ALLOWLIST = {
-    "main.healthz",        # intentionally unlinked endpoints
-    # AEP pipeline (migration 046). The page is reachable by URL and is linked
-    # from the sidebar in Task 8 of the Tier-1 plan; remove this entry then.
-    "pipeline.index",
-}
+_ORPHAN_ALLOWLIST = {"main.healthz"}    # intentionally unlinked endpoints
 # JSON endpoints fetched by JS, never linked with url_for() from a template.
 # This invariant is about GET *view* routes -- an /api/ path that returns
 # jsonify() is not a page a template could link to, so it is not an orphan.

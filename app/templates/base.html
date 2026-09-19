@@ -818,6 +818,9 @@
         <a href="/upload" class="nav-item {% if request.path == '/upload' %}active{% endif %}">
           <span class="nav-dot"></span>Upload Carrier Files
         </a>
+        <a href="{{ url_for('pipeline.index') }}" class="nav-item {% if request.path.startswith('/pipeline') %}active{% endif %}">
+          <span class="nav-dot"></span>AEP
+        </a>
         <div class="nav-section-label">Commissions</div>
         <a href="{{ url_for('commission.admin_aggregate') }}"
            class="nav-item {% if request.endpoint in ['commission.admin_aggregate', 'commission.admin_recap'] %}active{% endif %}">
@@ -893,6 +896,9 @@
         {% endif %}
         <a href="/terminations" class="nav-item {% if request.path == '/terminations' %}active{% endif %}">
           <span class="nav-dot"></span>Upcoming Terms
+        </a>
+        <a href="{{ url_for('pipeline.index') }}" class="nav-item {% if request.path.startswith('/pipeline') %}active{% endif %}">
+          <span class="nav-dot"></span>AEP
         </a>
         <div class="nav-section-label">Commissions</div>
         <a href="{{ url_for('commission.agent_recap') }}"
